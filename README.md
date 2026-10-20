@@ -6,7 +6,7 @@ El pago de la comida es directo al negocio por transferencia (CLABE, tarjeta o Q
 ## Archivos
 | Archivo | Va en |
 |---|---|
-| `index.html`, `manifest.json`, `sw.js`, `icons/` | Este repositorio de GitHub (GitHub Pages) |
+| `index.html`, `manifest.json`, `sw.js`, `firebase-config.js`, `icons/` | Este repositorio de GitHub (GitHub Pages) |
 | `Code.gs` (se entrega como `Codigo-gs.html`) | Apps Script ligado a una Hoja de cálculo |
 
 ## Instalación
@@ -46,5 +46,19 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 - El repartidor ve nombre y teléfono de quien recibe, botón a Google Maps y "Copiar ubicación"; esos datos se borran al entregar.
 - El cliente confirma que recibió y califica restaurante y entrega (★ visibles en las tarjetas).
 
+## Versión 1.3 · notificaciones
+- Notificaciones con la app cerrada vía Firebase Cloud Messaging; Apps Script las envía con la cuenta de servicio guardada en la propiedad `FCM_CUENTA` (nunca la subas a GitHub).
+- Negocio: pedido nuevo, comprobante recibido, repartidor asignado, cancelaciones y chat. Cliente: cada cambio de su pedido y chat. Repartidores: pedidos disponibles y "ya está listo". Admin: cuentas por aprobar.
+- Al tocar la notificación se abre el pedido. Al cerrar sesión el teléfono se da de baja; los teléfonos dados de baja en Firebase se limpian solos.
+- `firebase-config.js` lleva la configuración web y la clave VAPID. En iPhone solo funciona con la app instalada en la pantalla de inicio (iOS 16.4+).
+- Prueba desde el editor de Apps Script con `probarNotificacion()`.
+
+## Versión 1.4 · menú en Excel y variantes
+- En Mi menú: descargar plantilla, exportar el menú y subir un Excel (.xlsx, .xls o .csv) con vista previa antes de guardar (nuevos, actualizados y errores por fila).
+- Una fila por producto: Sección, Producto, Descripción, Precio, Variantes (`Chica:80; Grande:120`), Extras (`Queso:10; Salsa`), Se puede quitar, Tiempo, Disponible, ID.
+- Al reimportar, el ID (o sección + nombre) actualiza el producto sin duplicarlo y conserva su foto; lo que no viene en el archivo no se toca.
+- Variantes: el cliente elige una (obligatoria) y su precio reemplaza al normal; las tarjetas muestran "Desde $…".
+- Fotos rápidas desde la lista ("📷 Foto") y filtro de productos sin foto.
+
 ## Pendiente
-Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos; notificaciones push con la app cerrada.
+Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.

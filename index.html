@@ -15,6 +15,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <style>
 :root{
   --pri:#3B5A2C; --pri2:#2C4521; --pri-s:#E5ECDC; --pri-xs:#F0F4EA;
@@ -272,6 +275,11 @@ textarea.i{min-height:70px;resize:vertical}
 .hRow.off input[type=time]{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
 .entregaBox{background:var(--pri-xs);border-radius:16px;padding:12px;margin-top:10px}
+.bannerPush{display:flex;gap:12px;align-items:center;background:var(--pri);color:#fff;border-radius:18px;padding:13px 14px;margin-bottom:14px}
+.bannerPush .t{flex:1;font-size:13.5px;line-height:1.3}
+.bannerPush .t b{display:block;font-size:15px}
+.bannerPush .btn{background:#F6F1E8;color:var(--pri);border:0;padding:9px 13px;font-size:13.5px}
+.bannerPush .x{background:none;border:0;color:#fff;opacity:.7;font-size:18px;cursor:pointer;padding:0 2px}
 </style>
 </head>
 <body class="sinNav">
@@ -295,7 +303,7 @@ textarea.i{min-height:70px;resize:vertical}
 <div id="toast"></div>
 <script>
 /* ============ CONFIGURACIÓN ============ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw16py7HK64D_1W5C5leitt313r_tviHv9NYsgH2_ZSu_z_1IWJcynEMsNSySrTUqu7pQ/exec';
+const API_URL = 'PEGA_AQUI_LA_URL_DE_TU_APLICACION_WEB/exec';
 const APP = 'Pídele';
 
 /* ============ ESTADO ============ */
@@ -531,7 +539,9 @@ async function arrancar() {
   setTimeout(() => $('#splash').classList.add('fuera'), 1300);
   if (!S.token || !S.user) { S.token = null; S.user = null; }
   if (!S.conf) { try { S.conf = await api('configPublica'); ls('conf', S.conf); } catch (e) { } }
-  ir(inicioRol(), null);
+  const deUrl = location.search;
+  if (deUrl) history.replaceState(null, '', location.pathname);
+  if (!abrirDesdeUrl(deUrl)) ir(inicioRol(), null);
   if (!S.token) { api('configPublica').then(c => { S.conf = c; ls('conf', c); }).catch(() => { }); return; }
   try {
     const d = await api('yo');
@@ -542,21 +552,23 @@ async function arrancar() {
   if (!S.token) return;
   iniciarSondeo();
   if (S.user.rol === 'repartidor') iniciarGPS();
+  activarPush(false).catch(() => { });
 }
 
 function guardarSesion(d) {
   S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config;
   ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => { });
   history.replaceState(null, '');
   const destino = S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
   S.despues = null;
   ir(destino);
   iniciarSondeo();
   if (S.user.rol === 'repartidor') iniciarGPS();
+  activarPush(false).catch(() => { });
 }
 
 function salir(silencioso) {
+  quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
   ['token', 'user', 'negocio', 'entrega'].forEach(k => ls(k, null));
   S.token = null; S.user = null; S.negocio = null; S.firma = ''; S.nuevos = 0; S.despues = null; S.entrega = null;
@@ -625,19 +637,97 @@ async function vBloqueado() {
     <button class="btn" onclick="salir(true)">Salir</button></div>`);
 }
 
+/* ============ NOTIFICACIONES ============ */
+function pushDisponible() {
+  return typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG.apiKey && window.firebase && firebase.messaging &&
+    'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
+}
+function esIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent || ''); }
+function instalada() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+
+/** Registra este teléfono para recibir notificaciones. pedir=true muestra el permiso del navegador. */
+async function activarPush(pedir) {
+  if (!S.token || !pushDisponible()) return false;
+  if (Notification.permission === 'default') {
+    if (!pedir) return false;
+    const r = await Notification.requestPermission();
+    if (r !== 'granted') { toast('Sin permiso no podemos avisarte. Puedes activarlo después en Perfil.', 'err'); pintarBannerPush(); return false; }
+  }
+  if (Notification.permission !== 'granted') return false;
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  const reg = await navigator.serviceWorker.register('sw.js');
+  await navigator.serviceWorker.ready;
+  const m = firebase.messaging();
+  const fcm = await m.getToken({ vapidKey: FIREBASE_VAPID, serviceWorkerRegistration: reg });
+  if (!fcm) return false;
+  const clave = S.user.id + '|' + fcm;
+  if (ls('fcm') !== clave) { await api('registrarDispositivo', { fcm, ua: navigator.userAgent.slice(0, 120) }); ls('fcm', clave); }
+  if (!S._onMsg) {
+    S._onMsg = true;
+    // con la app abierta: sonido + aviso y se actualiza la pantalla al momento
+    m.onMessage(p => { const d = p.data || {}; S._pushReciente = Date.now(); beep(); toast(d.titulo || APP); sondear(true); });
+  }
+  pintarBannerPush();
+  return true;
+}
+
+async function botonActivarPush(btn) {
+  await act(btn, async () => { if (await activarPush(true)) toast('¡Listo! Te avisaremos de tus pedidos 🔔'); });
+}
+
+function quitarPush() {
+  const f = ls('fcm');
+  if (f && S.token) api('quitarDispositivo', { fcm: f.split('|')[1] }).catch(() => { });
+  ls('fcm', null);
+}
+
+/** Aviso para activar notificaciones (solo si se pueden y aún no se decidió). */
+function bannerPush() {
+  if (!S.token || ls('pushNo')) return '<div id="bannerPush"></div>';
+  let h = '';
+  if (pushDisponible() && Notification.permission === 'default') {
+    const txt = { comprador: 'Te avisamos cuando tu pedido avance, aunque tengas la app cerrada.', negocio: 'Entérate al instante de cada pedido nuevo y cada comprobante.', repartidor: 'Recibe al momento los pedidos disponibles.', admin: 'Recibe avisos de cuentas por aprobar.' }[S.user.rol];
+    h = `<div class="bannerPush"><span style="font-size:26px">🔔</span><div class="t"><b>Activa las notificaciones</b>${txt}</div>
+      <button class="btn" onclick="botonActivarPush(this)">Activar</button><button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Ahora no">✕</button></div>`;
+  } else if (esIOS() && !instalada() && typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG.apiKey) {
+    h = `<div class="bannerPush"><span style="font-size:26px">📲</span><div class="t"><b>Instala la app para recibir avisos</b>En iPhone: botón Compartir → “Agregar a inicio” y ábrela desde ahí.</div>
+      <button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Cerrar">✕</button></div>`;
+  }
+  return `<div id="bannerPush">${h}</div>`;
+}
+function pintarBannerPush() { const b = $('#bannerPush'); if (b && b.outerHTML !== undefined) b.outerHTML = bannerPush(); }
+
+function estadoPushTexto() {
+  if (!pushDisponible()) return esIOS() && !instalada() ? 'Para recibir avisos en iPhone, instala la app (Compartir → Agregar a inicio).' : '';
+  if (Notification.permission === 'granted') return ls('fcm') ? '🔔 Notificaciones activas en este teléfono' : '';
+  if (Notification.permission === 'denied') return '🔕 Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para este sitio.';
+  return '';
+}
+
+/** Abre la pantalla que trae una notificación (?pedido=ID o ?v=vista). */
+function abrirDesdeUrl(url) {
+  let q;
+  try { q = new URL(url, location.href).searchParams; } catch (e) { return false; }
+  const ped = q.get('pedido'), v = q.get('v');
+  if (!S.token || (!ped && !v)) return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (NAV[rolActual()] || []).some(x => x[0] === v)) ir(v); else return false;
+  return true;
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
+
 /* ============ SONDEO (actualizaciones) ============ */
 function iniciarSondeo() {
   clearInterval(S._sondeo);
   S._sondeo = setInterval(sondear, 15000);
   sondear();
 }
-async function sondear() {
-  if (!S.token || !S.user || document.hidden && S.user.rol === 'comprador') return;
+async function sondear(forzar) {
+  if (!S.token || !S.user || (document.hidden && S.user.rol === 'comprador' && !forzar)) return;
   try {
     const d = await api('sondeo', S.user.rol === 'repartidor' && S.pos ? S.pos : {});
     const cambio = S.firma && d.firma !== S.firma;
     const masNuevos = d.nuevos > S.nuevos;
-    if (S.firma) {
+    if (S.firma && Date.now() - (S._pushReciente || 0) > 20000) {
       if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', 'Revisa la pestaña Pedidos');
       else if (S.user.rol === 'repartidor' && masNuevos) avisar('📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
@@ -648,7 +738,7 @@ async function sondear() {
     S.ticks++;
     // en el seguimiento se refresca cada 30 s para mover al repartidor en el mapa
     const cada = S.vista === 'pedido' ? 2 : 4;
-    if (S.auto && !$('#modal').classList.contains('on') && (cambio || S.ticks % cada === 0)) pintar(true);
+    if (S.auto && !$('#modal').classList.contains('on') && (cambio || forzar || S.ticks % cada === 0)) pintar(true);
     if (S.chat) cargarChat();
   } catch (e) { }
 }
@@ -711,6 +801,7 @@ function etiqueta(e, p) {
 /** Texto de extras, "sin" y nota de un producto del pedido. */
 function detalleItem(it) {
   const p = [];
+  if (it.variante) p.push('<b>' + esc(it.variante) + '</b>');
   (it.extras || []).forEach(e => p.push('+ ' + esc(e.nombre)));
   (it.sin || []).forEach(s => p.push('Sin ' + esc(s)));
   if (it.nota) p.push('“' + esc(it.nota) + '”');
@@ -884,6 +975,8 @@ function distanciaTxt(n) {
   const u = S.user;
   return u && u.lat && n.lat ? kmRuta(n.lat, n.lng, u.lat, u.lng).toFixed(1) + ' km' : '';
 }
+function precioTxt(p) { return (p.variantes && p.variantes.length > 1 ? 'Desde ' : '') + money(p.precio); }
+
 function botonCarrito() {
   const n = nCarrito();
   return `<button class="redondo" onclick="ir('carrito')" aria-label="Carrito">${ico('bolsa')}${n ? `<i class="badgeC">${n}</i>` : ''}</button>`;
@@ -905,6 +998,7 @@ async function vInicio(p, silencioso) {
       <button class="redondo" onclick="ir('buscar')" aria-label="Buscar">${ico('search')}</button>
       ${botonCarrito()}
     </div>
+    ${bannerPush()}
     <h1>¿Qué se te antoja hoy?</h1>
     <div class="buscar" onclick="ir('buscar')">${ico('search', 's')}<span>Busca tu comida favorita…</span></div>
     <div class="catFila">${cats.map(c => `<button class="cat ${c === S.cat ? 'on' : ''}" data-c="${esc(c)}" onclick="elegirCat(this)"><div class="cu">${ICONO_CAT[c] || '🏪'}</div><b>${esc(c)}</b></button>`).join('')}</div>
@@ -965,7 +1059,7 @@ async function buscarAhora() {
     $('#resB').innerHTML = (r.negocios.length ? `<h3>Negocios</h3><div class="grid2">${r.negocios.map(tarjetaNegocio).join('')}</div>` : '') +
       (r.productos.length ? `<h3>Platillos</h3><div class="card">${r.productos.map(p => `<div class="linea" style="cursor:pointer" onclick="S._abrirProd='${p.id}';ir('negocio','${p.negocioId}')">
         ${p.foto ? `<img class="thumb" src="${esc(p.foto)}" alt="" loading="lazy">` : '<div class="thumb">🍽️</div>'}
-        <div class="grow"><b>${esc(p.nombre)}</b><div class="muted small">${esc(p.negocio)}${p.abierto ? '' : ' · cerrado'}</div><div class="b" style="margin-top:4px">${money(p.precio)}</div></div></div>`).join('')}</div>` : '') ||
+        <div class="grow"><b>${esc(p.nombre)}</b><div class="muted small">${esc(p.negocio)}${p.abierto ? '' : ' · cerrado'}</div><div class="b" style="margin-top:4px">${precioTxt(p)}</div></div></div>`).join('')}</div>` : '') ||
       `<div class="vacio"><span class="big">🤔</span>No encontramos “${esc(q)}”</div>`;
   } catch (e) { $('#resB').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
 }
@@ -1050,7 +1144,7 @@ function pintarProductos() {
       <div class="img">${p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy">` : '🍽️'}</div>
       <div class="info"><b class="clamp2">${esc(p.nombre)}</b>
         ${p.descripcion ? `<div class="desc clamp2">${esc(p.descripcion)}</div>` : ''}
-        <div class="pie"><div><span class="precio">${money(p.precio)}</span><span class="min">${ico('reloj', 's')} ${p.tiempoPrep || d.negocio.tiempoPrep} min</span></div>
+        <div class="pie"><div><span class="precio">${precioTxt(p)}</span><span class="min">${ico('reloj', 's')} ${p.tiempoPrep || d.negocio.tiempoPrep} min</span></div>
           <span class="mas">${ico('mas', 's')}</span></div></div></div>`).join('')}</div>`).join('');
 }
 
@@ -1058,11 +1152,14 @@ function pintarProductos() {
 function abrirProducto(pid) {
   const d = S._menu, n = d.negocio, p = d.productos.find(x => x.id === pid);
   if (!p) return;
-  S._hoja = { p, cant: 1 };
+  const vars = p.variantes || [];
+  S._hoja = { p, cant: 1, v: vars.length ? 0 : -1 };
   modal(`${p.foto ? `<img class="hojaImg" src="${esc(p.foto)}" alt="">` : ''}
     <div class="row between" style="align-items:flex-start"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
-    <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${money(p.precio)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
+    <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${precioTxt(p)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
+    ${vars.length ? `<div class="grupoT"><b>Elige una opción</b><span class="tag t-pri">Obligatorio</span></div>
+      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === 0 ? 'checked' : ''} onchange="S._hoja.v=${i};totalHoja()"><span>${esc(v.nombre)}</span><b>${money(v.precio)}</b></label>`).join('')}` : ''}
     ${p.extras.length ? `<div class="grupoT"><b>¿Agregar algo extra?</b><span class="muted small">Opcional</span></div>
       ${p.extras.map((e, i) => `<label class="opc"><input type="checkbox" class="hEx" data-i="${i}" onchange="totalHoja()"><span>${esc(e.nombre)}</span><b>${e.precio ? '+' + money(e.precio) : 'Gratis'}</b></label>`).join('')}` : ''}
     ${p.quitar.length ? `<div class="grupoT"><b>¿Prefieres sin…?</b><span class="muted small">Opcional</span></div>
@@ -1071,7 +1168,7 @@ function abrirProducto(pid) {
     <textarea class="i" id="hNota" maxlength="120" placeholder="Ej. bien dorado, salsa aparte, poco hielo…"></textarea>
     <div class="row between" style="margin-top:16px">
       <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
-      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto ? 'Agregar · <span id="hTot">' + money(p.precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
+      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto ? 'Agregar · <span id="hTot">' + money(vars.length ? vars[0].precio : p.precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
 }
 
 function selHoja() {
@@ -1079,7 +1176,8 @@ function selHoja() {
   const extras = [...document.querySelectorAll('.hEx')].filter(x => x.checked).map(x => p.extras[+x.dataset.i]);
   const sin = [...document.querySelectorAll('.hSin')].filter(x => x.checked).map(x => p.quitar[+x.dataset.i]);
   const nota = ($('#hNota').value || '').trim();
-  return { extras, sin, nota, unit: p.precio + extras.reduce((s, e) => s + e.precio, 0) };
+  const variante = S._hoja.v >= 0 ? p.variantes[S._hoja.v] : null;
+  return { extras, sin, nota, variante: variante ? variante.nombre : '', unit: (variante ? variante.precio : p.precio) + extras.reduce((s, e) => s + e.precio, 0) };
 }
 function totalHoja() { const t = $('#hTot'); if (t) t.textContent = money(selHoja().unit * S._hoja.cant); }
 function cantHoja(k) { S._hoja.cant = Math.max(1, Math.min(50, S._hoja.cant + k)); $('#hCant').textContent = S._hoja.cant; totalHoja(); }
@@ -1092,8 +1190,8 @@ function agregarHoja() {
   }
   S.carrito.negocioId = n.id; S.carrito.negocio = n.nombre; S.carrito.lat = n.lat; S.carrito.lng = n.lng;
   // misma combinación de extras/sin/nota = misma línea del carrito
-  const key = [p.id, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota].join('|');
-  const it = S.carrito.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, extras: s.extras, sin: s.sin, nota: s.nota, cant: 0 };
+  const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota].join('|');
+  const it = S.carrito.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, cant: 0 };
   it.cant = Math.min(50, it.cant + S._hoja.cant);
   S.carrito.items[key] = it;
   ls('carrito', S.carrito);
@@ -1263,7 +1361,7 @@ async function confirmarPedido() {
   if (!e.metodo) throw new Error('Elige cómo vas a pagar');
   const d = await api('crearPedido', {
     negocioId: c.negocioId, tipoEntrega: e.tipo, metodoPago: e.metodo,
-    items: itemsCarrito().map(x => ({ productoId: x.id, cant: x.cant, extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota })),
+    items: itemsCarrito().map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota })),
     direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
     recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true
   });
@@ -1489,7 +1587,8 @@ function vPerfil() {
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
     <div class="card">
       ${S.instalar ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
-      ${'Notification' in window && Notification.permission !== 'granted' ? `<button class="btn full" onclick="Notification.requestPermission().then(()=>vPerfil())">🔔 Activar avisos</button><div style="height:8px"></div>` : ''}
+      ${estadoPushTexto() ? `<div class="muted small" style="margin-bottom:8px">${estadoPushTexto()}</div>` : ''}
+      ${pushDisponible() && Notification.permission === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
     <div class="muted small" style="text-align:center">${APP} ${S.conf ? 'v' + S.conf.version : ''}</div>`);
@@ -1574,7 +1673,7 @@ async function vNegPedidos() {
     ${x.estado === 'LISTO' && x.tipoEntrega !== 'recoger' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : 'Esperando repartidor'}</div>` : ''}
     ${x.califNegocio ? `<div class="small">Calificación: <span class="estrella">${'★'.repeat(x.califNegocio)}</span></div>` : ''}
     ${botonesPedido(x, true)}</div>`;
-  html(`${pendienteAviso()}
+  html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div class="grow"><b>${esc(n.nombre)}</b> ${n.numCalif ? `<span class="small"><span class="estrella">★</span> ${n.calif} (${n.numCalif})</span>` : ''}
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
       <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
@@ -1600,15 +1699,167 @@ async function abrirCerrar(chk) {
 async function vMenu() {
   const l = await api('misProductos');
   S._prods = l;
+  const sinFoto = l.filter(p => !p.foto).length;
+  const lista = S._soloSinFoto ? l.filter(p => !p.foto) : l;
   const grupos = {};
-  l.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  lista.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
   html(`${pendienteAviso()}<div class="row between"><h2>Mi menú</h2><button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button></div>
+    <div class="card"><b>📊 Menú en Excel</b><div class="muted small">Captura o edita todo tu menú en la computadora y súbelo aquí. Las fotos se agregan después, producto por producto.</div>
+      <div class="btns"><button class="btn sm" onclick="act(this,descargarPlantilla)">⬇ Plantilla</button>
+        <button class="btn sm" onclick="act(this,exportarMenu)" ${l.length ? '' : 'disabled'}>⬇ Exportar mi menú</button>
+        <label class="btn sm pri">⬆ Importar Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="importarExcel(this)"></label></div></div>
+    ${sinFoto ? `<div class="aviso ${S._soloSinFoto ? 'info' : 'warn'}" style="cursor:pointer" onclick="S._soloSinFoto=!S._soloSinFoto;pintar(true)">📷 ${sinFoto} producto${sinFoto > 1 ? 's' : ''} sin foto · ${S._soloSinFoto ? 'ver todos' : 'ver solo esos'}</div>` : ''}
     ${Object.keys(grupos).map(g => `<h3>${esc(g)}</h3><div class="card">${grupos[g].map(p => `<div class="prod">
-      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : `<div class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>`}
-      <div class="grow" onclick="formProducto('${p.id}')" style="cursor:pointer"><b>${esc(p.nombre)}</b><div class="b">${money(p.precio)}</div>
-        <div class="muted small">${p.extras.length ? p.extras.length + ' extras · ' : ''}${p.quitar.length ? p.quitar.length + ' opciones “sin”' : ''}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
+      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
+      <div class="grow" onclick="formProducto('${p.id}')" style="cursor:pointer"><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
+        <div class="muted small">${[p.variantes.length ? p.variantes.length + ' variantes' : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
       <label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="act(null,()=>dispProducto('${p.id}',this))"><i></i></label></div>`).join('')}</div>`).join('')}
-    ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos con foto y precio.</div>` : ''}`);
+    ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos uno por uno o sube tu menú completo con la plantilla de Excel.</div>` : ''}`);
+}
+
+/** Foto directa desde la lista (sin abrir el formulario). */
+async function fotoRapida(id, inp) {
+  const f = inp.files[0]; if (!f) return;
+  toast('Subiendo foto…');
+  try { await api('guardarProducto', { id, fotoImagen: await comprimir(f, 900) }); toast('Foto guardada ✓'); pintar(true); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ---------- Excel: plantilla, exportar e importar ---------- */
+const COLS_MENU = [
+  ['seccion', 'Sección', 16], ['producto', 'Producto', 26], ['descripcion', 'Descripción', 34], ['precio', 'Precio', 9],
+  ['variantes', 'Variantes (nombre:precio; …)', 30], ['extras', 'Extras (nombre:precio; …)', 32], ['quitar', 'Se puede quitar (separado por comas)', 28],
+  ['tiempo', 'Tiempo de preparación (min)', 14], ['disponible', 'Disponible (Sí/No)', 12], ['id', 'ID (no modificar)', 16]
+];
+
+/** Carga el lector de Excel solo cuando se necesita (con un segundo servidor de respaldo). */
+function cargarXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  const fuentes = ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'];
+  const probar = i => new Promise((ok, mal) => {
+    if (i >= fuentes.length) { mal(new Error('No se pudo cargar el lector de Excel. Revisa tu internet.')); return; }
+    const sc = document.createElement('script');
+    sc.src = fuentes[i];
+    sc.onload = () => window.XLSX ? ok(window.XLSX) : probar(i + 1).then(ok, mal);
+    sc.onerror = () => probar(i + 1).then(ok, mal);
+    document.head.appendChild(sc);
+  });
+  return probar(0);
+}
+
+function libroMenu(XLSX, filas) {
+  const ws = XLSX.utils.aoa_to_sheet([COLS_MENU.map(c => c[1])].concat(filas));
+  ws['!cols'] = COLS_MENU.map(c => ({ wch: c[2] }));
+  ws['!autofilter'] = { ref: 'A1:J1' };
+  const ins = XLSX.utils.aoa_to_sheet([
+    ['Cómo llenar tu menú'],
+    ['Una fila por producto. Solo Producto y Precio (o Variantes) son obligatorios.'],
+    ['Sección: agrupa tu menú (Hamburguesas, Bebidas, Postres…).'],
+    ['Precio: el precio normal. Si el producto tiene variantes, puedes dejarlo vacío.'],
+    ['Variantes: opciones con precio propio y el cliente elige UNA. Ej: Chica:80; Mediana:95; Grande:120'],
+    ['Extras: opcionales que se suman al precio. Ej: Queso extra:10; Tocino:15; Salsa (sin precio = gratis)'],
+    ['Se puede quitar: ingredientes que el cliente puede pedir sin. Ej: cebolla, cilantro, chile'],
+    ['Tiempo de preparación: minutos (vacío = el de tu negocio). Disponible: Sí o No (No = agotado).'],
+    ['ID: lo pone la app al exportar. No lo cambies; sirve para actualizar el producto sin duplicarlo y conservar su foto.'],
+    ['Las fotos se suben en la app, en Mi menú, tocando el recuadro “📷 Foto” de cada producto.']
+  ]);
+  ins['!cols'] = [{ wch: 110 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Menú');
+  XLSX.utils.book_append_sheet(wb, ins, 'Instrucciones');
+  return wb;
+}
+
+function nombreArchivo(base) {
+  const n = (S.negocio && S.negocio.nombre ? S.negocio.nombre : 'negocio').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+  return base + '-' + n + '.xlsx';
+}
+
+const listaTxt = l => (l || []).map(x => x.nombre + (x.precio !== undefined && x.precio !== '' ? ':' + x.precio : '')).join('; ');
+
+async function descargarPlantilla() {
+  const XLSX = await cargarXLSX();
+  XLSX.writeFile(libroMenu(XLSX, [
+    ['Hamburguesas', 'Smash Burger', 'Doble carne, queso, cebolla y aderezo de la casa', 95, 'Sencilla:95; Doble:125', 'Queso extra:10; Tocino:15', 'cebolla, pepinillo', 15, 'Sí', ''],
+    ['Bebidas', 'Refresco', '', 25, '355 ml:25; 600 ml:35', '', '', 2, 'Sí', '']
+  ]), nombreArchivo('Plantilla-menu'));
+  toast('Plantilla descargada ✓');
+}
+
+async function exportarMenu() {
+  const XLSX = await cargarXLSX();
+  const l = S._prods || await api('misProductos');
+  XLSX.writeFile(libroMenu(XLSX, l.map(p => [p.categoria, p.nombre, p.descripcion, p.precio, listaTxt(p.variantes),
+    (p.extras || []).map(e => e.nombre + (e.precio ? ':' + e.precio : '')).join('; '), (p.quitar || []).join(', '), p.tiempoPrep || '', p.disponible === 'si' ? 'Sí' : 'No', p.id])), nombreArchivo('Menu'));
+  toast('Menú exportado ✓');
+}
+
+/** Reconoce cada columna por su encabezado aunque cambie un poco el texto. */
+function campoDeEncabezado(h) {
+  const t = String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  if (!t) return '';
+  if (/^(variante|tamano|presentacion)/.test(t)) return 'variantes';
+  if (t.includes('extra')) return 'extras';
+  if (t.includes('quitar') || /^sin/.test(t)) return 'quitar';
+  if (/^(seccion|categoria)/.test(t)) return 'seccion';
+  if (/^(producto|nombre|platillo)/.test(t)) return 'producto';
+  if (/^descripcion/.test(t)) return 'descripcion';
+  if (/^(precio|costo)/.test(t)) return 'precio';
+  if (t.includes('tiempo') || t.includes('preparacion')) return 'tiempo';
+  if (/^disponible/.test(t)) return 'disponible';
+  if (/^id/.test(t)) return 'id';
+  return '';
+}
+
+async function importarExcel(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  toast('Leyendo archivo…');
+  try {
+    const XLSX = await cargarXLSX();
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+    let filas = null;
+    const hojas = wb.SheetNames.slice().sort((a, b) => (/^men[uú]/i.test(b) ? 1 : 0) - (/^men[uú]/i.test(a) ? 1 : 0));
+    for (const nombre of hojas) {
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '', raw: true });
+      const hi = aoa.findIndex(r => r.some(c => campoDeEncabezado(c) === 'producto'));
+      if (hi < 0) continue;
+      const campos = aoa[hi].map(campoDeEncabezado);
+      filas = [];
+      aoa.slice(hi + 1).forEach((r, i) => {
+        if (!r.some(c => String(c).trim() !== '')) return;
+        const o = { _fila: hi + i + 2 };
+        campos.forEach((c, j) => { if (c && o[c] === undefined) o[c] = typeof r[j] === 'string' ? r[j].trim() : r[j]; });
+        filas.push(o);
+      });
+      break;
+    }
+    if (!filas) throw new Error('No encontré la columna "Producto". Usa la plantilla de Pídele.');
+    if (!filas.length) throw new Error('El archivo no tiene productos');
+    S._import = filas;
+    const r = await api('importarMenu', { filas });
+    vistaPreviaImport(r, f.name);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function vistaPreviaImport(r, archivo) {
+  const ok = r.nuevos + r.actualizados;
+  modal(`<h2>Revisar importación</h2><div class="muted small">${esc(archivo || '')}</div>
+    <div class="kpis" style="margin-top:12px"><div class="kpi"><b style="color:var(--ok)">${r.nuevos}</b><span>Productos nuevos</span></div><div class="kpi"><b>${r.actualizados}</b><span>Se actualizan</span></div></div>
+    ${r.errores.length ? `<div class="aviso err">⚠️ ${r.errores.length} fila${r.errores.length > 1 ? 's' : ''} con error no se importará${r.errores.length > 1 ? 'n' : ''}. Corrígelas en el Excel y vuelve a subirlo cuando quieras.</div>
+      <div class="card" style="max-height:200px;overflow:auto;box-shadow:none;border:1.5px solid var(--ln)">${r.errores.map(e => `<div class="tot" style="align-items:flex-start"><span><b>Fila ${e.fila}</b> ${esc(e.producto || '')}<br><span class="detalle" style="color:var(--err)">${esc(e.error)}</span></span></div>`).join('')}</div>` : ''}
+    ${ok ? `<div class="card" style="max-height:200px;overflow:auto;box-shadow:none;border:1.5px solid var(--ln)">${r.filas.map(x => `<div class="tot"><span>${esc(x.nombre)}</span><span class="tag ${x.accion === 'nuevo' ? 't-ok' : 't-info'}">${x.accion === 'nuevo' ? 'Nuevo' : 'Actualizar'}</span></div>`).join('')}</div>` : ''}
+    <div class="muted small">Los productos que no vienen en el archivo no se modifican. Las fotos actuales se conservan.</div>
+    <div class="btns"><button class="btn pri pill" ${ok ? '' : 'disabled'} onclick="act(this,aplicarImport)">Importar ${ok} producto${ok === 1 ? '' : 's'}</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
+}
+
+async function aplicarImport() {
+  const r = await api('importarMenu', { filas: S._import, aplicar: true });
+  S._import = null;
+  cerrarModal();
+  toast(`✓ ${r.nuevos} nuevos y ${r.actualizados} actualizados`);
+  S._soloSinFoto = false;
+  pintar(true);
 }
 
 async function dispProducto(id, chk) {
@@ -1617,18 +1868,21 @@ async function dispProducto(id, chk) {
 }
 
 function formProducto(id) {
-  const p = (S._prods || []).find(x => x.id === id) || { nombre: '', descripcion: '', precio: '', categoria: '', foto: '', tiempoPrep: 0, extras: [], quitar: [] };
+  const p = (S._prods || []).find(x => x.id === id) || { nombre: '', descripcion: '', precio: '', categoria: '', foto: '', tiempoPrep: 0, extras: [], quitar: [], variantes: [] };
   const tN = (S.negocio && S.negocio.tiempoPrep) || 20;
   const cats = [...new Set((S._prods || []).map(x => x.categoria))];
   S._foto = null;
   modal(`<h2>${id ? 'Editar' : 'Nuevo'} producto</h2>
     <label class="f">Nombre</label><input class="i" id="pNom" value="${esc(p.nombre)}">
     <label class="f">Descripción</label><input class="i" id="pDes" value="${esc(p.descripcion)}" placeholder="Ingredientes, tamaño…">
-    <div class="row"><div class="grow"><label class="f">Precio</label><input class="i" id="pPre" type="number" inputmode="decimal" value="${p.precio}"></div>
+    <div class="row"><div class="grow"><label class="f">Precio${p.variantes && p.variantes.length ? ' (desde)' : ''}</label><input class="i" id="pPre" type="number" inputmode="decimal" value="${p.precio}" placeholder="O usa variantes"></div>
     <div class="grow"><label class="f">Sección del menú</label><input class="i" id="pCat" list="lCats" value="${esc(p.categoria === 'General' && !id ? '' : p.categoria)}" placeholder="Ej. Tacos, Bebidas"><datalist id="lCats">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</datalist></div></div>
     <label class="f">Tiempo de preparación</label><select class="i" id="pTie"><option value="0">Igual que el negocio (${tN} min)</option>${[5, 10, 15, 20, 25, 30, 40, 50, 60].map(m => `<option value="${m}" ${m === p.tiempoPrep ? 'selected' : ''}>${m} min</option>`).join('')}</select>
     <label class="f">Foto</label>
     <div class="row"><img id="pPrev" class="fotoP" src="${esc(p.foto)}" style="${p.foto ? '' : 'display:none'}"><label class="btn">📷 ${p.foto ? 'Cambiar' : 'Elegir'} foto<input type="file" accept="image/*" hidden onchange="fotoProducto(this)"></label></div>
+    <label class="f">Variantes · el cliente elige una (tamaño, presentación…)</label>
+    <div class="muted small" style="margin:-2px 0 6px">Cada variante tiene su propio precio y reemplaza el precio normal.</div>
+    <div id="varRows"></div><button class="btn sm" onclick="filaExtra('','','#varRows','Ej. Grande')">${ico('mas', 's')} Agregar variante</button>
     <label class="f">Extras con costo (el cliente puede agregarlos)</label>
     <div id="exRows"></div><button class="btn sm" onclick="filaExtra('','')">${ico('mas', 's')} Agregar extra</button>
     <label class="f">Ingredientes que se pueden quitar (separados por coma)</label>
@@ -1636,16 +1890,17 @@ function formProducto(id) {
     <div class="btns"><button class="btn pri" onclick="act(this,()=>guardarProducto('${id || ''}'))">Guardar</button>
     ${id ? `<button class="btn err" onclick="act(this,()=>eliminarProducto('${id}'))">Eliminar</button>` : ''}<button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
   (p.extras || []).forEach(e => filaExtra(e.nombre, e.precio));
+  (p.variantes || []).forEach(v => filaExtra(v.nombre, v.precio, '#varRows', 'Ej. Grande'));
 }
-function filaExtra(nombre, precio) {
+function filaExtra(nombre, precio, donde, ejemplo) {
   const d = document.createElement('div');
   d.className = 'exRow';
-  d.innerHTML = `<input class="i exN" placeholder="Ej. Queso extra" maxlength="40"><input class="i exP" type="number" inputmode="decimal" placeholder="$"><button class="btn sm err" onclick="this.parentNode.remove()">✕</button>`;
+  d.innerHTML = `<input class="i exN" placeholder="${ejemplo || 'Ej. Queso extra'}" maxlength="40"><input class="i exP" type="number" inputmode="decimal" placeholder="$"><button class="btn sm err" onclick="this.parentNode.remove()">✕</button>`;
   d.querySelector('.exN').value = nombre || ''; d.querySelector('.exP').value = precio === '' || precio == null ? '' : precio;
-  $('#exRows').appendChild(d);
+  $(donde || '#exRows').appendChild(d);
 }
-function extrasForm() {
-  return [...document.querySelectorAll('#exRows .exRow')].map(r => ({ nombre: r.querySelector('.exN').value.trim(), precio: r.querySelector('.exP').value })).filter(e => e.nombre);
+function extrasForm(donde) {
+  return [...document.querySelectorAll((donde || '#exRows') + ' .exRow')].map(r => ({ nombre: r.querySelector('.exN').value.trim(), precio: r.querySelector('.exP').value })).filter(e => e.nombre);
 }
 async function fotoProducto(inp) {
   const f = inp.files[0]; if (!f) return;
@@ -1655,7 +1910,7 @@ async function fotoProducto(inp) {
 async function guardarProducto(id) {
   await api('guardarProducto', {
     id: id || undefined, nombre: $('#pNom').value, descripcion: $('#pDes').value, precio: $('#pPre').value, categoria: $('#pCat').value,
-    fotoImagen: S._foto || undefined, tiempoPrep: $('#pTie').value, extras: extrasForm(), quitar: $('#pQui').value
+    fotoImagen: S._foto || undefined, tiempoPrep: $('#pTie').value, extras: extrasForm(), quitar: $('#pQui').value, variantes: extrasForm('#varRows')
   });
   cerrarModal(); toast('Producto guardado'); pintar(true);
 }
@@ -1746,7 +2001,7 @@ async function vDisponibles() {
   const d = await api('disponibles', S.pos || {});
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
-  html(`${pendienteAviso()}
+  html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
       <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
     ${!S.pos ? `<div class="aviso warn">📡 Activa el GPS para ver qué pedidos te quedan en ruta y para que el cliente vea dónde vas.</div>` : ''}
@@ -1834,7 +2089,9 @@ function dibujarRuta(ruta) {
 /* ============ ADMINISTRADOR ============ */
 async function vAdmin() {
   const d = await api('adminResumen');
-  html(`<h2>Resumen</h2>
+  const nt = d.notificaciones || {};
+  html(`${bannerPush()}<h2>Resumen</h2>
+    ${nt.configuradas ? '' : '<div class="aviso warn">🔕 Notificaciones sin configurar en el servidor (falta FCM_CUENTA). La app funciona, pero sin avisos con la app cerrada.</div>'}
     <div class="kpis">
       <div class="kpi"><b>${d.hoy.pedidos}</b><span>Pedidos hoy</span></div>
       <div class="kpi"><b>${d.activos}</b><span>Pedidos activos</span></div>
@@ -1842,6 +2099,7 @@ async function vAdmin() {
       <div class="kpi"><b>${d.hoy.cancelados}</b><span>Cancelados hoy</span></div>
       <div class="kpi"><b>${money(d.hoy.vendido)}</b><span>Vendido hoy</span></div>
       <div class="kpi"><b>${d.negociosAbiertos}</b><span>Negocios abiertos</span></div></div>
+    ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     <h3>Por aprobar (${d.pendientes.length})</h3>
     ${d.pendientes.length ? d.pendientes.map(tarjetaUsuario).join('') : '<div class="vacio">Nadie pendiente ✨</div>'}`);
