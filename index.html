@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pide Elota</title>
+<meta name="description" content="Pedidos a domicilio en La Cruz de Elota">
+<meta name="theme-color" content="#E2552B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --pri:#E2552B; --pri2:#C2410C; --pri-s:#FDE7DD; --bg:#FBF6F1; --card:#fff; --tx:#1F1A17; --tx2:#6B625C;
+  --ln:#ECE3DB; --ok:#15803D; --ok-s:#DCFCE7; --warn:#B45309; --warn-s:#FEF3C7; --err:#B91C1C; --err-s:#FEE2E2;
+  --info:#1D4ED8; --info-s:#DBEAFE; --r:14px; --sh:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(60,30,10,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:50;background:var(--pri);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+header .logo{font-weight:800;font-size:19px;letter-spacing:-.3px;flex:1;display:flex;align-items:center;gap:8px}
+header .logo img{width:28px;height:28px;border-radius:8px;background:#fff}
+header button{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:999px;padding:6px 12px;font-weight:600;cursor:pointer}
+main{max-width:720px;margin:0 auto;padding:14px 16px 24px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:60;background:#fff;border-top:1px solid var(--ln);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;max-width:120px;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--tx2);padding:4px;cursor:pointer;position:relative}
+nav button span{font-size:21px;line-height:1}
+nav button.on{color:var(--pri);font-weight:700}
+nav .badge{position:absolute;top:0;right:calc(50% - 22px);background:var(--err);color:#fff;border-radius:999px;font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+h2{font-size:20px;margin:6px 0 12px}
+h3{font-size:16px;margin:16px 0 8px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.muted{color:var(--tx2);font-size:13.5px}
+.small{font-size:12.5px}
+.b{font-weight:700}
+.btn{border:1px solid var(--ln);background:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--tx)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.err{color:var(--err);border-color:#F3C3C3}
+.btn.full{width:100%}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btns .btn{flex:1;min-width:120px}
+label.f{display:block;margin:10px 0 4px;font-size:13px;font-weight:600;color:var(--tx2)}
+input.i,select.i,textarea.i{width:100%;border:1px solid var(--ln);border-radius:12px;padding:11px 12px;background:#fff;outline:none}
+input.i:focus,select.i:focus,textarea.i:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-s)}
+textarea.i{min-height:70px;resize:vertical}
+.tag{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:var(--ok-s);color:var(--ok)} .t-warn{background:var(--warn-s);color:var(--warn)} .t-err{background:var(--err-s);color:var(--err)}
+.t-info{background:var(--info-s);color:var(--info)} .t-gray{background:#F1ECE8;color:var(--tx2)} .t-pri{background:var(--pri-s);color:var(--pri2)}
+.aviso{border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px;font-weight:600}
+.aviso.warn{background:var(--warn-s);color:var(--warn)} .aviso.err{background:var(--err-s);color:var(--err)}
+.aviso.info{background:var(--info-s);color:var(--info)} .aviso.ok{background:var(--ok-s);color:var(--ok)}
+.vacio{text-align:center;color:var(--tx2);padding:36px 12px}
+.vacio .big{font-size:42px;display:block;margin-bottom:8px}
+.cargando{text-align:center;color:var(--tx2);padding:40px}
+.cargando:before{content:"";display:block;width:28px;height:28px;margin:0 auto 10px;border:3px solid var(--pri-s);border-top-color:var(--pri);border-radius:50%;animation:g .8s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+.hola{font-size:21px;font-weight:800;margin:4px 0 12px}
+.hola small{display:block;font-size:14px;font-weight:500;color:var(--tx2)}
+.buscar{width:100%;border:1px solid var(--ln);border-radius:999px;padding:11px 16px;background:#fff;margin-bottom:10px;outline:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;scrollbar-width:none}
+.chip{border:1px solid var(--ln);background:#fff;border-radius:999px;padding:6px 13px;white-space:nowrap;cursor:pointer;font-weight:600;font-size:13.5px}
+.chip.on{background:var(--tx);border-color:var(--tx);color:#fff}
+.neg{display:flex;gap:12px;align-items:center;cursor:pointer}
+.neg.cerrado{opacity:.6}
+.logoN{width:58px;height:58px;border-radius:14px;object-fit:cover;background:var(--pri-s);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.prod{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ln)}
+.prod:last-child{border-bottom:0}
+.fotoP{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#F4EEE9;flex-shrink:0}
+.cant{display:flex;align-items:center;gap:6px}
+.cant button{width:32px;height:32px;border-radius:50%;border:1px solid var(--ln);background:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cant button.mas{background:var(--pri);border-color:var(--pri);color:#fff}
+.cant b{min-width:18px;text-align:center}
+.barra{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:55;max-width:696px;margin:0 auto;background:var(--tx);color:#fff;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.mapa{height:260px;border-radius:12px;overflow:hidden;border:1px solid var(--ln);z-index:1}
+.mapa.alto{height:340px}
+.tot{display:flex;justify-content:space-between;padding:4px 0}
+.tot.g{font-size:17px;font-weight:800;border-top:1px dashed var(--ln);margin-top:6px;padding-top:8px}
+.pasos{list-style:none;margin:0;padding:0}
+.pasos li{display:flex;gap:10px;align-items:center;padding:7px 0;color:#B3A79F;position:relative}
+.pasos li span{width:30px;height:30px;border-radius:50%;background:#F1ECE8;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;filter:grayscale(1)}
+.pasos li.ok{color:var(--tx)} .pasos li.ok span{background:var(--ok-s);filter:none}
+.pasos li.act{color:var(--tx);font-weight:800} .pasos li.act span{background:var(--pri);filter:none;box-shadow:0 0 0 4px var(--pri-s)}
+.pasos li small{margin-left:auto;color:var(--tx2);font-weight:500}
+.copiar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#F8F3EE;border-radius:12px;padding:10px 12px;margin:6px 0}
+.copiar .v{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700;word-break:break-all}
+.tabs{display:flex;gap:6px;background:#F1ECE8;border-radius:12px;padding:4px;margin-bottom:12px}
+.tabs button{flex:1;border:0;background:none;border-radius:9px;padding:8px 4px;font-weight:700;font-size:13.5px;cursor:pointer;color:var(--tx2)}
+.tabs button.on{background:#fff;color:var(--tx);box-shadow:var(--sh)}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:12px}
+.kpi b{display:block;font-size:22px}
+.kpi span{font-size:12.5px;color:var(--tx2)}
+.sw{position:relative;width:52px;height:30px;flex-shrink:0}
+.sw input{display:none}
+.sw i{position:absolute;inset:0;background:#D6CCC4;border-radius:999px;transition:.2s;cursor:pointer}
+.sw i:after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw input:checked+i{background:var(--ok)} .sw input:checked+i:after{left:25px}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rol{border:2px solid var(--ln);background:#fff;border-radius:14px;padding:12px;text-align:center;cursor:pointer}
+.rol span{font-size:28px;display:block}
+.rol.on{border-color:var(--pri);background:var(--pri-s)}
+.entrar{max-width:420px;margin:20px auto}
+.entrar .marca{text-align:center;margin:10px 0 18px}
+.entrar .marca img{width:84px;height:84px;border-radius:22px;box-shadow:var(--sh)}
+.entrar .marca h1{margin:10px 0 2px;font-size:26px}
+#modal{position:fixed;inset:0;z-index:200;background:rgba(20,10,5,.5);display:none;align-items:flex-end;justify-content:center}
+#modal.on{display:flex}
+#modal .caja{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+#visor{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px}
+#visor.on{display:flex}
+#visor img{max-width:100%;max-height:80vh;border-radius:8px;background:#fff}
+.chat{display:flex;flex-direction:column;height:78vh}
+.msgs{flex:1;overflow-y:auto;padding:8px 2px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:82%;background:#F4EEE9;border-radius:14px 14px 14px 4px;padding:8px 11px;align-self:flex-start}
+.msg small{display:block;font-size:11px;color:var(--tx2);margin-bottom:2px}
+.msg.mio{align-self:flex-end;background:var(--pri-s);border-radius:14px 14px 4px 14px}
+.msg.sis{align-self:center;background:var(--info-s);color:var(--info);font-size:13px;text-align:center;border-radius:12px;max-width:94%}
+.chatIn{display:flex;gap:8px;align-items:center;padding-top:8px;border-top:1px solid var(--ln)}
+.chatIn input{flex:1}
+.ico{width:42px;height:42px;border-radius:50%;background:#F4EEE9;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;flex-shrink:0}
+.lnk{background:none;border:0;color:var(--info);font-weight:700;padding:4px 0;cursor:pointer}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));z-index:400;background:var(--tx);color:#fff;padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1} #toast.err{background:var(--err)}
+.parada{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}
+.parada:last-child{border-bottom:0}
+.num{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.num.r{background:var(--pri)} .num.e{background:var(--ok)}
+.pin{width:26px;height:26px;border-radius:50%;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.espera{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.hr{border:0;border-top:1px solid var(--ln);margin:12px 0}
+</style>
+</head>
+<body>
+<header id="top" style="display:none">
+  <div class="logo"><img src="icons/icon-192.png" alt=""><span>Pide Elota</span></div>
+  <button id="btnInstalar" style="display:none" onclick="instalarApp()">⬇ Instalar</button>
+</header>
+<main id="vista"><div class="cargando">Cargando…</div></main>
+<nav id="nav" style="display:none"></nav>
+<div id="modal" onclick="if(event.target===this)cerrarModal()"><div class="caja" id="modalCaja"></div></div>
+<div id="visor" onclick="if(event.target===this)this.classList.remove('on')"><img id="visorImg" alt=""><button class="btn" onclick="$('#visor').classList.remove('on')">Cerrar</button></div>
+<div id="toast"></div>
+
+<script>
+/* ============ CONFIGURACIÓN ============ */
+const API_URL = 'PEGA_AQUI_LA_URL_DE_TU_APLICACION_WEB/exec';
+const APP = 'Pide Elota';
+
+/* ============ ESTADO ============ */
+const S = {
+  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'),
+  carrito: ls('carrito') || { negocioId: null, negocio: '', lat: 0, lng: 0, items: {} },
+  vista: null, params: null, auto: false, pos: null, firma: '', nuevos: 0, chat: null,
+  map: null, tabNeg: 'atender', tabAdmPed: 'activos', esperaHasta: 0, instalar: null, ticks: 0
+};
+
+const EST = {
+  NUEVO: ['Enviado al negocio', '📨'], POR_PAGAR: ['Esperando pago', '💳'], PAGO_ENVIADO: ['Verificando pago', '🔎'],
+  PREPARANDO: ['En preparación', '👩‍🍳'], LISTO: ['Listo para recoger', '📦'], EN_CAMINO: ['En camino', '🛵'],
+  ENTREGADO: ['Entregado', '✅'], CANCELADO: ['Cancelado', '✖️']
+};
+const PASOS = ['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'];
+const CAMPO_PASO = { NUEVO: 'creado', POR_PAGAR: 'aceptado', PAGO_ENVIADO: 'pagoEnviado', PREPARANDO: 'pagoConfirmado', LISTO: 'listo', EN_CAMINO: 'recogido', ENTREGADO: 'entregado' };
+const ACTIVOS = ['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO', 'EN_CAMINO'];
+const CATEGORIAS = ['Comida', 'Mariscos', 'Tacos', 'Hamburguesas', 'Pizza', 'Antojitos', 'Café y postres', 'Bebidas', 'Abarrotes', 'Farmacia', 'Otro'];
+
+const NAV = {
+  comprador: [['inicio', '🏠', 'Inicio'], ['carrito', '🛒', 'Carrito'], ['pedidos', '🧾', 'Mis pedidos'], ['perfil', '👤', 'Perfil']],
+  negocio: [['negPedidos', '🧾', 'Pedidos'], ['menu', '🍽️', 'Menú'], ['miNegocio', '🏪', 'Mi negocio'], ['perfil', '👤', 'Perfil']],
+  repartidor: [['disponibles', '📋', 'Disponibles'], ['entregas', '🛵', 'Mis entregas'], ['perfil', '👤', 'Perfil']],
+  admin: [['admin', '📊', 'Resumen'], ['adminUsuarios', '👥', 'Usuarios'], ['adminPedidos', '🧾', 'Pedidos'], ['adminConfig', '⚙️', 'Ajustes']]
+};
+
+/* ============ UTILIDADES ============ */
+function $(s) { return document.querySelector(s); }
+function ls(k, v) {
+  if (v === undefined) { try { return JSON.parse(localStorage.getItem('pe_' + k)); } catch (e) { return null; } }
+  try { v === null ? localStorage.removeItem('pe_' + k) : localStorage.setItem('pe_' + k, JSON.stringify(v)); } catch (e) { }
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function money(n) { n = Number(n) || 0; return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function hora(ms) { return ms ? new Date(ms).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : ''; }
+function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + hora(ms) : ''; }
+function minDesde(ms) { return Math.round((Date.now() - ms) / 60000); }
+function enMin(ms) { const m = Math.round((ms - Date.now()) / 60000); return m > 0 ? 'en ' + m + ' min' : m === 0 ? 'ahora' : 'hace ' + (-m) + ' min'; }
+function html(h) { $('#vista').innerHTML = h; }
+function toast(msg, tipo) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'on ' + (tipo || '');
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = '', tipo === 'err' ? 4500 : 2600);
+}
+function modal(h) { $('#modalCaja').innerHTML = h; $('#modal').classList.add('on'); }
+function cerrarModal() { $('#modal').classList.remove('on'); $('#modalCaja').innerHTML = ''; S.chat = null; }
+function visor(src) { $('#visorImg').src = src; $('#visor').classList.add('on'); }
+function telLink(t) { return t ? `<a class="btn sm" href="tel:${esc(t)}">📞 Llamar</a>` : ''; }
+function waLink(t, txt) { return t ? `https://wa.me/52${String(t).replace(/\D/g, '').slice(-10)}${txt ? '?text=' + encodeURIComponent(txt) : ''}` : ''; }
+function hav(a, b, c, d) { const R = 6371, r = Math.PI / 180, x = Math.sin((c - a) * r / 2), y = Math.sin((d - b) * r / 2); return 2 * R * Math.asin(Math.sqrt(x * x + Math.cos(a * r) * Math.cos(c * r) * y * y)); }
+function kmRuta(a, b, c, d) { return hav(a, b, c, d) * (S.conf ? S.conf.factorRuta : 1.35); }
+function tarifa(km) { const c = S.conf; const v = c.envioBase + Math.max(0, km - c.kmIncluidos) * c.envioPorKm; return Math.ceil(v / 5) * 5; }
+function gmaps(lat, lng) { return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`; }
+
+async function api(accion, datos) {
+  if (API_URL.indexOf('PEGA_AQUI') === 0) throw new Error('Falta configurar API_URL en index.html');
+  let r;
+  try {
+    r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion, datos: datos || {}, token: S.token }) });
+  } catch (e) { throw new Error('Sin conexión. Revisa tu internet.'); }
+  let j;
+  try { j = await r.json(); } catch (e) { throw new Error('El servidor no respondió bien. Intenta de nuevo.'); }
+  if (!j.ok) {
+    if (j.error === 'SESION') { salir(true); throw new Error('Tu sesión terminó, vuelve a entrar.'); }
+    if (j.error === 'BLOQUEADO') { vBloqueado(); throw new Error('Cuenta suspendida'); }
+    throw new Error(j.error);
+  }
+  return j.data;
+}
+
+/** Ejecuta una acción desde un botón: lo desactiva y muestra errores. */
+async function act(btn, fn) {
+  if (btn) { btn.disabled = true; btn._t = btn.innerHTML; btn.innerHTML = '⏳'; }
+  try { await fn(); } catch (e) { toast(e.message, 'err'); }
+  finally { if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = btn._t; } }
+}
+
+function comprimir(file, max) {
+  max = max || 1200;
+  return new Promise((ok, mal) => {
+    const fr = new FileReader();
+    fr.onerror = () => mal(new Error('No se pudo leer la imagen'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => mal(new Error('Archivo de imagen no válido'));
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        x.drawImage(img, 0, 0, c.width, c.height);
+        ok(c.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+async function copiar(txt, que) {
+  try { await navigator.clipboard.writeText(String(txt)); }
+  catch (e) {
+    const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch (x) { } t.remove();
+  }
+  toast((que || 'Dato') + ' copiado ✓');
+}
+
+function beep() {
+  try {
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.22].forEach(t => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(a.destination);
+      g.gain.setValueAtTime(0.25, a.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + t + 0.18);
+      o.start(a.currentTime + t); o.stop(a.currentTime + t + 0.2);
+    });
+  } catch (e) { }
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
+function avisar(titulo, cuerpo) {
+  beep();
+  toast(titulo);
+  if (document.hidden && 'Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+    navigator.serviceWorker.ready.then(r => r.showNotification(titulo, { body: cuerpo || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'pe', renotify: true })).catch(() => { });
+  }
+}
+
+/* ============ NAVEGACIÓN ============ */
+const VISTAS = {
+  inicio: vInicio, negocio: vNegocio, carrito: vCarrito, pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
+  negPedidos: vNegPedidos, menu: vMenu, miNegocio: vMiNegocio,
+  disponibles: vDisponibles, entregas: vEntregas,
+  admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig
+};
+const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos'];
+
+async function ir(v, p, sinHistoria) {
+  if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
+  S.vista = v; S.params = p; S.auto = AUTO.includes(v);
+  if (!sinHistoria) history.pushState({ v, p }, '');
+  window.scrollTo(0, 0);
+  pintarNav();
+  await pintar();
+}
+window.addEventListener('popstate', e => {
+  if ($('#modal').classList.contains('on')) { cerrarModal(); history.pushState({ v: S.vista, p: S.params }, ''); return; }
+  if (e.state && e.state.v && S.token) ir(e.state.v, e.state.p, true);
+});
+
+async function pintar(silencioso) {
+  const f = VISTAS[S.vista]; if (!f) return;
+  if (!silencioso) html('<div class="cargando">Cargando…</div>');
+  try { await f(S.params, silencioso); }
+  catch (e) {
+    if (!silencioso) html(`<div class="vacio"><span class="big">⚠️</span>${esc(e.message)}<br><br><button class="btn" onclick="pintar()">Reintentar</button></div>`);
+  }
+}
+
+function pintarNav() {
+  const items = NAV[S.user && S.user.rol] || [];
+  const raiz = { pedido: S.user && S.user.rol === 'comprador' ? 'pedidos' : S.user && S.user.rol === 'negocio' ? 'negPedidos' : S.user && S.user.rol === 'admin' ? 'adminPedidos' : 'entregas', negocio: 'inicio' }[S.vista] || S.vista;
+  $('#nav').innerHTML = items.map(([v, i, t]) => {
+    let badge = '';
+    if (v === 'carrito') { const n = Object.values(S.carrito.items).reduce((s, x) => s + x.cant, 0); if (n) badge = `<i class="badge">${n}</i>`; }
+    if ((v === 'negPedidos' || v === 'disponibles') && S.nuevos) badge = `<i class="badge">${S.nuevos}</i>`;
+    return `<button class="${raiz === v ? 'on' : ''}" onclick="ir('${v}')"><span>${i}</span>${t}${badge}</button>`;
+  }).join('');
+}
+
+function inicioRol() { return (NAV[S.user.rol] || [['perfil']])[0][0]; }
+
+/* ============ ARRANQUE Y SESIÓN ============ */
+async function arrancar() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if (!S.token || !S.user) { vLogin(); return; }
+  mostrarApp();
+  ir(inicioRol(), null);
+  try {
+    const d = await api('yo');
+    S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio);
+    S.conf = await api('configPublica'); ls('conf', S.conf);
+    pintarNav();
+  } catch (e) { }
+  iniciarSondeo();
+  if (S.user.rol === 'repartidor') iniciarGPS();
+}
+
+function mostrarApp() { $('#top').style.display = 'flex'; $('#nav').style.display = 'flex'; }
+
+function guardarSesion(d) {
+  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config;
+  ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
+  mostrarApp();
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => { });
+  history.replaceState(null, '');
+  ir(inicioRol());
+  iniciarSondeo();
+  if (S.user.rol === 'repartidor') iniciarGPS();
+}
+
+function salir(silencioso) {
+  if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
+  ['token', 'user', 'negocio'].forEach(k => ls(k, null));
+  S.token = null; S.user = null; S.negocio = null; S.firma = ''; S.nuevos = 0;
+  clearInterval(S._sondeo);
+  vLogin();
+}
+
+function vLogin() {
+  $('#top').style.display = 'none'; $('#nav').style.display = 'none';
+  html(`<div class="entrar">
+    <div class="marca"><img src="icons/icon-512.png" alt=""><h1>${APP}</h1><div class="muted">Pedidos a domicilio en La Cruz de Elota</div></div>
+    <div class="card">
+      <label class="f">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
+      <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
+      <div class="btns"><button class="btn pri full" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
+    </div>
+    <div class="vacio" style="padding:10px">¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button></div>
+  </div>`);
+}
+
+async function entrar() {
+  const d = await api('login', { telefono: $('#lTel').value, pass: $('#lPass').value });
+  guardarSesion(d);
+}
+
+function vRegistro(rol) {
+  rol = rol || 'comprador';
+  const R = [['comprador', '🙋', 'Quiero pedir'], ['negocio', '🏪', 'Tengo un negocio'], ['repartidor', '🛵', 'Soy repartidor']];
+  html(`<div class="entrar">
+    <div class="marca"><img src="icons/icon-512.png" alt="" style="width:60px;height:60px"><h1>Crear cuenta</h1></div>
+    <div class="card">
+      <div class="roles" style="grid-template-columns:repeat(3,1fr)">${R.map(([v, i, t]) => `<div class="rol ${v === rol ? 'on' : ''}" onclick="vRegistro('${v}')"><span>${i}</span><div class="small b">${t}</div></div>`).join('')}</div>
+      <label class="f">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name">
+      <label class="f">Teléfono (10 dígitos)</label><input class="i" id="rTel" type="tel" inputmode="numeric" maxlength="14">
+      ${rol === 'negocio' ? `<label class="f">Nombre del negocio</label><input class="i" id="rNeg">
+        <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>` : ''}
+      ${rol === 'repartidor' ? `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" placeholder="Ej. Moto Italika roja">` : ''}
+      <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu cuenta quedará en revisión hasta que el administrador la apruebe.</div>` : ''}
+      <div class="btns"><button class="btn pri full" onclick="act(this,()=>registrar('${rol}'))">Crear cuenta</button></div>
+    </div>
+    <div class="vacio" style="padding:10px"><button class="lnk" onclick="vLogin()">Ya tengo cuenta, entrar</button></div>
+  </div>`);
+}
+
+async function registrar(rol) {
+  const v = id => { const e = $('#' + id); return e ? e.value : ''; };
+  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh') });
+  toast('¡Bienvenido a ' + APP + '!');
+  guardarSesion(d);
+}
+
+async function vBloqueado() {
+  clearInterval(S._sondeo);
+  if (!S.conf) { try { S.conf = await api('configPublica'); ls('conf', S.conf); } catch (e) { } }
+  $('#nav').style.display = 'none';
+  const wa = S.conf && S.conf.soporteWhatsApp;
+  html(`<div class="vacio"><span class="big">🚫</span><h2>Cuenta suspendida</h2>
+    <p>Tu cuenta fue suspendida por el administrador. Si crees que es un error o no estás de acuerdo, contacta a soporte técnico para revisar tu caso.</p>
+    ${wa ? `<a class="btn pri" href="${waLink(wa, 'Hola, mi cuenta de ' + APP + ' fue suspendida y quiero solicitar una revisión. Mi teléfono: ' + (S.user ? S.user.telefono : ''))}" target="_blank">💬 Contactar a soporte</a><br><br>` : ''}
+    <button class="btn" onclick="salir(true)">Salir</button></div>`);
+}
+
+/* ============ SONDEO (actualizaciones) ============ */
+function iniciarSondeo() {
+  clearInterval(S._sondeo);
+  S._sondeo = setInterval(sondear, 15000);
+  sondear();
+}
+async function sondear() {
+  if (!S.token || document.hidden && S.user.rol === 'comprador') return;
+  try {
+    const d = await api('sondeo');
+    const cambio = S.firma && d.firma !== S.firma;
+    const masNuevos = d.nuevos > S.nuevos;
+    if (S.firma) {
+      if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', 'Revisa la pestaña Pedidos');
+      else if (S.user.rol === 'repartidor' && masNuevos) avisar('📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
+      else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
+    }
+    S.firma = d.firma; S.nuevos = d.nuevos;
+    if (S.user.estado !== d.estado) { S.user.estado = d.estado; ls('user', S.user); }
+    pintarNav();
+    S.ticks++;
+    if (S.auto && !$('#modal').classList.contains('on') && (cambio || S.ticks % 4 === 0)) pintar(true);
+    if (S.chat) cargarChat();
+  } catch (e) { }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) sondear(); });
+
+function iniciarGPS() {
+  if (!navigator.geolocation || S._gps) return;
+  S._gps = navigator.geolocation.watchPosition(
+    p => { S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; },
+    () => { }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+}
+
+/* ============ MAPAS ============ */
+function nuevoMapa(id, lat, lng, zoom) {
+  if (S.map) { try { S.map.remove(); } catch (e) { } }
+  const m = L.map(id, { zoomControl: true, attributionControl: true }).setView([lat, lng], zoom || 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
+  S.map = m;
+  setTimeout(() => m.invalidateSize(), 250);
+  return m;
+}
+
+/** Mapa para elegir un punto: clic o arrastrar el marcador. */
+function mapaSelector(id, lat, lng, cb) {
+  const c = S.conf || { centroLat: 23.9213, centroLng: -106.8916 };
+  const ini = [lat || c.centroLat, lng || c.centroLng];
+  const m = nuevoMapa(id, ini[0], ini[1], lat ? 17 : 15);
+  const mk = L.marker(ini, { draggable: true }).addTo(m);
+  const fijar = (la, ln, centrar) => { mk.setLatLng([la, ln]); if (centrar) m.setView([la, ln], 17); cb(la, ln); };
+  mk.on('dragend', () => { const p = mk.getLatLng(); fijar(p.lat, p.lng); });
+  m.on('click', e => fijar(e.latlng.lat, e.latlng.lng));
+  if (lat) cb(lat, lng);
+  return { fijar };
+}
+
+function miUbicacion(cb) {
+  if (!navigator.geolocation) { toast('Tu teléfono no permite ubicación', 'err'); return; }
+  toast('Buscando tu ubicación…');
+  navigator.geolocation.getCurrentPosition(
+    p => cb(p.coords.latitude, p.coords.longitude),
+    () => toast('No se pudo obtener tu ubicación. Activa el GPS y da permiso.', 'err'),
+    { enableHighAccuracy: true, timeout: 15000 });
+}
+
+function pin(txt, color) {
+  return L.divIcon({ className: '', html: `<div class="pin" style="background:${color}">${txt}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+}
+
+/* ============ COMPONENTES DE PEDIDO ============ */
+function etiqueta(e) {
+  const cls = { NUEVO: 't-info', POR_PAGAR: 't-warn', PAGO_ENVIADO: 't-warn', PREPARANDO: 't-pri', LISTO: 't-pri', EN_CAMINO: 't-info', ENTREGADO: 't-ok', CANCELADO: 't-err' }[e] || 't-gray';
+  return `<span class="tag ${cls}">${EST[e] ? EST[e][1] + ' ' + EST[e][0] : e}</span>`;
+}
+
+function lineaTiempo(p) {
+  if (p.estado === 'CANCELADO') return `<div class="aviso err">✖️ Pedido cancelado${p.motivo ? ': ' + esc(p.motivo) : ''}</div>`;
+  const i = PASOS.indexOf(p.estado);
+  return `<ol class="pasos">${PASOS.map((e, k) => `<li class="${k < i || p.estado === 'ENTREGADO' ? 'ok' : k === i ? 'act' : ''}"><span>${EST[e][1]}</span>${EST[e][0]}${p[CAMPO_PASO[e]] ? `<small>${hora(p[CAMPO_PASO[e]])}</small>` : ''}</li>`).join('')}</ol>`;
+}
+
+function listaItems(items) {
+  return items.map(it => `<div class="tot"><span>${it.cant} × ${esc(it.nombre)}${it.nota ? `<br><span class="muted small">${esc(it.nota)}</span>` : ''}</span><span>${money(it.precio * it.cant)}</span></div>`).join('');
+}
+
+function resumenCobro(p) {
+  return `<div class="tot"><span>Comida (transferencia al negocio)</span><b>${money(p.subtotal)}</b></div>
+    <div class="tot"><span>Envío (efectivo al repartidor)</span><b>${money(p.envio)}</b></div>
+    <div class="tot g"><span>Total</span><span>${money(p.total)}</span></div>`;
+}
+
+function botonesPedido(p, enTarjeta) {
+  const r = S.user.rol, b = [];
+  const id = p.id;
+  if (r === 'comprador') {
+    if (['NUEVO', 'POR_PAGAR'].includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar pedido</button>`);
+  }
+  if (r === 'negocio') {
+    if (p.estado === 'NUEVO') {
+      const t = (S.negocio && S.negocio.tiempoPrep) || 20;
+      b.push(`<select class="i" id="min_${id}" style="flex:1;min-width:110px">${[10, 15, 20, 25, 30, 40, 50, 60, 90].map(m => `<option value="${m}" ${m === t ? 'selected' : ''}>${m} min</option>`).join('')}</select>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>accion('aceptarPedido',{id:'${id}',minutos:$('#min_${id}').value},'Pedido aceptado'))">Aceptar</button>`);
+      b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}','Rechazar'))">Rechazar</button>`);
+    }
+    if (p.estado === 'PAGO_ENVIADO') {
+      if (p.comprobanteId) b.push(`<button class="btn" onclick="act(this,()=>verImagen('${id}','${p.comprobanteId}'))">🧾 Ver comprobante</button>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>confirmarPago('${id}'))">Pago recibido ✓</button>`);
+      b.push(`<button class="btn err" onclick="act(this,()=>noRecibido('${id}'))">No lo veo</button>`);
+    }
+    if (p.estado === 'POR_PAGAR') b.push(`<button class="btn ok" onclick="act(this,()=>confirmarPago('${id}'))">Ya me pagó ✓</button>`);
+    if (p.estado === 'PREPARANDO') b.push(`<button class="btn pri" onclick="act(this,()=>accion('marcarListo',{id:'${id}'},'Marcado como listo'))">📦 Ya está listo</button>`);
+    if (['POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO'].includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar</button>`);
+  }
+  if (r === 'repartidor' && p.repartidor && p.repartidor.id === S.user.id) {
+    if (['PREPARANDO', 'LISTO'].includes(p.estado)) {
+      b.push(`<a class="btn" href="${gmaps(p.negocio.lat, p.negocio.lng)}" target="_blank">🧭 Al negocio</a>`);
+      b.push(`<button class="btn pri" onclick="act(this,()=>recogido('${id}'))">🛍️ Ya lo recogí</button>`);
+      if (!enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>liberar('${id}'))">Liberar pedido</button>`);
+    }
+    if (p.estado === 'EN_CAMINO') {
+      b.push(`<a class="btn" href="${gmaps(p.lat, p.lng)}" target="_blank">🧭 Al cliente</a>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>entregado('${id}',${p.envio}))">✅ Entregado</button>`);
+    }
+  }
+  if (r === 'admin' && ACTIVOS.includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar (admin)</button>`);
+  if (!enTarjeta || r !== 'comprador') b.push(`<button class="btn" onclick="abrirChat('${id}')">💬 Chat</button>`);
+  return b.length ? `<div class="btns">${b.join('')}</div>` : '';
+}
+
+async function accion(nombre, datos, msg) {
+  await api(nombre, datos);
+  if (msg) toast(msg);
+  await pintar(true);
+}
+async function cancelar(id, palabra) {
+  const motivo = prompt((palabra || 'Cancelar') + ' pedido. Escribe el motivo:');
+  if (motivo === null) return;
+  await accion('cancelarPedido', { id, motivo: motivo || 'Sin motivo' }, 'Pedido cancelado');
+}
+async function confirmarPago(id) {
+  if (!confirm('¿Confirmas que el dinero YA está en tu cuenta? Revisa tu app del banco antes de confirmar.')) return;
+  await accion('confirmarPago', { id }, 'Pago confirmado, ¡a preparar!');
+}
+async function noRecibido(id) {
+  const m = prompt('¿Qué le decimos al cliente? (ej. "No se refleja aún", "El monto no coincide")');
+  if (m === null) return;
+  await accion('pagoNoRecibido', { id, motivo: m }, 'Se avisó al cliente');
+}
+async function recogido(id) {
+  if (!confirm('¿Ya tienes el pedido contigo?')) return;
+  await accion('marcarRecogido', { id }, '¡En camino!');
+}
+async function entregado(id, envio) {
+  if (!confirm('¿Entregaste el pedido y cobraste ' + money(envio) + ' de envío en efectivo?')) return;
+  await accion('marcarEntregado', { id }, '¡Entrega completada!');
+}
+async function liberar(id) {
+  const m = prompt('¿Por qué liberas el pedido? Otro repartidor podrá tomarlo.');
+  if (m === null) return;
+  await accion('liberarPedido', { id, motivo: m }, 'Pedido liberado');
+}
+async function verImagen(pedidoId, fileId) {
+  toast('Cargando imagen…');
+  const src = await api('imagen', { pedidoId, fileId });
+  visor(src);
+}
+
+/* ============ CHAT ============ */
+async function abrirChat(pid) {
+  S.chat = pid;
+  modal(`<div class="chat">
+    <div class="row between"><b>💬 Mensajes del pedido</b><button class="btn sm" onclick="cerrarModal()">Cerrar</button></div>
+    <div id="msgs" class="msgs"><div class="cargando">Cargando…</div></div>
+    <div class="chatIn">
+      <label class="ico">📷<input type="file" accept="image/*" hidden onchange="chatImagen(this)"></label>
+      <input class="i" id="chatTxt" placeholder="Escribe un mensaje…" onkeydown="if(event.key==='Enter')chatEnviar()">
+      <button class="btn pri" onclick="chatEnviar()">➤</button>
+    </div></div>`);
+  await cargarChat();
+}
+async function cargarChat() {
+  if (!S.chat) return;
+  const pid = S.chat;
+  try {
+    const l = await api('mensajes', { pedidoId: pid });
+    const box = $('#msgs'); if (!box || S.chat !== pid) return;
+    const abajo = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+    box.innerHTML = l.length ? l.map(m => `<div class="msg ${m.mio ? 'mio' : ''} ${m.rol === 'sistema' ? 'sis' : ''}">
+      ${m.rol === 'sistema' ? '' : `<small>${esc(m.nombre)} · ${esc(rolNombre(m.rol))} · ${hora(m.fecha)}</small>`}
+      ${m.texto ? `<div>${esc(m.texto)}</div>` : ''}
+      ${m.imagenId ? `<button class="lnk" onclick="act(this,()=>verImagen('${pid}','${m.imagenId}'))">🖼️ Ver imagen</button>` : ''}
+    </div>`).join('') : '<div class="vacio">Aún no hay mensajes</div>';
+    if (abajo || !box._ya) { box.scrollTop = box.scrollHeight; box._ya = true; }
+  } catch (e) { }
+}
+function rolNombre(r) { return { comprador: 'Cliente', negocio: 'Negocio', repartidor: 'Repartidor', admin: 'Soporte' }[r] || r; }
+async function chatEnviar() {
+  const i = $('#chatTxt'); const t = i.value.trim(); if (!t) return;
+  i.value = '';
+  try { await api('enviarMensaje', { pedidoId: S.chat, texto: t }); await cargarChat(); }
+  catch (e) { toast(e.message, 'err'); i.value = t; }
+}
+async function chatImagen(inp) {
+  const f = inp.files[0]; if (!f) return;
+  toast('Enviando imagen…');
+  try { const img = await comprimir(f); await api('enviarMensaje', { pedidoId: S.chat, imagen: img }); await cargarChat(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ============ COMPRADOR ============ */
+function barraCarrito() {
+  const it = Object.values(S.carrito.items); if (!it.length) return '';
+  const n = it.reduce((s, x) => s + x.cant, 0), t = it.reduce((s, x) => s + x.cant * x.precio, 0);
+  return `<div class="barra" onclick="ir('carrito')"><span>🛒 ${n} producto${n > 1 ? 's' : ''} · ${esc(S.carrito.negocio)}</span><span>${money(t)} →</span></div>`;
+}
+
+async function vInicio(p, silencioso) {
+  const lista = await api('negocios');
+  S._negs = lista;
+  if (silencioso && $('#listaNeg')) { pintarNegocios(); return; }
+  const cats = [...new Set(lista.map(n => n.categoria))];
+  html(`<div class="hola">Hola, ${esc(S.user.nombre.split(' ')[0])} 👋<small>¿Qué se te antoja hoy?</small></div>
+    <input class="buscar" id="bNeg" placeholder="🔍 Buscar negocio o comida…" oninput="pintarNegocios()">
+    <div class="chips">${['Todos', ...cats].map((c, i) => `<button class="chip ${i === 0 ? 'on' : ''}" data-c="${esc(c)}" onclick="document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));this.classList.add('on');pintarNegocios()">${esc(c)}</button>`).join('')}</div>
+    <div id="listaNeg"></div>${barraCarrito()}<div style="height:60px"></div>`);
+  pintarNegocios();
+}
+
+function pintarNegocios() {
+  const q = ($('#bNeg') ? $('#bNeg').value : '').toLowerCase().trim();
+  const chip = document.querySelector('.chip.on'); const cat = chip ? chip.dataset.c : 'Todos';
+  const u = S.user;
+  const l = (S._negs || []).filter(n => (cat === 'Todos' || n.categoria === cat) && (!q || (n.nombre + ' ' + n.categoria + ' ' + n.descripcion).toLowerCase().includes(q)));
+  $('#listaNeg').innerHTML = l.length ? l.map(n => {
+    let extra = '';
+    if (u.lat && n.lat && S.conf) { const km = kmRuta(n.lat, n.lng, u.lat, u.lng); extra = ` · ${km.toFixed(1)} km · envío ${money(tarifa(km))}`; }
+    return `<div class="card neg ${n.abierto ? '' : 'cerrado'}" onclick="ir('negocio','${n.id}')">
+      ${n.logo ? `<img class="logoN" src="${esc(n.logo)}" alt="" loading="lazy">` : `<div class="logoN">🍽️</div>`}
+      <div class="grow"><div class="row between"><b>${esc(n.nombre)}</b>${n.abierto ? '<span class="tag t-ok">Abierto</span>' : '<span class="tag t-gray">Cerrado</span>'}</div>
+      <div class="muted">${esc(n.categoria)} · ~${n.tiempoPrep} min${extra}</div>
+      ${n.descripcion ? `<div class="muted small">${esc(n.descripcion)}</div>` : ''}</div></div>`;
+  }).join('') : `<div class="vacio"><span class="big">🍽️</span>${S._negs && S._negs.length ? 'No hay resultados' : 'Aún no hay negocios disponibles. ¡Pronto!'}</div>`;
+}
+
+async function vNegocio(id) {
+  const d = await api('menu', { negocioId: id });
+  const n = d.negocio; S._menu = d;
+  const grupos = {};
+  d.productos.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  html(`<button class="btn sm" onclick="history.back()">← Volver</button>
+    <div class="card" style="margin-top:10px"><div class="neg">
+      ${n.logo ? `<img class="logoN" src="${esc(n.logo)}" alt="">` : `<div class="logoN">🍽️</div>`}
+      <div class="grow"><h2 style="margin:0">${esc(n.nombre)}</h2>
+      <div class="muted">${esc(n.categoria)} · ~${n.tiempoPrep} min ${n.horario ? '· ' + esc(n.horario) : ''}</div>
+      ${n.abierto ? '<span class="tag t-ok">Abierto</span>' : '<span class="tag t-gray">Cerrado por ahora</span>'}</div></div>
+      ${n.descripcion ? `<p class="muted">${esc(n.descripcion)}</p>` : ''}</div>
+    ${Object.keys(grupos).map(g => `<h3>${esc(g)}</h3><div class="card">${grupos[g].map(p => `<div class="prod">
+      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy" onclick="visor('${esc(p.foto)}')">` : ''}
+      <div class="grow"><b>${esc(p.nombre)}</b>${p.descripcion ? `<div class="muted small">${esc(p.descripcion)}</div>` : ''}<div class="b" style="margin-top:3px">${money(p.precio)}</div></div>
+      <div class="cant" id="c_${p.id}">${controlCant(p.id, n)}</div></div>`).join('')}</div>`).join('')}
+    <div id="barraC">${barraCarrito()}</div><div style="height:70px"></div>`);
+}
+
+function controlCant(pid, n) {
+  const it = S.carrito.negocioId === (n ? n.id : S.carrito.negocioId) ? S.carrito.items[pid] : null;
+  if (!n || !n.abierto) return '';
+  return it ? `<button onclick="sumar('${pid}',-1)">−</button><b>${it.cant}</b><button class="mas" onclick="sumar('${pid}',1)">+</button>`
+    : `<button class="mas" onclick="sumar('${pid}',1)">+</button>`;
+}
+
+function sumar(pid, k) {
+  const d = S._menu; const n = d.negocio; const p = d.productos.find(x => x.id === pid);
+  if (S.carrito.negocioId && S.carrito.negocioId !== n.id && Object.keys(S.carrito.items).length) {
+    if (!confirm('Tu carrito tiene productos de ' + S.carrito.negocio + '. ¿Vaciarlo y empezar con ' + n.nombre + '?')) return;
+    S.carrito.items = {};
+  }
+  S.carrito.negocioId = n.id; S.carrito.negocio = n.nombre; S.carrito.lat = n.lat; S.carrito.lng = n.lng;
+  const it = S.carrito.items[pid] || { id: pid, nombre: p.nombre, precio: p.precio, cant: 0, nota: '' };
+  it.cant += k;
+  if (it.cant <= 0) delete S.carrito.items[pid]; else S.carrito.items[pid] = it;
+  ls('carrito', S.carrito);
+  $('#c_' + pid).innerHTML = controlCant(pid, n);
+  $('#barraC').innerHTML = barraCarrito();
+  pintarNav();
+}
+
+function vCarrito() {
+  const c = S.carrito, it = Object.values(c.items), u = S.user;
+  if (!it.length) { html(`<div class="vacio"><span class="big">🛒</span>Tu carrito está vacío<br><br><button class="btn pri" onclick="ir('inicio')">Ver negocios</button></div>`); return; }
+  const sub = it.reduce((s, x) => s + x.cant * x.precio, 0);
+  S._ent = { lat: u.lat, lng: u.lng };
+  html(`<h2>Tu pedido · ${esc(c.negocio)}</h2>
+    <div class="card">${it.map(x => `<div class="prod"><div class="grow"><b>${esc(x.nombre)}</b><div class="muted">${money(x.precio)} c/u</div>
+      <input class="i" style="margin-top:6px;padding:7px 10px" placeholder="Nota (sin cebolla, etc.)" value="${esc(x.nota)}" onchange="S.carrito.items['${x.id}'].nota=this.value;ls('carrito',S.carrito)"></div>
+      <div class="cant"><button onclick="cambiarCarrito('${x.id}',-1)">−</button><b>${x.cant}</b><button class="mas" onclick="cambiarCarrito('${x.id}',1)">+</button></div></div>`).join('')}
+      <button class="lnk" onclick="ir('negocio','${c.negocioId}')">+ Agregar más productos</button></div>
+    <h3>📍 ¿Dónde te lo entregamos?</h3>
+    <div class="card">
+      <div class="row between"><span class="muted small">Toca el mapa o mueve el marcador a tu casa</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._sel.fijar(a,b,true))">📍 Mi ubicación</button></div>
+      <div id="mapaEnt" class="mapa" style="margin-top:8px"></div>
+      <label class="f">Dirección</label><input class="i" id="cDir" value="${esc(u.direccion)}" placeholder="Calle, número y colonia">
+      <label class="f">Referencias para encontrarte</label><input class="i" id="cRef" value="${esc(u.referencia)}" placeholder="Casa verde, portón negro, frente a la tienda…">
+      <label class="f">Notas para el negocio (opcional)</label><textarea class="i" id="cNot" placeholder="Ej. Sin chile, traer cambio…"></textarea>
+      <label class="row small" style="margin-top:8px"><input type="checkbox" id="cGuardar" checked> Guardar esta dirección para la próxima</label>
+    </div>
+    <div class="card">
+      <div class="tot"><span>Comida · pagas por <b>transferencia al negocio</b></span><b>${money(sub)}</b></div>
+      <div class="tot"><span>Envío · pagas en <b>efectivo al repartidor</b></span><b id="cEnv">Marca tu ubicación</b></div>
+      <div class="tot g"><span>Total</span><span id="cTot">${money(sub)}</span></div>
+      <div class="muted small" style="margin-top:6px">Primero el negocio confirma tu pedido; después te mostramos sus datos para transferir sin comisiones.</div>
+      <div class="btns"><button class="btn pri full" onclick="act(this,enviarPedido)">Enviar pedido</button></div>
+    </div><div style="height:20px"></div>`);
+  S._sel = mapaSelector('mapaEnt', u.lat, u.lng, (la, ln) => {
+    S._ent = { lat: la, lng: ln };
+    if (!S.conf || !c.lat) return;
+    const km = kmRuta(c.lat, c.lng, la, ln);
+    if (km > S.conf.kmMaximo) { $('#cEnv').textContent = 'Fuera de zona'; return; }
+    const e = tarifa(km);
+    $('#cEnv').textContent = money(e) + ' (' + km.toFixed(1) + ' km)';
+    $('#cTot').textContent = money(sub + e);
+  });
+}
+
+function cambiarCarrito(pid, k) {
+  const it = S.carrito.items[pid]; if (!it) return;
+  it.cant += k; if (it.cant <= 0) delete S.carrito.items[pid];
+  ls('carrito', S.carrito); pintarNav(); vCarrito();
+}
+
+async function enviarPedido() {
+  const c = S.carrito;
+  if (!S._ent || !S._ent.lat) throw new Error('Marca en el mapa dónde te entregamos');
+  const d = await api('crearPedido', {
+    negocioId: c.negocioId, items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, nota: x.nota })),
+    direccion: $('#cDir').value, referencia: $('#cRef').value, notas: $('#cNot').value,
+    lat: S._ent.lat, lng: S._ent.lng, guardarDireccion: $('#cGuardar').checked
+  });
+  if ($('#cGuardar').checked) { Object.assign(S.user, { direccion: $('#cDir').value, referencia: $('#cRef').value, lat: S._ent.lat, lng: S._ent.lng }); ls('user', S.user); }
+  S.carrito = { negocioId: null, negocio: '', lat: 0, lng: 0, items: {} }; ls('carrito', S.carrito);
+  toast('¡Pedido ' + d.folio + ' enviado!');
+  ir('pedido', d.id);
+}
+
+async function vPedidos() {
+  const l = await api('misPedidos');
+  const act = l.filter(p => ACTIVOS.includes(p.estado)), ant = l.filter(p => !ACTIVOS.includes(p.estado));
+  const card = p => `<div class="card" onclick="ir('pedido','${p.id}')" style="cursor:pointer">
+    <div class="row between"><b>${esc(p.negocio.nombre)}</b>${etiqueta(p.estado)}</div>
+    <div class="muted">${p.folio} · ${fechaCorta(p.creado)} · ${money(p.total)}</div>
+    ${p.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(p.alerta)}</div>` : ''}</div>`;
+  html(`<h2>Mis pedidos</h2>${act.length ? act.map(card).join('') : ''}
+    ${ant.length ? `<h3>Anteriores</h3>${ant.map(card).join('')}` : ''}
+    ${!l.length ? `<div class="vacio"><span class="big">🧾</span>Aún no has hecho pedidos<br><br><button class="btn pri" onclick="ir('inicio')">Pedir algo</button></div>` : ''}`);
+}
+
+async function vPedido(id) {
+  const p = await api('pedido', { id });
+  const r = S.user.rol;
+  let pago = '';
+  if (r === 'comprador' && p.estado === 'POR_PAGAR' && p.pago) {
+    const g = p.pago;
+    pago = `<div class="card" style="border:2px solid var(--pri)">
+      <h3 style="margin-top:0">💳 Paga ${money(p.subtotal)} al negocio</h3>
+      <div class="muted small">Transfiere desde tu app del banco. El pago va directo al negocio, sin comisiones. Tienes hasta las <b>${hora(g.limite)}</b>.</div>
+      <div class="copiar"><div><div class="muted small">Monto exacto</div><div class="v">${money(p.subtotal)}</div></div><button class="btn sm" onclick="copiar('${p.subtotal}','Monto')">Copiar</button></div>
+      ${g.clabe ? `<div class="copiar"><div><div class="muted small">CLABE · ${esc(g.banco)}</div><div class="v">${esc(g.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(g.clabe)}','CLABE')">Copiar</button></div>` : ''}
+      ${g.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta · ${esc(g.banco)}</div><div class="v">${esc(g.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(g.tarjeta)}','Tarjeta')">Copiar</button></div>` : ''}
+      ${g.titular ? `<div class="muted small">A nombre de: <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b> <button class="lnk" onclick="copiar('${p.folio}','Concepto')">copiar</button></div>` : ''}
+      ${g.qrId ? `<div class="btns"><button class="btn" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">📱 Ver QR CoDi</button></div>` : ''}
+      <div class="btns"><label class="btn pri full">📎 Adjuntar comprobante de pago<input type="file" accept="image/*" hidden onchange="subirComprobante('${p.id}',this)"></label></div>
+    </div>`;
+  }
+  if (r === 'comprador' && p.estado === 'PAGO_ENVIADO') pago = `<div class="aviso info">🔎 Enviaste tu comprobante. El negocio está verificando el pago.</div>`;
+  if (r === 'comprador' && p.estado === 'NUEVO') pago = `<div class="aviso info">📨 Esperando que ${esc(p.negocio.nombre)} confirme tu pedido. Después podrás pagar.</div>`;
+  const eta = p.eta && ['PREPARANDO', 'LISTO', 'EN_CAMINO'].includes(p.estado) ? `<div class="aviso ok">🕒 Llegada estimada: <b>${hora(p.eta)}</b> (${enMin(p.eta)})</div>` : '';
+  const quien = [];
+  if (r !== 'negocio') quien.push(`<div class="row between"><div><div class="muted small">Negocio</div><b>${esc(p.negocio.nombre)}</b></div><div class="row">${telLink(p.negocio.telefono)}</div></div>`);
+  if (r !== 'comprador') quien.push(`<div class="row between"><div><div class="muted small">Cliente</div><b>${esc(p.comprador.nombre)}</b></div>${telLink(p.comprador.telefono)}</div>`);
+  if (p.repartidor && r !== 'repartidor') quien.push(`<div class="row between"><div><div class="muted small">Repartidor</div><b>${esc(p.repartidor.nombre)}</b> <span class="muted small">${esc(p.repartidor.vehiculo)}</span></div>${telLink(p.repartidor.telefono)}</div>`);
+  html(`<button class="btn sm" onclick="history.length>1?history.back():ir(inicioRol())">← Volver</button>
+    <div class="row between" style="margin:12px 0 8px"><h2 style="margin:0">Pedido ${p.folio}</h2>${etiqueta(p.estado)}</div>
+    ${p.alerta ? `<div class="aviso warn">⏰ ${esc(p.alerta)}</div>` : ''}
+    ${eta}${pago}
+    ${botonesPedido(p, false) ? `<div class="card">${p.estado === 'PREPARANDO' && p.horaSalida ? `<div class="muted">Hora de salida: <b>${hora(p.horaSalida)}</b> (${enMin(p.horaSalida)})</div>` : ''}${botonesPedido(p, false)}</div>` : ''}
+    <div class="card">${lineaTiempo(p)}</div>
+    ${quien.length ? `<div class="card">${quien.join('<hr class="hr">')}</div>` : ''}
+    <div class="card"><b>Productos</b>${listaItems(p.items)}<hr class="hr">${resumenCobro(p)}
+      ${p.notas ? `<div class="aviso info" style="margin-top:10px">📝 ${esc(p.notas)}</div>` : ''}</div>
+    <div class="card"><div class="muted small">Entrega en</div><b>${esc(p.direccion)}</b>${p.referencia ? `<div class="muted">${esc(p.referencia)}</div>` : ''}<div class="muted small">${p.distanciaKm} km desde el negocio</div></div>`);
+}
+
+async function subirComprobante(id, inp) {
+  const f = inp.files[0]; if (!f) return;
+  toast('Subiendo comprobante…');
+  try { const img = await comprimir(f, 1400); await api('subirComprobante', { pedidoId: id, imagen: img }); toast('Comprobante enviado ✓'); pintar(true); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* ============ NEGOCIO ============ */
+async function vNegPedidos(p, silencioso) {
+  const [l, n] = await Promise.all([api('pedidosNegocio'), api('miNegocio')]);
+  S.negocio = n; ls('negocio', n);
+  const grupos = {
+    atender: l.filter(x => ['NUEVO', 'PAGO_ENVIADO'].includes(x.estado)),
+    curso: l.filter(x => ['POR_PAGAR', 'PREPARANDO', 'LISTO', 'EN_CAMINO'].includes(x.estado)),
+    hoy: l.filter(x => !ACTIVOS.includes(x.estado))
+  };
+  const vendido = grupos.hoy.filter(x => x.estado === 'ENTREGADO').reduce((s, x) => s + x.subtotal, 0);
+  const t = S.tabNeg;
+  const card = x => `<div class="card">
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)}<div class="muted small">${hora(x.creado)} · ${x.items.reduce((s, i) => s + i.cant, 0)} productos · ${money(x.subtotal)}</div></div>${etiqueta(x.estado)}</div>
+    ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
+    <div class="muted small" style="margin-top:6px">${x.items.map(i => i.cant + '× ' + esc(i.nombre) + (i.nota ? ' (' + esc(i.nota) + ')' : '')).join(' · ')}</div>
+    ${x.notas ? `<div class="muted small">📝 ${esc(x.notas)}</div>` : ''}
+    ${x.estado === 'PREPARANDO' ? `<div class="muted small">Salida: <b>${hora(x.horaSalida)}</b> (${enMin(x.horaSalida)}) · ${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) : 'Sin repartidor aún'}</div>` : ''}
+    ${x.estado === 'LISTO' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : 'Esperando repartidor'}</div>` : ''}
+    ${botonesPedido(x, true)}</div>`;
+  html(`${pendienteAviso()}
+    <div class="card row between"><div><b>${esc(n.nombre)}</b><div class="muted small">${n.abierto ? 'Recibiendo pedidos' : 'Cerrado: no recibes pedidos'}</div></div>
+      <label class="sw"><input type="checkbox" ${n.abierto ? 'checked' : ''} ${n.estado !== 'activo' ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
+    <div class="tabs">
+      <button class="${t === 'atender' ? 'on' : ''}" onclick="S.tabNeg='atender';pintar(true)">Por atender (${grupos.atender.length})</button>
+      <button class="${t === 'curso' ? 'on' : ''}" onclick="S.tabNeg='curso';pintar(true)">En curso (${grupos.curso.length})</button>
+      <button class="${t === 'hoy' ? 'on' : ''}" onclick="S.tabNeg='hoy';pintar(true)">Hoy (${grupos.hoy.length})</button></div>
+    ${t === 'hoy' ? `<div class="muted" style="margin-bottom:8px">Vendido hoy (entregados): <b>${money(vendido)}</b></div>` : ''}
+    ${grupos[t].length ? grupos[t].map(card).join('') : `<div class="vacio"><span class="big">${t === 'atender' ? '✨' : '🧾'}</span>${t === 'atender' ? 'Nada pendiente por ahora' : 'Sin pedidos aquí'}</div>`}`);
+}
+
+function pendienteAviso() {
+  if (!S.user || S.user.estado === 'activo') return '';
+  return `<div class="aviso warn">⏳ Tu cuenta está en revisión. ${S.user.rol === 'negocio' ? 'Mientras tanto completa “Mi negocio” (ubicación y datos de cobro) y tu menú para que el administrador te apruebe.' : 'En cuanto el administrador la apruebe podrás tomar pedidos.'}</div>`;
+}
+
+async function abrirCerrar(chk) {
+  try { S.negocio = await api('abrirCerrar', { abierto: chk.checked }); ls('negocio', S.negocio); toast(chk.checked ? 'Negocio abierto 🟢' : 'Negocio cerrado'); pintar(true); }
+  catch (e) { chk.checked = !chk.checked; throw e; }
+}
+
+async function vMenu() {
+  const l = await api('misProductos');
+  S._prods = l;
+  const grupos = {};
+  l.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  html(`${pendienteAviso()}<div class="row between"><h2>Mi menú</h2><button class="btn pri" onclick="formProducto()">+ Producto</button></div>
+    ${Object.keys(grupos).map(g => `<h3>${esc(g)}</h3><div class="card">${grupos[g].map(p => `<div class="prod">
+      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : `<div class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>`}
+      <div class="grow" onclick="formProducto('${p.id}')" style="cursor:pointer"><b>${esc(p.nombre)}</b><div class="b">${money(p.precio)}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
+      <label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="act(null,()=>dispProducto('${p.id}',this))"><i></i></label></div>`).join('')}</div>`).join('')}
+    ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos con foto y precio.</div>` : ''}`);
+}
+
+async function dispProducto(id, chk) {
+  try { await api('guardarProducto', { id, disponible: chk.checked ? 'si' : 'no' }); toast(chk.checked ? 'Disponible' : 'Marcado como agotado'); }
+  catch (e) { chk.checked = !chk.checked; throw e; }
+}
+
+function formProducto(id) {
+  const p = (S._prods || []).find(x => x.id === id) || { nombre: '', descripcion: '', precio: '', categoria: '', foto: '' };
+  const cats = [...new Set((S._prods || []).map(x => x.categoria))];
+  S._foto = null;
+  modal(`<h2>${id ? 'Editar' : 'Nuevo'} producto</h2>
+    <label class="f">Nombre</label><input class="i" id="pNom" value="${esc(p.nombre)}">
+    <label class="f">Descripción</label><input class="i" id="pDes" value="${esc(p.descripcion)}" placeholder="Ingredientes, tamaño…">
+    <div class="row"><div class="grow"><label class="f">Precio</label><input class="i" id="pPre" type="number" inputmode="decimal" value="${p.precio}"></div>
+    <div class="grow"><label class="f">Sección del menú</label><input class="i" id="pCat" list="lCats" value="${esc(p.categoria === 'General' && !id ? '' : p.categoria)}" placeholder="Ej. Tacos, Bebidas"><datalist id="lCats">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</datalist></div></div>
+    <label class="f">Foto</label>
+    <div class="row"><img id="pPrev" class="fotoP" src="${esc(p.foto)}" style="${p.foto ? '' : 'display:none'}"><label class="btn">📷 ${p.foto ? 'Cambiar' : 'Elegir'} foto<input type="file" accept="image/*" hidden onchange="fotoProducto(this)"></label></div>
+    <div class="btns"><button class="btn pri" onclick="act(this,()=>guardarProducto('${id || ''}'))">Guardar</button>
+    ${id ? `<button class="btn err" onclick="act(this,()=>eliminarProducto('${id}'))">Eliminar</button>` : ''}<button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
+}
+async function fotoProducto(inp) {
+  const f = inp.files[0]; if (!f) return;
+  S._foto = await comprimir(f, 900);
+  $('#pPrev').src = S._foto; $('#pPrev').style.display = '';
+}
+async function guardarProducto(id) {
+  await api('guardarProducto', { id: id || undefined, nombre: $('#pNom').value, descripcion: $('#pDes').value, precio: $('#pPre').value, categoria: $('#pCat').value, fotoImagen: S._foto || undefined });
+  cerrarModal(); toast('Producto guardado'); pintar(true);
+}
+async function eliminarProducto(id) {
+  if (!confirm('¿Eliminar este producto del menú?')) return;
+  await api('guardarProducto', { id, disponible: 'eliminado' });
+  cerrarModal(); toast('Producto eliminado'); pintar(true);
+}
+
+async function vMiNegocio() {
+  const n = await api('miNegocio');
+  S.negocio = n; ls('negocio', n);
+  S._negPos = { lat: n.lat, lng: n.lng }; S._logo = null; S._qr = null;
+  html(`${pendienteAviso()}<h2>Mi negocio</h2>
+    <div class="card">
+      <div class="row"><img id="nLogoPrev" class="logoN" src="${esc(n.logo)}" style="${n.logo ? '' : 'display:none'}"><label class="btn">🖼️ Logo<input type="file" accept="image/*" hidden onchange="imgNegocio(this,'logo')"></label></div>
+      <label class="f">Nombre del negocio</label><input class="i" id="nNom" value="${esc(n.nombre)}">
+      <label class="f">Categoría</label><select class="i" id="nCat">${CATEGORIAS.map(c => `<option ${c === n.categoria ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      <label class="f">Descripción corta</label><input class="i" id="nDes" value="${esc(n.descripcion)}" placeholder="Ej. Mariscos frescos y aguachiles">
+      <div class="row"><div class="grow"><label class="f">Horario</label><input class="i" id="nHor" value="${esc(n.horario)}" placeholder="Lun-Sáb 12 a 9 pm"></div>
+      <div style="width:120px"><label class="f">Preparación</label><select class="i" id="nTie">${[10, 15, 20, 25, 30, 40, 50, 60].map(m => `<option value="${m}" ${m === n.tiempoPrep ? 'selected' : ''}>${m} min</option>`).join('')}</select></div></div>
+      <label class="f">Teléfono del negocio</label><input class="i" id="nTel" type="tel" value="${esc(n.telefono)}">
+    </div>
+    <h3>📍 Ubicación</h3>
+    <div class="card"><div class="row between"><span class="muted small">Marca la entrada de tu negocio</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._selN.fijar(a,b,true))">📍 Estoy aquí</button></div>
+      <div id="mapaNeg" class="mapa" style="margin-top:8px"></div>
+      <label class="f">Dirección</label><input class="i" id="nDir" value="${esc(n.direccion)}"></div>
+    <h3>💳 Datos para recibir transferencias</h3>
+    <div class="card"><div class="muted small">Tus clientes te pagan directo. Llena al menos una opción.</div>
+      <label class="f">Banco</label><input class="i" id="nBan" value="${esc(n.banco)}" placeholder="BBVA, Banorte, Nu, Mercado Pago…">
+      <label class="f">Titular de la cuenta</label><input class="i" id="nTit" value="${esc(n.titular)}">
+      <label class="f">CLABE (18 dígitos)</label><input class="i" id="nCla" inputmode="numeric" maxlength="22" value="${esc(n.clabe)}">
+      <label class="f">Número de tarjeta (16 dígitos, opcional)</label><input class="i" id="nTar" inputmode="numeric" maxlength="22" value="${esc(n.tarjeta)}">
+      <label class="f">QR de CoDi / Dimo</label>
+      <div class="row wrap"><span id="qrEst" class="tag ${n.qrId ? 't-ok' : 't-gray'}">${n.qrId ? 'QR cargado' : 'Sin QR'}</span>
+        ${n.qrId ? `<button class="btn sm" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${n.qrId}'})))">Ver</button>` : ''}
+        <label class="btn sm">📱 Subir QR<input type="file" accept="image/*" hidden onchange="imgNegocio(this,'qr')"></label></div>
+    </div>
+    <div class="btns"><button class="btn pri full" onclick="act(this,guardarNegocio)">Guardar cambios</button></div><div style="height:20px"></div>`);
+  S._selN = mapaSelector('mapaNeg', n.lat, n.lng, (a, b) => { S._negPos = { lat: a, lng: b }; });
+}
+async function imgNegocio(inp, tipo) {
+  const f = inp.files[0]; if (!f) return;
+  const img = await comprimir(f, tipo === 'qr' ? 1000 : 600);
+  if (tipo === 'logo') { S._logo = img; $('#nLogoPrev').src = img; $('#nLogoPrev').style.display = ''; }
+  else { S._qr = img; $('#qrEst').textContent = 'QR nuevo listo para guardar'; $('#qrEst').className = 'tag t-info'; }
+}
+async function guardarNegocio() {
+  const v = id => $('#' + id).value;
+  const n = await api('guardarNegocio', {
+    nombre: v('nNom'), categoria: v('nCat'), descripcion: v('nDes'), horario: v('nHor'), tiempoPrep: v('nTie'), telefono: v('nTel'),
+    direccion: v('nDir'), lat: S._negPos.lat, lng: S._negPos.lng, banco: v('nBan'), titular: v('nTit'), clabe: v('nCla'), tarjeta: v('nTar'),
+    logoImagen: S._logo || undefined, qrImagen: S._qr || undefined
+  });
+  S.negocio = n; ls('negocio', n); toast('Datos guardados ✓'); pintar(true);
+}
+
+/* ============ REPARTIDOR ============ */
+async function vDisponibles(p, silencioso) {
+  const d = await api('disponibles', S.pos || {});
+  S.esperaHasta = Date.now() + d.esperaMs;
+  const lleno = d.activos >= d.maxActivos;
+  html(`${pendienteAviso()}
+    <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
+      <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
+    ${!S.pos ? `<div class="aviso warn">📡 Activa el GPS para ver qué pedidos te quedan en ruta.</div>` : ''}
+    ${lleno ? `<div class="aviso info">Ya tienes el máximo de pedidos activos. Entrega uno para tomar otro.</div>` : ''}
+    <div class="muted small" style="margin-bottom:8px">Puedes tomar 1 pedido cada ${d.minutosEntreTomas} min, para que el trabajo se reparta entre todos.</div>
+    ${d.lista.length ? d.lista.map(x => `<div class="card">
+      <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div>${x.estado === 'LISTO' ? '<span class="tag t-ok">Ya está listo</span>' : `<span class="tag t-pri">Sale ${hora(x.horaSalida)}</span>`}</div>
+      <div class="row wrap" style="margin-top:8px;gap:14px">
+        <div><div class="muted small">Sale</div><b>${x.estado === 'LISTO' ? 'Ya' : enMin(x.horaSalida)}</b></div>
+        <div><div class="muted small">Entrega</div><b>${x.distanciaKm} km</b></div>
+        <div><div class="muted small">Ganas (efectivo)</div><b>${money(x.envio)}</b></div></div>
+      <div class="aviso ${x.viabilidad.viable ? 'ok' : 'warn'}" style="margin:10px 0 0">${x.viabilidad.viable ? '✅' : '⚠️'} ${esc(x.viabilidad.motivo)}</div>
+      <div class="btns"><a class="btn" href="${gmaps(x.negLat, x.negLng)}" target="_blank">🧭 Ver negocio</a>
+        <button class="btn pri tomar" ${S.user.estado !== 'activo' || lleno ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">Tomar pedido</button></div></div>`).join('')
+    : `<div class="vacio"><span class="big">🛵</span>No hay pedidos disponibles ahorita.<br>Te avisamos cuando haya uno.</div>`}`);
+  relojEspera();
+}
+function textoEspera() {
+  const ms = S.esperaHasta - Date.now();
+  if (ms <= 0) return '<span style="color:var(--ok)">¡Disponible!</span>';
+  const s = Math.ceil(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+function relojEspera() {
+  clearInterval(S._reloj);
+  const tick = () => {
+    const e = $('#espera'); if (!e) { clearInterval(S._reloj); return; }
+    e.innerHTML = textoEspera();
+    const espera = S.esperaHasta > Date.now();
+    document.querySelectorAll('.tomar').forEach(b => { if (espera) { b.disabled = true; b.dataset.w = 1; } else if (b.dataset.w) { b.disabled = S.user.estado !== 'activo'; delete b.dataset.w; } });
+  };
+  tick(); S._reloj = setInterval(tick, 1000);
+}
+async function tomar(id) {
+  await api('tomarPedido', { id });
+  toast('¡Pedido tomado! 🛵');
+  ir('entregas');
+}
+
+async function vEntregas(p, silencioso) {
+  const d = await api('misEntregas', S.pos || {});
+  if (silencioso && S.map && $('#mapaRuta') && d.pedidos.length && S._rutaFirma === JSON.stringify(d.ruta.map(s => s.tipo + s.pedidoId))) {
+    // misma ruta: solo refresca la lista
+    $('#listaEnt').innerHTML = tarjetasEntrega(d); return;
+  }
+  S._rutaFirma = JSON.stringify(d.ruta.map(s => s.tipo + s.pedidoId));
+  html(`${pendienteAviso()}
+    <div class="kpis"><div class="kpi"><b>${d.hoy.entregas}</b><span>Entregas hoy</span></div><div class="kpi"><b>${money(d.hoy.envios)}</b><span>Envíos cobrados hoy</span></div></div>
+    ${d.pedidos.length ? `<div class="card"><div class="row between"><b>🗺️ Tu ruta</b><span class="muted small">${d.kmRuta} km · ~${d.minRuta} min</span></div>
+      <div id="mapaRuta" class="mapa alto" style="margin-top:8px"></div>
+      <div style="margin-top:8px">${d.ruta.map((s, i) => `<div class="parada"><div class="num ${s.tipo === 'recoger' ? 'r' : 'e'}">${i + 1}</div><div class="grow"><b>${s.tipo === 'recoger' ? 'Recoger en' : 'Entregar a'} ${esc(s.nombre)}</b><div class="muted small">${s.folio}</div></div><a class="btn sm" href="${gmaps(s.lat, s.lng)}" target="_blank">🧭</a></div>`).join('')}</div>
+      <div class="btns"><a class="btn pri full" href="${urlRuta(d.ruta)}" target="_blank">🧭 Abrir ruta completa en Google Maps</a></div></div>
+      <div id="listaEnt">${tarjetasEntrega(d)}</div>`
+    : `<div class="vacio"><span class="big">🛵</span>No tienes entregas activas.<br><br><button class="btn pri" onclick="ir('disponibles')">Ver pedidos disponibles</button></div>`}`);
+  if (d.pedidos.length) dibujarRuta(d.ruta);
+}
+function tarjetasEntrega(d) {
+  return d.pedidos.map(x => `<div class="card">
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.negocio.nombre)}<div class="muted small">Para ${esc(x.comprador.nombre)} · cobra <b>${money(x.envio)}</b> en efectivo</div></div>${etiqueta(x.estado)}</div>
+    ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
+    <div class="muted small" style="margin-top:6px">${x.estado === 'EN_CAMINO' ? '📍 ' + esc(x.direccion) + (x.referencia ? ' · ' + esc(x.referencia) : '') : x.estado === 'LISTO' ? '📦 Listo en el negocio' : '👩‍🍳 Sale ' + hora(x.horaSalida) + ' (' + enMin(x.horaSalida) + ')'}</div>
+    <div class="row" style="margin-top:6px;gap:6px">${telLink(x.estado === 'EN_CAMINO' ? x.comprador.telefono : x.negocio.telefono)}</div>
+    ${botonesPedido(x, true)}</div>`).join('');
+}
+function urlRuta(ruta) {
+  if (!ruta.length) return '#';
+  const pts = ruta.map(s => s.lat + ',' + s.lng);
+  const dest = pts.pop();
+  let u = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(dest);
+  if (S.pos) u += '&origin=' + encodeURIComponent(S.pos.lat + ',' + S.pos.lng);
+  if (pts.length) u += '&waypoints=' + encodeURIComponent(pts.slice(0, 9).join('|'));
+  return u;
+}
+function dibujarRuta(ruta) {
+  const ini = S.pos || ruta[0];
+  const m = nuevoMapa('mapaRuta', ini.lat, ini.lng, 15);
+  const pts = [];
+  if (S.pos) { L.marker([S.pos.lat, S.pos.lng], { icon: pin('Tú', '#1D4ED8') }).addTo(m); pts.push([S.pos.lat, S.pos.lng]); }
+  ruta.forEach((s, i) => {
+    L.marker([s.lat, s.lng], { icon: pin(i + 1, s.tipo === 'recoger' ? '#E2552B' : '#15803D') }).addTo(m).bindPopup((s.tipo === 'recoger' ? 'Recoger: ' : 'Entregar: ') + esc(s.nombre));
+    pts.push([s.lat, s.lng]);
+  });
+  if (pts.length > 1) { L.polyline(pts, { color: '#E2552B', weight: 4, opacity: .7, dashArray: '6 8' }).addTo(m); m.fitBounds(pts, { padding: [30, 30] }); }
+}
+
+/* ============ PERFIL ============ */
+function vPerfil() {
+  const u = S.user, r = u.rol;
+  const wa = S.conf && S.conf.soporteWhatsApp;
+  S._perfPos = { lat: u.lat, lng: u.lng };
+  html(`<h2>Mi perfil</h2>
+    <div class="card"><div class="row between"><div><b>${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} · ${esc(rolNombre(r))}</div></div>
+      ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
+      <label class="f">Nombre</label><input class="i" id="uNom" value="${esc(u.nombre)}">
+      ${r === 'repartidor' ? `<label class="f">Vehículo</label><input class="i" id="uVeh" value="${esc(u.vehiculo)}">` : ''}
+      ${r === 'comprador' ? `<label class="f">Mi dirección de entrega</label><input class="i" id="uDir" value="${esc(u.direccion)}">
+        <label class="f">Referencias</label><input class="i" id="uRef" value="${esc(u.referencia)}">
+        <div class="row between" style="margin-top:8px"><span class="muted small">Ubicación de mi casa</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._selP.fijar(a,b,true))">📍 Estoy aquí</button></div>
+        <div id="mapaPerfil" class="mapa" style="margin-top:6px"></div>` : ''}
+      <div class="btns"><button class="btn pri" onclick="act(this,guardarPerfil)">Guardar</button></div></div>
+    <div class="card"><b>Cambiar contraseña</b>
+      <label class="f">Contraseña actual</label><input class="i" id="pAct" type="password">
+      <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
+      <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
+    <div class="card">
+      ${S.instalar ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
+      ${'Notification' in window && Notification.permission !== 'granted' ? `<button class="btn full" onclick="Notification.requestPermission().then(()=>vPerfil())">🔔 Activar avisos</button><div style="height:8px"></div>` : ''}
+      ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">💬 Soporte técnico</a><div style="height:8px"></div>` : ''}
+      <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">Cerrar sesión</button></div>
+    <div class="muted small" style="text-align:center">${APP} ${S.conf ? 'v' + S.conf.version : ''}</div>`);
+  if (r === 'comprador') S._selP = mapaSelector('mapaPerfil', u.lat, u.lng, (a, b) => { S._perfPos = { lat: a, lng: b }; });
+}
+async function guardarPerfil() {
+  const d = { nombre: $('#uNom').value };
+  if ($('#uVeh')) d.vehiculo = $('#uVeh').value;
+  if ($('#uDir')) { d.direccion = $('#uDir').value; d.referencia = $('#uRef').value; d.lat = S._perfPos.lat; d.lng = S._perfPos.lng; }
+  S.user = await api('actualizarPerfil', d); ls('user', S.user); toast('Perfil guardado ✓');
+}
+async function cambiarPass() {
+  await api('cambiarPass', { actual: $('#pAct').value, nueva: $('#pNue').value });
+  $('#pAct').value = ''; $('#pNue').value = ''; toast('Contraseña cambiada ✓');
+}
+
+/* ============ ADMINISTRADOR ============ */
+async function vAdmin() {
+  const d = await api('adminResumen');
+  html(`<h2>Resumen</h2>
+    <div class="kpis">
+      <div class="kpi"><b>${d.hoy.pedidos}</b><span>Pedidos hoy</span></div>
+      <div class="kpi"><b>${d.activos}</b><span>Pedidos activos</span></div>
+      <div class="kpi"><b>${d.hoy.entregados}</b><span>Entregados hoy</span></div>
+      <div class="kpi"><b>${d.hoy.cancelados}</b><span>Cancelados hoy</span></div>
+      <div class="kpi"><b>${money(d.hoy.vendido)}</b><span>Vendido hoy</span></div>
+      <div class="kpi"><b>${d.negociosAbiertos}</b><span>Negocios abiertos</span></div></div>
+    <div class="card muted">👥 ${d.usuarios.compradores} compradores · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
+    <h3>Por aprobar (${d.pendientes.length})</h3>
+    ${d.pendientes.length ? d.pendientes.map(tarjetaUsuario).join('') : '<div class="vacio">Nadie pendiente ✨</div>'}`);
+}
+function tarjetaUsuario(x) {
+  const est = { activo: 't-ok', pendiente: 't-warn', bloqueado: 't-err' }[x.estado];
+  return `<div class="card"><div class="row between"><div><b>${esc(x.nombre)}</b> <span class="muted small">${esc(rolNombre(x.rol))}</span>
+      <div class="muted small">${esc(x.telefono)} · alta ${fechaCorta(x.fechaAlta)}</div>
+      ${x.negocio ? `<div class="small">🏪 ${esc(x.negocio)} · ${esc(x.categoria)} ${x.negocioListo ? '<span class="tag t-ok">Datos completos</span>' : '<span class="tag t-warn">Falta ubicación o cobro</span>'}</div>` : ''}
+      ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}</div><span class="tag ${est}">${x.estado}</span></div>
+    ${x.notasAdmin ? `<div class="muted small" style="margin-top:6px">📝 ${esc(x.notasAdmin)}</div>` : ''}
+    <div class="btns">${x.estado !== 'activo' ? `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>` : ''}
+      ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
+      <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">💬 WhatsApp</a></div></div>`;
+}
+async function estadoUsuario(id, estado) {
+  let nota = '';
+  if (estado === 'bloqueado') { nota = prompt('Motivo del bloqueo (queda registrado):'); if (nota === null) return; }
+  await api('adminEstadoUsuario', { usuarioId: id, estado, nota });
+  toast(estado === 'activo' ? 'Cuenta activada ✓' : 'Cuenta bloqueada');
+  pintar(true);
+}
+async function vAdminUsuarios(p, silencioso) {
+  const f = S._fu || { q: '', rol: '', estado: '' };
+  if (!silencioso || !$('#listaU')) {
+    html(`<h2>Usuarios</h2>
+      <input class="buscar" id="uq" placeholder="🔍 Nombre, teléfono o negocio" value="${esc(f.q)}" onchange="filtrarU()">
+      <div class="row"><select class="i" id="ur" onchange="filtrarU()"><option value="">Todos los roles</option>${['comprador', 'negocio', 'repartidor', 'admin'].map(r => `<option value="${r}" ${f.rol === r ? 'selected' : ''}>${rolNombre(r)}</option>`).join('')}</select>
+      <select class="i" id="ue" onchange="filtrarU()"><option value="">Todos</option>${['activo', 'pendiente', 'bloqueado'].map(e => `<option ${f.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+      <div id="listaU" style="margin-top:12px"><div class="cargando">Cargando…</div></div>`);
+  }
+  const l = await api('adminUsuarios', f);
+  $('#listaU').innerHTML = l.length ? l.map(tarjetaUsuario).join('') : '<div class="vacio">Sin resultados</div>';
+}
+function filtrarU() { S._fu = { q: $('#uq').value, rol: $('#ur').value, estado: $('#ue').value }; pintar(true); }
+async function vAdminPedidos() {
+  const t = S.tabAdmPed;
+  const l = await api('adminPedidos', { todos: t === 'semana' });
+  html(`<h2>Pedidos</h2>
+    <div class="tabs"><button class="${t === 'activos' ? 'on' : ''}" onclick="S.tabAdmPed='activos';pintar()">Activos</button><button class="${t === 'semana' ? 'on' : ''}" onclick="S.tabAdmPed='semana';pintar()">Últimos 7 días</button></div>
+    ${l.length ? l.map(x => `<div class="card" onclick="ir('pedido','${x.id}')" style="cursor:pointer">
+      <div class="row between"><div><b>${x.folio}</b> · ${esc(x.negocio.nombre)}<div class="muted small">${esc(x.comprador.nombre)} · ${fechaCorta(x.creado)} · ${money(x.total)}${x.repartidor ? ' · 🛵 ' + esc(x.repartidor.nombre) : ''}</div></div>${etiqueta(x.estado)}</div>
+      ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
+      ${x.estado === 'CANCELADO' && x.motivo ? `<div class="muted small">✖️ ${esc(x.canceladoPor)}: ${esc(x.motivo)}</div>` : ''}</div>`).join('') : '<div class="vacio">Sin pedidos</div>'}`);
+}
+async function vAdminConfig() {
+  const l = await api('adminConfig');
+  html(`<h2>Ajustes de la app</h2>
+    <div class="card">${l.map(c => `<label class="f">${esc(c.descripcion || c.clave)}</label><input class="i cfg" data-k="${esc(c.clave)}" value="${esc(c.valor)}">`).join('')}
+    <div class="btns"><button class="btn pri full" onclick="act(this,guardarConfig)">Guardar ajustes</button></div></div>`);
+}
+async function guardarConfig() {
+  const valores = {};
+  document.querySelectorAll('.cfg').forEach(i => valores[i.dataset.k] = i.value);
+  await api('adminGuardarConfig', { valores });
+  S.conf = await api('configPublica'); ls('conf', S.conf);
+  toast('Ajustes guardados ✓');
+}
+
+/* ============ INSTALACIÓN PWA ============ */
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.instalar = e; $('#btnInstalar').style.display = ''; });
+function instalarApp() {
+  if (!S.instalar) { toast('Usa el menú del navegador → "Agregar a pantalla de inicio"'); return; }
+  S.instalar.prompt();
+  S.instalar.userChoice.finally(() => { S.instalar = null; $('#btnInstalar').style.display = 'none'; });
+}
+
+arrancar();
+</script>
+</body>
+</html>
