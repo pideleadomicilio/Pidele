@@ -658,7 +658,7 @@ async function activarPush(pedir) {
   const reg = await navigator.serviceWorker.register('sw.js');
   await navigator.serviceWorker.ready;
   const m = firebase.messaging();
-  const fcm = await m.getToken({ vapidKey: FIREBASE_VAPID, serviceWorkerRegistration: reg });
+  const fcm = await m.getToken({ vapidKey: FIREBASE_VAPID || undefined, serviceWorkerRegistration: reg });
   if (!fcm) return false;
   const clave = S.user.id + '|' + fcm;
   if (ls('fcm') !== clave) { await api('registrarDispositivo', { fcm, ua: navigator.userAgent.slice(0, 120) }); ls('fcm', clave); }
