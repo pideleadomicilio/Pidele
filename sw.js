@@ -1,5 +1,5 @@
 /* Pide Elota · Service worker: guarda la app para abrir rápido; los datos siempre vienen del servidor. */
-const VERSION = 'pideelota-v1.0.0';
+const VERSION = 'pideelota-v1.1.0';
 const BASE = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
