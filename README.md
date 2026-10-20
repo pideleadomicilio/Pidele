@@ -1,4 +1,4 @@
-# Pide Elota
+# Pídele
 
 App de pedidos a domicilio para La Cruz de Elota. Une a **compradores**, **negocios** y **repartidores**, con un **administrador**.
 El pago de la comida es directo al negocio por transferencia (CLABE, tarjeta o QR CoDi) y el envío se paga en efectivo al repartidor: sin comisiones para nadie.
@@ -27,5 +27,24 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 - La app calcula la ruta (recoger antes de entregar), marca si un pedido extra “te queda en ruta” y abre la ruta completa en Google Maps.
 - Se cancelan solos: pedidos que el negocio no acepta en 15 min y los que no reciben comprobante en 30 min.
 
-## Fase 2 (pendiente)
-Calificaciones y ranking de negocios y repartidores, ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos; notificaciones push con la app cerrada.
+## Versión 1.1
+- Catálogo visible sin cuenta: fila de categorías y negocios en 2 columnas; se pide entrar solo al enviar el pedido.
+- Menú del negocio con secciones en columna y productos en 2 columnas (foto, precio, tiempo de preparación, descripción).
+- Hoja de producto con extras con costo, opciones "sin…", indicaciones y cantidad.
+- Horario semanal por negocio (también cruzando medianoche); fuera de horario y 15 min antes del cierre no entran pedidos.
+- Botón Salir siempre visible arriba a la derecha; al salir, la sesión queda invalidada en el servidor.
+- El servidor agrega solo las columnas nuevas al publicar una versión nueva (no hace falta volver a ejecutar `instalar()`).
+
+## Versión 1.2 · diseño Pídele
+- Nuevo diseño verde/crema: pantalla de inicio, categorías en una fila, restaurantes en 2 columnas con portada, logo, ★ y tiempo estimado; buscador de negocios y platillos.
+- Perfil del negocio con portada, logo, pestañas Menú / Información (horario, mapa, formas de pago).
+- Compra en pasos: Tu pedido → Datos de entrega (a domicilio o recoger en restaurante, quién recibe) → Método de pago → ¡Listo!
+- Formas de pago: efectivo por defecto; transferencia y CoDi solo si el negocio registra sus datos. Sin tarjeta.
+- Efectivo a domicilio: el repartidor paga la comida al negocio al recogerla y cobra todo al cliente.
+- El negocio marca "Entregar al repartidor" y el pedido pasa a En camino; en "recoger", marca "Entregado al cliente".
+- Seguimiento con mapa: casa, negocio y repartidor (GPS reciente o último punto donde recogió/entregó) y 4 pasos.
+- El repartidor ve nombre y teléfono de quien recibe, botón a Google Maps y "Copiar ubicación"; esos datos se borran al entregar.
+- El cliente confirma que recibió y califica restaurante y entrega (★ visibles en las tarjetas).
+
+## Pendiente
+Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos; notificaciones push con la app cerrada.

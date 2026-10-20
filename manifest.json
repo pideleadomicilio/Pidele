@@ -1,17 +1,32 @@
 {
-  "name": "Pide Elota",
-  "short_name": "Pide Elota",
-  "description": "Pedidos a domicilio en La Cruz de Elota",
+  "name": "Pídele",
+  "short_name": "Pídele",
+  "description": "Tu comida favorita, a un click · La Cruz de Elota",
   "lang": "es-MX",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FBF6F1",
-  "theme_color": "#E2552B",
+  "background_color": "#3B5A2C",
+  "theme_color": "#3B5A2C",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
