@@ -60,5 +60,10 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 - Variantes: el cliente elige una (obligatoria) y su precio reemplaza al normal; las tarjetas muestran "Desde $…".
 - Fotos rápidas desde la lista ("📷 Foto") y filtro de productos sin foto.
 
+## Versión 1.4.1 · compartir
+- Compartir la app desde Inicio y Perfil (menú del teléfono; si no hay, enlace, WhatsApp, Facebook y QR).
+- Cada negocio tiene su enlace directo (`?negocio=ID`) y un QR descargable listo para imprimir; también se comparte desde su portada.
+- Vista previa con logo y descripción al compartir por WhatsApp o Facebook.
+
 ## Pendiente
 Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
