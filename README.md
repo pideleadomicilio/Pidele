@@ -124,6 +124,15 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 1.8.1 · correcciones
+- **Verificación sin respuesta automática:** mientras Meta no verifique el negocio, WhatsApp no deja contestar (error 131031), pero el mensaje *PIDELE 123456* sí llega y el teléfono se verifica solo; la app lo detecta en segundos.
+  - `whatsappPidele` acepta números con lada de otro país (ej. `15556585439`, el número de prueba de Meta). 10 dígitos = México.
+  - Ajuste nuevo `whatsappResponde`: 0 (por ahora) = los textos no prometen respuesta y "¿Olvidaste tu contraseña?" manda a soporte (`soporteWhatsApp`) en lugar de CLAVE. Cámbialo a 1 cuando Meta apruebe el negocio.
+  - Los enlaces de pago y soporte usan `soporteWhatsApp`, no el número de verificación.
+- **CURP:** *Aprobar* o *Reactivar* un repartidor sin CURP o sin inscripción abre el formulario con el campo de CURP; los errores se muestran dentro del formulario.
+- **Repartidor:** botón **Activar ubicación** (si el permiso está bloqueado explica cómo habilitarlo en Android/iPhone) y aviso claro de por qué no puede tomar pedidos (cuenta sin aprobar, mensualidad, máximo de pedidos). La ubicación no es obligatoria.
+- En *Perfil* se ve la versión de la app y la del servidor.
+
 ## Versión 1.8 · cuentas confiables
 **Teléfono verificado por WhatsApp**
 - En *Perfil* (o al pagar) el usuario toca **Verificar por WhatsApp**: se abre WhatsApp con "PIDELE 123456" para el número de Pídele (Ajustes → `whatsappPidele`).

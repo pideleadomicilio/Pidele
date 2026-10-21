@@ -348,6 +348,7 @@ textarea.i{min-height:70px;resize:vertical}
 /* ============ CONFIGURACIÓN ============ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbw16py7HK64D_1W5C5leitt313r_tviHv9NYsgH2_ZSu_z_1IWJcynEMsNSySrTUqu7pQ/exec';
 const APP = 'Pídele';
+const APP_VER = '1.8.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
@@ -440,7 +441,12 @@ function modal(h) { $('#modalCaja').innerHTML = h; $('#modal').classList.add('on
 function cerrarModal() { $('#modal').classList.remove('on'); $('#modalCaja').innerHTML = ''; S.chat = null; clearInterval(S._chatT); }
 function visor(src) { $('#visorImg').src = src; $('#visor').classList.add('on'); }
 function telLink(t, txt) { return t ? `<a class="btn sm" href="tel:${esc(t)}">${ico('tel', 's')} ${txt || 'Llamar'}</a>` : ''; }
-function waLink(t, txt) { return t ? `https://wa.me/52${String(t).replace(/\D/g, '').slice(-10)}${txt ? '?text=' + encodeURIComponent(txt) : ''}` : ''; }
+/** Enlace de WhatsApp: 10 dígitos = México (52); si ya trae lada de país (11 a 15 dígitos) se usa tal cual. */
+function waLink(t, txt) {
+  if (!t) return '';
+  const d = String(t).replace(/\D/g, '');
+  return `https://wa.me/${d.length > 10 ? d : '52' + d.slice(-10)}${txt ? '?text=' + encodeURIComponent(txt) : ''}`;
+}
 function hav(a, b, c, d) { const R = 6371, r = Math.PI / 180, x = Math.sin((c - a) * r / 2), y = Math.sin((d - b) * r / 2); return 2 * R * Math.asin(Math.sqrt(x * x + Math.cos(a * r) * Math.cos(c * r) * y * y)); }
 function kmRuta(a, b, c, d) { return hav(a, b, c, d) * (S.conf ? S.conf.factorRuta : 1.35); }
 function tarifa(km) { const c = S.conf; const v = c.envioBase + Math.max(0, km - c.kmIncluidos) * c.envioPorKm; return Math.ceil(v / 5) * 5; }
@@ -1001,8 +1007,54 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && S.
 function iniciarGPS() {
   if (!navigator.geolocation || S._gps) return;
   S._gps = navigator.geolocation.watchPosition(
-    p => { S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; },
-    () => { }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+    p => {
+      const antes = S.pos;
+      S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gpsErr = 0;
+      if (!antes && $('#avisoGPS')) pintar(true); // se acaba de activar: quitar el aviso
+    },
+    e => { S.gpsErr = e.code || 2; if (e.code === 1) { navigator.geolocation.clearWatch(S._gps); S._gps = null; } },
+    { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+}
+
+/** Aviso del repartidor sin ubicación, con botón para activarla. */
+function avisoGPS() {
+  if (S.pos) return '';
+  return `<div class="aviso warn" id="avisoGPS">📡 <b>Tu ubicación está apagada.</b> No es obligatoria para tomar pedidos, pero sin ella no vemos qué pedidos te quedan en ruta y el cliente no ve dónde vas.
+    <div class="btns" style="margin-top:8px"><button class="btn pri sm" onclick="act(this,activarUbicacion)">${ico('pin', 's')} Activar ubicación</button></div></div>`;
+}
+
+/** El repartidor toca "Activar ubicación": se pide el permiso; si está bloqueado, se explica cómo habilitarlo. */
+async function activarUbicacion() {
+  if (!navigator.geolocation) { ayudaUbicacion('sin'); return; }
+  try {
+    if (navigator.permissions) {
+      const st = await navigator.permissions.query({ name: 'geolocation' });
+      if (st.state === 'denied') { ayudaUbicacion('bloqueada'); return; }
+    }
+  } catch (e) { }
+  toast('Buscando tu ubicación…');
+  await new Promise(listo => navigator.geolocation.getCurrentPosition(
+    p => { S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gpsErr = 0; if (S._gps) { navigator.geolocation.clearWatch(S._gps); S._gps = null; } iniciarGPS(); toast('📍 Ubicación activada'); pintar(true); listo(); },
+    e => { ayudaUbicacion(e.code === 1 ? 'bloqueada' : 'apagada'); listo(); },
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }));
+}
+function ayudaUbicacion(tipo) {
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const pasos = tipo === 'apagada'
+    ? `<p>Parece que el <b>GPS del teléfono está apagado</b> o no encuentra señal.</p>
+       <ol><li>Desliza desde arriba de la pantalla y activa <b>Ubicación</b> (${ios ? 'en iPhone: Ajustes → Privacidad y seguridad → Localización' : 'el ícono 📍'}).</li><li>Sal a un lugar abierto si estás bajo techo.</li><li>Regresa y toca <b>Intentar de nuevo</b>.</li></ol>`
+    : tipo === 'sin' ? '<p>Este navegador no permite usar la ubicación. Abre Pídele en Chrome (Android) o Safari (iPhone).</p>'
+    : ios
+      ? `<p>El permiso de ubicación para Pídele está <b>bloqueado</b>. Para habilitarlo:</p>
+         <ol><li>Abre <b>Ajustes</b> del iPhone → <b>Privacidad y seguridad</b> → <b>Localización</b> y verifica que esté activada.</li>
+         <li>En esa misma lista entra a <b>Safari</b> (o “Sitios web de Safari”) y elige <b>Al usar la app</b> o <b>Preguntar</b>.</li>
+         <li>Si instalaste Pídele en la pantalla de inicio, ciérrala por completo y ábrela de nuevo.</li></ol>`
+      : `<p>El permiso de ubicación para Pídele está <b>bloqueado</b>. Para habilitarlo:</p>
+         <ol><li>Toca el ícono a la izquierda de la dirección (🔒 o ⓘ) y entra a <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
+         <li>Si instalaste Pídele como app: mantén presionado su ícono → <b>Información de la app</b> (ⓘ) → <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
+         <li>Revisa que la <b>Ubicación</b> del teléfono esté encendida (desliza desde arriba de la pantalla).</li></ol>`;
+  modal(`<div class="row between"><h2 style="margin:0">Activar ubicación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${pasos}<div class="btns"><button class="btn pri pill full" onclick="cerrarModal();act(this,activarUbicacion)">Intentar de nuevo</button></div>`);
 }
 
 /* ============ MAPAS ============ */
@@ -2255,7 +2307,7 @@ function vPerfil() {
       ${pushDisponible() && Notification.permission === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
-    <div class="muted small" style="text-align:center">${APP} ${S.conf ? 'v' + S.conf.version : ''}</div>`);
+    <div class="muted small" style="text-align:center">${APP} · app ${APP_VER}${S.conf ? ' · servidor ' + S.conf.version : ''}</div>`);
   if (r === 'comprador') S._selP = mapaSelector('mapaPerfil', u.lat, u.lng, (a, b) => { S._perfPos = { lat: a, lng: b }; });
 }
 async function guardarPerfil() {
@@ -2297,10 +2349,12 @@ async function guardarNuevaClave() {
 
 /** "Olvidé mi contraseña": se pide por WhatsApp desde el número de la cuenta. */
 function olvideClave() {
-  const n = numPidele();
+  const n = numPidele(), sop = (S.conf && S.conf.soporteWhatsApp) || '';
   modal(`<div class="row between"><h2 style="margin:0">¿Olvidaste tu contraseña?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <p class="muted">Desde el WhatsApp del teléfono con el que te registraste, envía la palabra <b>CLAVE</b> a Pídele. Te contestamos con una contraseña temporal; al entrar te pediremos crear una nueva.</p>
-    ${n ? `<a class="btn pri pill full" href="${waLink(n, 'CLAVE')}" target="_blank">${ico('chat', 's')} Enviar CLAVE por WhatsApp</a>` : '<div class="aviso warn">Escribe a soporte para recuperar tu cuenta.</div>'}`);
+    ${n && S.conf.whatsappResponde ? `<p class="muted">Desde el WhatsApp del teléfono con el que te registraste, envía la palabra <b>CLAVE</b> a Pídele. Te contestamos con una contraseña temporal; al entrar te pediremos crear una nueva.</p>
+      <a class="btn pri pill full" href="${waLink(n, 'CLAVE')}" target="_blank">${ico('chat', 's')} Enviar CLAVE por WhatsApp</a>`
+    : `<p class="muted">Escríbenos por WhatsApp desde el teléfono con el que te registraste. Te daremos una contraseña temporal; al entrar te pediremos crear una nueva.</p>
+      ${sop ? `<a class="btn pri pill full" href="${waLink(sop, 'Hola, olvidé mi contraseña de ' + APP + '. Mi teléfono registrado es: ')}" target="_blank">${ico('chat', 's')} Pedir contraseña a soporte</a>` : '<div class="aviso warn">Pide al administrador una contraseña temporal.</div>'}`}`);
 }
 
 /** Tarjeta para verificar el teléfono (perfil, pago y pasos del repartidor). */
@@ -2317,7 +2371,7 @@ async function verificarTel() {
   const r = await api('solicitarVerificacion');
   if (r.verificado) { S.user.telVerificado = true; ls('user', S.user); toast('Tu teléfono ya está verificado ✓'); pintar(true); return; }
   window.open(waLink(r.numero, r.texto), '_blank');
-  const e = $('#verifEstado'); if (e) e.innerHTML = `⏳ Esperando tu mensaje <b>${esc(r.texto)}</b>… En cuanto llegue te avisamos.`;
+  const e = $('#verifEstado'); if (e) e.innerHTML = `⏳ Esperando tu mensaje <b>${esc(r.texto)}</b>… Envíalo tal cual y regresa a la app: ${S.conf && S.conf.whatsappResponde ? 'te contestaremos por WhatsApp y ' : ''}esta pantalla se actualiza sola en unos segundos.`;
   esperarVerificacion();
 }
 /** Revisa cada 6 s (máximo 3 min) si ya quedó verificado; la notificación push también lo actualiza. */
@@ -2325,7 +2379,7 @@ function esperarVerificacion() {
   clearInterval(S._verifT);
   const t0 = Date.now();
   S._verifT = setInterval(async () => {
-    if (!S.token || Date.now() - t0 > 180000) { clearInterval(S._verifT); return; }
+    if (!S.token || Date.now() - t0 > 600000) { clearInterval(S._verifT); return; }
     if (document.hidden) return;
     try {
       const d = await api('yo');
@@ -2401,7 +2455,7 @@ async function claveTemporalAdmin(id) {
 /** Aprobar repartidor: validación en persona (INE), CURP única e inscripción. */
 function formAprobarRep(x) {
   const ins = (S.conf && S.conf.inscripcionRepartidor) || 0;
-  modal(`<div class="row between"><h2 style="margin:0">Aprobar repartidor</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+  modal(`<div class="row between"><h2 style="margin:0">${x.reactivar ? 'Reactivar' : 'Aprobar'} repartidor</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:4px 0 10px">${esc(x.nombre)} · ${esc(x.telefono)}</div>
     <div class="aviso info">Revisa su INE en persona y que la foto coincida. No hace falta guardar la foto: basta con su CURP.</div>
     <label class="f">CURP (18 caracteres)</label><input class="i" id="apCurp" maxlength="18" style="text-transform:uppercase" value="${esc(x.curp || '')}" placeholder="Como viene en su INE">
@@ -2409,11 +2463,17 @@ function formAprobarRep(x) {
       : `<label class="opc" style="margin-top:8px"><input type="checkbox" id="apIns"><span>Pagó su inscripción en efectivo${ins ? ' (' + money(ins) + ')' : ''}</span></label>
         <div class="muted small">Si la pagó por transferencia, confírmala primero en Cobros.</div>`}
     <div class="muted small" style="margin-top:8px">Al aprobarlo empieza su mes gratis y su teléfono queda verificado.</div>
-    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>aprobarRep('${x.id}'))">Aprobar</button></div>`);
+    <div id="apErr"></div>
+    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>aprobarRep('${x.id}'))">${x.reactivar ? 'Reactivar' : 'Aprobar'}</button></div>`);
+  setTimeout(() => { const i = $('#apCurp'); if (i && !i.value) i.focus(); }, 200);
 }
 async function aprobarRep(id) {
-  await api('adminEstadoUsuario', { usuarioId: id, estado: 'activo', curp: $('#apCurp').value, inscripcionEfectivo: $('#apIns') ? $('#apIns').checked : false });
-  cerrarModal(); toast('Repartidor aprobado ✓'); pintar(true);
+  const curp = $('#apCurp').value.toUpperCase().replace(/\s/g, '');
+  const err = m => { $('#apErr').innerHTML = `<div class="aviso err" style="margin-top:10px">${esc(m)}</div>`; };
+  if (!/^[A-Z]{4}\d{6}[HMX][A-Z]{5}[A-Z0-9]\d$/.test(curp)) { err('Revisa la CURP: son 18 caracteres, como vienen en su INE (4 letras, 6 números, H o M, 5 letras y 2 caracteres finales).'); $('#apCurp').focus(); return; }
+  try { await api('adminEstadoUsuario', { usuarioId: id, estado: 'activo', curp, inscripcionEfectivo: $('#apIns') ? $('#apIns').checked : false }); }
+  catch (e) { err(e.message); return; }
+  cerrarModal(); toast('Repartidor activado ✓'); pintar(true);
 }
 
 /* ============ DETALLE DE PEDIDO (negocio, repartidor, admin) ============ */
@@ -2934,7 +2994,7 @@ async function vSuscripcion() {
   const s = d.suscripcion, est = EST_SUSC[s.estado] || EST_SUSC.sin;
   const activo = ['ok', 'por_vencer'].includes(s.estado);
   const dp = d.datosPago, hayCuenta = dp.clabe || dp.tarjeta;
-  const wa = numPidele();
+  const wa = (S.conf && S.conf.soporteWhatsApp) || numPidele();
   const soloInscripcion = rep && !d.inscrito, esperaValidacion = rep && d.inscrito && !d.aprobado;
   const nombre = rep ? (S.user || {}).nombre : (S.negocio || {}).nombre;
   html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
@@ -3170,11 +3230,16 @@ async function vDisponibles() {
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
   if (d.suscripcion && S.user) { S.user.suscripcion = d.suscripcion; ls('user', S.user); }
+  // por qué el botón "Tomar pedido" está apagado (el tiempo de espera se muestra arriba con el reloj)
+  const motivo = S.user.estado !== 'activo' ? 'tu cuenta aún no está aprobada. Completa los pasos de tu perfil y muestra tu INE al administrador.'
+    : d.puedeTomar === false ? `tu mensualidad venció. <a href="#" onclick="ir('suscripcion');return false">Págala aquí</a>.`
+    : lleno ? 'ya tienes el máximo de pedidos activos. Entrega uno para tomar otro.' : '';
+  S._bloqTomar = !!motivo;
   html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
       <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
-    ${!S.pos ? `<div class="aviso warn">📡 Activa el GPS para ver qué pedidos te quedan en ruta y para que el cliente vea dónde vas.</div>` : ''}
-    ${lleno ? `<div class="aviso info">Ya tienes el máximo de pedidos activos. Entrega uno para tomar otro.</div>` : ''}
+    ${avisoGPS()}
+    ${motivo ? `<div class="aviso err">🚫 <b>Por ahora no puedes tomar pedidos:</b> ${motivo}</div>` : ''}
     <div class="muted small" style="margin-bottom:8px">Puedes tomar 1 pedido cada ${d.minutosEntreTomas} min, para que el trabajo se reparta entre todos.</div>
     ${d.lista.length ? d.lista.map(x => `<div class="card">
       <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div>${x.estado === 'LISTO' ? '<span class="tag t-ok">Ya está listo</span>' : `<span class="tag t-pri">Sale ${hora(x.horaSalida)}</span>`}</div>
@@ -3200,7 +3265,7 @@ function relojEspera() {
     const e = $('#espera'); if (!e || !e.tagName) { clearInterval(S._reloj); return; }
     e.innerHTML = textoEspera();
     const espera = S.esperaHasta > Date.now();
-    document.querySelectorAll('.tomar').forEach(b => { if (espera) { b.disabled = true; b.dataset.w = 1; } else if (b.dataset.w) { b.disabled = S.user.estado !== 'activo'; delete b.dataset.w; } });
+    document.querySelectorAll('.tomar').forEach(b => { if (espera) { b.disabled = true; b.dataset.w = 1; } else if (b.dataset.w) { b.disabled = !!S._bloqTomar; delete b.dataset.w; } });
   };
   tick(); S._reloj = setInterval(tick, 1000);
 }
@@ -3285,7 +3350,7 @@ function tarjetaUsuario(x) {
       <div class="row wrap" style="gap:4px;margin-top:4px">${x.telVerificado ? '<span class="tag t-ok">📱 Verificado</span>' : '<span class="tag t-gray">📱 Sin verificar</span>'}
         ${x.rol === 'repartidor' ? (x.inscrito ? '<span class="tag t-ok">Inscripción pagada</span>' : '<span class="tag t-warn">Sin inscripción</span>') + (x.curp ? ` <span class="tag t-gray">${esc(x.curp)}</span>` : '') : ''}</div></div><span class="tag ${est}">${x.estado}</span></div>
     ${x.notasAdmin ? `<div class="muted small" style="margin-top:6px">📝 ${esc(x.notasAdmin)}</div>` : ''}
-    <div class="btns">${x.estado !== 'activo' ? (x.rol === 'repartidor' && x.estado === 'pendiente' ? `<button class="btn ok sm" onclick='formAprobarRep(${JSON.stringify({ id: x.id, nombre: x.nombre, telefono: x.telefono, curp: x.curp, inscrito: x.inscrito }).replace(/'/g, '&#39;')})'>Aprobar</button>`
+    <div class="btns">${x.estado !== 'activo' ? (x.rol === 'repartidor' && (x.estado === 'pendiente' || !x.curp || !x.inscrito) ? `<button class="btn ok sm" onclick='formAprobarRep(${JSON.stringify({ id: x.id, nombre: x.nombre, telefono: x.telefono, curp: x.curp, inscrito: x.inscrito, reactivar: x.estado !== 'pendiente' }).replace(/'/g, '&#39;')})'>${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`
         : `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`) : ''}
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
@@ -3316,7 +3381,11 @@ async function promoAdmin(id, estado) {
 async function estadoUsuario(id, estado) {
   let nota = '';
   if (estado === 'bloqueado') { nota = prompt('Motivo del bloqueo (queda registrado):'); if (nota === null) return; }
-  await api('adminEstadoUsuario', { usuarioId: id, estado, nota });
+  try { await api('adminEstadoUsuario', { usuarioId: id, estado, nota }); }
+  catch (e) {
+    if (/CURP|inscripci/i.test(e.message)) { formAprobarRep({ id, nombre: 'Repartidor', telefono: '', curp: '', inscrito: !/inscripci/i.test(e.message), reactivar: true }); return; }
+    throw e;
+  }
   toast(estado === 'activo' ? 'Cuenta activada ✓' : 'Cuenta bloqueada');
   pintar(true);
 }
