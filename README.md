@@ -8,6 +8,7 @@ El pago de la comida es directo al negocio por transferencia (CLABE, tarjeta o Q
 |---|---|
 | `index.html`, `manifest.json`, `sw.js`, `firebase-config.js`, `icons/` | Este repositorio de GitHub (GitHub Pages) |
 | `Code.gs` (se entrega como `Codigo-gs.html`) | Apps Script ligado a una Hoja de cálculo |
+| `worker.js` (se entrega como `worker-cloudflare.html`) | Cloudflare Worker para WhatsApp (ver `GUIA-WhatsApp.md`) |
 
 ## Instalación
 1. **Servidor**: crea una Hoja de cálculo nueva → Extensiones → Apps Script → pega el código en `Code.gs`.
@@ -123,6 +124,33 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 1.8 · cuentas confiables
+**Teléfono verificado por WhatsApp**
+- En *Perfil* (o al pagar) el usuario toca **Verificar por WhatsApp**: se abre WhatsApp con "PIDELE 123456" para el número de Pídele (Ajustes → `whatsappPidele`).
+- **Automático** con WhatsApp Business Platform + Cloudflare Worker (`worker.js`, ver `GUIA-WhatsApp.md`; propiedad del script `WA_SECRETO`): se verifica en segundos y se le contesta por WhatsApp.
+- **Manual** (respaldo): *Resumen → Verificaciones pendientes* muestra el código de cada persona; se verifica con un toque. También desde la tarjeta de cada usuario.
+- Negocios y repartidores quedan verificados al aprobarlos.
+
+**Contraseñas**
+- "¿Olvidaste tu contraseña?": el usuario envía **CLAVE** por WhatsApp desde su número y recibe una contraseña temporal (máximo una cada 10 min). El administrador también puede generarla (🔑 Clave temporal) y mandarla por WhatsApp.
+- Al entrar con una contraseña temporal, la app obliga a crear una nueva.
+
+**Reglas de efectivo** (configurables en Ajustes)
+- `efectivoVerificado`: sin teléfono verificado solo se paga por transferencia.
+- `efectivoRadioM` (150 m): a domicilio, el efectivo solo se acepta si al confirmar el GPS del cliente está cerca del punto de entrega (ubicación nueva en ese momento).
+- `efectivoPedidosOtraDir` (5): con ese número de pedidos entregados (cada cancelación suya resta uno) puede usar efectivo en cualquier dirección.
+- `efectivoTopeNuevos` ($400) hasta `efectivoPedidosNuevo` (3) pedidos entregados.
+- Columnas nuevas en Usuarios: `entregados` y `cancelados` (se calculan una vez con todo el historial al actualizar).
+
+**Repartidores: inscripción + mensualidad**
+- Se registra → verifica su teléfono → paga su **inscripción** (`inscripcionRepartidor`) con comprobante (o en efectivo) → validación en persona con su INE.
+- Al aprobarlo registras su **CURP**: la app no deja aprobar dos cuentas con la misma CURP. No hace falta guardar la foto de la INE.
+- Primer mes gratis (`diasPruebaRepartidor`), luego **mensualidad** (`mensualidadRepartidor`) con fecha de corte, avisos, gracia y suspensión, igual que los negocios. Suspendido: no recibe avisos de pedidos ni puede tomarlos.
+- Pagos y comprobantes en *Perfil → Mi mensualidad*; el administrador los ve en **Cobros** (pestaña Repartidores).
+- Los repartidores que ya estaban activos reciben su mes gratis al actualizar y se consideran inscritos.
+
+**Alertas** (*Resumen → Alertas de cuentas*): más de `alertaCuentasAparato` (2) cuentas de cliente en un mismo teléfono, o varias cuentas pidiendo al mismo punto exacto. No bloquean: son para revisar.
+
 ## Pendiente
-- 1.8: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
+- 1.9: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.

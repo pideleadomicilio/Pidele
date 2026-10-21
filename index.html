@@ -581,7 +581,7 @@ const NAV = {
   admin: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminConfig', 'ajustes', 'Ajustes']]
 };
 const VISTAS = {
-  entrar: () => vLogin(), inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
+  entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
   negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas,
@@ -589,7 +589,7 @@ const VISTAS = {
 };
 const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos'];
 // pantallas a pantalla completa (sin barra inferior)
-const SIN_NAV = ['entrar', 'negocio', 'carrito', 'entrega', 'pago', 'listo'];
+const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo'];
 
 async function ir(v, p, sinHistoria) {
   if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
@@ -692,7 +692,10 @@ async function refrescarArranque() {
   if (conToken && S.token) {
     if (d.sesion === 'BLOQUEADO') { vBloqueado(); return; }
     if (d.sesion === 'SESION') { salir(true); toast('Tu sesión terminó, vuelve a entrar.'); }
-    else if (d.usuario) { S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio); }
+    else if (d.usuario) {
+      S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio);
+      if (S.user.cambiarPass && S.vista !== 'nuevaClave') ir('nuevaClave');
+    }
   }
   if (d.catalogo) guardarCatalogo(d.catalogo);
   pintarNav();
@@ -708,7 +711,8 @@ function guardarSesion(d) {
   S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config;
   ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
   history.replaceState(null, '');
-  const destino = S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
+  // entró con contraseña temporal: primero crea una nueva
+  const destino = S.user.cambiarPass ? 'nuevaClave' : S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
   S.despues = null;
   ir(destino); // el inicio ya está cargado desde que se abrió la pantalla de entrar: aparece al instante
   iniciarSondeo();
@@ -741,6 +745,7 @@ function vLogin() {
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
       <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
+      <div style="text-align:center;margin-top:10px"><button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button></div>
     </div>
     <div class="vacio" style="padding:10px">¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button><br><br>
       <button class="lnk" onclick="ir('inicio')">Ver negocios sin cuenta</button></div>
@@ -748,7 +753,9 @@ function vLogin() {
 }
 
 async function entrar() {
-  const d = await api('login', { telefono: $('#lTel').value, pass: $('#lPass').value });
+  const pass = $('#lPass').value;
+  const d = await api('login', { telefono: $('#lTel').value, pass, aparato: aparatoId() });
+  if (d.usuario.cambiarPass) S._claveTemp = pass;
   guardarSesion(d);
 }
 
@@ -774,7 +781,7 @@ function vRegistro(rol) {
 
 async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
-  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh') });
+  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
   toast('¡Bienvenido a ' + APP + '!');
   guardarSesion(d);
 }
@@ -866,7 +873,7 @@ function abrirDesdeUrl(url) {
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
   if (neg) { ir('negocio', neg); return true; }
   if (!S.token || (!ped && !v)) return false;
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && ((NAV[rolActual()] || []).some(x => x[0] === v) || (v === 'suscripcion' && rolActual() === 'negocio'))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && ((NAV[rolActual()] || []).some(x => x[0] === v) || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -1923,6 +1930,7 @@ async function vPago() {
     if (cambio) { toast('Actualizamos los precios de tu carrito'); ir('carrito'); return; }
   }
   e.metodos = e.metodos || {};
+  S._pedirVerif = false; S._sinPago = false;
   let subT = 0, envT = 0;
   S._pagoTot = {};
   const bloques = cs.map(c => {
@@ -1933,11 +1941,19 @@ async function vPago() {
     const ops = [];
     if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(sub) + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
     if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
-    if (pg.efectivo) ops.push(['efectivo', 'efectivo', 'Efectivo', e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir']);
+    if (pg.efectivo) {
+      // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
+      const rg = reglaEfectivo(sub + envio, e.tipo);
+      if (rg.verificar) S._pedirVerif = true;
+      ops.push(['efectivo', 'efectivo', 'Efectivo', rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir') + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
+    }
+    const disp = ops.filter(o => !o[4]);
     const m = e.metodos[c.negocioId];
-    if (!ops.some(o => o[0] === m)) e.metodos[c.negocioId] = ops.length === 1 ? ops[0][0] : (ops.find(o => o[0] === 'efectivo') || ops[0] || [''])[0];
+    if (!disp.some(o => o[0] === m)) e.metodos[c.negocioId] = disp.length === 1 ? disp[0][0] : (disp.find(o => o[0] === 'efectivo') || disp[0] || [''])[0];
+    if (!disp.length) S._sinPago = true;
     return `${cs.length > 1 ? `<h3>${esc(c.negocio)}</h3>` : ''}
-      ${ops.map(o => `<div class="opcion ${o[0] === e.metodos[c.negocioId] ? 'on' : ''}" data-n="${c.negocioId}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
+      ${ops.map(o => o[4] ? `<div class="opcion" style="opacity:.55;cursor:default"><span class="radio"></span><span class="ico">${ico(o[1])}</span><div class="grow"><b>${o[2]}</b><small>🔒 ${esc(o[3])}</small></div></div>`
+        : `<div class="opcion ${o[0] === e.metodos[c.negocioId] ? 'on' : ''}" data-n="${c.negocioId}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
         <div class="grow"><b>${o[2]}</b><small>${o[3]}</small></div></div>`).join('')}
       ${n.abierto === false ? `<div class="aviso warn">${esc(c.negocio)}: ${esc(n.estadoTexto || 'no recibe pedidos ahora')}</div>` : ''}
       <div class="muted small" id="nota_${c.negocioId}" style="margin:-2px 0 6px"></div>`;
@@ -1945,13 +1961,15 @@ async function vPago() {
   ls('entrega', e);
   const cerrado = cs.some(c => (negs[c.negocioId] || {}).abierto === false);
   html(`<div class="titBar"><button class="redondo" onclick="volver('entrega')">${ico('atras')}</button><h2>Método de pago</h2><span class="esp"></span></div>
+    ${S._pedirVerif ? tarjetaVerificar(true) : ''}
+    ${S._sinPago ? '<div class="aviso warn">Un negocio de tu pedido solo acepta efectivo y por ahora no puedes pagar así. Verifica tu teléfono o quítalo del pedido.</div>' : ''}
     ${bloques}
     <div class="card" style="margin-top:6px"><b style="font-size:16px">Resumen</b>
       ${cs.map(c => `<div class="tot" style="margin-top:6px"><span>${esc(c.negocio)}</span><span>${money(S._pagoTot[c.negocioId].sub)}</span></div>`).join('')}
       <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Envío' + (cs.length > 1 ? 's (' + cs.length + ')' : '')}</span><span>${money(envT)}</span></div>
       <div class="tot g"><span>Total</span><span>${money(subT + envT)}</span></div></div>
     <div class="seguro">${ico('candado', 's')} Pagas directo a cada negocio, sin comisiones</div>
-    <button class="btn pri pill full" ${cerrado ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
+    <button class="btn pri pill full" ${cerrado || S._sinPago ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
   cs.forEach(c => notaPago(c.negocioId));
 }
 
@@ -1971,18 +1989,22 @@ function notaPago(neg) {
 async function confirmarPedido() {
   const e = S.entrega, cs = carritosSel();
   if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
+  // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
+  let gps;
+  if (e.tipo === 'domicilio' && cs.some(c => e.metodos[c.negocioId] === 'efectivo') && reglaEfectivo(0, e.tipo).gps) gps = await ubicacionActual();
   let r;
   try {
     // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
     r = await api('crearPedidos', {
       tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
-      recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true,
+      recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps,
       pedidos: cs.map(c => ({
         negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c),
         items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota }))
       }))
     });
   } catch (err) {
+    if (String(err.message).startsWith('EFECTIVO|')) throw new Error(err.message.slice(9));
     if (!String(err.message).startsWith('PRECIOS|')) throw err;
     const [, negId, msg] = err.message.split('|');
     const ms = await api('menus', { ids: [negId] });
@@ -2207,8 +2229,12 @@ function vPerfil() {
   const r = u.rol, wa = S.conf && S.conf.soporteWhatsApp;
   S._perfPos = { lat: u.lat, lng: u.lng };
   html(`<div class="card row" style="margin-top:4px"><div class="avatar">${iniciales(u.nombre)}</div>
-      <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} · ${esc(rolNombre(r))}</div></div>
+      <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
+    ${u.telVerificado ? '' : tarjetaVerificar()}
+    ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
+      <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
+    ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
     <div class="card"><b>Mis datos</b>
       <label class="f">Nombre</label><input class="i" id="uNom" value="${esc(u.nombre)}">
       ${r === 'repartidor' ? `<label class="f">Vehículo</label><input class="i" id="uVeh" value="${esc(u.vehiculo)}">` : ''}
@@ -2239,8 +2265,155 @@ async function guardarPerfil() {
   S.user = await api('actualizarPerfil', d); ls('user', S.user); toast('Perfil guardado ✓');
 }
 async function cambiarPass() {
-  await api('cambiarPass', { actual: $('#pAct').value, nueva: $('#pNue').value });
+  S.user = await api('cambiarPass', { actual: $('#pAct').value, nueva: $('#pNue').value }); ls('user', S.user);
   $('#pAct').value = ''; $('#pNue').value = ''; toast('Contraseña cambiada ✓');
+}
+
+/* ============ CUENTAS CONFIABLES ============ */
+/** Identificador anónimo de este teléfono (para avisar si se crean muchas cuentas en el mismo aparato). */
+function aparatoId() {
+  let a = ls('aparato');
+  if (!a) { a = 'ap-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); ls('aparato', a); }
+  return a;
+}
+function numPidele() { return (S.conf && (S.conf.whatsappPidele || S.conf.soporteWhatsApp)) || ''; }
+
+/** Entró con una contraseña temporal: debe crear una nueva antes de seguir. */
+function vNuevaClave() {
+  html(`<div class="entrar"><div class="marca"><div class="marcaTxt" style="font-size:40px">Pídele</div></div>
+    <div class="card"><h2 style="margin-top:0">Crea tu nueva contraseña</h2>
+      <div class="muted small">Entraste con una contraseña temporal. Escribe una nueva para proteger tu cuenta.</div>
+      <label class="f">Contraseña temporal</label><input class="i" id="ncAct" type="password" inputmode="numeric" value="${esc(S._claveTemp || '')}">
+      <label class="f">Nueva contraseña (mínimo 6)</label><input class="i" id="ncNue" type="password" autocomplete="new-password">
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarNuevaClave)">Guardar y entrar</button></div></div></div>`);
+}
+async function guardarNuevaClave() {
+  S.user = await api('cambiarPass', { actual: $('#ncAct').value, nueva: $('#ncNue').value });
+  ls('user', S.user); S._claveTemp = null;
+  toast('Contraseña nueva guardada ✓');
+  history.replaceState(null, '');
+  ir(inicioRol());
+}
+
+/** "Olvidé mi contraseña": se pide por WhatsApp desde el número de la cuenta. */
+function olvideClave() {
+  const n = numPidele();
+  modal(`<div class="row between"><h2 style="margin:0">¿Olvidaste tu contraseña?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <p class="muted">Desde el WhatsApp del teléfono con el que te registraste, envía la palabra <b>CLAVE</b> a Pídele. Te contestamos con una contraseña temporal; al entrar te pediremos crear una nueva.</p>
+    ${n ? `<a class="btn pri pill full" href="${waLink(n, 'CLAVE')}" target="_blank">${ico('chat', 's')} Enviar CLAVE por WhatsApp</a>` : '<div class="aviso warn">Escribe a soporte para recuperar tu cuenta.</div>'}`);
+}
+
+/** Tarjeta para verificar el teléfono (perfil, pago y pasos del repartidor). */
+function tarjetaVerificar(compacta) {
+  const u = S.user;
+  if (!u || u.telVerificado || u.rol === 'admin') return '';
+  return `<div class="card" style="border:2px solid var(--pri)"><div class="row"><span style="font-size:28px">📱</span><div class="grow"><b>Verifica tu teléfono</b>
+      <div class="muted small">${u.rol === 'comprador' ? 'Para pagar en efectivo necesitamos confirmar que este número es tuyo.' : 'Confirma que este número es tuyo.'} Toma 10 segundos.</div></div></div>
+    ${compacta ? '' : '<div class="muted small" style="margin-top:6px">Se abrirá WhatsApp con un mensaje listo: solo envíalo, sin cambiarlo, desde el teléfono con el que te registraste.</div>'}
+    <div class="btns"><button class="btn pri" onclick="act(this,verificarTel)">${ico('chat', 's')} Verificar por WhatsApp</button></div>
+    <div id="verifEstado" class="muted small"></div></div>`;
+}
+async function verificarTel() {
+  const r = await api('solicitarVerificacion');
+  if (r.verificado) { S.user.telVerificado = true; ls('user', S.user); toast('Tu teléfono ya está verificado ✓'); pintar(true); return; }
+  window.open(waLink(r.numero, r.texto), '_blank');
+  const e = $('#verifEstado'); if (e) e.innerHTML = `⏳ Esperando tu mensaje <b>${esc(r.texto)}</b>… En cuanto llegue te avisamos.`;
+  esperarVerificacion();
+}
+/** Revisa cada 6 s (máximo 3 min) si ya quedó verificado; la notificación push también lo actualiza. */
+function esperarVerificacion() {
+  clearInterval(S._verifT);
+  const t0 = Date.now();
+  S._verifT = setInterval(async () => {
+    if (!S.token || Date.now() - t0 > 180000) { clearInterval(S._verifT); return; }
+    if (document.hidden) return;
+    try {
+      const d = await api('yo');
+      if (d.usuario.telVerificado) {
+        clearInterval(S._verifT);
+        S.user = d.usuario; ls('user', S.user);
+        toast('✅ Teléfono verificado'); pintar(true);
+      }
+    } catch (e) { }
+  }, 6000);
+}
+
+/** Pasos para activar la cuenta de repartidor. */
+function pasosRepartidor() {
+  const u = S.user;
+  const paso = (hecho, txt, accion) => `<div class="row" style="padding:7px 0;border-bottom:1px solid var(--ln)"><span style="font-size:20px">${hecho ? '✅' : '⬜'}</span><div class="grow ${hecho ? 'muted' : ''}">${txt}</div>${!hecho && accion ? accion : ''}</div>`;
+  return `<div class="card"><b>Para activar tu cuenta de repartidor</b>
+    ${paso(u.telVerificado, 'Verifica tu teléfono por WhatsApp', `<button class="btn sm" onclick="act(this,verificarTel)">Verificar</button>`)}
+    ${paso(u.inscrito, 'Paga tu inscripción' + (S.conf && S.conf.inscripcionRepartidor ? '' : ''), `<button class="btn sm" onclick="ir('suscripcion')">Pagar</button>`)}
+    ${paso(false, 'Validación en persona: muestra tu INE al administrador', '')}
+    <div class="muted small" style="margin-top:6px">Tu primer mes es gratis. Después pagas una mensualidad para seguir recibiendo pedidos.</div>
+    <div id="verifEstado" class="muted small"></div></div>`;
+}
+
+/* ---------- reglas de efectivo (la app avisa antes; el servidor decide) ---------- */
+function reglaEfectivo(totalEfectivo, tipo) {
+  const u = S.user || {}, e = (S.conf && S.conf.efectivo) || {};
+  if (e.verificado && !u.telVerificado) return { ok: false, motivo: 'Verifica tu teléfono para pagar en efectivo', verificar: true };
+  if (e.topeNuevos > 0 && (u.entregados || 0) < e.pedidosNuevo && totalEfectivo > e.topeNuevos) return { ok: false, motivo: 'En tus primeros ' + e.pedidosNuevo + ' pedidos, máximo ' + money(e.topeNuevos) + ' en efectivo' };
+  const gps = tipo === 'domicilio' && ((u.entregados || 0) - (u.cancelados || 0)) < e.pedidosOtraDir;
+  return { ok: true, gps, nota: gps ? 'Solo si estás en el punto de entrega (usaremos tu ubicación al confirmar)' : '' };
+}
+/** Ubicación actual para comprobar que el cliente está donde recibirá su pedido en efectivo. */
+function ubicacionActual() {
+  return new Promise((ok, mal) => {
+    if (!navigator.geolocation) { mal(new Error('Tu teléfono no permite ubicación. Paga por transferencia.')); return; }
+    toast('Comprobando tu ubicación…');
+    navigator.geolocation.getCurrentPosition(
+      p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy || 0) }),
+      () => mal(new Error('Activa tu ubicación para pagar en efectivo a domicilio, o elige transferencia.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }); // siempre una ubicación nueva, nunca una guardada
+  });
+}
+
+/* ---------- administrador: verificaciones, alertas y claves ---------- */
+async function verVerificaciones(lista) {
+  const l = Array.isArray(lista) ? lista : await api('adminVerificaciones');
+  modal(`<div class="row between"><h2 style="margin:0">Verificaciones</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">Si el WhatsApp automático está activo se verifican solas. Para hacerlo a mano: revisa en el WhatsApp de Pídele que el mensaje <b>PIDELE + código</b> llegó <b>desde ese mismo número</b>.</div>
+    ${l.length ? l.map(x => `<div class="card"><div class="row between"><div><b>${esc(x.nombre)}</b> <span class="muted small">${esc(rolNombre(x.rol))}</span>
+        <div class="muted small">${esc(x.telefono)} · pidió ${fechaCorta(x.desde)}</div></div><b style="font-family:ui-monospace,monospace;font-size:17px">PIDELE ${esc(x.codigo)}</b></div>
+      <div class="btns"><a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} Abrir chat</a>
+        <button class="btn sm ok" onclick="act(this,async()=>{verVerificaciones(await api('adminVerificar',{usuarioId:'${x.id}'}));toast('Verificado ✓')})">Verificar</button></div></div>`).join('')
+    : '<div class="vacio">No hay verificaciones pendientes ✨</div>'}`);
+}
+async function verAlertas() {
+  const l = await api('adminAlertas');
+  modal(`<div class="row between"><h2 style="margin:0">Alertas de cuentas</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">No bloquean nada: una familia puede compartir celular o casa. Revisa y decide; si es abuso, bloquea las cuentas desde Usuarios.</div>
+    ${l.length ? l.map(a => `<div class="card"><b>${a.tipo === 'aparato' ? '📱' : '📍'} ${esc(a.texto)}</b>
+      ${a.cuentas.map(c => `<div class="tot" style="padding:4px 0"><span>${esc(c.nombre)} · ${esc(c.telefono)}</span><span>${c.verificado ? '<span class="tag t-ok">Verificado</span>' : '<span class="tag t-gray">Sin verificar</span>'}${c.estado === 'bloqueado' ? ' <span class="tag t-err">Bloqueado</span>' : ''}</span></div>`).join('')}</div>`).join('')
+    : '<div class="vacio">Sin alertas ✨</div>'}`);
+}
+async function claveTemporalAdmin(id) {
+  if (!confirm('¿Generar una contraseña temporal? La actual dejará de funcionar.')) return;
+  const r = await api('adminClaveTemporal', { usuarioId: id });
+  modal(`<h2>Contraseña temporal</h2><p class="muted">${esc(r.nombre)} · ${esc(r.telefono)}</p>
+    <div class="copiar"><div class="v" style="font-size:24px">${esc(r.clave)}</div><button class="btn sm" onclick="copiar('${r.clave}','Contraseña')">${ico('copiar', 's')}</button></div>
+    <div class="muted small">Al entrar con ella, la app le pedirá crear una nueva.</div>
+    <div class="btns"><a class="btn pri" href="${waLink(r.telefono, 'Tu contraseña temporal de Pídele es: ' + r.clave + '. Entra con tu teléfono y esta contraseña; la app te pedirá crear una nueva.')}" target="_blank">${ico('chat', 's')} Enviar por WhatsApp</a>
+      <button class="btn" onclick="cerrarModal()">Cerrar</button></div>`);
+}
+/** Aprobar repartidor: validación en persona (INE), CURP única e inscripción. */
+function formAprobarRep(x) {
+  const ins = (S.conf && S.conf.inscripcionRepartidor) || 0;
+  modal(`<div class="row between"><h2 style="margin:0">Aprobar repartidor</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:4px 0 10px">${esc(x.nombre)} · ${esc(x.telefono)}</div>
+    <div class="aviso info">Revisa su INE en persona y que la foto coincida. No hace falta guardar la foto: basta con su CURP.</div>
+    <label class="f">CURP (18 caracteres)</label><input class="i" id="apCurp" maxlength="18" style="text-transform:uppercase" value="${esc(x.curp || '')}" placeholder="Como viene en su INE">
+    ${x.inscrito ? '<div class="aviso ok" style="margin-top:10px">✅ Inscripción pagada</div>'
+      : `<label class="opc" style="margin-top:8px"><input type="checkbox" id="apIns"><span>Pagó su inscripción en efectivo${ins ? ' (' + money(ins) + ')' : ''}</span></label>
+        <div class="muted small">Si la pagó por transferencia, confírmala primero en Cobros.</div>`}
+    <div class="muted small" style="margin-top:8px">Al aprobarlo empieza su mes gratis y su teléfono queda verificado.</div>
+    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>aprobarRep('${x.id}'))">Aprobar</button></div>`);
+}
+async function aprobarRep(id) {
+  await api('adminEstadoUsuario', { usuarioId: id, estado: 'activo', curp: $('#apCurp').value, inscripcionEfectivo: $('#apIns') ? $('#apIns').checked : false });
+  cerrarModal(); toast('Repartidor aprobado ✓'); pintar(true);
 }
 
 /* ============ DETALLE DE PEDIDO (negocio, repartidor, admin) ============ */
@@ -2327,6 +2500,7 @@ async function vNegPedidos() {
 
 function pendienteAviso() {
   if (!S.user || S.user.estado === 'activo') return avisoSuscripcion();
+  if (S.user.rol === 'repartidor') return pasosRepartidor();
   return `<div class="aviso warn">⏳ Tu cuenta está en revisión. ${S.user.rol === 'negocio' ? 'Mientras tanto completa “Mi negocio” (ubicación, horario y portada) y tu menú para que el administrador te apruebe.' : 'En cuanto el administrador la apruebe podrás tomar pedidos.'}</div>`;
 }
 
@@ -2733,52 +2907,66 @@ function diasTxt(s) {
   return s.dias === 0 ? 'Tu fecha de corte es hoy' : s.dias === 1 ? 'Falta 1 día' : 'Faltan ' + s.dias + ' días';
 }
 
-/** Aviso en las pantallas del negocio cuando se acerca o pasó su fecha de corte. */
+/** Aviso en las pantallas del negocio o repartidor cuando se acerca o pasó su fecha de corte. */
 function avisoSuscripcion() {
-  if (!S.user || S.user.rol !== 'negocio' || !S.negocio || !S.negocio.suscripcion) return '';
-  const s = S.negocio.suscripcion;
-  if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu suscripción vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
-  if (s.estado === 'gracia') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⚠️ Tu suscripción venció. Dejarás de aparecer el ${fechaLarga(s.suspendeEl)}. Toca para pagar.</div>`;
-  if (s.estado === 'suspendido') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⛔ Tu negocio no se muestra a los clientes. Paga tu suscripción para reactivarlo.</div>`;
+  if (!S.user || !['negocio', 'repartidor'].includes(S.user.rol)) return '';
+  const s = S.user.rol === 'negocio' ? (S.negocio && S.negocio.suscripcion) : S.user.suscripcion;
+  if (!s || !s.vence) return '';
+  const que = S.user.rol === 'negocio' ? 'suscripción' : 'mensualidad';
+  const fuera = S.user.rol === 'negocio' ? 'Tu negocio no se muestra a los clientes' : 'No estás recibiendo pedidos';
+  if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu ${que} vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
+  if (s.estado === 'gracia') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⚠️ Tu ${que} venció. Se suspende el ${fechaLarga(s.suspendeEl)}. Toca para pagar.</div>`;
+  if (s.estado === 'suspendido') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⛔ ${fuera}. Paga tu ${que} para reactivarte.</div>`;
   return '';
 }
 
 function conceptoPago(p) {
-  return [p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : ''].filter(Boolean).join(' + ');
+  return [p.inscripcion ? 'Inscripción' : '', p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : ''].filter(Boolean).join(' + ');
 }
 function tagPago(e) { return { pendiente: '<span class="tag t-warn">En revisión</span>', confirmado: '<span class="tag t-ok">Confirmado</span>', rechazado: '<span class="tag t-err">Rechazado</span>' }[e] || ''; }
 
 async function vSuscripcion() {
   const d = await api('miSuscripcion');
   S._susc = d; S._compPago = null;
-  if (S.negocio) { S.negocio.suscripcion = d.suscripcion; ls('negocio', S.negocio); }
+  const rep = d.tipo === 'repartidor';
+  if (!rep && S.negocio) { S.negocio.suscripcion = d.suscripcion; ls('negocio', S.negocio); }
+  if (rep && S.user) { S.user.suscripcion = d.suscripcion; S.user.inscrito = d.inscrito; ls('user', S.user); }
   const s = d.suscripcion, est = EST_SUSC[s.estado] || EST_SUSC.sin;
   const activo = ['ok', 'por_vencer'].includes(s.estado);
   const dp = d.datosPago, hayCuenta = dp.clabe || dp.tarjeta;
-  const wa = S.conf && S.conf.soporteWhatsApp;
-  html(`<div class="titBar"><button class="redondo" onclick="volver('miNegocio')">${ico('atras')}</button><h2>Mi suscripción</h2><span class="esp"></span></div>
-    <div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
+  const wa = numPidele();
+  const soloInscripcion = rep && !d.inscrito, esperaValidacion = rep && d.inscrito && !d.aprobado;
+  const nombre = rep ? (S.user || {}).nombre : (S.negocio || {}).nombre;
+  html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
+    ${s.vence ? `<div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
       <div class="muted" style="margin-top:10px">${s.estado === 'suspendido' || s.estado === 'gracia' ? 'Tu fecha de corte fue el' : 'Activo hasta el'}</div>
       <div style="font-size:26px;font-weight:900;line-height:1.15">${fechaLarga(s.vence)}</div>
-      <div class="muted small" style="margin-top:4px">${diasTxt(s)}</div></div>
-    <div class="card"><b>Tu plan</b>
-      <div class="tot" style="margin-top:6px"><span>Mensualidad: app completa + ${s.bannersIncluidos} banner${s.bannersIncluidos > 1 ? 's' : ''} por día</span><b>${money(d.cuota)}</b></div>
-      <div class="tot"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>
-      ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
-      <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div></div>
-    ${d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>` : `
+      <div class="muted small" style="margin-top:4px">${diasTxt(s)}</div></div>`
+    : rep ? `<div class="card"><b>${d.inscrito ? '✅ Inscripción pagada' : '1 · Paga tu inscripción'}</b>
+      <div class="muted small">${d.inscrito ? 'Falta tu validación en persona: muestra tu INE al administrador. Al aprobarte empiezan tus ' + d.diasPrueba + ' días gratis.' : 'Después muestras tu INE al administrador y, al aprobarte, empiezan tus ' + d.diasPrueba + ' días gratis.'}</div></div>` : ''}
+    <div class="card"><b>${rep ? 'Tu plan de repartidor' : 'Tu plan'}</b>
+      ${rep ? `<div class="tot" style="margin-top:6px"><span>Inscripción (una sola vez)</span><b>${money(d.inscripcion)}</b></div>
+        <div class="tot"><span>Mensualidad</span><b>${money(d.cuota)}</b></div>
+        <div class="muted small" style="margin-top:8px">Pídele no te cobra comisión por tus envíos: lo que cobras de envío es tuyo. La mensualidad mantiene tu cuenta activa para recibir pedidos.</div>`
+      : `<div class="tot" style="margin-top:6px"><span>Mensualidad: app completa + ${s.bannersIncluidos} banner${s.bannersIncluidos > 1 ? 's' : ''} por día</span><b>${money(d.cuota)}</b></div>
+        <div class="tot"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>
+        ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
+        <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div>`}</div>
+    ${d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
+    : esperaValidacion ? '' : `
     <h3>Pagar</h3>
     <div class="card">
       ${hayCuenta ? `<div class="muted small">Transfiere a la cuenta de Pídele y adjunta tu comprobante:</div>
         ${dp.clabe ? `<div class="copiar"><div><div class="muted small">CLABE${dp.banco ? ' · ' + esc(dp.banco) : ''}</div><div class="v">${esc(dp.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(dp.clabe)}','CLABE')">${ico('copiar', 's')}</button></div>` : ''}
         ${dp.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta${dp.banco ? ' · ' + esc(dp.banco) : ''}</div><div class="v">${esc(dp.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(dp.tarjeta)}','Tarjeta')">${ico('copiar', 's')}</button></div>` : ''}
-        ${dp.titular ? `<div class="muted small">A nombre de <b>${esc(dp.titular)}</b> · Concepto: <b>${esc((S.negocio || {}).nombre || '')}</b></div>` : ''}`
-      : `<div class="aviso warn" style="margin:0">Aún no están los datos bancarios de Pídele.${wa ? ` <a href="${waLink(wa, 'Hola, quiero pagar mi suscripción de Pídele')}" target="_blank">Pídelos por WhatsApp</a>.` : ''}</div>`}
-      <div class="row" style="margin-top:6px"><div class="grow"><label class="f">Meses</label>
-        <select class="i" id="sMes" onchange="calcSusc()">${activo ? '<option value="0">Solo banners extra</option>' : ''}${[1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select></div>
-        <div class="grow"><label class="f">Banners extra</label>
-        <select class="i" id="sExt" onchange="calcSusc()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e ? '+' + e + ' por día' : 'Ninguno'}</option>`).join('')}</select></div></div>
-      <div class="tot g" style="margin-top:10px"><span>Total a transferir</span><span id="sTot"></span></div>
+        ${dp.titular ? `<div class="muted small">A nombre de <b>${esc(dp.titular)}</b> · Concepto: <b>${esc(nombre || '')}</b></div>` : ''}`
+      : `<div class="aviso warn" style="margin:0">Aún no están los datos bancarios de Pídele.${wa ? ` <a href="${waLink(wa, 'Hola, quiero pagar mi ' + (rep ? 'inscripción/mensualidad de repartidor' : 'suscripción') + ' de Pídele')}" target="_blank">Pídelos por WhatsApp</a>.` : ''}</div>`}
+      ${soloInscripcion ? `<input type="hidden" id="sMes" value="0"><input type="hidden" id="sExt" value="0">`
+      : `<div class="row" style="margin-top:6px"><div class="grow"><label class="f">Meses</label>
+        <select class="i" id="sMes" onchange="calcSusc()">${activo && !rep ? '<option value="0">Solo banners extra</option>' : ''}${[1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select></div>
+        ${rep ? '<input type="hidden" id="sExt" value="0">' : `<div class="grow"><label class="f">Banners extra</label>
+        <select class="i" id="sExt" onchange="calcSusc()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e ? '+' + e + ' por día' : 'Ninguno'}</option>`).join('')}</select></div>`}</div>`}
+      <div class="tot g" style="margin-top:10px"><span>${soloInscripcion ? 'Inscripción' : 'Total a transferir'}</span><span id="sTot"></span></div>
       <div class="muted small" id="sNota"></div>
       <div class="btns"><label class="btn">📎 <span id="sComp">Adjuntar comprobante</span><input type="file" accept="image/*" hidden onchange="compSusc(this)"></label>
         <button class="btn pri" onclick="act(this,enviarPagoSusc)">Enviar</button></div></div>`}
@@ -2787,12 +2975,13 @@ async function vSuscripcion() {
         ${p.estado === 'rechazado' && p.nota ? `<br><span class="small" style="color:var(--err)">${esc(p.nota)}</span>` : ''}</span>
       <span style="text-align:right">${tagPago(p.estado)}${p.comprobanteId ? `<br><button class="lnk small" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">Comprobante</button>` : ''}</span></div>`).join('')}</div>` : ''}
     <div style="height:20px"></div>`);
-  if (!d.pendiente) calcSusc();
+  if (!d.pendiente && !esperaValidacion) calcSusc();
 }
 
-/** Mismo cálculo que el servidor: meses de cuota + banners extra por esos meses (o prorrateados hasta el corte). */
+/** Mismo cálculo que el servidor. */
 function montoSusc() {
   const d = S._susc, m = +$('#sMes').value, e = +$('#sExt').value;
+  if (d.tipo === 'repartidor') return (!d.inscrito ? d.inscripcion : 0) + m * d.cuota;
   if (m > 0) return m * d.cuota + e * d.precioBannerExtra * m;
   const rest = Math.max(1, Math.ceil((d.suscripcion.vence - Date.now()) / 864e5));
   return Math.ceil(e * d.precioBannerExtra * rest / d.diasPorPago / 5) * 5;
@@ -2800,9 +2989,10 @@ function montoSusc() {
 function calcSusc() {
   const d = S._susc, s = d.suscripcion, m = +$('#sMes').value, e = +$('#sExt').value;
   $('#sTot').textContent = money(montoSusc());
+  if (d.tipo === 'repartidor' && !d.inscrito) { $('#sNota').innerHTML = 'Pago único. Tu primer mes es gratis a partir de que te aprueben.'; return; }
   const activo = ['ok', 'por_vencer'].includes(s.estado);
   const base = activo ? s.vence : new Date().setHours(0, 0, 0, 0);
-  $('#sNota').innerHTML = m > 0 ? `Al confirmarse, tu servicio queda activo hasta el <b>${fechaLarga(base + m * d.diasPorPago * 864e5)}</b>${e ? ' con ' + e + ' banner' + (e > 1 ? 's' : '') + ' extra' : ''}.`
+  $('#sNota').innerHTML = m > 0 ? `Al confirmarse, quedas activo hasta el <b>${fechaLarga(base + m * d.diasPorPago * 864e5)}</b>${e ? ' con ' + e + ' banner' + (e > 1 ? 's' : '') + ' extra' : ''}.`
     : e ? `${e} banner${e > 1 ? 's' : ''} extra hasta tu fecha de corte (${fechaLarga(s.vence)}), cobrado por los días que faltan.` : 'Elige cuántos banners extra quieres.';
 }
 async function compSusc(inp) {
@@ -2811,8 +3001,8 @@ async function compSusc(inp) {
   $('#sComp').textContent = 'Comprobante listo ✓';
 }
 async function enviarPagoSusc() {
-  const m = +$('#sMes').value, e = +$('#sExt').value;
-  if (!m && !e) throw new Error('Elige cuántos banners extra quieres');
+  const d = S._susc, m = +$('#sMes').value, e = +$('#sExt').value;
+  if (d.tipo !== 'repartidor' && !m && !e) throw new Error('Elige cuántos banners extra quieres');
   if (!S._compPago) throw new Error('Adjunta la foto de tu comprobante');
   if (!confirm('¿Ya transferiste ' + money(montoSusc()) + '?')) return;
   await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago });
@@ -2825,19 +3015,21 @@ async function vAdminCobros() {
   const d = await api('adminCobros');
   S._cobros = d;
   const t = S.tabCob || 'revisar';
-  const porVencer = d.negocios.filter(n => n.estado === 'por_vencer').length, vencidos = d.negocios.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
-  const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
-      <div class="muted small">Corte: ${fechaLarga(n.vence)}${n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div><span class="tag ${e[0]}">${e[1]}</span></div>
-      <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.id}')">Registrar pago</button>
-        ${n.telefono ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu suscripción de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
+  const todos = d.negocios.concat(d.repartidores.filter(r => r.aprobado));
+  const porVencer = todos.filter(n => n.estado === 'por_vencer').length, vencidos = todos.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
+  const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; const rep = n.tipo === 'repartidor';
+    return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
+      <div class="muted small">${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
+      ${n.vence ? `<span class="tag ${e[0]}">${e[1]}</span>` : '<span class="tag t-gray">Pendiente</span>'}</div>
+      <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.tipo}','${n.id}')">Registrar pago</button>
+        ${n.telefono && n.vence ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu ' + (rep ? 'mensualidad' : 'suscripción') + ' de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
   html(`<h2>Cobros</h2>
     <div class="kpis"><div class="kpi"><b>${money(d.cobrado30)}</b><span>Cobrado últimos 30 días</span></div>
       <div class="kpi"><b>${d.pendientes.length}</b><span>Comprobantes por revisar</span></div>
       <div class="kpi"><b>${porVencer}</b><span>Por vencer</span></div><div class="kpi"><b>${vencidos}</b><span>Vencidos</span></div></div>
-    <div class="tabs"><button class="${t === 'revisar' ? 'on' : ''}" onclick="S.tabCob='revisar';pintar(true)">Por revisar (${d.pendientes.length})</button>
-      <button class="${t === 'negocios' ? 'on' : ''}" onclick="S.tabCob='negocios';pintar(true)">Negocios</button>
-      <button class="${t === 'historial' ? 'on' : ''}" onclick="S.tabCob='historial';pintar(true)">Historial</button></div>
-    ${t === 'revisar' ? (d.pendientes.length ? d.pendientes.map(p => `<div class="card"><div class="row between"><div><b>${esc(p.negocio)}</b>
+    <div class="tabs" style="flex-wrap:wrap;border-radius:18px">
+      ${[['revisar', 'Por revisar (' + d.pendientes.length + ')'], ['negocios', 'Negocios'], ['repartidores', 'Repartidores'], ['historial', 'Historial']].map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="S.tabCob='${k}';pintar(true)">${txt}</button>`).join('')}</div>
+    ${t === 'revisar' ? (d.pendientes.length ? d.pendientes.map(p => `<div class="card"><div class="row between"><div><b>${esc(p.nombre)}</b> <span class="tag ${p.tipo === 'repartidor' ? 't-info' : 't-pri'}">${p.tipo === 'repartidor' ? '🛵 Repartidor' : '🏪 Negocio'}</span>
         <div class="muted small">${fechaCorta(p.creado)} · ${esc(conceptoPago(p))}</div></div><b style="font-size:18px">${money(p.monto)}</b></div>
         ${p.nota ? `<div class="muted small">📝 ${esc(p.nota)}</div>` : ''}
         <div class="btns"><button class="btn" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">🧾 Ver comprobante</button>
@@ -2845,36 +3037,45 @@ async function vAdminCobros() {
           <button class="btn err" onclick="act(this,()=>resolverPago('${p.id}','rechazar'))">Rechazar</button></div></div>`).join('')
       : '<div class="vacio"><span class="big">✨</span>No hay comprobantes por revisar</div>') : ''}
     ${t === 'negocios' ? d.negocios.map(tarjetaN).join('') || '<div class="vacio">Sin negocios activos</div>' : ''}
+    ${t === 'repartidores' ? d.repartidores.map(tarjetaN).join('') || '<div class="vacio">Sin repartidores</div>' : ''}
     ${t === 'historial' ? (d.historial.length ? `<div class="card">${d.historial.map(p => `<div class="tot" style="align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--ln)">
-        <span><b>${esc(p.negocio)}</b> · ${esc(conceptoPago(p))}<br><span class="muted small">${fechaCorta(p.resuelto || p.creado)}${p.registradoPor ? ' · ' + esc(p.registradoPor) : ''}${p.nota ? ' · ' + esc(p.nota) : ''}</span></span>
+        <span><b>${esc(p.nombre)}</b> · ${esc(conceptoPago(p))}<br><span class="muted small">${fechaCorta(p.resuelto || p.creado)}${p.registradoPor ? ' · ' + esc(p.registradoPor) : ''}${p.nota ? ' · ' + esc(p.nota) : ''}</span></span>
         <span style="text-align:right"><b>${money(p.monto)}</b><br>${tagPago(p.estado)}</span></div>`).join('')}</div>` : '<div class="vacio">Sin pagos todavía</div>') : ''}`);
 }
 async function resolverPago(id, accion, monto) {
   let nota = '';
-  if (accion === 'confirmar' && !confirm('¿Ya ves ' + money(monto) + ' en tu cuenta? Al confirmar se suman los días al negocio.')) return;
-  if (accion === 'rechazar') { nota = prompt('¿Por qué lo rechazas? (se le envía al negocio, ej. "No se refleja la transferencia")'); if (nota === null) return; }
+  if (accion === 'confirmar' && !confirm('¿Ya ves ' + money(monto) + ' en tu cuenta? Al confirmar se aplica el pago.')) return;
+  if (accion === 'rechazar') { nota = prompt('¿Por qué lo rechazas? (se le envía, ej. "No se refleja la transferencia")'); if (nota === null) return; }
   await api('adminResolverPago', { id, accion, nota });
   toast(accion === 'confirmar' ? 'Pago confirmado ✓' : 'Pago rechazado');
   pintar(true);
 }
-function formPagoManual(negId) {
-  const n = S._cobros.negocios.find(x => x.id === negId); if (!n) return;
+function formPagoManual(tipo, id) {
+  const d = S._cobros, rep = tipo === 'repartidor';
+  const n = (rep ? d.repartidores : d.negocios).find(x => x.id === id); if (!n) return;
+  S._pm = { tipo, id, inscrito: n.inscrito };
   modal(`<div class="row between"><h2 style="margin:0">Registrar pago</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted" style="margin:4px 0 8px">${esc(n.nombre)} · corte actual ${fechaLarga(n.vence)}</div>
-    <div class="row"><div class="grow"><label class="f">Meses</label><select class="i" id="mMes" onchange="montoManual()">${[0, 1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m ? m + ' mes' + (m > 1 ? 'es' : '') : 'Solo banners'}</option>`).join('')}</select></div>
-      <div class="grow"><label class="f">Banners extra</label><select class="i" id="mExt" onchange="montoManual()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e || 'Ninguno'}</option>`).join('')}</select></div></div>
+    <div class="muted" style="margin:4px 0 8px">${esc(n.nombre)}${n.vence ? ' · corte actual ' + fechaLarga(n.vence) : ''}</div>
+    ${rep && !n.inscrito ? `<label class="opc"><input type="checkbox" id="mIns" checked onchange="montoManual()"><span>Inscripción (${money(d.inscripcionRepartidor)})</span></label>` : ''}
+    <div class="row"><div class="grow"><label class="f">Meses</label><select class="i" id="mMes" onchange="montoManual()">${[0, 1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === (rep && !n.inscrito ? 0 : 1) ? 'selected' : ''}>${m ? m + ' mes' + (m > 1 ? 'es' : '') : rep ? 'Ninguno' : 'Solo banners'}</option>`).join('')}</select></div>
+      ${rep ? '<input type="hidden" id="mExt" value="0">' : `<div class="grow"><label class="f">Banners extra</label><select class="i" id="mExt" onchange="montoManual()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e || 'Ninguno'}</option>`).join('')}</select></div>`}</div>
+    ${rep && !n.vence ? '<div class="muted small" style="margin-top:6px">Su mes gratis empieza al aprobarlo; normalmente aquí solo registras la inscripción.</div>' : ''}
     <label class="f">Monto recibido</label><input class="i" id="mMon" type="number" inputmode="decimal">
     <label class="f">Nota</label><input class="i" id="mNot" placeholder="Ej. Efectivo en mostrador">
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>guardarPagoManual('${negId}'))">Registrar y activar</button></div>`);
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarPagoManual)">Registrar</button></div>`);
   montoManual();
 }
 function montoManual() {
-  const d = S._cobros, m = +$('#mMes').value, e = +$('#mExt').value;
+  const d = S._cobros, pm = S._pm, m = +$('#mMes').value, e = +$('#mExt').value, ins = $('#mIns') && $('#mIns').checked;
+  if (pm.tipo === 'repartidor') { $('#mMon').value = (ins ? d.inscripcionRepartidor : 0) + m * d.mensualidadRepartidor; return; }
   $('#mMon').value = m > 0 ? m * d.cuota + e * d.precioBannerExtra * m : '';
   $('#mMon').placeholder = m > 0 ? '' : 'Se calcula prorrateado si lo dejas vacío';
 }
-async function guardarPagoManual(negId) {
-  await api('adminRegistrarPago', { negocioId: negId, meses: +$('#mMes').value, bannersExtra: +$('#mExt').value, monto: $('#mMon').value, nota: $('#mNot').value });
+async function guardarPagoManual() {
+  const pm = S._pm;
+  const datos = { meses: +$('#mMes').value, bannersExtra: +$('#mExt').value, monto: $('#mMon').value, nota: $('#mNot').value, inscripcion: !!($('#mIns') && $('#mIns').checked) };
+  datos[pm.tipo === 'repartidor' ? 'repartidorId' : 'negocioId'] = pm.id;
+  await api('adminRegistrarPago', datos);
   cerrarModal(); toast('Pago registrado ✓'); pintar(true);
 }
 
@@ -2968,6 +3169,7 @@ async function vDisponibles() {
   const d = await api('disponibles', S.pos || {});
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
+  if (d.suscripcion && S.user) { S.user.suscripcion = d.suscripcion; ls('user', S.user); }
   html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
       <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
@@ -2983,7 +3185,7 @@ async function vDisponibles() {
       <div class="small" style="margin-top:8px">${x.metodoPago === 'efectivo' ? `${ico('efectivo', 's')} <b>Efectivo:</b> necesitas ${money(x.subtotal)} para pagar al negocio` : `${ico('banco', 's')} Comida pagada por ${PAGO_TXT[x.metodoPago]}`}</div>
       <div class="aviso ${x.viabilidad.viable ? 'ok' : 'warn'}" style="margin:10px 0 0">${x.viabilidad.viable ? '✅' : '⚠️'} ${esc(x.viabilidad.motivo)}</div>
       <div class="btns"><a class="btn" href="${gmaps(x.negLat, x.negLng)}" target="_blank">${ico('mapa', 's')} Ver negocio</a>
-        <button class="btn pri tomar" ${S.user.estado !== 'activo' || lleno ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">Tomar pedido</button></div></div>`).join('')
+        <button class="btn pri tomar" ${S.user.estado !== 'activo' || lleno || d.puedeTomar === false ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">Tomar pedido</button></div></div>`).join('')
     : `<div class="vacio"><span class="big">🛵</span>No hay pedidos disponibles ahorita.<br>Te avisamos cuando haya uno.</div>`}`);
   relojEspera();
 }
@@ -3066,7 +3268,9 @@ async function vAdmin() {
       <div class="kpi"><b>${d.hoy.cancelados}</b><span>Cancelados hoy</span></div>
       <div class="kpi"><b>${money(d.hoy.vendido)}</b><span>Vendido hoy</span></div>
       <div class="kpi"><b>${d.negociosAbiertos}</b><span>Negocios abiertos</span></div>
-      <div class="kpi" style="cursor:pointer" onclick="act(null,verPromosAdmin)"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas · revisar</span></div></div>
+      <div class="kpi" style="cursor:pointer" onclick="act(null,verPromosAdmin)"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas · revisar</span></div>
+      <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
+      <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     <h3>Por aprobar (${d.pendientes.length})</h3>
@@ -3077,9 +3281,14 @@ function tarjetaUsuario(x) {
   return `<div class="card"><div class="row between"><div><b>${esc(x.nombre)}</b> <span class="muted small">${esc(rolNombre(x.rol))}</span>
       <div class="muted small">${esc(x.telefono)} · alta ${fechaCorta(x.fechaAlta)}</div>
       ${x.negocio ? `<div class="small">🏪 ${esc(x.negocio)} · ${esc(x.categoria)} ${x.negocioListo ? '<span class="tag t-ok">Datos completos</span>' : '<span class="tag t-warn">Falta ubicación</span>'}</div>` : ''}
-      ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}</div><span class="tag ${est}">${x.estado}</span></div>
+      ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}
+      <div class="row wrap" style="gap:4px;margin-top:4px">${x.telVerificado ? '<span class="tag t-ok">📱 Verificado</span>' : '<span class="tag t-gray">📱 Sin verificar</span>'}
+        ${x.rol === 'repartidor' ? (x.inscrito ? '<span class="tag t-ok">Inscripción pagada</span>' : '<span class="tag t-warn">Sin inscripción</span>') + (x.curp ? ` <span class="tag t-gray">${esc(x.curp)}</span>` : '') : ''}</div></div><span class="tag ${est}">${x.estado}</span></div>
     ${x.notasAdmin ? `<div class="muted small" style="margin-top:6px">📝 ${esc(x.notasAdmin)}</div>` : ''}
-    <div class="btns">${x.estado !== 'activo' ? `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>` : ''}
+    <div class="btns">${x.estado !== 'activo' ? (x.rol === 'repartidor' && x.estado === 'pendiente' ? `<button class="btn ok sm" onclick='formAprobarRep(${JSON.stringify({ id: x.id, nombre: x.nombre, telefono: x.telefono, curp: x.curp, inscrito: x.inscrito }).replace(/'/g, '&#39;')})'>Aprobar</button>`
+        : `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`) : ''}
+      ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
+      ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
 }
