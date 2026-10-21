@@ -89,5 +89,22 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 
 **Al actualizar a 1.5** no hace falta volver a ejecutar `instalar()`: al publicar la nueva versión se crean solas las hojas `Promos`, `HistorialPedidos` y `HistorialMensajes` y las columnas nuevas.
 
+## Versión 1.6 · promoción del día y un carrito por negocio
+**Promoción del día**
+- Cada negocio tiene una sola promoción por día (una tarjeta en el banner, que rota cada 5 s con los demás negocios) y dentro de ella los productos que quiera, cada uno con precio especial opcional (incluye variantes).
+- Puede programar promociones distintas para días distintos; si dos activas coinciden en un día, la app no deja guardarla o reactivarla.
+- En el menú del negocio aparece la sección **🏷️ Promo del día** al principio. Al tocar la tarjeta del banner se abre esa sección (o el producto, si solo hay uno).
+- Si un producto se agota sale de la promo; si se agotan todos, la promo deja de mostrarse.
+- Al actualizar, las promociones de la 1.5 se convierten solas; si un negocio tenía varias activas el mismo día, queda la más reciente y las demás se pausan.
+
+**Carritos**
+- Un carrito por negocio (máximo 4 a la vez); agregar de otro negocio ya no vacía el anterior.
+- El carrito muestra cada negocio con su subtotal y su envío; se puede dejar fuera alguno para pedirlo después (los de negocios cerrados se apartan solos).
+- Datos de entrega una sola vez; forma de pago por negocio.
+- "Confirmar N pedidos" crea todos en una sola llamada (`crearPedidos`); si alguno no se puede (negocio cerrado, fuera del área, precio cambiado), no se crea ninguno y se avisa cuál.
+- Cada pedido es independiente: su envío, su repartidor, su pago y su seguimiento.
+- `crearPedido` (un negocio) sigue funcionando para teléfonos con la versión anterior.
+
 ## Pendiente
-Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
+- 1.7: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
+- Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.

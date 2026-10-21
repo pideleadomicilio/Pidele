@@ -352,14 +352,22 @@ const APP = 'Pídele';
 /* ============ ESTADO ============ */
 const S = {
   token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'),
-  carrito: ls('carrito') || { negocioId: null, negocio: '', lat: 0, lng: 0, items: {} },
+  // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
+  carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
   vista: null, params: null, auto: false, pos: null, firma: '', nuevos: 0, chat: null,
   map: null, tabNeg: 'atender', tabAdmPed: 'activos', esperaHasta: 0, instalar: null, ticks: 0, cat: 'Todos',
   // catálogo guardado en el teléfono: la pantalla principal se pinta al instante y se actualiza por detrás
   _negs: ls('negs') || null, promos: ls('promos') || [], _catT: 0
 };
-if (Object.values(S.carrito.items || {}).some(x => !x.key)) S.carrito.items = {};
+// la v1.5 tenía un solo carrito: se convierte al formato nuevo
+(function () {
+  const viejo = ls('carrito');
+  if (viejo && viejo.negocioId && Object.keys(viejo.items || {}).length && !S.carritos[viejo.negocioId]) S.carritos[viejo.negocioId] = viejo;
+  if (viejo) ls('carrito', null);
+  Object.keys(S.carritos).forEach(k => { const c = S.carritos[k]; if (!c || !c.items || Object.values(c.items).some(x => !x.key)) delete S.carritos[k]; });
+  const e = ls('entrega'); if (e && !e.metodos) { e.metodos = {}; ls('entrega', e); }
+})();
 
 const EST = {
   NUEVO: ['Enviado al negocio', '📨'], POR_PAGAR: ['Esperando pago', '💳'], PAGO_ENVIADO: ['Verificando pago', '🔎'],
@@ -616,7 +624,9 @@ async function pintar(silencioso) {
 function rolActual() { return S.user ? S.user.rol : 'invitado'; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
 function inicioRol() { return (NAV[rolActual()] || [['inicio']])[0][0]; }
-function nCarrito() { return Object.values(S.carrito.items || {}).reduce((s, x) => s + x.cant, 0); }
+function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
+function guardarCarritos() { Object.keys(S.carritos).forEach(k => { if (!Object.keys(S.carritos[k].items || {}).length) delete S.carritos[k]; }); ls('carritos', S.carritos); }
+function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
 
 function pintarNav() {
   const rol = rolActual();
@@ -1207,7 +1217,11 @@ async function chatImagen(inp) {
 }
 
 /* ============ CLIENTE: CATÁLOGO, PREFERENCIAS Y PRECARGA ============ */
-function itemsCarrito() { return Object.values(S.carrito.items || {}); }
+/** Productos en carrito: de un negocio, o de todos si no se indica. */
+function itemsCarrito(negId) {
+  if (negId) return Object.values(((S.carritos || {})[negId] || {}).items || {});
+  return carritosLista().reduce((a, c) => a.concat(Object.values(c.items)), []);
+}
 
 function guardarCatalogo(c) {
   S._negs = c.negocios || []; S.promos = c.promos || []; S._catT = Date.now();
@@ -1269,7 +1283,11 @@ function aplicarMenuFresco(m) {
 /* ---------- precios con promoción ---------- */
 function promosDe(negId) { return (S.promos || []).filter(p => p.negocioId === negId); }
 function promoProducto(negId, prodId, variante) {
-  return promosDe(negId).find(p => p.productoId === prodId && (p.variante || '') === (variante || '') && p.precioPromo > 0) || null;
+  for (const p of promosDe(negId)) {
+    const x = (p.productos || []).find(y => y.productoId === prodId && (y.variante || '') === (variante || '') && y.precioPromo > 0);
+    if (x) return { id: p.id, precioPromo: x.precioPromo, titulo: p.titulo, vigencia: p.vigencia };
+  }
+  return null;
 }
 /** Precio de un producto (o de su variante) con la promoción vigente, si hay. */
 function precioBase(negId, p, variante) {
@@ -1278,7 +1296,16 @@ function precioBase(negId, p, variante) {
   const pr = promoProducto(negId, p.id, variante || '');
   return pr && pr.precioPromo < base ? { precio: pr.precioPromo, antes: base, promo: pr.id } : { precio: base, antes: 0, promo: '' };
 }
-function tienePromo(negId, p) { return promosDe(negId).some(x => x.productoId === p.id && x.precioPromo > 0); }
+function tienePromo(negId, p) { return idsPromo(negId).has(p.id); }
+/** Productos que están en la promoción del día de un negocio (con o sin precio especial). */
+function idsPromo(negId) { const s = new Set(); promosDe(negId).forEach(p => (p.productos || []).forEach(x => s.add(x.productoId))); return s; }
+const SEC_PROMO = '🏷️ Promo del día';
+function seccionesMenu(d) {
+  const secs = [...new Set(d.productos.map(p => p.categoria))];
+  const base = secs.length > 1 ? ['Todo', ...secs] : secs;
+  const ids = idsPromo(d.negocio.id);
+  return d.productos.some(p => ids.has(p.id)) ? [SEC_PROMO, ...base] : base;
+}
 function precioTxt(p, negId) {
   negId = negId || p.negocioId || (S._menu && S._menu.negocio.id);
   const vars = p.variantes || [];
@@ -1293,12 +1320,12 @@ function precioTxt(p, negId) {
 
 /** Ajusta los precios del carrito con el menú y promos más recientes. Devuelve true si algo cambió. */
 function repreciarCarrito(menuD) {
-  const c = S.carrito;
-  if (!menuD || !menuD.negocio || menuD.negocio.id !== c.negocioId) return false;
+  const c = menuD && menuD.negocio ? (S.carritos || {})[menuD.negocio.id] : null;
+  if (!c) return false;
   const prods = {};
   menuD.productos.forEach(p => prods[p.id] = p);
   let cambio = false;
-  itemsCarrito().forEach(it => {
+  Object.values(c.items).forEach(it => {
     const p = prods[it.id];
     if (!p) { delete c.items[it.key]; cambio = true; return; } // ya no está disponible
     const b = precioBase(c.negocioId, p, it.variante);
@@ -1308,8 +1335,7 @@ function repreciarCarrito(menuD) {
     if (unit !== it.precio || ex.length !== (it.extras || []).length) { it.precio = unit; it.extras = ex; cambio = true; }
     it.promo = b.promo; it.antes = b.antes ? b.antes + extra : 0;
   });
-  if (!itemsCarrito().length) c.negocioId = null;
-  ls('carrito', c);
+  guardarCarritos();
   return cambio;
 }
 
@@ -1385,11 +1411,11 @@ function verTodos() { S.cat = 'Todos'; document.querySelectorAll('.cat').forEach
 
 function tarjetaNegocio(n) {
   const km = distanciaTxt(n);
-  const promo = promosDe(n.id).length;
+  const promo = promosDe(n.id).length > 0;
   return `<div class="nCard ${n.abierto ? '' : 'cerrado'}" onclick="ir('negocio','${n.id}')">
     <div class="img">${n.portada ? `<img class="portada" src="${esc(n.portada)}" alt="" loading="lazy" decoding="async">` : n.logo ? `<img class="portada" src="${esc(n.logo)}" alt="" loading="lazy" decoding="async">` : (ICONO_CAT[n.categoria] || '🍽️')}
       ${n.portada && n.logo ? `<img class="mini" src="${esc(n.logo)}" alt="" loading="lazy">` : ''}
-      ${promo ? `<span class="tagPromo">🏷️ ${promo > 1 ? promo + ' PROMOS' : 'PROMO'}</span>` : ''}
+      ${promo ? '<span class="tagPromo">🏷️ PROMO DEL DÍA</span>' : ''}
       ${n.abierto ? '' : '<span class="tag t-gray">Cerrado</span>'}</div>
     <div class="info"><b class="clamp1">${esc(n.nombre)}</b>
       <div class="muted small clamp1">${esc(n.categoria)}${km ? ' · ' + km : ''}</div>
@@ -1418,13 +1444,16 @@ function promosOrdenadas(cat) {
 }
 
 function slidePromo(p) {
-  const precio = p.precioPromo ? `<div class="precioS">${p.precioAntes ? `<s>${money(p.precioAntes)}</s>` : ''}${money(p.precioPromo)}</div>` : '';
+  const prods = p.productos || [], conPrecio = prods.filter(x => x.precioPromo);
+  const precio = conPrecio.length === 1 ? `<div class="precioS"><s>${money(conPrecio[0].precioAntes)}</s>${money(conPrecio[0].precioPromo)}</div>`
+    : conPrecio.length > 1 ? `<div class="precioS"><s style="text-decoration:none">Ahorra hasta</s>${money(p.ahorroMax)}</div>` : '';
+  const sub = prods.length === 1 ? ' · ' + esc(prods[0].nombre) + (prods[0].variante ? ' ' + esc(prods[0].variante) : '') : prods.length > 1 ? ' · ' + prods.length + ' productos en promo' : '';
   return `<div class="slide" onclick="abrirPromo('${p.id}')">
     ${p.imagen ? `<img class="fondo" src="${esc(p.imagen)}" alt="" loading="lazy" decoding="async">` : `<div class="sinImg">${ICONO_CAT[p.categoria] || '🏷️'}</div>`}
     <div class="velo"></div>
     <span class="chip">${p.abierto ? '🏷️ Promoción' : '🕒 Cerrado ahora'}</span>
     <div class="txt">${p.logo ? `<img class="logoS" src="${esc(p.logo)}" alt="" loading="lazy">` : ''}
-      <div class="grow"><b class="clamp2">${esc(p.titulo)}</b><small class="clamp1">${esc(p.negocio)}${p.productoNombre ? ' · ' + esc(p.productoNombre) + (p.variante ? ' ' + esc(p.variante) : '') : ''}</small></div>${precio}</div></div>`;
+      <div class="grow"><b class="clamp2">${esc(p.titulo)}</b><small class="clamp1">${esc(p.negocio)}${sub}</small></div>${precio}</div></div>`;
 }
 
 function pintarBanner(cat) {
@@ -1454,6 +1483,16 @@ function iniciarCarrusel(n) {
   }, 5000);
 }
 
+/** Renglones con los productos de una promoción (nombre, precio normal tachado y precio especial). */
+function lineasPromo(p, max) {
+  const l = p.productos || [];
+  if (!l.length) return '';
+  max = max || 6;
+  return `<div class="small" style="margin-top:6px">${l.slice(0, max).map(x => `<div class="tot" style="padding:3px 0"><span>${esc(x.nombre)}${x.variante ? ' · ' + esc(x.variante) : ''}${x.disponible === false ? ' <span class="tag t-warn">Agotado</span>' : ''}</span>
+    <span>${x.precioPromo ? `<span class="tachado">${money(x.precioAntes)}</span><b class="precioPromo">${money(x.precioPromo)}</b>` : `<span class="muted">${money(x.precioAntes)}</span>`}</span></div>`).join('')}
+    ${l.length > max ? `<div class="muted">y ${l.length - max} más…</div>` : ''}</div>`;
+}
+
 /** Categoría "Promociones": todas las promociones vigentes de todos los negocios. */
 function listaPromos() {
   const l = promosOrdenadas('Promociones');
@@ -1461,24 +1500,33 @@ function listaPromos() {
   return `<div class="secHead"><h3>🏷️ Promociones de hoy</h3><button onclick="verTodos()">Ver negocios</button></div>` +
     l.map(p => `<div class="promoCard">${slidePromo(p)}<div class="pie" onclick="abrirPromo('${p.id}')">
       ${p.descripcion ? `<div>${esc(p.descripcion)}</div>` : ''}
+      ${(p.productos || []).length > 1 ? lineasPromo(p, 5) : ''}
       <div class="muted small" style="margin-top:3px">${ico('reloj', 's')} ${esc(p.vigencia)}${p.abierto ? '' : ' · el negocio está cerrado ahora'}</div></div></div>`).join('');
 }
 
 /** Al tocar una promo: abre el negocio y, si va ligada a un producto, su hoja con la opción ya elegida. */
 function abrirPromo(id) {
   const p = (S.promos || []).find(x => x.id === id); if (!p) return;
-  if (p.productoId) { S._abrirProd = p.productoId; S._abrirVar = p.variante || ''; }
+  const prods = p.productos || [];
+  // un solo producto: se abre su hoja; varios: el menú abre en la sección "Promo del día"
+  if (prods.length === 1) { S._abrirProd = prods[0].productoId; S._abrirVar = prods[0].variante || ''; }
+  else if (prods.length > 1) S._abrirSec = SEC_PROMO;
   if (S.vista === 'negocio' && S.params === p.negocioId) {
     if (S._abrirProd) { const pid = S._abrirProd; S._abrirProd = null; abrirProducto(pid); }
+    else if (S._abrirSec) { S._abrirSec = null; S._sec.tab = 'menu'; S._sec.s = SEC_PROMO; tabNegocio('menu'); }
     return;
   }
   ir('negocio', p.negocioId);
 }
 
-function barraCarrito() {
-  const it = itemsCarrito(); if (!it.length) return '';
+/** Barra inferior: en un negocio muestra su carrito; en inicio, todos (indicando cuántos negocios). */
+function barraCarrito(negId) {
+  const it = itemsCarrito(negId); if (!it.length) return '';
   const n = it.reduce((s, x) => s + x.cant, 0), t = it.reduce((s, x) => s + x.cant * x.precio, 0);
-  return `<div style="height:64px"></div><div class="barra" onclick="ir('carrito')"><span>${ico('bolsa', 's')} Ver pedido · ${n}</span><span>${money(t)}</span></div>`;
+  const otros = carritosLista().filter(c => c.negocioId !== negId).length;
+  const txt = negId ? 'Ver pedido · ' + n + (otros ? ' <span style="opacity:.8;font-weight:700">+' + otros + ' negocio' + (otros > 1 ? 's' : '') + '</span>' : '')
+    : (otros > 1 ? 'Ver carrito · ' + otros + ' negocios' : 'Ver pedido · ' + n);
+  return `<div style="height:64px"></div><div class="barra" onclick="ir('carrito')"><span>${ico('bolsa', 's')} ${txt}</span><span>${money(t)}</span></div>`;
 }
 
 /* ============ BUSCAR ============ */
@@ -1524,9 +1572,10 @@ async function vNegocio(id, silencioso) {
   d = mezclarNegocio(d);
   S._menu = d;
   const n = d.negocio;
-  const secs = [...new Set(d.productos.map(p => p.categoria))];
-  const opciones = secs.length > 1 ? ['Todo', ...secs] : secs;
+  const opciones = seccionesMenu(d);
   if (!S._sec || S._sec.neg !== id || !opciones.includes(S._sec.s)) S._sec = { neg: id, s: opciones[0], tab: 'menu' };
+  if (S._abrirSec && opciones.includes(S._abrirSec)) { S._sec.s = S._abrirSec; S._sec.tab = 'menu'; }
+  S._abrirSec = null;
   const km = distanciaTxt(n);
   html(`<div class="hero">${n.portada ? `<img src="${esc(n.portada)}" alt="">` : (ICONO_CAT[n.categoria] || '🍽️')}
       <button class="redondo" onclick="volver('inicio')" aria-label="Volver">${ico('atras')}</button>
@@ -1541,7 +1590,7 @@ async function vNegocio(id, silencioso) {
     </div>
     <div class="tabs"><button class="${S._sec.tab === 'menu' ? 'on' : ''}" onclick="tabNegocio('menu')">Menú</button><button class="${S._sec.tab === 'info' ? 'on' : ''}" onclick="tabNegocio('info')">Información</button></div>
     <div id="tabCont"></div>
-    <div id="barraC">${barraCarrito()}</div>`);
+    <div id="barraC">${barraCarrito(n.id)}</div>`);
   pintarTabNegocio();
   if (S._abrirProd) { const pid = S._abrirProd; S._abrirProd = null; abrirProducto(pid); }
 }
@@ -1585,8 +1634,8 @@ function pintarTabNegocio() {
     return;
   }
   if (!d.productos.length) { $('#tabCont').innerHTML = '<div class="vacio">Este negocio aún no tiene menú</div>'; return; }
-  const secs = [...new Set(d.productos.map(p => p.categoria))];
-  const opciones = secs.length > 1 ? ['Todo', ...secs] : secs;
+  const opciones = seccionesMenu(d);
+  if (!opciones.includes(S._sec.s)) S._sec.s = opciones[0];
   const prNeg = promosDe(n.id);
   $('#tabCont').innerHTML = `${!n.abierto ? `<div class="aviso warn">Puedes ver el menú, pero ahora no recibe pedidos.</div>` : ''}
     ${prNeg.length ? `<div class="promoWrap"><div class="promoFila">${prNeg.map(slidePromo).join('')}</div></div>` : ''}
@@ -1606,9 +1655,11 @@ function pintarProductos() {
   const d = S._menu, s = S._sec.s;
   if (!$('#prods')) return;
   const enCarrito = {};
-  if (S.carrito.negocioId === d.negocio.id) itemsCarrito().forEach(x => enCarrito[x.id] = (enCarrito[x.id] || 0) + x.cant);
-  const grupos = {};
-  d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  itemsCarrito(d.negocio.id).forEach(x => enCarrito[x.id] = (enCarrito[x.id] || 0) + x.cant);
+  const grupos = {}, ids = idsPromo(d.negocio.id);
+  // la promoción del día va primero (en "Todo" y en su propia sección)
+  if ((s === 'Todo' || s === SEC_PROMO) && ids.size) grupos[SEC_PROMO] = d.productos.filter(p => ids.has(p.id));
+  if (s !== SEC_PROMO) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
   $('#prods').innerHTML = Object.keys(grupos).map(g => `${s === 'Todo' ? `<h3 class="secTit">${esc(g)}</h3>` : ''}
     <div class="grid2" style="margin-bottom:12px">${grupos[g].map(p => `<div class="pCard" onclick="abrirProducto('${p.id}')">
       ${enCarrito[p.id] ? `<span class="enCarrito">${enCarrito[p.id]}</span>` : ''}
@@ -1630,7 +1681,7 @@ function abrirProducto(pid) {
   S._abrirVar = '';
   S._hoja = { p, cant: 1, v: vi };
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
-  const promoTxt = promosDe(n.id).filter(x => x.productoId === p.id && x.precioPromo > 0).map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${esc(x.titulo)}${x.variante ? ' · ' + esc(x.variante) : ''} · ${esc(x.vigencia)}</div>`).join('');
+  const promoTxt = promosDe(n.id).filter(x => (x.productos || []).some(y => y.productoId === p.id)).map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${esc(x.titulo)} · ${esc(x.vigencia)}</div>`).join('');
   modal(`${p.foto ? `<img class="hojaImg" src="${esc(p.foto)}" alt="">` : ''}
     <div class="row between" style="align-items:flex-start"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
@@ -1664,84 +1715,121 @@ function cantHoja(k) { S._hoja.cant = Math.max(1, Math.min(50, S._hoja.cant + k)
 
 function agregarHoja() {
   const n = S._menu.negocio, p = S._hoja.p, s = selHoja();
-  if (S.carrito.negocioId && S.carrito.negocioId !== n.id && itemsCarrito().length) {
-    if (!confirm('Tu carrito tiene productos de ' + S.carrito.negocio + '. ¿Vaciarlo y empezar con ' + n.nombre + '?')) return;
-    S.carrito.items = {};
-  }
-  S.carrito.negocioId = n.id; S.carrito.negocio = n.nombre; S.carrito.lat = n.lat; S.carrito.lng = n.lng;
+  // cada negocio tiene su propio carrito: agregar de otro negocio ya no vacía el anterior
+  const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
+  c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
+  if (!Object.keys(c.items).length && carritosLista().length >= 4) { toast('Puedes pedir a máximo 4 negocios a la vez', 'err'); return; }
   // misma combinación de extras/sin/nota = misma línea del carrito
   const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota].join('|');
-  const it = S.carrito.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, cant: 0 };
+  const it = c.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, cant: 0 };
   it.precio = s.unit; it.antes = s.antes; it.promo = s.promo;
   it.cant = Math.min(50, it.cant + S._hoja.cant);
-  S.carrito.items[key] = it;
-  ls('carrito', S.carrito);
+  c.items[key] = it;
+  guardarCarritos();
   cerrarModal();
   toast('Agregado: ' + it.nombre + ' ✓');
   pintarProductos();
-  $('#barraC').innerHTML = barraCarrito();
+  $('#barraC').innerHTML = barraCarrito(n.id);
 }
 
-/* ============ CARRITO ============ */
+/* ============ CARRITOS (uno por negocio) ============ */
+function subtotalCarrito(c) { return Object.values(c.items).reduce((s, x) => s + x.cant * x.precio, 0); }
+function envioEstimado(c, lat, lng) {
+  if (!lat || !c.lat || !S.conf) return null;
+  const km = kmRuta(c.lat, c.lng, lat, lng);
+  return km <= S.conf.kmMaximo ? tarifa(km) : -1; // -1 = fuera del área
+}
+function negocioAbierto(id) { const n = (S._negs || []).find(x => x.id === id); return n ? n.abierto : true; }
+
 function vCarrito() {
-  // precios al día con el menú y las promos guardadas (si una promo terminó, se ve aquí y no al confirmar)
-  if (S.carrito.negocioId) { const m = menuLocal(S.carrito.negocioId); if (m && repreciarCarrito(m)) toast('Actualizamos los precios de tu carrito'); }
-  const c = S.carrito, it = itemsCarrito(), u = S.user || {};
-  const top = `<div class="titBar"><button class="redondo" onclick="volver('inicio')">${ico('atras')}</button><h2>Tu pedido</h2><span class="esp"></span></div>`;
-  if (!it.length) { html(top + `<div class="vacio"><span class="big">🛍️</span>Tu carrito está vacío<br><br><button class="btn pri pill" onclick="ir('inicio')">Ver restaurantes</button></div>`); return; }
-  S._lineas = it;
-  const sub = it.reduce((s, x) => s + x.cant * x.precio, 0);
-  let envio = null;
-  if (u.lat && c.lat && S.conf) { const km = kmRuta(c.lat, c.lng, u.lat, u.lng); if (km <= S.conf.kmMaximo) envio = tarifa(km); }
-  html(top + `<div class="muted" style="margin:-6px 0 8px;text-align:center">${esc(c.negocio)}</div>
-    <div class="card">${it.map((x, i) => { const dd = detalleItem(x); return `<div class="linea">
-      ${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="">` : '<div class="thumb">🍽️</div>'}
-      <div class="grow"><b>${esc(x.nombre)}</b>${x.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${dd ? `<div class="detalle">${dd}</div>` : ''}<div class="b" style="margin:6px 0 8px">${x.antes ? `<span class="tachado">${money(x.antes * x.cant)}</span><span class="precioPromo">${money(x.precio * x.cant)}</span>` : money(x.precio * x.cant)}</div>
-        <div class="cant" style="display:inline-flex"><button onclick="cambiarCarrito(${i},-1)">${ico('menos', 's')}</button><b>${x.cant}</b><button onclick="cambiarCarrito(${i},1)">${ico('mas', 's')}</button></div></div>
-      <button class="basura" onclick="cambiarCarrito(${i},-99)" aria-label="Quitar">${ico('basura')}</button></div>`; }).join('')}
-      <button class="lnk" onclick="ir('negocio','${c.negocioId}')">${ico('mas', 's')} Agregar más productos</button></div>
-    <div class="card"><b style="font-size:16px">Resumen del pedido</b>
+  // precios al día con los menús y las promos guardadas (si una promo terminó, se ve aquí y no al confirmar)
+  let cambio = false;
+  carritosLista().forEach(c => { const m = menuLocal(c.negocioId); if (m && repreciarCarrito(m)) cambio = true; });
+  if (cambio) toast('Actualizamos los precios de tu carrito');
+  const lista = carritosLista(), u = S.user || {};
+  const top = `<div class="titBar"><button class="redondo" onclick="volver('inicio')">${ico('atras')}</button><h2>${lista.length > 1 ? 'Tus pedidos' : 'Tu pedido'}</h2><span class="esp"></span></div>`;
+  if (!lista.length) { html(top + `<div class="vacio"><span class="big">🛍️</span>Tu carrito está vacío<br><br><button class="btn pri pill" onclick="ir('inicio')">Ver restaurantes</button></div>`); return; }
+  // qué carritos entran en este pedido (los de negocios cerrados quedan fuera, se guardan para después)
+  S.sel = S.sel || {};
+  lista.forEach(c => { if (S.sel[c.negocioId] === undefined) S.sel[c.negocioId] = true; if (!negocioAbierto(c.negocioId)) S.sel[c.negocioId] = false; });
+  S._lineas = {};
+  let sub = 0, env = 0, envSin = false, nSel = 0;
+  const bloques = lista.map(c => {
+    const abierto = negocioAbierto(c.negocioId), sel = S.sel[c.negocioId];
+    const s = subtotalCarrito(c), e = envioEstimado(c, u.lat, u.lng);
+    if (sel) { nSel++; sub += s; if (e > 0) env += e; else envSin = true; }
+    const its = Object.values(c.items);
+    S._lineas[c.negocioId] = its;
+    return `<div class="card" style="${sel ? '' : 'opacity:.6'}">
+      <div class="row between" style="margin-bottom:4px">
+        <label class="row" style="gap:8px;cursor:pointer">${lista.length > 1 ? `<input type="checkbox" ${sel ? 'checked' : ''} ${abierto ? '' : 'disabled'} onchange="S.sel['${c.negocioId}']=this.checked;vCarrito()" style="width:20px;height:20px;accent-color:var(--pri)">` : ''}
+          ${c.logo ? `<img src="${esc(c.logo)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover">` : ''}<b style="font-size:16px">${esc(c.negocio)}</b></label>
+        <button class="lnk" onclick="vaciarCarrito('${c.negocioId}')">Quitar</button></div>
+      ${abierto ? '' : '<div class="aviso warn" style="margin:6px 0">Este negocio no recibe pedidos ahora. Guardamos tu carrito para después.</div>'}
+      ${its.map((x, i) => { const dd = detalleItem(x); return `<div class="linea">
+        ${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="">` : '<div class="thumb">🍽️</div>'}
+        <div class="grow"><b>${esc(x.nombre)}</b>${x.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${dd ? `<div class="detalle">${dd}</div>` : ''}<div class="b" style="margin:6px 0 8px">${x.antes ? `<span class="tachado">${money(x.antes * x.cant)}</span><span class="precioPromo">${money(x.precio * x.cant)}</span>` : money(x.precio * x.cant)}</div>
+          <div class="cant" style="display:inline-flex"><button onclick="cambiarCarrito('${c.negocioId}',${i},-1)">${ico('menos', 's')}</button><b>${x.cant}</b><button onclick="cambiarCarrito('${c.negocioId}',${i},1)">${ico('mas', 's')}</button></div></div>
+        <button class="basura" onclick="cambiarCarrito('${c.negocioId}',${i},-99)" aria-label="Quitar">${ico('basura')}</button></div>`; }).join('')}
+      <button class="lnk" onclick="ir('negocio','${c.negocioId}')">${ico('mas', 's')} Agregar más de ${esc(c.negocio)}</button>
+      <div class="tot" style="margin-top:6px"><span>Subtotal</span><span>${money(s)}</span></div>
+      <div class="tot"><span>Envío</span><span>${e === null ? '<span class="muted small">Se calcula con tu dirección</span>' : e < 0 ? '<span style="color:var(--err)" class="small">Fuera del área</span>' : money(e)}</span></div></div>`;
+  }).join('');
+  html(top + bloques + `
+    <div class="card"><b style="font-size:16px">Resumen</b>
+      ${lista.length > 1 ? `<div class="muted small" style="margin-top:4px">${nSel} pedido${nSel === 1 ? '' : 's'}: cada negocio prepara y envía el suyo por separado, con su propio costo de envío.</div>` : ''}
       <div class="tot" style="margin-top:8px"><span>Subtotal</span><span>${money(sub)}</span></div>
-      <div class="tot"><span>Costo de envío</span><span>${envio === null ? '<span class="muted small">Se calcula con tu dirección</span>' : money(envio)}</span></div>
-      <div class="tot g"><span>Total</span><span>${money(sub + (envio || 0))}</span></div></div>
-    <button class="btn pri pill full" onclick="continuarCarrito()">Continuar</button><div style="height:20px"></div>`);
+      <div class="tot"><span>Envío${nSel > 1 ? 's (' + nSel + ')' : ''}</span><span>${envSin && !env ? '<span class="muted small">Se calcula con tu dirección</span>' : money(env) + (envSin ? '*' : '')}</span></div>
+      <div class="tot g"><span>Total</span><span>${money(sub + env)}</span></div></div>
+    <button class="btn pri pill full" ${nSel ? '' : 'disabled'} onclick="continuarCarrito()">Continuar${nSel > 1 ? ' con ' + nSel + ' pedidos' : ''}</button><div style="height:20px"></div>`);
 }
 
-function cambiarCarrito(i, k) {
-  const it = (S._lineas || [])[i]; if (!it) return;
-  const x = S.carrito.items[it.key]; if (!x) return;
-  x.cant += k; if (x.cant <= 0) delete S.carrito.items[it.key];
-  if (!itemsCarrito().length) S.carrito.negocioId = null;
-  ls('carrito', S.carrito); vCarrito();
+function cambiarCarrito(negId, i, k) {
+  const it = ((S._lineas || {})[negId] || [])[i]; if (!it) return;
+  const c = S.carritos[negId]; if (!c) return;
+  const x = c.items[it.key]; if (!x) return;
+  x.cant = Math.min(50, x.cant + k); if (x.cant <= 0) delete c.items[it.key];
+  guardarCarritos(); vCarrito();
 }
+function vaciarCarrito(negId) {
+  const c = S.carritos[negId]; if (!c) return;
+  if (!confirm('¿Quitar tu carrito de ' + c.negocio + '?')) return;
+  delete S.carritos[negId]; guardarCarritos(); vCarrito();
+}
+/** Carritos que entran en este pedido. */
+function carritosSel() { return carritosLista().filter(c => S.sel && S.sel[c.negocioId] !== false && negocioAbierto(c.negocioId)); }
 
 function continuarCarrito() {
+  if (!carritosSel().length) { toast('Elige al menos un negocio', 'err'); return; }
   if (!S.token) { S.despues = 'entrega'; toast('Entra o crea tu cuenta para continuar'); ir('entrar'); return; }
   if (S.user.rol !== 'comprador') { toast('Para pedir entra con una cuenta de cliente', 'err'); return; }
   ir('entrega');
 }
 
-/* ============ DATOS DE ENTREGA ============ */
+/* ============ DATOS DE ENTREGA (los mismos para todos los negocios) ============ */
 function vEntrega() {
-  if (!itemsCarrito().length) { ir('carrito'); return; }
+  const cs = carritosSel();
+  if (!cs.length) { ir('carrito'); return; }
   const u = S.user;
-  const e = S.entrega = S.entrega && S.entrega.negocioId === S.carrito.negocioId ? S.entrega : {
-    negocioId: S.carrito.negocioId, tipo: 'domicilio', direccion: u.direccion || '', referencia: u.referencia || '',
-    lat: u.lat || 0, lng: u.lng || 0, recibeNombre: u.nombre, recibeTel: u.telefono, notas: '', metodo: ''
+  const e = S.entrega = S.entrega || {
+    tipo: 'domicilio', direccion: u.direccion || '', referencia: u.referencia || '',
+    lat: u.lat || 0, lng: u.lng || 0, recibeNombre: u.nombre, recibeTel: u.telefono, notas: '', metodos: {}
   };
+  e.metodos = e.metodos || {};
+  const nombres = cs.map(c => c.negocio).join(', ');
   html(`<div class="titBar"><button class="redondo" onclick="volver('carrito')">${ico('atras')}</button><h2>Datos de entrega</h2><span class="esp"></span></div>
     <h3 style="margin-top:4px">¿Cómo quieres recibir tu pedido?</h3>
     <div class="opcion ${e.tipo === 'domicilio' ? 'on' : ''}" onclick="tipoEntrega('domicilio')"><span class="radio"></span><span class="ico">${ico('casa')}</span>
-      <div class="grow"><b>A domicilio</b><small>Te lo llevamos hasta donde estés</small></div></div>
+      <div class="grow"><b>A domicilio</b><small>${cs.length > 1 ? 'Cada negocio te lo envía por separado' : 'Te lo llevamos hasta donde estés'}</small></div></div>
     <div class="opcion ${e.tipo === 'recoger' ? 'on' : ''}" onclick="tipoEntrega('recoger')"><span class="radio"></span><span class="ico">${ico('tienda')}</span>
-      <div class="grow"><b>Recoger en restaurante</b><small>Tu pedido estará listo en ${esc(S.carrito.negocio)}</small></div></div>
+      <div class="grow"><b>Recoger en ${cs.length > 1 ? 'los restaurantes' : 'restaurante'}</b><small>Tu pedido estará listo en ${esc(nombres)}</small></div></div>
     <div id="entregaCampos"></div>
     <h3>¿Quién recibe?</h3>
     <div class="card" style="padding:4px 14px 14px">
       <label class="f">Nombre</label><input class="i" id="eNom" value="${esc(e.recibeNombre)}">
       <label class="f">Teléfono</label><input class="i" id="eTel" type="tel" inputmode="numeric" maxlength="14" value="${esc(e.recibeTel)}">
       <div class="muted small" style="margin-top:6px">${ico('candado', 's')} El repartidor solo ve estos datos mientras tu pedido está abierto; se borran al entregarlo.</div>
-      <label class="f">Notas para el restaurante (opcional)</label><textarea class="i" id="eNot" placeholder="Ej. traer cambio de $500, llamar al llegar…">${esc(e.notas)}</textarea>
+      <label class="f">Notas para ${cs.length > 1 ? 'los restaurantes' : 'el restaurante'} (opcional)</label><textarea class="i" id="eNot" placeholder="Ej. traer cambio de $500, llamar al llegar…">${esc(e.notas)}</textarea>
     </div>
     <button class="btn pri pill full" onclick="act(this,continuarEntrega)">Continuar</button><div style="height:20px"></div>`);
   pintarCamposEntrega();
@@ -1762,12 +1850,12 @@ function tipoEntrega(t) {
 }
 
 function pintarCamposEntrega() {
-  const e = S.entrega;
+  const e = S.entrega, cs = carritosSel();
   if (S.map) { try { S.map.remove(); } catch (x) { } S.map = null; }
   if (e.tipo === 'recoger') {
-    $('#entregaCampos').innerHTML = `<div class="entregaBox"><b>${ico('tienda', 's')} ${esc(S.carrito.negocio)}</b>
+    $('#entregaCampos').innerHTML = cs.map(c => `<div class="entregaBox"><b>${ico('tienda', 's')} ${esc(c.negocio)}</b>
       <div class="muted small" style="margin-top:4px">Te avisamos cuando tu pedido esté listo para que pases por él. Sin costo de envío.</div>
-      <div class="btns"><a class="btn sm" href="${gmaps(S.carrito.lat, S.carrito.lng)}" target="_blank">${ico('mapa', 's')} Cómo llegar</a></div></div>`;
+      <div class="btns"><a class="btn sm" href="${gmaps(c.lat, c.lng)}" target="_blank">${ico('mapa', 's')} Cómo llegar</a></div></div>`).join('');
     return;
   }
   $('#entregaCampos').innerHTML = `<h3>Dirección de entrega</h3>
@@ -1779,10 +1867,12 @@ function pintarCamposEntrega() {
     <div class="muted small" id="eEnv" style="margin-top:6px"></div>`;
   S._sel = mapaSelector('mapaEnt', e.lat, e.lng, (la, ln) => {
     e.lat = la; e.lng = ln; ls('entrega', e);
-    if (!S.conf || !S.carrito.lat) return;
-    const km = kmRuta(S.carrito.lat, S.carrito.lng, la, ln);
-    $('#eEnv').innerHTML = km > S.conf.kmMaximo ? '<span style="color:var(--err)">Esta ubicación está fuera del área de entrega</span>'
-      : `Envío estimado: <b>${money(tarifa(km))}</b> (${km.toFixed(1)} km)`;
+    if (!S.conf) return;
+    $('#eEnv').innerHTML = cs.map(c => {
+      const v = envioEstimado(c, la, ln);
+      return v < 0 ? `<div style="color:var(--err)">${esc(c.negocio)}: fuera del área de entrega</div>`
+        : `<div>Envío ${cs.length > 1 ? 'de ' + esc(c.negocio) : 'estimado'}: <b>${money(v)}</b> (${kmRuta(c.lat, c.lng, la, ln).toFixed(1)} km)</div>`;
+    }).join('');
   });
 }
 
@@ -1792,101 +1882,118 @@ async function continuarEntrega() {
   if (e.tipo === 'domicilio') {
     if (!e.lat) throw new Error('Marca en el mapa dónde te entregamos');
     if ((e.direccion || '').trim().length < 5) throw new Error('Escribe tu dirección de entrega');
+    const fuera = carritosSel().filter(c => envioEstimado(c, e.lat, e.lng) < 0);
+    if (fuera.length) throw new Error(fuera.map(c => c.negocio).join(', ') + ' no entrega hasta tu ubicación. Quítalo del pedido o elige recoger.');
   }
   if ((e.recibeNombre || '').trim().length < 2) throw new Error('Escribe el nombre de quien recibe');
   if (String(e.recibeTel || '').replace(/\D/g, '').length < 10) throw new Error('El teléfono de quien recibe debe tener 10 dígitos');
   ir('pago');
 }
 
-/* ============ MÉTODO DE PAGO ============ */
+/* ============ MÉTODO DE PAGO (uno por negocio: cada uno acepta formas distintas) ============ */
 async function vPago() {
-  const e = S.entrega, c = S.carrito;
-  if (!e || !itemsCarrito().length) { ir('carrito'); return; }
-  // si el catálogo es reciente no hace falta preguntar al servidor si abre y qué pagos acepta
-  let n = (S._negs || []).find(x => x.id === c.negocioId);
-  if (!n || Date.now() - (S._catT || 0) > 120000) {
-    const d = await api('menu', { negocioId: c.negocioId });
-    aplicarMenuFresco(d);
-    if (repreciarCarrito(d)) { toast('Actualizamos los precios de tu carrito'); ir('carrito'); return; }
-    n = d.negocio;
+  const e = S.entrega, cs = carritosSel();
+  if (!e || !cs.length) { ir('carrito'); return; }
+  // datos del negocio: si el catálogo es reciente no se pregunta al servidor; si no, una sola llamada para todos
+  const negs = {};
+  const viejos = cs.filter(c => { const n = (S._negs || []).find(x => x.id === c.negocioId); if (n && Date.now() - (S._catT || 0) < 120000) { negs[c.negocioId] = n; return false; } return true; });
+  if (viejos.length) {
+    const ms = await api('menus', { ids: viejos.map(c => c.negocioId) });
+    let cambio = false;
+    ms.forEach(m => { aplicarMenuFresco(m); if (repreciarCarrito(m)) cambio = true; negs[m.negocio.id] = m.negocio; });
+    if (cambio) { toast('Actualizamos los precios de tu carrito'); ir('carrito'); return; }
   }
-  const pg = n.pagos;
-  const sub = itemsCarrito().reduce((s, x) => s + x.cant * x.precio, 0);
-  let envio = 0;
-  if (e.tipo === 'domicilio') envio = tarifa(kmRuta(c.lat, c.lng, e.lat, e.lng));
-  const ops = [];
-  if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(sub) + ' directo al negocio y adjuntas tu comprobante']);
-  if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
-  if (pg.efectivo) ops.push(['efectivo', 'efectivo', 'Efectivo', e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir']);
-  if (!ops.some(o => o[0] === e.metodo)) e.metodo = ops.length === 1 ? ops[0][0] : (ops.find(o => o[0] === 'efectivo') || ops[0] || [''])[0];
-  S._pagoTot = { sub, envio };
+  e.metodos = e.metodos || {};
+  let subT = 0, envT = 0;
+  S._pagoTot = {};
+  const bloques = cs.map(c => {
+    const n = negs[c.negocioId] || {}, pg = n.pagos || { efectivo: true };
+    const sub = subtotalCarrito(c), envio = e.tipo === 'domicilio' ? tarifa(kmRuta(c.lat, c.lng, e.lat, e.lng)) : 0;
+    subT += sub; envT += envio;
+    S._pagoTot[c.negocioId] = { sub, envio };
+    const ops = [];
+    if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(sub) + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
+    if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
+    if (pg.efectivo) ops.push(['efectivo', 'efectivo', 'Efectivo', e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir']);
+    const m = e.metodos[c.negocioId];
+    if (!ops.some(o => o[0] === m)) e.metodos[c.negocioId] = ops.length === 1 ? ops[0][0] : (ops.find(o => o[0] === 'efectivo') || ops[0] || [''])[0];
+    return `${cs.length > 1 ? `<h3>${esc(c.negocio)}</h3>` : ''}
+      ${ops.map(o => `<div class="opcion ${o[0] === e.metodos[c.negocioId] ? 'on' : ''}" data-n="${c.negocioId}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
+        <div class="grow"><b>${o[2]}</b><small>${o[3]}</small></div></div>`).join('')}
+      ${n.abierto === false ? `<div class="aviso warn">${esc(c.negocio)}: ${esc(n.estadoTexto || 'no recibe pedidos ahora')}</div>` : ''}
+      <div class="muted small" id="nota_${c.negocioId}" style="margin:-2px 0 6px"></div>`;
+  }).join('');
+  ls('entrega', e);
+  const cerrado = cs.some(c => (negs[c.negocioId] || {}).abierto === false);
   html(`<div class="titBar"><button class="redondo" onclick="volver('entrega')">${ico('atras')}</button><h2>Método de pago</h2><span class="esp"></span></div>
-    ${ops.map(o => `<div class="opcion ${o[0] === e.metodo ? 'on' : ''}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
-      <div class="grow"><b>${o[2]}</b><small>${o[3]}</small></div></div>`).join('')}
-    ${!n.abierto ? `<div class="aviso warn">${esc(n.nombre)}: ${esc(n.estadoTexto)}</div>` : ''}
+    ${bloques}
     <div class="card" style="margin-top:6px"><b style="font-size:16px">Resumen</b>
-      <div class="tot" style="margin-top:8px"><span>Subtotal (${esc(n.nombre)})</span><span>${money(sub)}</span></div>
-      <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Costo de envío'}</span><span>${money(envio)}</span></div>
-      <div class="tot g"><span>Total</span><span>${money(sub + envio)}</span></div>
-      <div class="muted small" id="pagoNota" style="margin-top:6px"></div></div>
-    <div class="seguro">${ico('candado', 's')} Pagas directo al negocio, sin comisiones</div>
-    <button class="btn pri pill full" ${n.abierto ? '' : 'disabled'} onclick="act(this,confirmarPedido)">Confirmar pedido</button><div style="height:20px"></div>`);
-  notaPago();
+      ${cs.map(c => `<div class="tot" style="margin-top:6px"><span>${esc(c.negocio)}</span><span>${money(S._pagoTot[c.negocioId].sub)}</span></div>`).join('')}
+      <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Envío' + (cs.length > 1 ? 's (' + cs.length + ')' : '')}</span><span>${money(envT)}</span></div>
+      <div class="tot g"><span>Total</span><span>${money(subT + envT)}</span></div></div>
+    <div class="seguro">${ico('candado', 's')} Pagas directo a cada negocio, sin comisiones</div>
+    <button class="btn pri pill full" ${cerrado ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
+  cs.forEach(c => notaPago(c.negocioId));
 }
 
 function elegirMetodo(el) {
-  S.entrega.metodo = el.dataset.m; ls('entrega', S.entrega);
-  document.querySelectorAll('.opcion').forEach(o => o.classList.toggle('on', o === el));
-  notaPago();
+  const neg = el.dataset.n;
+  S.entrega.metodos[neg] = el.dataset.m; ls('entrega', S.entrega);
+  document.querySelectorAll('.opcion[data-n="' + neg + '"]').forEach(o => o.classList.toggle('on', o === el));
+  notaPago(neg);
 }
-function notaPago() {
-  const m = S.entrega.metodo, t = S._pagoTot, rec = S.entrega.tipo === 'recoger';
-  const el = $('#pagoNota'); if (!el) return;
+function notaPago(neg) {
+  const m = S.entrega.metodos[neg], t = S._pagoTot[neg], rec = S.entrega.tipo === 'recoger';
+  const el = $('#nota_' + neg); if (!el || !t) return;
   el.innerHTML = m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
     : 'Cuando el negocio acepte tu pedido verás sus datos para transferir ' + money(t.sub) + '.' + (t.envio ? ' El envío (' + money(t.envio) + ') se paga en efectivo al repartidor.' : '');
 }
 
 async function confirmarPedido() {
-  const e = S.entrega, c = S.carrito;
-  if (!e.metodo) throw new Error('Elige cómo vas a pagar');
-  let d;
+  const e = S.entrega, cs = carritosSel();
+  if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
+  let r;
   try {
-    d = await api('crearPedido', {
-      negocioId: c.negocioId, tipoEntrega: e.tipo, metodoPago: e.metodo,
-      items: itemsCarrito().map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota })),
-      direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
+    // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
+    r = await api('crearPedidos', {
+      tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
       recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true,
-      // el servidor confirma que cobra lo mismo que ve el cliente
-      subtotalEsperado: itemsCarrito().reduce((s, x) => s + x.cant * x.precio, 0)
+      pedidos: cs.map(c => ({
+        negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c),
+        items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota }))
+      }))
     });
   } catch (err) {
     if (!String(err.message).startsWith('PRECIOS|')) throw err;
-    const m = await api('menu', { negocioId: c.negocioId });
-    aplicarMenuFresco(m); repreciarCarrito(m);
-    toast(err.message.split('|')[1], 'err');
+    const [, negId, msg] = err.message.split('|');
+    const ms = await api('menus', { ids: [negId] });
+    ms.forEach(m => { aplicarMenuFresco(m); repreciarCarrito(m); });
+    toast(msg, 'err');
     ir('carrito');
     return;
   }
-  sumarPref(c.negocioId, 3);
   if (e.tipo === 'domicilio') { Object.assign(S.user, { direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng }); ls('user', S.user); }
-  S._ultimo = { id: d.id, folio: d.folio, negocio: c.negocio, metodo: e.metodo, tipo: e.tipo };
-  S.carrito = { negocioId: null, negocio: '', lat: 0, lng: 0, items: {} }; ls('carrito', S.carrito);
-  S.entrega = Object.assign({}, e, { negocioId: null }); ls('entrega', S.entrega);
+  S._ultimos = r.map(x => Object.assign({}, x, { tipo: e.tipo }));
+  r.forEach(x => { sumarPref(x.negocioId, 3); delete S.carritos[x.negocioId]; delete (S.sel || {})[x.negocioId]; });
+  guardarCarritos();
   history.replaceState({ v: 'inicio' }, '');
   ir('listo');
 }
 
 function vListo() {
-  const u = S._ultimo;
-  if (!u) { ir('pedidos'); return; }
+  const l = S._ultimos;
+  if (!l || !l.length) { ir('pedidos'); return; }
+  const varios = l.length > 1, transf = l.some(x => x.metodoPago !== 'efectivo');
   html(`<div class="listo">
     <div class="check">${ico('check')}</div>
     <h1 style="font-size:32px;margin-bottom:6px">¡Listo!</h1>
-    <b style="font-size:16px">Tu pedido ${esc(u.folio)} fue enviado a ${esc(u.negocio)}.</b>
-    <p class="muted" style="max-width:320px;margin:12px auto 26px">${u.metodo === 'efectivo'
-      ? 'En cuanto lo confirme empezará a prepararlo. ' + (u.tipo === 'recoger' ? 'Te avisamos cuando puedas pasar por él.' : 'Pagas en efectivo al recibirlo.')
-      : 'Cuando lo confirme verás sus datos para transferir y adjuntar tu comprobante.'}</p>
-    <button class="btn pri pill full" style="max-width:340px" onclick="ir('pedido','${u.id}')">Ver pedido</button>
+    ${varios ? `<b style="font-size:16px">Enviamos ${l.length} pedidos:</b>
+      <div class="card" style="text-align:left;max-width:360px;margin:12px auto">${l.map(x => `<div class="tot" style="cursor:pointer" onclick="ir('pedido','${x.id}')"><span><b>${esc(x.folio)}</b> · ${esc(x.negocio)}</span><span>${money(x.total)} ›</span></div>`).join('')}</div>`
+      : `<b style="font-size:16px">Tu pedido ${esc(l[0].folio)} fue enviado a ${esc(l[0].negocio)}.</b>`}
+    <p class="muted" style="max-width:320px;margin:12px auto 26px">${transf
+      ? 'Cuando ' + (varios ? 'cada negocio' : 'lo') + ' confirme verás sus datos para transferir y adjuntar tu comprobante.'
+      : 'En cuanto ' + (varios ? 'cada negocio lo' : 'lo') + ' confirme empezará a prepararlo. ' + (l[0].tipo === 'recoger' ? 'Te avisamos cuando puedas pasar por él.' : 'Pagas en efectivo al recibirlo.')}</p>
+    <button class="btn pri pill full" style="max-width:340px" onclick="${varios ? "ir('pedidos')" : `ir('pedido','${l[0].id}')`}">${varios ? 'Ver mis pedidos' : 'Ver pedido'}</button>
     <div style="margin-top:40px;color:var(--pri)"><div class="marcaTxt" style="font-size:34px">Pídele</div><div class="marcaSub" style="font-size:10px;color:var(--tx2)">Tu comida favorita, a un click</div></div>
   </div>`);
 }
@@ -2433,38 +2540,36 @@ async function eliminarProducto(id) {
   cerrarModal(); toast('Producto eliminado'); pintar(true);
 }
 
-/* ============ NEGOCIO: PROMOCIONES ============ */
+/* ============ NEGOCIO: PROMOCIÓN DEL DÍA ============ */
 function fechaISO(diasMas) { const d = new Date(Date.now() + (diasMas || 0) * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
 function estadoPromoTag(p) {
   if (p.estado === 'oculta') return '<span class="tag t-err">Oculta por el administrador</span>';
   if (p.estado === 'pausada') return '<span class="tag t-gray">⏸️ Pausada</span>';
   if (p.vencida) return '<span class="tag t-gray">Vencida</span>';
-  if (!p.productoOk) return '<span class="tag t-warn">Producto agotado: no se muestra</span>';
-  if (p.vigenteAhora) return '<span class="tag t-ok">🟢 Activa ahora</span>';
-  return `<span class="tag t-info">${Date.now() < p.inicio ? '📅 Programada' : '🕒 Activa (fuera de su día u horario)'}</span>`;
+  if (p.productos.length && p.agotados === p.productos.length) return '<span class="tag t-warn">Productos agotados: no se muestra</span>';
+  if (p.vigenteAhora) return '<span class="tag t-ok">🟢 Activa hoy</span>';
+  return `<span class="tag t-info">${Date.now() < p.inicio ? '📅 Programada' : '🕒 Activa otros días u horario'}</span>`;
 }
 
 async function vPromos() {
-  const [l, prods] = await Promise.all([api('misPromos'), S._prods ? Promise.resolve(S._prods) : api('misProductos')]);
+  const [l, prods] = await Promise.all([api('misPromos'), api('misProductos')]);
   S._promosNeg = l; S._prods = prods;
-  const max = (S.conf && S.conf.maxPromos) || 3;
-  const activas = l.filter(p => p.estado === 'activa' && !p.vencida).length;
   html(`${pendienteAviso()}<div class="row between"><h2>Promociones</h2>
-      <button class="btn pri" ${activas >= max ? 'disabled' : ''} onclick="formPromo()">${ico('mas', 's')} Nueva</button></div>
-    <div class="card muted small">Tus promociones salen en el banner de Inicio, en la categoría <b>🏷️ Promociones</b> y en tu menú.
-      Si ligas un producto con precio especial, la app lo cobra así mientras la promoción esté vigente.
-      <div style="margin-top:6px"><b>${activas} de ${max}</b> promociones activas.${activas >= max ? ' Pausa o elimina una para crear otra.' : ''}</div></div>
-    ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true }))}
+      <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nueva</button></div>
+    <div class="card muted small">Tienes <b>una promoción por día</b>: sale como tu tarjeta en el banner de Inicio, en la categoría <b>🏷️ Promociones</b>
+      y como sección <b>Promo del día</b> al inicio de tu menú. Agrega todos los productos que quieras, cada uno con su precio especial.
+      Puedes programar promociones distintas para otros días (ej. "Martes de tacos").</div>
+    ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true })).replace(/onclick="abrirPromo\('[^']*'\)"/, '')}
       <div class="pie"><div class="row wrap" style="gap:6px">${estadoPromoTag(p)}</div>
         ${p.descripcion ? `<div style="margin-top:6px">${esc(p.descripcion)}</div>` : ''}
         <div class="muted small" style="margin-top:4px">${ico('reloj', 's')} ${esc(p.vigencia)}</div>
-        ${p.productoNombre ? `<div class="small" style="margin-top:2px">${esc(p.productoNombre)}${p.variante ? ' · ' + esc(p.variante) : ''}${p.precioPromo ? ` · <span class="tachado">${money(p.precioAntes)}</span><b class="precioPromo">${money(p.precioPromo)}</b>` : ''}</div>` : ''}
+        ${lineasPromo(p, 8)}
         <div class="btns">${p.estado !== 'oculta' ? `<button class="btn sm" onclick="formPromo('${p.id}')">Editar</button>` : ''}
           ${p.estado === 'activa' ? `<button class="btn sm" onclick="act(this,()=>cambiarPromo('${p.id}','pausada'))">⏸️ Pausar</button>` : ''}
           ${p.estado === 'pausada' && !p.vencida ? `<button class="btn sm ok" onclick="act(this,()=>cambiarPromo('${p.id}','activa'))">▶️ Activar</button>` : ''}
           <button class="btn sm err" onclick="act(this,()=>cambiarPromo('${p.id}','eliminada'))">Eliminar</button></div></div></div>`).join('')
-    : `<div class="vacio"><span class="big">🏷️</span>Aún no tienes promociones.<br>Crea una para aparecer en el banner de Inicio.<br><br><button class="btn pri pill" onclick="formPromo()">Crear promoción</button></div>`}`);
+    : `<div class="vacio"><span class="big">🏷️</span>Aún no tienes promociones.<br>Crea tu promoción del día para aparecer en el banner de Inicio.<br><br><button class="btn pri pill" onclick="formPromo()">Crear promoción</button></div>`}`);
 }
 
 async function cambiarPromo(id, estado) {
@@ -2475,49 +2580,78 @@ async function cambiarPromo(id, estado) {
 }
 
 function formPromo(id) {
-  const p = (S._promosNeg || []).find(x => x.id === id) || { titulo: '', descripcion: '', productoId: '', variante: '', precioPromo: '', inicioDia: fechaISO(0), finDia: fechaISO(7), dias: [], horaIni: '', horaFin: '', imagen: '' };
-  const prods = (S._prods || []).filter(x => x.disponible !== 'eliminado');
-  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p; S._normalPromo = null;
+  const p = (S._promosNeg || []).find(x => x.id === id) || { titulo: '', descripcion: '', productos: [], inicioDia: fechaISO(0), finDia: fechaISO(0), dias: [], horaIni: '', horaFin: '', imagen: '' };
+  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p;
   const dias = p.dias && p.dias.length ? p.dias : [0, 1, 2, 3, 4, 5, 6];
   const conHora = !!(p.horaIni && p.horaFin);
   modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nueva'} promoción</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:6px 0 8px">Así se verá en el banner:</div>
+    <div class="muted small" style="margin:6px 0 8px">Así se verá tu tarjeta en el banner:</div>
     <div id="prevPromo"></div>
     <div class="row wrap" style="margin-top:8px"><label class="btn sm">🖼️ ${p.imagen ? 'Cambiar' : 'Agregar'} imagen<input type="file" accept="image/*" hidden onchange="imgPromo(this)"></label>
       ${p.imagen ? `<button class="btn sm" onclick="S._promoQuitar=true;S._promoImg=null;prevPromo()">Quitar imagen</button>` : ''}</div>
-    <div class="muted small" style="margin-top:4px">Recomendado: foto horizontal de tu platillo. Sin imagen se usa un fondo de color.</div>
-    <label class="f">Título</label><input class="i" id="prTit" maxlength="50" value="${esc(p.titulo)}" placeholder="Ej. 2x1 en hamburguesas" oninput="prevPromo()">
-    <label class="f">Descripción (opcional)</label><input class="i" id="prDes" maxlength="140" value="${esc(p.descripcion)}" placeholder="Ej. Solo en sucursal, válido con cualquier refresco">
-    <label class="f">Producto (opcional)</label>
-    <select class="i" id="prProd" onchange="campoPromoProd()"><option value="">Ninguno · solo anuncio</option>${prods.map(x => `<option value="${x.id}" ${x.id === p.productoId ? 'selected' : ''}>${esc(x.nombre)}${x.disponible === 'si' ? '' : ' (agotado)'}</option>`).join('')}</select>
-    <div id="prProdCampos"></div>
+    <div class="muted small" style="margin-top:4px">Recomendado: foto horizontal de tus platillos. Sin imagen se usa un fondo de color.</div>
+    <label class="f">Título</label><input class="i" id="prTit" maxlength="50" value="${esc(p.titulo)}" placeholder="Ej. Martes de tacos" oninput="prevPromo()">
+    <label class="f">Descripción (opcional)</label><input class="i" id="prDes" maxlength="140" value="${esc(p.descripcion)}" placeholder="Ej. Solo para pedidos en la app">
+    <label class="f">Productos en promoción</label>
+    <div class="muted small" style="margin:-2px 0 6px">Agrega los que quieras. El precio especial es opcional (vacío = solo se destaca en la promo).</div>
+    <div id="prProds"></div>
+    <button class="btn sm" onclick="filaProdPromo()">${ico('mas', 's')} Agregar producto</button>
     <div class="row"><div class="grow"><label class="f">Desde</label><input class="i" id="prIni" type="date" value="${esc(p.inicioDia)}"></div>
       <div class="grow"><label class="f">Hasta</label><input class="i" id="prFin" type="date" value="${esc(p.finDia)}"></div></div>
     <label class="f">Días</label>
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" class="prDia" value="${d}" ${dias.includes(d) ? 'checked' : ''}>${DIAS[d].slice(0, 3)}</label>`).join('')}</div>
+    <div class="muted small" style="margin-top:6px">Solo puede haber una promoción por día: si ya tienes otra activa en alguno de estos días, te avisamos.</div>
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="prConHora" ${conHora ? 'checked' : ''} onchange="$('#prHoras').style.display=this.checked?'':'none'"><span>Solo en un horario (ej. happy hour)</span></label>
     <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label><input class="i" id="prHI" type="time" value="${esc(p.horaIni || '13:00')}"></div>
       <div class="grow"><label class="f">A</label><input class="i" id="prHF" type="time" value="${esc(p.horaFin || '17:00')}"></div></div>
     <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarPromoForm)">Guardar promoción</button></div>`);
-  campoPromoProd(p);
+  (p.productos || []).forEach(x => filaProdPromo(x));
+  if (!(p.productos || []).length) filaProdPromo();
+  prevPromo();
 }
 
-/** Campos del producto ligado: opción (si tiene variantes) y precio especial. */
-function campoPromoProd(p) {
-  p = p || {};
-  const prod = (S._prods || []).find(x => x.id === $('#prProd').value);
-  const box = $('#prProdCampos');
-  if (!prod) { box.innerHTML = ''; S._normalPromo = null; prevPromo(); return; }
-  const vars = prod.variantes || [];
-  const normal = v => (vars.length ? ((vars.find(x => x.nombre === v) || vars[0]).precio) : prod.precio);
-  box.innerHTML = `${vars.length ? `<label class="f">¿A qué opción aplica?</label><select class="i" id="prVar" onchange="notaNormal()">${vars.map(v => `<option ${v.nombre === p.variante ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>` : ''}
-    <label class="f">Precio especial (opcional)</label>
-    <input class="i" id="prPre" type="number" inputmode="decimal" value="${p.precioPromo || ''}" placeholder="Déjalo vacío si es solo anuncio" oninput="prevPromo()">
-    <div class="muted small" id="prNormal" style="margin-top:4px"></div>`;
-  S._normalPromo = () => normal($('#prVar') ? $('#prVar').value : '');
-  notaNormal();
+/** Renglón de producto en el formulario: producto, opción (si tiene variantes) y precio especial. */
+function filaProdPromo(x) {
+  x = x || {};
+  const prods = (S._prods || []).filter(p => p.disponible !== 'eliminado');
+  const d = document.createElement('div');
+  d.className = 'card prRow';
+  d.style.cssText = 'box-shadow:none;border:1.5px solid var(--ln);padding:10px;margin-bottom:8px';
+  d.innerHTML = `<div class="row"><select class="i prP" style="flex:1" onchange="filaProdCambio(this)"><option value="">Elige un producto…</option>
+      ${prods.map(p => `<option value="${p.id}" ${p.id === x.productoId ? 'selected' : ''}>${esc(p.nombre)}${p.disponible === 'si' ? '' : ' (agotado)'}</option>`).join('')}</select>
+      <button class="btn sm err" onclick="this.closest('.prRow').remove();prevPromo()" aria-label="Quitar">✕</button></div>
+    <div class="row prDet" style="margin-top:6px"></div>`;
+  $('#prProds').appendChild(d);
+  filaProdCambio(d.querySelector('.prP'), x);
 }
-function notaNormal() { const e = $('#prNormal'); if (e && S._normalPromo) e.textContent = 'Precio normal: ' + money(S._normalPromo()) + '. El precio especial debe ser menor.'; prevPromo(); }
+function filaProdCambio(sel, x) {
+  x = x || {};
+  const fila = sel.closest('.prRow'), det = fila.querySelector('.prDet');
+  const p = (S._prods || []).find(z => z.id === sel.value);
+  if (!p) { det.innerHTML = ''; prevPromo(); return; }
+  const vars = p.variantes || [];
+  det.innerHTML = `${vars.length ? `<select class="i prV" style="flex:1" onchange="filaNormal(this)">${vars.map(v => `<option ${v.nombre === x.variante ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>` : ''}
+    <input class="i prPre" type="number" inputmode="decimal" style="flex:1" placeholder="Precio especial" value="${x.precioPromo || ''}" oninput="prevPromo()">
+    <span class="muted small prNor" style="white-space:nowrap"></span>`;
+  filaNormal(det.querySelector('.prV') || det.querySelector('.prPre'));
+}
+function filaNormal(el) {
+  const fila = el.closest('.prRow'), p = (S._prods || []).find(z => z.id === fila.querySelector('.prP').value);
+  if (!p) return;
+  const v = fila.querySelector('.prV'), vars = p.variantes || [];
+  const normal = vars.length ? ((vars.find(x => x.nombre === (v ? v.value : '')) || vars[0]).precio) : p.precio;
+  fila.dataset.normal = normal;
+  fila.querySelector('.prNor').textContent = 'Normal ' + money(normal);
+  prevPromo();
+}
+function productosForm() {
+  return [...document.querySelectorAll('.prRow')].map(f => {
+    const p = (S._prods || []).find(z => z.id === f.querySelector('.prP').value);
+    if (!p) return null;
+    const v = f.querySelector('.prV'), pre = f.querySelector('.prPre');
+    return { productoId: p.id, nombre: p.nombre, variante: v ? v.value : '', precioPromo: pre ? pre.value : '', precioAntes: Number(f.dataset.normal) || p.precio };
+  }).filter(Boolean);
+}
 
 async function imgPromo(inp) {
   const f = inp.files[0]; if (!f) return;
@@ -2527,14 +2661,13 @@ async function imgPromo(inp) {
 
 function prevPromo() {
   const box = $('#prevPromo'); if (!box) return;
-  const prod = (S._prods || []).find(x => x.id === ($('#prProd') || {}).value);
-  const pre = $('#prPre') ? Number($('#prPre').value) || 0 : 0;
   const n = S.negocio || {};
+  const prods = productosForm().map(x => Object.assign({}, x, { precioPromo: Number(x.precioPromo) > 0 && Number(x.precioPromo) < x.precioAntes ? Number(x.precioPromo) : 0 }));
+  const ahorros = prods.filter(x => x.precioPromo).map(x => x.precioAntes - x.precioPromo);
   box.innerHTML = `<div class="promoFila" style="padding:0">${slidePromo({
     id: '', titulo: ($('#prTit') || {}).value || 'Título de tu promoción', negocio: n.nombre || '', logo: n.logo || '', categoria: n.categoria,
     imagen: S._promoImg || (S._promoQuitar ? '' : S._promoEdit.imagen), abierto: true,
-    productoNombre: prod ? prod.nombre : '', variante: $('#prVar') ? $('#prVar').value : '',
-    precioPromo: pre, precioAntes: pre && S._normalPromo ? S._normalPromo() : 0
+    productos: prods, ahorroMax: ahorros.length ? Math.max(...ahorros) : 0
   }).replace('onclick="abrirPromo(\'\')"', '')}</div>`;
 }
 
@@ -2544,7 +2677,7 @@ async function guardarPromoForm() {
   const conHora = $('#prConHora').checked;
   const l = await api('guardarPromo', {
     id: S._promoEdit.id || undefined, titulo: $('#prTit').value, descripcion: $('#prDes').value,
-    productoId: $('#prProd').value, variante: $('#prVar') ? $('#prVar').value : '', precioPromo: $('#prPre') ? $('#prPre').value : '',
+    productos: productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
     inicio: $('#prIni').value, fin: $('#prFin').value, dias, horaIni: conHora ? $('#prHI').value : '', horaFin: conHora ? $('#prHF').value : '',
     imagen: S._promoImg || undefined, quitarImagen: S._promoQuitar || undefined
   });
@@ -2761,7 +2894,7 @@ async function verPromosAdmin(lista) {
     ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true })).replace(/onclick="abrirPromo\('[^']*'\)"/, '')}
       <div class="pie"><div class="row between"><b>${esc(p.negocio)}</b>${p.estado === 'oculta' ? '<span class="tag t-err">Oculta</span>' : p.estado === 'pausada' ? '<span class="tag t-gray">Pausada</span>' : p.vigenteAhora ? '<span class="tag t-ok">Activa ahora</span>' : '<span class="tag t-info">Programada</span>'}</div>
         ${p.descripcion ? `<div class="small">${esc(p.descripcion)}</div>` : ''}
-        <div class="muted small">${esc(p.vigencia)}${p.precioPromo ? ' · ' + money(p.precioAntes) + ' → ' + money(p.precioPromo) : ''}</div>
+        <div class="muted small">${esc(p.vigencia)}</div>${lineasPromo(p, 4)}
         <div class="btns">${p.estado === 'oculta' ? `<button class="btn sm ok" onclick="act(this,()=>promoAdmin('${p.id}','activa'))">Volver a mostrar</button>`
           : `<button class="btn sm err" onclick="act(this,()=>promoAdmin('${p.id}','oculta'))">Ocultar</button>`}</div></div></div>`).join('')
     : '<div class="vacio">No hay promociones activas ni programadas</div>'}`);
