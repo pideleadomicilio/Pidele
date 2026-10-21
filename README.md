@@ -65,5 +65,29 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 - Cada negocio tiene su enlace directo (`?negocio=ID`) y un QR descargable listo para imprimir; también se comparte desde su portada.
 - Vista previa con logo y descripción al compartir por WhatsApp o Facebook.
 
+## Versión 1.5 · velocidad y promociones
+**Servidor**
+- Las notificaciones se envían después de soltar el candado: mientras Firebase responde, otros pedidos ya se pueden guardar.
+- Estrellas guardadas en columnas `califSuma` / `califNum` de Negocios y Usuarios (se calculan una vez con todo el historial al subir de versión).
+- Catálogo, menús y ajustes en caché del servidor (2–10 min); cualquier cambio del negocio, su menú o sus promos la borra al instante.
+- Archivo nocturno (entre 3 y 5 am, con el disparador de cada 5 min): pedidos entregados o cancelados con más de `diasArchivo` días (7 por omisión) y sus mensajes pasan a `HistorialPedidos` / `HistorialMensajes`. Se pueden consultar, no modificar. Para correrlo a mano: `archivarAhora()`.
+- Nuevas acciones: `arranque` (config + sesión + catálogo en una llamada), `catalogo`, `menus` (hasta 8 menús en una llamada), `panelNegocio`, `misPedidosAnteriores`.
+
+**App**
+- Una sola llamada al abrir; el inicio se pinta al instante con el catálogo guardado en el teléfono y se actualiza por detrás.
+- Precarga en segundo plano de los menús y fotos de los negocios que el cliente más probablemente abrirá (sus favoritos y los más pedidos).
+- Menús guardados en el teléfono: solo se vuelven a bajar si el negocio los cambió.
+- Mapas y Firebase se cargan cuando hacen falta; imágenes al tamaño en que se muestran.
+- Sondeo por rol: cliente 60 s, negocio 30 s, repartidor 20 s (y al instante cuando llega una notificación). Chat abierto: cada 8 s.
+- El service worker abre la app desde la caché sin esperar a la red y la actualiza por detrás.
+
+**Promociones**
+- Pestaña **Promos** del negocio: imagen, título, descripción, producto (opcional) con precio especial, fechas, días y horario (puede cruzar medianoche). Máximo `maxPromos` activas (3).
+- Banner en Inicio con las promos de la categoría elegida (en "Todos", primero las de las categorías favoritas del cliente) y categoría **🏷️ Promociones** con todas.
+- El precio especial lo cobra el servidor mientras la promo esté vigente; si termina con el producto en el carrito, el cliente ve el precio corregido antes de confirmar.
+- Se publican directo; el administrador puede ocultarlas desde Resumen → Promociones activas (el negocio recibe aviso y no puede reactivarla).
+
+**Al actualizar a 1.5** no hace falta volver a ejecutar `instalar()`: al publicar la nueva versión se crean solas las hojas `Promos`, `HistorialPedidos` y `HistorialMensajes` y las columnas nuevas.
+
 ## Pendiente
 Ranking oculto de clientes, reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.

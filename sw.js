@@ -1,5 +1,5 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v1.4.1';
+const VERSION = 'pidele-v1.5.0';
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
 
 /* ---------- Notificaciones (Firebase Cloud Messaging) ---------- */
@@ -41,18 +41,33 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
+/*
+ * - Archivos de la app: se responden AL INSTANTE desde la caché y se actualizan por detrás
+ *   (antes se esperaba a la red, lo que hacía lenta la apertura con mala señal).
+ * - Librerías con versión fija (mapas, Firebase): caché primero, nunca cambian.
+ * - Servidor, mapas (teselas), imágenes de Drive: siempre a la red.
+ */
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const u = new URL(e.request.url);
   const propio = u.origin === self.location.origin;
-  const libreria = u.hostname === 'cdnjs.cloudflare.com';
-  if (!propio && !libreria) return; // servidor, mapas, Firebase e imágenes: directo a la red
+  const libreria = u.hostname === 'cdnjs.cloudflare.com' || (u.hostname === 'www.gstatic.com' && u.pathname.startsWith('/firebasejs/'));
+  if (libreria) {
+    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      if (res.ok) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
+      return res;
+    })));
+    return;
+  }
+  if (!propio) return;
+  const red = fetch(e.request).then(res => {
+    if (res.ok) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
+    return res;
+  });
   e.respondWith(
-    fetch(e.request)
-      .then(r => {
-        if (r.ok) { const copia = r.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
-        return r;
-      })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('./index.html')))
+    caches.match(e.request, { ignoreSearch: true })
+      .then(r => r || red)
+      .catch(() => caches.match('./index.html'))
   );
+  e.waitUntil(red.catch(() => { }));
 });
