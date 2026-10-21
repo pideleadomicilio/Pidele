@@ -105,6 +105,24 @@ Cada vez que cambies `sw.js` o `index.html` de forma importante, sube el número
 - Cada pedido es independiente: su envío, su repartidor, su pago y su seguimiento.
 - `crearPedido` (un negocio) sigue funcionando para teléfonos con la versión anterior.
 
+## Versión 1.7 · suscripción de negocios y banners
+Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** por estar en la app (con sus banners incluidos) y, si quiere, **banners extra**.
+
+**Suscripción**
+- Al aprobar un negocio nuevo arranca con `diasPrueba` días gratis (30). Los negocios que ya estaban activos reciben ese mismo periodo al actualizar.
+- El negocio paga cuando quiera: transfiere a la cuenta de Pídele (datos en Ajustes: `pagoBanco`, `pagoTitular`, `pagoClabe`, `pagoTarjeta`) y sube su comprobante en *Negocio → Mi suscripción*.
+- El administrador lo revisa en **Cobros** y lo confirma (o lo rechaza con motivo). Cada mes suma `diasPorPago` (30) días **a la fecha de corte**; si ya estaba vencido, cuentan desde el día en que se confirma. También se puede registrar a mano un pago en efectivo.
+- Recordatorios (notificación + aviso en su panel) los días `diasAviso` (5,3,1) antes del corte y el mismo día, a partir de las 9 am.
+- Pasado el corte tiene `diasGracia` (3) días visible; después deja de mostrarse y no recibe pedidos hasta que pague (sus pedidos en curso terminan normal; nada se borra).
+- Hoja nueva: `Pagos`. Columnas nuevas en Negocios: `vence`, `bannersExtra`, `extrasVence`.
+
+**Banners**
+- Dos tipos: **🏷️ Promoción** (al menos un producto con precio especial, si `promoRequierePrecio` = 1) y **📣 Anuncio** (publicidad libre; sus productos salen en la sección *Novedades* del menú, sin cambiar precios).
+- `bannersIncluidos` (1) por día en la suscripción + los extra pagados (`precioBannerExtra` al mes por banner, o prorrateado hasta el corte si se compra a mitad de mes).
+- Visibilidad en la rotación de Inicio (cada 5 s): promoción `pesoPromocion` (2), anuncio `pesoAnuncio` (1), banner extra pagado `pesoExtra` (2).
+- La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
+- Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
+
 ## Pendiente
-- 1.7: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
+- 1.8: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.

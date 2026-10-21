@@ -576,14 +576,14 @@ function avisar(titulo, cuerpo) {
 const NAV = {
   invitado: [['inicio', 'home', 'Inicio'], ['buscar', 'search', 'Buscar'], ['entrar', 'user', 'Entrar']],
   comprador: [['inicio', 'home', 'Inicio'], ['buscar', 'search', 'Buscar'], ['pedidos', 'recibo', 'Pedidos'], ['perfil', 'user', 'Perfil']],
-  negocio: [['negPedidos', 'recibo', 'Pedidos'], ['menu', 'menu', 'Menú'], ['promos', 'etiqueta', 'Promos'], ['miNegocio', 'tienda', 'Negocio'], ['perfil', 'user', 'Perfil']],
+  negocio: [['negPedidos', 'recibo', 'Pedidos'], ['menu', 'menu', 'Menú'], ['promos', 'etiqueta', 'Banners'], ['miNegocio', 'tienda', 'Negocio'], ['perfil', 'user', 'Perfil']],
   repartidor: [['disponibles', 'lista', 'Disponibles'], ['entregas', 'moto', 'Mis entregas'], ['perfil', 'user', 'Perfil']],
-  admin: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminConfig', 'ajustes', 'Ajustes']]
+  admin: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminConfig', 'ajustes', 'Ajustes']]
 };
 const VISTAS = {
   entrar: () => vLogin(), inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
-  negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio,
+  negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig
 };
@@ -866,7 +866,7 @@ function abrirDesdeUrl(url) {
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
   if (neg) { ir('negocio', neg); return true; }
   if (!S.token || (!ped && !v)) return false;
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (NAV[rolActual()] || []).some(x => x[0] === v)) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && ((NAV[rolActual()] || []).some(x => x[0] === v) || (v === 'suscripcion' && rolActual() === 'negocio'))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -1298,13 +1298,21 @@ function precioBase(negId, p, variante) {
 }
 function tienePromo(negId, p) { return idsPromo(negId).has(p.id); }
 /** Productos que están en la promoción del día de un negocio (con o sin precio especial). */
-function idsPromo(negId) { const s = new Set(); promosDe(negId).forEach(p => (p.productos || []).forEach(x => s.add(x.productoId))); return s; }
-const SEC_PROMO = '🏷️ Promo del día';
+function idsPromo(negId, tipo) {
+  const s = new Set();
+  promosDe(negId).filter(p => (p.tipo || 'promocion') === (tipo || 'promocion')).forEach(p => (p.productos || []).forEach(x => s.add(x.productoId)));
+  return s;
+}
+const SEC_PROMO = '🏷️ Promo del día', SEC_NOVEDAD = '📣 Novedades';
+const esPromo = p => (p.tipo || 'promocion') === 'promocion';
 function seccionesMenu(d) {
   const secs = [...new Set(d.productos.map(p => p.categoria))];
   const base = secs.length > 1 ? ['Todo', ...secs] : secs;
-  const ids = idsPromo(d.negocio.id);
-  return d.productos.some(p => ids.has(p.id)) ? [SEC_PROMO, ...base] : base;
+  const ids = idsPromo(d.negocio.id), nov = idsPromo(d.negocio.id, 'anuncio');
+  const extra = [];
+  if (d.productos.some(p => ids.has(p.id))) extra.push(SEC_PROMO);
+  if (d.productos.some(p => nov.has(p.id))) extra.push(SEC_NOVEDAD);
+  return [...extra, ...base];
 }
 function precioTxt(p, negId) {
   negId = negId || p.negocioId || (S._menu && S._menu.negocio.id);
@@ -1388,7 +1396,7 @@ async function vInicio(p, silencioso) {
 function categoriasInicio() {
   const conteo = {};
   (S._negs || []).forEach(n => conteo[n.categoria] = (conteo[n.categoria] || 0) + 1);
-  return [...((S.promos || []).length ? ['Promociones'] : []), 'Todos', ...CATEGORIAS.filter(c => conteo[c]), ...Object.keys(conteo).filter(c => !CATEGORIAS.includes(c))];
+  return [...((S.promos || []).some(esPromo) ? ['Promociones'] : []), 'Todos', ...CATEGORIAS.filter(c => conteo[c]), ...Object.keys(conteo).filter(c => !CATEGORIAS.includes(c))];
 }
 
 /** Pinta categorías, banner y lista (se llama también cuando llega el catálogo actualizado). */
@@ -1411,7 +1419,7 @@ function verTodos() { S.cat = 'Todos'; document.querySelectorAll('.cat').forEach
 
 function tarjetaNegocio(n) {
   const km = distanciaTxt(n);
-  const promo = promosDe(n.id).length > 0;
+  const promo = promosDe(n.id).some(esPromo);
   return `<div class="nCard ${n.abierto ? '' : 'cerrado'}" onclick="ir('negocio','${n.id}')">
     <div class="img">${n.portada ? `<img class="portada" src="${esc(n.portada)}" alt="" loading="lazy" decoding="async">` : n.logo ? `<img class="portada" src="${esc(n.logo)}" alt="" loading="lazy" decoding="async">` : (ICONO_CAT[n.categoria] || '🍽️')}
       ${n.portada && n.logo ? `<img class="mini" src="${esc(n.logo)}" alt="" loading="lazy">` : ''}
@@ -1451,7 +1459,7 @@ function slidePromo(p) {
   return `<div class="slide" onclick="abrirPromo('${p.id}')">
     ${p.imagen ? `<img class="fondo" src="${esc(p.imagen)}" alt="" loading="lazy" decoding="async">` : `<div class="sinImg">${ICONO_CAT[p.categoria] || '🏷️'}</div>`}
     <div class="velo"></div>
-    <span class="chip">${p.abierto ? '🏷️ Promoción' : '🕒 Cerrado ahora'}</span>
+    <span class="chip">${!p.abierto ? '🕒 Cerrado ahora' : esPromo(p) ? '🏷️ Promoción' : '📣 Novedad'}</span>
     <div class="txt">${p.logo ? `<img class="logoS" src="${esc(p.logo)}" alt="" loading="lazy">` : ''}
       <div class="grow"><b class="clamp2">${esc(p.titulo)}</b><small class="clamp1">${esc(p.negocio)}${sub}</small></div>${precio}</div></div>`;
 }
@@ -1463,13 +1471,20 @@ function pintarBanner(cat) {
   if (!l.length) { b.innerHTML = ''; return; }
   b.innerHTML = `<div class="promoWrap"><div class="promoFila" id="promoFila">${l.map(slidePromo).join('')}</div>
     ${l.length > 1 ? `<div class="puntos" id="puntos">${l.map((x, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`;
-  if (l.length > 1) iniciarCarrusel(l.length);
+  if (l.length > 1) iniciarCarrusel(l);
 }
 
-/** Avanza solo cada 5 s; se detiene un rato si el cliente lo desliza con el dedo. */
-function iniciarCarrusel(n) {
+/**
+ * Avanza solo cada 5 s; se detiene un rato si el cliente lo desliza con el dedo.
+ * Visibilidad por peso: en cada vuelta, un banner de peso 2 (promoción o extra pagado) sale dos veces
+ * y uno de peso 1 (anuncio) una vez. Ej. pesos [2,1,2,1] → orden 0,1,2,3,0,2.
+ */
+function iniciarCarrusel(l) {
   const f = $('#promoFila'); if (!f) return;
-  let i = 0, pausa = 0;
+  const max = Math.max(...l.map(p => p.peso || 1));
+  const seq = [];
+  for (let r = 1; r <= max; r++) l.forEach((p, k) => { if ((p.peso || 1) >= r) seq.push(k); });
+  let i = 0, j = 0, pausa = 0;
   const ancho = () => (f.children[0] ? f.children[0].offsetWidth + 10 : 1);
   f.addEventListener('scroll', () => {
     i = Math.round(f.scrollLeft / ancho());
@@ -1479,7 +1494,9 @@ function iniciarCarrusel(n) {
   S._carrusel = setInterval(() => {
     if (!document.body.contains(f)) { clearInterval(S._carrusel); return; }
     if (document.hidden || Date.now() - pausa < 8000) return;
-    f.scrollTo({ left: ((i + 1) % n) * ancho(), behavior: 'smooth' });
+    j = (j + 1) % seq.length;
+    if (seq[j] === i && seq.length > 1) j = (j + 1) % seq.length; // no repetir el mismo seguido
+    f.scrollTo({ left: seq[j] * ancho(), behavior: 'smooth' });
   }, 5000);
 }
 
@@ -1495,7 +1512,7 @@ function lineasPromo(p, max) {
 
 /** Categoría "Promociones": todas las promociones vigentes de todos los negocios. */
 function listaPromos() {
-  const l = promosOrdenadas('Promociones');
+  const l = promosOrdenadas('Promociones').filter(esPromo);
   if (!l.length) return `<div class="vacio"><span class="big">🏷️</span>Hoy no hay promociones. ¡Vuelve pronto!</div>`;
   return `<div class="secHead"><h3>🏷️ Promociones de hoy</h3><button onclick="verTodos()">Ver negocios</button></div>` +
     l.map(p => `<div class="promoCard">${slidePromo(p)}<div class="pie" onclick="abrirPromo('${p.id}')">
@@ -1510,10 +1527,10 @@ function abrirPromo(id) {
   const prods = p.productos || [];
   // un solo producto: se abre su hoja; varios: el menú abre en la sección "Promo del día"
   if (prods.length === 1) { S._abrirProd = prods[0].productoId; S._abrirVar = prods[0].variante || ''; }
-  else if (prods.length > 1) S._abrirSec = SEC_PROMO;
+  else if (prods.length > 1) S._abrirSec = esPromo(p) ? SEC_PROMO : SEC_NOVEDAD;
   if (S.vista === 'negocio' && S.params === p.negocioId) {
     if (S._abrirProd) { const pid = S._abrirProd; S._abrirProd = null; abrirProducto(pid); }
-    else if (S._abrirSec) { S._abrirSec = null; S._sec.tab = 'menu'; S._sec.s = SEC_PROMO; tabNegocio('menu'); }
+    else if (S._abrirSec) { S._sec.tab = 'menu'; S._sec.s = S._abrirSec; S._abrirSec = null; tabNegocio('menu'); }
     return;
   }
   ir('negocio', p.negocioId);
@@ -1659,7 +1676,9 @@ function pintarProductos() {
   const grupos = {}, ids = idsPromo(d.negocio.id);
   // la promoción del día va primero (en "Todo" y en su propia sección)
   if ((s === 'Todo' || s === SEC_PROMO) && ids.size) grupos[SEC_PROMO] = d.productos.filter(p => ids.has(p.id));
-  if (s !== SEC_PROMO) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  const nov = idsPromo(d.negocio.id, 'anuncio');
+  if ((s === 'Todo' || s === SEC_NOVEDAD) && nov.size) grupos[SEC_NOVEDAD] = d.productos.filter(p => nov.has(p.id));
+  if (s !== SEC_PROMO && s !== SEC_NOVEDAD) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
   $('#prods').innerHTML = Object.keys(grupos).map(g => `${s === 'Todo' ? `<h3 class="secTit">${esc(g)}</h3>` : ''}
     <div class="grid2" style="margin-bottom:12px">${grupos[g].map(p => `<div class="pCard" onclick="abrirProducto('${p.id}')">
       ${enCarrito[p.id] ? `<span class="enCarrito">${enCarrito[p.id]}</span>` : ''}
@@ -2307,7 +2326,7 @@ async function vNegPedidos() {
 }
 
 function pendienteAviso() {
-  if (!S.user || S.user.estado === 'activo') return '';
+  if (!S.user || S.user.estado === 'activo') return avisoSuscripcion();
   return `<div class="aviso warn">⏳ Tu cuenta está en revisión. ${S.user.rol === 'negocio' ? 'Mientras tanto completa “Mi negocio” (ubicación, horario y portada) y tu menú para que el administrador te apruebe.' : 'En cuanto el administrador la apruebe podrás tomar pedidos.'}</div>`;
 }
 
@@ -2548,18 +2567,22 @@ function estadoPromoTag(p) {
   if (p.estado === 'pausada') return '<span class="tag t-gray">⏸️ Pausada</span>';
   if (p.vencida) return '<span class="tag t-gray">Vencida</span>';
   if (p.productos.length && p.agotados === p.productos.length) return '<span class="tag t-warn">Productos agotados: no se muestra</span>';
-  if (p.vigenteAhora) return '<span class="tag t-ok">🟢 Activa hoy</span>';
+  if (p.vigenteAhora) return `<span class="tag t-ok">🟢 ${esPromo(p) ? 'Promoción' : 'Anuncio'} activo hoy</span>`;
   return `<span class="tag t-info">${Date.now() < p.inicio ? '📅 Programada' : '🕒 Activa otros días u horario'}</span>`;
 }
 
 async function vPromos() {
-  const [l, prods] = await Promise.all([api('misPromos'), api('misProductos')]);
-  S._promosNeg = l; S._prods = prods;
-  html(`${pendienteAviso()}<div class="row between"><h2>Promociones</h2>
-      <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nueva</button></div>
-    <div class="card muted small">Tienes <b>una promoción por día</b>: sale como tu tarjeta en el banner de Inicio, en la categoría <b>🏷️ Promociones</b>
-      y como sección <b>Promo del día</b> al inicio de tu menú. Agrega todos los productos que quieras, cada uno con su precio especial.
-      Puedes programar promociones distintas para otros días (ej. "Martes de tacos").</div>
+  const [l, prods, n] = await Promise.all([api('misPromos'), api('misProductos'), api('miNegocio')]);
+  S._promosNeg = l; S._prods = prods; S.negocio = n; ls('negocio', n);
+  const su = n.suscripcion || {}, incl = su.bannersIncluidos || 1, ext = su.bannersExtra || 0;
+  html(`${pendienteAviso()}<div class="row between"><h2>Banners</h2>
+      <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nuevo</button></div>
+    <div class="card"><div class="row between"><div><b>Tu plan: ${incl + ext} banner${incl + ext > 1 ? 's' : ''} por día</b>
+      <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
+      <button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button></div>
+      <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando cada 5 s con los demás negocios.
+        Una <b>🏷️ Promoción</b> (con precios especiales) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
+        Puedes programar banners distintos para cada día (ej. "Martes de tacos").</div></div>
     ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true })).replace(/onclick="abrirPromo\('[^']*'\)"/, '')}
       <div class="pie"><div class="row wrap" style="gap:6px">${estadoPromoTag(p)}</div>
         ${p.descripcion ? `<div style="margin-top:6px">${esc(p.descripcion)}</div>` : ''}
@@ -2569,22 +2592,25 @@ async function vPromos() {
           ${p.estado === 'activa' ? `<button class="btn sm" onclick="act(this,()=>cambiarPromo('${p.id}','pausada'))">⏸️ Pausar</button>` : ''}
           ${p.estado === 'pausada' && !p.vencida ? `<button class="btn sm ok" onclick="act(this,()=>cambiarPromo('${p.id}','activa'))">▶️ Activar</button>` : ''}
           <button class="btn sm err" onclick="act(this,()=>cambiarPromo('${p.id}','eliminada'))">Eliminar</button></div></div></div>`).join('')
-    : `<div class="vacio"><span class="big">🏷️</span>Aún no tienes promociones.<br>Crea tu promoción del día para aparecer en el banner de Inicio.<br><br><button class="btn pri pill" onclick="formPromo()">Crear promoción</button></div>`}`);
+    : `<div class="vacio"><span class="big">🏷️</span>Aún no tienes banners.<br>Crea tu promoción del día para aparecer en Inicio.<br><br><button class="btn pri pill" onclick="formPromo()">Crear banner</button></div>`}`);
 }
 
 async function cambiarPromo(id, estado) {
-  if (estado === 'eliminada' && !confirm('¿Eliminar esta promoción?')) return;
+  if (estado === 'eliminada' && !confirm('¿Eliminar este banner?')) return;
   S._promosNeg = await api('estadoPromo', { id, estado });
-  toast({ activa: 'Promoción activa 🟢', pausada: 'Promoción en pausa', eliminada: 'Promoción eliminada' }[estado]);
+  toast({ activa: 'Banner activo 🟢', pausada: 'Banner en pausa', eliminada: 'Banner eliminado' }[estado]);
   pintar(true);
 }
 
 function formPromo(id) {
   const p = (S._promosNeg || []).find(x => x.id === id) || { titulo: '', descripcion: '', productos: [], inicioDia: fechaISO(0), finDia: fechaISO(0), dias: [], horaIni: '', horaFin: '', imagen: '' };
-  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p;
+  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p; S._promoTipo = p.tipo || 'promocion';
   const dias = p.dias && p.dias.length ? p.dias : [0, 1, 2, 3, 4, 5, 6];
   const conHora = !!(p.horaIni && p.horaFin);
-  modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nueva'} promoción</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+  modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nuevo'} banner</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="row" style="gap:8px;margin:10px 0 4px">
+      <div class="opcion tipoB ${S._promoTipo === 'promocion' ? 'on' : ''}" data-t="promocion" onclick="tipoBanner(this)" style="flex:1;margin:0;padding:10px"><span class="radio"></span><div class="grow"><b>🏷️ Promoción</b><small>Precios especiales · se ve el doble</small></div></div>
+      <div class="opcion tipoB ${S._promoTipo === 'anuncio' ? 'on' : ''}" data-t="anuncio" onclick="tipoBanner(this)" style="flex:1;margin:0;padding:10px"><span class="radio"></span><div class="grow"><b>📣 Anuncio</b><small>Platillo nuevo, evento, aviso</small></div></div></div>
     <div class="muted small" style="margin:6px 0 8px">Así se verá tu tarjeta en el banner:</div>
     <div id="prevPromo"></div>
     <div class="row wrap" style="margin-top:8px"><label class="btn sm">🖼️ ${p.imagen ? 'Cambiar' : 'Agregar'} imagen<input type="file" accept="image/*" hidden onchange="imgPromo(this)"></label>
@@ -2592,15 +2618,15 @@ function formPromo(id) {
     <div class="muted small" style="margin-top:4px">Recomendado: foto horizontal de tus platillos. Sin imagen se usa un fondo de color.</div>
     <label class="f">Título</label><input class="i" id="prTit" maxlength="50" value="${esc(p.titulo)}" placeholder="Ej. Martes de tacos" oninput="prevPromo()">
     <label class="f">Descripción (opcional)</label><input class="i" id="prDes" maxlength="140" value="${esc(p.descripcion)}" placeholder="Ej. Solo para pedidos en la app">
-    <label class="f">Productos en promoción</label>
-    <div class="muted small" style="margin:-2px 0 6px">Agrega los que quieras. El precio especial es opcional (vacío = solo se destaca en la promo).</div>
+    <label class="f" id="prProdsT">${S._promoTipo === 'anuncio' ? 'Productos que quieres dar a conocer (opcional)' : 'Productos en promoción'}</label>
+    <div class="muted small" style="margin:-2px 0 6px" id="prProdsN">${S._promoTipo === 'anuncio' ? 'Aparecen en la sección Novedades de tu menú.' : 'Agrega los que quieras. Al menos uno con precio especial; los demás solo se destacan.'}</div>
     <div id="prProds"></div>
     <button class="btn sm" onclick="filaProdPromo()">${ico('mas', 's')} Agregar producto</button>
     <div class="row"><div class="grow"><label class="f">Desde</label><input class="i" id="prIni" type="date" value="${esc(p.inicioDia)}"></div>
       <div class="grow"><label class="f">Hasta</label><input class="i" id="prFin" type="date" value="${esc(p.finDia)}"></div></div>
     <label class="f">Días</label>
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" class="prDia" value="${d}" ${dias.includes(d) ? 'checked' : ''}>${DIAS[d].slice(0, 3)}</label>`).join('')}</div>
-    <div class="muted small" style="margin-top:6px">Solo puede haber una promoción por día: si ya tienes otra activa en alguno de estos días, te avisamos.</div>
+    <div class="muted small" style="margin-top:6px">Cada día puedes tener los banners de tu plan (1 incluido + los extra que compres). Si alguno de estos días ya está lleno, te avisamos.</div>
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="prConHora" ${conHora ? 'checked' : ''} onchange="$('#prHoras').style.display=this.checked?'':'none'"><span>Solo en un horario (ej. happy hour)</span></label>
     <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label><input class="i" id="prHI" type="time" value="${esc(p.horaIni || '13:00')}"></div>
       <div class="grow"><label class="f">A</label><input class="i" id="prHF" type="time" value="${esc(p.horaFin || '17:00')}"></div></div>
@@ -2631,7 +2657,7 @@ function filaProdCambio(sel, x) {
   if (!p) { det.innerHTML = ''; prevPromo(); return; }
   const vars = p.variantes || [];
   det.innerHTML = `${vars.length ? `<select class="i prV" style="flex:1" onchange="filaNormal(this)">${vars.map(v => `<option ${v.nombre === x.variante ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>` : ''}
-    <input class="i prPre" type="number" inputmode="decimal" style="flex:1" placeholder="Precio especial" value="${x.precioPromo || ''}" oninput="prevPromo()">
+    <input class="i prPre" type="number" inputmode="decimal" style="flex:1;${S._promoTipo === 'anuncio' ? 'display:none' : ''}" placeholder="Precio especial" value="${x.precioPromo || ''}" oninput="prevPromo()">
     <span class="muted small prNor" style="white-space:nowrap"></span>`;
   filaNormal(det.querySelector('.prV') || det.querySelector('.prPre'));
 }
@@ -2649,8 +2675,18 @@ function productosForm() {
     const p = (S._prods || []).find(z => z.id === f.querySelector('.prP').value);
     if (!p) return null;
     const v = f.querySelector('.prV'), pre = f.querySelector('.prPre');
-    return { productoId: p.id, nombre: p.nombre, variante: v ? v.value : '', precioPromo: pre ? pre.value : '', precioAntes: Number(f.dataset.normal) || p.precio };
+    return { productoId: p.id, nombre: p.nombre, variante: v ? v.value : '', precioPromo: pre && S._promoTipo !== 'anuncio' ? pre.value : '', precioAntes: Number(f.dataset.normal) || p.precio };
   }).filter(Boolean);
+}
+
+function tipoBanner(el) {
+  S._promoTipo = el.dataset.t;
+  document.querySelectorAll('.tipoB').forEach(o => o.classList.toggle('on', o === el));
+  const an = S._promoTipo === 'anuncio';
+  $('#prProdsT').textContent = an ? 'Productos que quieres dar a conocer (opcional)' : 'Productos en promoción';
+  $('#prProdsN').textContent = an ? 'Aparecen en la sección Novedades de tu menú.' : 'Agrega los que quieras. Al menos uno con precio especial; los demás solo se destacan.';
+  document.querySelectorAll('.prPre').forEach(i => { i.style.display = an ? 'none' : ''; });
+  prevPromo();
 }
 
 async function imgPromo(inp) {
@@ -2665,7 +2701,7 @@ function prevPromo() {
   const prods = productosForm().map(x => Object.assign({}, x, { precioPromo: Number(x.precioPromo) > 0 && Number(x.precioPromo) < x.precioAntes ? Number(x.precioPromo) : 0 }));
   const ahorros = prods.filter(x => x.precioPromo).map(x => x.precioAntes - x.precioPromo);
   box.innerHTML = `<div class="promoFila" style="padding:0">${slidePromo({
-    id: '', titulo: ($('#prTit') || {}).value || 'Título de tu promoción', negocio: n.nombre || '', logo: n.logo || '', categoria: n.categoria,
+    id: '', tipo: S._promoTipo, titulo: ($('#prTit') || {}).value || (S._promoTipo === 'anuncio' ? 'Título de tu anuncio' : 'Título de tu promoción'), negocio: n.nombre || '', logo: n.logo || '', categoria: n.categoria,
     imagen: S._promoImg || (S._promoQuitar ? '' : S._promoEdit.imagen), abierto: true,
     productos: prods, ahorroMax: ahorros.length ? Math.max(...ahorros) : 0
   }).replace('onclick="abrirPromo(\'\')"', '')}</div>`;
@@ -2676,20 +2712,181 @@ async function guardarPromoForm() {
   if (!dias.length) throw new Error('Elige al menos un día');
   const conHora = $('#prConHora').checked;
   const l = await api('guardarPromo', {
-    id: S._promoEdit.id || undefined, titulo: $('#prTit').value, descripcion: $('#prDes').value,
+    id: S._promoEdit.id || undefined, tipo: S._promoTipo, titulo: $('#prTit').value, descripcion: $('#prDes').value,
     productos: productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
     inicio: $('#prIni').value, fin: $('#prFin').value, dias, horaIni: conHora ? $('#prHI').value : '', horaFin: conHora ? $('#prHF').value : '',
     imagen: S._promoImg || undefined, quitarImagen: S._promoQuitar || undefined
   });
   S._promosNeg = l;
-  cerrarModal(); toast('Promoción guardada ✓'); pintar(true);
+  cerrarModal(); toast('Banner guardado ✓'); pintar(true);
+}
+
+/* ============ NEGOCIO: MI SUSCRIPCIÓN ============ */
+function fechaLarga(ms) { return ms ? new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'; }
+const EST_SUSC = {
+  ok: ['t-ok', '✅ Al corriente'], por_vencer: ['t-warn', '📅 Por vencer'], gracia: ['t-err', '⚠️ Vencida · periodo de gracia'],
+  suspendido: ['t-err', '⛔ Suspendida'], sin: ['t-gray', 'Sin fecha de corte']
+};
+function diasTxt(s) {
+  if (s.estado === 'suspendido') return 'Tu negocio no se muestra a los clientes desde el ' + fechaLarga(s.suspendeEl) + '.';
+  if (s.estado === 'gracia') return 'Sigues visible hasta el ' + fechaLarga(s.suspendeEl) + '. Paga para no dejar de aparecer.';
+  return s.dias === 0 ? 'Tu fecha de corte es hoy' : s.dias === 1 ? 'Falta 1 día' : 'Faltan ' + s.dias + ' días';
+}
+
+/** Aviso en las pantallas del negocio cuando se acerca o pasó su fecha de corte. */
+function avisoSuscripcion() {
+  if (!S.user || S.user.rol !== 'negocio' || !S.negocio || !S.negocio.suscripcion) return '';
+  const s = S.negocio.suscripcion;
+  if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu suscripción vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
+  if (s.estado === 'gracia') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⚠️ Tu suscripción venció. Dejarás de aparecer el ${fechaLarga(s.suspendeEl)}. Toca para pagar.</div>`;
+  if (s.estado === 'suspendido') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⛔ Tu negocio no se muestra a los clientes. Paga tu suscripción para reactivarlo.</div>`;
+  return '';
+}
+
+function conceptoPago(p) {
+  return [p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : ''].filter(Boolean).join(' + ');
+}
+function tagPago(e) { return { pendiente: '<span class="tag t-warn">En revisión</span>', confirmado: '<span class="tag t-ok">Confirmado</span>', rechazado: '<span class="tag t-err">Rechazado</span>' }[e] || ''; }
+
+async function vSuscripcion() {
+  const d = await api('miSuscripcion');
+  S._susc = d; S._compPago = null;
+  if (S.negocio) { S.negocio.suscripcion = d.suscripcion; ls('negocio', S.negocio); }
+  const s = d.suscripcion, est = EST_SUSC[s.estado] || EST_SUSC.sin;
+  const activo = ['ok', 'por_vencer'].includes(s.estado);
+  const dp = d.datosPago, hayCuenta = dp.clabe || dp.tarjeta;
+  const wa = S.conf && S.conf.soporteWhatsApp;
+  html(`<div class="titBar"><button class="redondo" onclick="volver('miNegocio')">${ico('atras')}</button><h2>Mi suscripción</h2><span class="esp"></span></div>
+    <div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
+      <div class="muted" style="margin-top:10px">${s.estado === 'suspendido' || s.estado === 'gracia' ? 'Tu fecha de corte fue el' : 'Activo hasta el'}</div>
+      <div style="font-size:26px;font-weight:900;line-height:1.15">${fechaLarga(s.vence)}</div>
+      <div class="muted small" style="margin-top:4px">${diasTxt(s)}</div></div>
+    <div class="card"><b>Tu plan</b>
+      <div class="tot" style="margin-top:6px"><span>Mensualidad: app completa + ${s.bannersIncluidos} banner${s.bannersIncluidos > 1 ? 's' : ''} por día</span><b>${money(d.cuota)}</b></div>
+      <div class="tot"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>
+      ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
+      <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div></div>
+    ${d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>` : `
+    <h3>Pagar</h3>
+    <div class="card">
+      ${hayCuenta ? `<div class="muted small">Transfiere a la cuenta de Pídele y adjunta tu comprobante:</div>
+        ${dp.clabe ? `<div class="copiar"><div><div class="muted small">CLABE${dp.banco ? ' · ' + esc(dp.banco) : ''}</div><div class="v">${esc(dp.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(dp.clabe)}','CLABE')">${ico('copiar', 's')}</button></div>` : ''}
+        ${dp.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta${dp.banco ? ' · ' + esc(dp.banco) : ''}</div><div class="v">${esc(dp.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(dp.tarjeta)}','Tarjeta')">${ico('copiar', 's')}</button></div>` : ''}
+        ${dp.titular ? `<div class="muted small">A nombre de <b>${esc(dp.titular)}</b> · Concepto: <b>${esc((S.negocio || {}).nombre || '')}</b></div>` : ''}`
+      : `<div class="aviso warn" style="margin:0">Aún no están los datos bancarios de Pídele.${wa ? ` <a href="${waLink(wa, 'Hola, quiero pagar mi suscripción de Pídele')}" target="_blank">Pídelos por WhatsApp</a>.` : ''}</div>`}
+      <div class="row" style="margin-top:6px"><div class="grow"><label class="f">Meses</label>
+        <select class="i" id="sMes" onchange="calcSusc()">${activo ? '<option value="0">Solo banners extra</option>' : ''}${[1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select></div>
+        <div class="grow"><label class="f">Banners extra</label>
+        <select class="i" id="sExt" onchange="calcSusc()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e ? '+' + e + ' por día' : 'Ninguno'}</option>`).join('')}</select></div></div>
+      <div class="tot g" style="margin-top:10px"><span>Total a transferir</span><span id="sTot"></span></div>
+      <div class="muted small" id="sNota"></div>
+      <div class="btns"><label class="btn">📎 <span id="sComp">Adjuntar comprobante</span><input type="file" accept="image/*" hidden onchange="compSusc(this)"></label>
+        <button class="btn pri" onclick="act(this,enviarPagoSusc)">Enviar</button></div></div>`}
+    ${d.pagos.length ? `<h3>Historial de pagos</h3><div class="card">${d.pagos.map(p => `<div class="tot" style="align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--ln)">
+      <span><b>${money(p.monto)}</b> · ${esc(conceptoPago(p))}<br><span class="muted small">${fechaCorta(p.creado)}${p.venceDespues ? ' · activo hasta ' + fechaLarga(p.venceDespues) : ''}</span>
+        ${p.estado === 'rechazado' && p.nota ? `<br><span class="small" style="color:var(--err)">${esc(p.nota)}</span>` : ''}</span>
+      <span style="text-align:right">${tagPago(p.estado)}${p.comprobanteId ? `<br><button class="lnk small" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">Comprobante</button>` : ''}</span></div>`).join('')}</div>` : ''}
+    <div style="height:20px"></div>`);
+  if (!d.pendiente) calcSusc();
+}
+
+/** Mismo cálculo que el servidor: meses de cuota + banners extra por esos meses (o prorrateados hasta el corte). */
+function montoSusc() {
+  const d = S._susc, m = +$('#sMes').value, e = +$('#sExt').value;
+  if (m > 0) return m * d.cuota + e * d.precioBannerExtra * m;
+  const rest = Math.max(1, Math.ceil((d.suscripcion.vence - Date.now()) / 864e5));
+  return Math.ceil(e * d.precioBannerExtra * rest / d.diasPorPago / 5) * 5;
+}
+function calcSusc() {
+  const d = S._susc, s = d.suscripcion, m = +$('#sMes').value, e = +$('#sExt').value;
+  $('#sTot').textContent = money(montoSusc());
+  const activo = ['ok', 'por_vencer'].includes(s.estado);
+  const base = activo ? s.vence : new Date().setHours(0, 0, 0, 0);
+  $('#sNota').innerHTML = m > 0 ? `Al confirmarse, tu servicio queda activo hasta el <b>${fechaLarga(base + m * d.diasPorPago * 864e5)}</b>${e ? ' con ' + e + ' banner' + (e > 1 ? 's' : '') + ' extra' : ''}.`
+    : e ? `${e} banner${e > 1 ? 's' : ''} extra hasta tu fecha de corte (${fechaLarga(s.vence)}), cobrado por los días que faltan.` : 'Elige cuántos banners extra quieres.';
+}
+async function compSusc(inp) {
+  const f = inp.files[0]; if (!f) return;
+  S._compPago = await comprimir(f, 1400);
+  $('#sComp').textContent = 'Comprobante listo ✓';
+}
+async function enviarPagoSusc() {
+  const m = +$('#sMes').value, e = +$('#sExt').value;
+  if (!m && !e) throw new Error('Elige cuántos banners extra quieres');
+  if (!S._compPago) throw new Error('Adjunta la foto de tu comprobante');
+  if (!confirm('¿Ya transferiste ' + money(montoSusc()) + '?')) return;
+  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago });
+  toast('Comprobante enviado ✓ Te avisamos al confirmarlo');
+  pintar();
+}
+
+/* ============ ADMINISTRADOR: COBROS ============ */
+async function vAdminCobros() {
+  const d = await api('adminCobros');
+  S._cobros = d;
+  const t = S.tabCob || 'revisar';
+  const porVencer = d.negocios.filter(n => n.estado === 'por_vencer').length, vencidos = d.negocios.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
+  const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
+      <div class="muted small">Corte: ${fechaLarga(n.vence)}${n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div><span class="tag ${e[0]}">${e[1]}</span></div>
+      <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.id}')">Registrar pago</button>
+        ${n.telefono ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu suscripción de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
+  html(`<h2>Cobros</h2>
+    <div class="kpis"><div class="kpi"><b>${money(d.cobrado30)}</b><span>Cobrado últimos 30 días</span></div>
+      <div class="kpi"><b>${d.pendientes.length}</b><span>Comprobantes por revisar</span></div>
+      <div class="kpi"><b>${porVencer}</b><span>Por vencer</span></div><div class="kpi"><b>${vencidos}</b><span>Vencidos</span></div></div>
+    <div class="tabs"><button class="${t === 'revisar' ? 'on' : ''}" onclick="S.tabCob='revisar';pintar(true)">Por revisar (${d.pendientes.length})</button>
+      <button class="${t === 'negocios' ? 'on' : ''}" onclick="S.tabCob='negocios';pintar(true)">Negocios</button>
+      <button class="${t === 'historial' ? 'on' : ''}" onclick="S.tabCob='historial';pintar(true)">Historial</button></div>
+    ${t === 'revisar' ? (d.pendientes.length ? d.pendientes.map(p => `<div class="card"><div class="row between"><div><b>${esc(p.negocio)}</b>
+        <div class="muted small">${fechaCorta(p.creado)} · ${esc(conceptoPago(p))}</div></div><b style="font-size:18px">${money(p.monto)}</b></div>
+        ${p.nota ? `<div class="muted small">📝 ${esc(p.nota)}</div>` : ''}
+        <div class="btns"><button class="btn" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">🧾 Ver comprobante</button>
+          <button class="btn ok" onclick="act(this,()=>resolverPago('${p.id}','confirmar',${p.monto}))">Confirmar</button>
+          <button class="btn err" onclick="act(this,()=>resolverPago('${p.id}','rechazar'))">Rechazar</button></div></div>`).join('')
+      : '<div class="vacio"><span class="big">✨</span>No hay comprobantes por revisar</div>') : ''}
+    ${t === 'negocios' ? d.negocios.map(tarjetaN).join('') || '<div class="vacio">Sin negocios activos</div>' : ''}
+    ${t === 'historial' ? (d.historial.length ? `<div class="card">${d.historial.map(p => `<div class="tot" style="align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--ln)">
+        <span><b>${esc(p.negocio)}</b> · ${esc(conceptoPago(p))}<br><span class="muted small">${fechaCorta(p.resuelto || p.creado)}${p.registradoPor ? ' · ' + esc(p.registradoPor) : ''}${p.nota ? ' · ' + esc(p.nota) : ''}</span></span>
+        <span style="text-align:right"><b>${money(p.monto)}</b><br>${tagPago(p.estado)}</span></div>`).join('')}</div>` : '<div class="vacio">Sin pagos todavía</div>') : ''}`);
+}
+async function resolverPago(id, accion, monto) {
+  let nota = '';
+  if (accion === 'confirmar' && !confirm('¿Ya ves ' + money(monto) + ' en tu cuenta? Al confirmar se suman los días al negocio.')) return;
+  if (accion === 'rechazar') { nota = prompt('¿Por qué lo rechazas? (se le envía al negocio, ej. "No se refleja la transferencia")'); if (nota === null) return; }
+  await api('adminResolverPago', { id, accion, nota });
+  toast(accion === 'confirmar' ? 'Pago confirmado ✓' : 'Pago rechazado');
+  pintar(true);
+}
+function formPagoManual(negId) {
+  const n = S._cobros.negocios.find(x => x.id === negId); if (!n) return;
+  modal(`<div class="row between"><h2 style="margin:0">Registrar pago</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:4px 0 8px">${esc(n.nombre)} · corte actual ${fechaLarga(n.vence)}</div>
+    <div class="row"><div class="grow"><label class="f">Meses</label><select class="i" id="mMes" onchange="montoManual()">${[0, 1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m ? m + ' mes' + (m > 1 ? 'es' : '') : 'Solo banners'}</option>`).join('')}</select></div>
+      <div class="grow"><label class="f">Banners extra</label><select class="i" id="mExt" onchange="montoManual()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e || 'Ninguno'}</option>`).join('')}</select></div></div>
+    <label class="f">Monto recibido</label><input class="i" id="mMon" type="number" inputmode="decimal">
+    <label class="f">Nota</label><input class="i" id="mNot" placeholder="Ej. Efectivo en mostrador">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>guardarPagoManual('${negId}'))">Registrar y activar</button></div>`);
+  montoManual();
+}
+function montoManual() {
+  const d = S._cobros, m = +$('#mMes').value, e = +$('#mExt').value;
+  $('#mMon').value = m > 0 ? m * d.cuota + e * d.precioBannerExtra * m : '';
+  $('#mMon').placeholder = m > 0 ? '' : 'Se calcula prorrateado si lo dejas vacío';
+}
+async function guardarPagoManual(negId) {
+  await api('adminRegistrarPago', { negocioId: negId, meses: +$('#mMes').value, bannersExtra: +$('#mExt').value, monto: $('#mMon').value, nota: $('#mNot').value });
+  cerrarModal(); toast('Pago registrado ✓'); pintar(true);
 }
 
 async function vMiNegocio() {
   const n = await api('miNegocio');
   S.negocio = n; ls('negocio', n);
   S._negPos = { lat: n.lat, lng: n.lng }; S._logo = null; S._qr = null; S._portada = null;
+  const su = n.suscripcion, esu = su ? (EST_SUSC[su.estado] || EST_SUSC.sin) : null;
   html(`${pendienteAviso()}<h2>Mi negocio</h2>
+    ${su && su.vence ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
+      <div class="muted small">${su.estado === 'suspendido' || su.estado === 'gracia' ? 'Venció el ' : 'Activa hasta el '}${fechaLarga(su.vence)}</div></div>
+      <div style="text-align:right"><span class="tag ${esu[0]}">${esu[1]}</span><div class="lnk small" style="margin-top:4px">Pagar / ver plan ›</div></div></div>` : ''}
     <div class="card">
       <b>Imagen del negocio</b><div class="muted small">La portada es la foto grande que ven tus clientes (ej. tu platillo estrella).</div>
       <div class="nCard" style="margin:10px 0;box-shadow:none;border:1.5px solid var(--ln)"><div class="img" id="nPortPrev">${n.portada ? `<img class="portada" src="${esc(n.portada)}" alt="">` : '🖼️'}${n.logo ? `<img class="mini" id="nLogoMini" src="${esc(n.logo)}" alt="">` : ''}</div></div>
