@@ -378,7 +378,7 @@ const APP = 'Pídele';
  */
 const PUEBLOS = [
   { id: 'lacruz', nombre: 'La Cruz de Elota', api: API_URL, alt: API_ALT },
-  { id: 'cosala', nombre: 'Cosalá', api: '', alt: API_ALT + '/cosala' }
+  { id: 'cosala', nombre: 'Cosalá', api: 'https://script.google.com/macros/s/AKfycbzS9hFJRNcWzytF8OL9grSpzx2jhQu49U7rEou6wKoCpt6HtVMmteXUmw75dg9gU_iJ0Q/exec', alt: API_ALT + '/cosala' }
 ].filter(x => x.api);
 /** Municipio de este teléfono: ?pueblo=cosala en el enlace, o el que eligió antes. */
 const PUEBLO = (() => {
@@ -423,7 +423,7 @@ function elegirPueblo(cerrable) {
     <div class="muted" style="margin:6px 0 12px">Elige tu municipio para ver los negocios que te entregan.</div>
     ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? "try{localStorage.setItem('pe_puebloElegido','1')}catch(e){};cerrarModal()" : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`);
 }
-const APP_VER = '2.5.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.5.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
