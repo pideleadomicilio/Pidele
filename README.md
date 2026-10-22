@@ -124,6 +124,12 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.3.0 · conexión con datos móviles y animaciones de carga
+- **Ruta alterna por Cloudflare:** si la conexión directa a Google falla en una red (se vio con datos de Telcel abriendo desde WhatsApp), la app reintenta por el Worker (`/api`) y recuerda esa ruta en ese teléfono por 24 h. Si después la alterna falla, vuelve a la directa. Solo se usa cuando la directa falla, para cuidar el límite gratis de Cloudflare (100,000 llamadas al día).
+- **Sin duplicados:** cada operación lleva un identificador; si la app la reenvía por la otra ruta, el servidor devuelve el resultado anterior en vez de repetirla (pedidos, pagos, etc.).
+- **Worker:** se actualiza `worker.js` (agrega `/api`); usa la misma variable `APPS_SCRIPT_URL`.
+- **Animaciones:** pantalla de arranque con la animación "trazado" (charola ↔ monumento de La Cruz) y la palabra Pídele del logo; las cargas dentro de la app usan la animación "entrega".
+
 ## Versión 2.2.0 · menú con subsecciones y opciones
 - **Plantilla de Excel a la medida** (*Mi menú → ⬇ Plantilla*): 3 preguntas (cómo acomodas el menú: secciones / secciones con subsecciones / lista; qué necesitan tus productos: opciones de preparación, variantes de precio, extras con costo, extras sin costo, ingredientes que se quitan; tiempo por producto) y descarga un Excel solo con esas columnas, con ejemplos.
 - **Subsecciones:** columna *Subsección* en el Excel o botón *🗂️ Subsecciones* en cada sección de *Mi menú* (crear y asignar productos). El cliente las ve como subtítulos dentro de la sección.
