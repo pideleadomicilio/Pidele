@@ -318,6 +318,7 @@ textarea.i{min-height:70px;resize:vertical}
 .promoCard .pie{padding:10px 13px 12px}
 .tachado{text-decoration:line-through;color:var(--tx2);font-weight:700;font-size:.82em;margin-right:4px}
 .precioPromo{color:var(--err)}
+.chipPueblo{border:0;background:var(--pri-s);color:var(--pri2);font-weight:800;font-size:12.5px;border-radius:999px;padding:7px 11px;white-space:nowrap;cursor:pointer}
 .tagPromo{position:absolute;top:7px;left:7px;background:var(--err);color:#fff;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:900;letter-spacing:.3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chips label{border:1.5px solid var(--ln);border-radius:999px;padding:6px 11px;font-weight:800;font-size:13px;cursor:pointer;user-select:none}
@@ -368,7 +369,43 @@ textarea.i{min-height:70px;resize:vertical}
 const API_ALT = 'https://pidele-whatsapp.pidele-soporte.workers.dev/api';
 const API_URL = 'https://script.google.com/macros/s/AKfycbw16py7HK64D_1W5C5leitt313r_tviHv9NYsgH2_ZSu_z_1IWJcynEMsNSySrTUqu7pQ/exec';
 const APP = 'Pídele';
-const APP_VER = '2.4.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+/*
+ * Municipios: cada uno tiene su propio servidor (mismo código, otra hoja y otro Apps Script) para que
+ * el tráfico de uno no haga lenta la app en el otro. Para activar un municipio, pega la URL /exec de su
+ * servidor en "api". La ruta alterna de Cloudflare es /api/<id> (variable APPS_SCRIPT_URL_<ID> del Worker).
+ */
+const PUEBLOS = [
+  { id: 'lacruz', nombre: 'La Cruz de Elota', api: API_URL, alt: API_ALT },
+  { id: 'cosala', nombre: 'Cosalá', api: '', alt: API_ALT + '/cosala' }
+].filter(x => x.api);
+/** Municipio de este teléfono: ?pueblo=cosala en el enlace, o el que eligió antes. */
+const PUEBLO = (() => {
+  let id = '';
+  try { id = new URLSearchParams(location.search).get('pueblo') || localStorage.getItem('pe_pueblo') || ''; } catch (e) { }
+  const p = PUEBLOS.find(x => x.id === id) || PUEBLOS[0];
+  try { localStorage.setItem('pe_pueblo', p.id); if (new URLSearchParams(location.search).get('pueblo')) localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { }
+  return p;
+})();
+/** Cada municipio guarda su sesión, carritos y menús por separado en el teléfono. */
+const prefijoDe = id => 'pe_' + (id === PUEBLOS[0].id ? '' : id + '_');
+const LSP = prefijoDe(PUEBLO.id);
+function lsDe(id, k, v) {
+  const key = prefijoDe(id) + k;
+  if (v === undefined) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
+  try { v === null ? localStorage.removeItem(key) : localStorage.setItem(key, JSON.stringify(v)); } catch (e) { }
+}
+/** Cambiar de municipio: se recarga la app conectada al servidor de ese municipio. */
+function cambiarPueblo(id) {
+  try { localStorage.setItem('pe_pueblo', id); localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { }
+  location.href = location.pathname;
+}
+function elegirPueblo(cerrable) {
+  if (PUEBLOS.length < 2) return;
+  modal(`<div class="row between"><h2 style="margin:0">¿Dónde estás?</h2>${cerrable ? '<button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button>' : ''}</div>
+    <div class="muted" style="margin:6px 0 12px">Elige tu municipio para ver los negocios que te entregan.</div>
+    ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? "try{localStorage.setItem('pe_puebloElegido','1')}catch(e){};cerrarModal()" : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`);
+}
+const APP_VER = '2.5.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
@@ -442,8 +479,8 @@ function ico(n, cls) { return `<svg class="ic ${cls || ''}" viewBox="0 0 24 24" 
 /* ============ UTILIDADES ============ */
 function $(s) { return document.querySelector(s); }
 function ls(k, v) {
-  if (v === undefined) { try { return JSON.parse(localStorage.getItem('pe_' + k)); } catch (e) { return null; } }
-  try { v === null ? localStorage.removeItem('pe_' + k) : localStorage.setItem('pe_' + k, JSON.stringify(v)); } catch (e) { }
+  if (v === undefined) { try { return JSON.parse(localStorage.getItem(LSP + k)); } catch (e) { return null; } }
+  try { v === null ? localStorage.removeItem(LSP + k) : localStorage.setItem(LSP + k, JSON.stringify(v)); } catch (e) { }
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function money(n) { n = Number(n) || 0; return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
@@ -481,9 +518,14 @@ function rolNombre(r) { return { comprador: 'Cliente', negocio: 'Negocio', repar
  */
 async function api(accion, datos) {
   if (API_URL.indexOf('PEGA_AQUI') === 0) throw new Error('Falta configurar API_URL en index.html');
+  return apiDe(PUEBLO, accion, datos, S.token, true);
+}
+/** Llamada al servidor de un municipio (el administrador general consulta también los otros). */
+async function apiDe(pb, accion, datos, token, propio) {
+  const URL1 = pb.api, ALT = pb.alt;
   // id de la operación: si se reenvía por la ruta alterna, el servidor no la repite
   const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const cuerpo = JSON.stringify({ accion, datos: datos || {}, token: S.token, rid });
+  const cuerpo = JSON.stringify({ accion, datos: datos || {}, token, rid });
   let alt = false;
   try { alt = Number(localStorage.getItem('pe_rutaAlt')) > Date.now(); } catch (e) { }
   const intento = async url => {
@@ -494,15 +536,15 @@ async function api(accion, datos) {
   const recordar = v => { try { if (v) localStorage.setItem('pe_rutaAlt', Date.now() + 864e5); else localStorage.removeItem('pe_rutaAlt'); } catch (e) { } };
   let j;
   try {
-    j = await intento(alt && API_ALT ? API_ALT : API_URL);
+    j = await intento(alt && ALT ? ALT : URL1);
   } catch (e1) {
-    if (!API_ALT) throw new Error(e1.noLlego ? 'El servidor no respondió bien. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.');
-    try { j = await intento(alt ? API_URL : API_ALT); recordar(!alt); }
+    if (!ALT) throw new Error(e1.noLlego ? 'El servidor no respondió bien. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.');
+    try { j = await intento(alt ? URL1 : ALT); recordar(!alt); }
     catch (e2) { throw new Error(e1.noLlego && e2.noLlego ? 'El servidor no respondió bien. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.'); }
   }
   if (!j.ok) {
-    if (j.error === 'SESION') { salir(true); throw new Error('Tu sesión terminó, vuelve a entrar.'); }
-    if (j.error === 'BLOQUEADO') { vBloqueado(); throw new Error('Cuenta suspendida'); }
+    if (j.error === 'SESION' && propio) { salir(true); throw new Error('Tu sesión terminó, vuelve a entrar.'); }
+    if (j.error === 'BLOQUEADO' && propio) { vBloqueado(); throw new Error('Cuenta suspendida'); }
     throw new Error(j.error);
   }
   return j.data;
@@ -550,10 +592,10 @@ function guardarMenu(d) {
   all[d.negocio.id] = { ver: d.ver || 0, t: Date.now(), d };
   const ids = Object.keys(all).sort((a, b) => all[b].t - all[a].t);
   ids.slice(12).forEach(k => delete all[k]);
-  try { localStorage.setItem('pe_menus', JSON.stringify(all)); }
+  try { localStorage.setItem(LSP + 'menus', JSON.stringify(all)); }
   catch (e) { // sin espacio: se quedan solo los 4 más recientes
     ids.slice(4).forEach(k => delete all[k]);
-    try { localStorage.setItem('pe_menus', JSON.stringify(all)); } catch (x) { }
+    try { localStorage.setItem(LSP + 'menus', JSON.stringify(all)); } catch (x) { }
   }
 }
 function precargarImg(src) { if (src) { const i = new Image(); i.decoding = 'async'; i.src = src; } }
@@ -623,14 +665,18 @@ const NAV = {
   comprador: [['inicio', 'home', 'Inicio'], ['buscar', 'search', 'Buscar'], ['pedidos', 'recibo', 'Pedidos'], ['perfil', 'user', 'Perfil']],
   negocio: [['negPedidos', 'recibo', 'Pedidos'], ['menu', 'menu', 'Menú'], ['promos', 'etiqueta', 'Banners'], ['miNegocio', 'tienda', 'Negocio'], ['perfil', 'user', 'Perfil']],
   repartidor: [['disponibles', 'lista', 'Disponibles'], ['entregas', 'moto', 'Mis entregas'], ['perfil', 'user', 'Perfil']],
-  admin: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminConfig', 'ajustes', 'Ajustes']]
+  admin: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminConfig', 'ajustes', 'Ajustes']],
+  // administrador local de un municipio: sin ajustes generales; su pestaña muestra tarifas y comisiones
+  adminLocal: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminComisiones', 'ajustes', 'Municipio']]
 };
+function navRol() { const r = rolActual(); return NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || []; }
+const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
   negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
-  admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig
+  admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones
 };
 const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos'];
 // pantallas a pantalla completa (sin barra inferior)
@@ -668,7 +714,7 @@ async function pintar(silencioso) {
 
 function rolActual() { return S.user ? S.user.rol : 'invitado'; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
-function inicioRol() { return (NAV[rolActual()] || [['inicio']])[0][0]; }
+function inicioRol() { return (navRol()[0] || ['inicio'])[0]; }
 function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
 function guardarCarritos() { Object.keys(S.carritos).forEach(k => { if (!Object.keys(S.carritos[k].items || {}).length) delete S.carritos[k]; }); ls('carritos', S.carritos); }
 function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
@@ -684,7 +730,7 @@ function pintarNav() {
   $('#nav').style.display = verNav ? 'flex' : 'none';
   document.body.classList.toggle('sinNav', !verNav);
   const raiz = { pedido: rol === 'comprador' ? 'pedidos' : rol === 'negocio' ? 'negPedidos' : rol === 'admin' ? 'adminPedidos' : 'entregas' }[S.vista] || S.vista;
-  $('#nav').innerHTML = (NAV[rol] || []).map(([v, i, t]) => {
+  $('#nav').innerHTML = navRol().map(([v, i, t]) => {
     const badge = (v === 'negPedidos' || v === 'disponibles') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
     return `<button class="${raiz === v ? 'on' : ''}" onclick="ir('${v}')">${ico(i)}${t}${badge}</button>`;
   }).join('');
@@ -787,6 +833,7 @@ function vLogin() {
   html(`<div class="entrar">
     <button class="redondo" onclick="ir('inicio')" aria-label="Volver">${ico('atras')}</button>
     <div class="marca"><div class="marcaTxt" style="font-size:46px">Pídele</div><div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
+    ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}<button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
     <div class="card">
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
@@ -924,7 +971,7 @@ function abrirDesdeUrl(url) {
     ir('compartido'); return true;
   }
   if (!S.token || (!ped && !v)) return false;
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && ((NAV[rolActual()] || []).some(x => x[0] === v) || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || (v === 'adminComisiones' && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -984,7 +1031,7 @@ function cargarQR() {
   });
 }
 
-const TXT_APP = '🍔 Pide comida a domicilio en La Cruz de Elota con Pídele. Pagas directo al negocio, sin comisiones.';
+const TXT_APP = '🍔 Pide comida a domicilio en ' + PUEBLO.nombre + ' con Pídele. Pagas directo al negocio, sin comisiones.';
 
 function compartirApp(btn) { return compartir(btn, 'Pídele', TXT_APP + ' Instálala aquí:', urlApp('instalar=1'), 'Comparte Pídele', 'Pidele'); }
 function compartirNegocio(btn, id, nombre) {
@@ -1924,7 +1971,8 @@ async function vInicio(p, silencioso) {
   html(`<div class="ubicTop">
       <div class="u" onclick="${u ? "ir('perfil')" : "ir('entrar')"}">
         <b>${ico('pin', 's')} Tu ubicación ${ico('abajo', 's')}</b>
-        <small>${u && u.direccion ? esc(u.direccion) : u ? 'Toca para guardar tu dirección' : 'La Cruz de Elota, Sin.'}</small></div>
+        <small>${u && u.direccion ? esc(u.direccion) : u ? 'Toca para guardar tu dirección' : esc(PUEBLO.nombre) + ', Sin.'}</small></div>
+      ${PUEBLOS.length > 1 ? `<button class="chipPueblo" onclick="elegirPueblo(true)">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))} ▾</button>` : ''}
       <button class="redondo" onclick="ir('buscar')" aria-label="Buscar">${ico('search')}</button>
       ${botonCarrito()}
     </div>
@@ -1936,9 +1984,12 @@ async function vInicio(p, silencioso) {
     <div class="catFila" id="catFila"></div>
     <div id="listaNeg"></div>
     <div class="compartirCard" onclick="compartirApp(this)"><span class="avatar" style="width:44px;height:44px">${ico('compartir')}</span>
-      <div class="grow"><b>¿Te gusta Pídele?</b><div class="muted small">Compártelo con tu familia y amigos de La Cruz</div></div>${ico('atras', 's').replace('M15 5l-7 7 7 7', 'M9 5l7 7-7 7')}</div>
+      <div class="grow"><b>¿Te gusta Pídele?</b><div class="muted small">Compártelo con tu familia y amigos de ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))}</div></div>${ico('atras', 's').replace('M15 5l-7 7 7 7', 'M9 5l7 7-7 7')}</div>
     ${barraCarrito()}`);
   pintarInicioDatos();
+  // primera vez con varios municipios: se pregunta dónde está
+  let elegido = false; try { elegido = !!localStorage.getItem('pe_puebloElegido'); } catch (e) { }
+  if (PUEBLOS.length > 1 && !elegido && !$('#modal').classList.contains('on')) elegirPueblo(false);
 }
 
 function categoriasInicio() {
@@ -2860,6 +2911,7 @@ function vPerfil() {
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
     ${u.telVerificado ? '' : tarjetaVerificar()}
+    ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Municipio</b><div class="muted small">${esc(PUEBLO.nombre)} · cada municipio tiene sus propias cuentas</div></div><button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
     ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
@@ -3941,8 +3993,8 @@ async function vAdminCobros() {
         <div class="muted small">${fechaCorta(p.creado)} · ${esc(conceptoPago(p))}</div></div><b style="font-size:18px">${money(p.monto)}</b></div>
         ${p.nota ? `<div class="muted small">📝 ${esc(p.nota)}</div>` : ''}
         <div class="btns"><button class="btn" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">🧾 Ver comprobante</button>
-          <button class="btn ok" onclick="act(this,()=>resolverPago('${p.id}','confirmar',${p.monto}))">Confirmar</button>
-          <button class="btn err" onclick="act(this,()=>resolverPago('${p.id}','rechazar'))">Rechazar</button></div></div>`).join('')
+          ${d.puedeConfirmar === false ? '<span class="muted small">La transferencia llega a la cuenta de Pídele: la confirma el administrador general.</span>' : `<button class="btn ok" onclick="act(this,()=>resolverPago('${p.id}','confirmar',${p.monto}))">Confirmar</button>
+          <button class="btn err" onclick="act(this,()=>resolverPago('${p.id}','rechazar'))">Rechazar</button>`}</div></div>`).join('')
       : '<div class="vacio"><span class="big">✨</span>No hay comprobantes por revisar</div>') : ''}
     ${t === 'negocios' ? d.negocios.map(tarjetaN).join('') || '<div class="vacio">Sin negocios activos</div>' : ''}
     ${t === 'repartidores' ? d.repartidores.map(tarjetaN).join('') || '<div class="vacio">Sin repartidores</div>' : ''}
@@ -4298,7 +4350,8 @@ async function rutaPorCalles(pts, m, recta) {
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
-  html(`${bannerPush()}<h2>Resumen</h2>
+  html(`${bannerPush()}<div class="row between"><h2>Resumen</h2>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div>
+    ${d.local ? `<div class="aviso info">Eres administrador local de ${esc(d.pueblo || PUEBLO.nombre)}: apruebas negocios y repartidores, atiendes pedidos, registras pagos en efectivo y ajustas las tarifas de envío. Tu comisión está en “Municipio”.</div>` : ''}
     ${nt.configuradas ? '' : '<div class="aviso warn">🔕 Notificaciones sin configurar en el servidor (falta FCM_CUENTA). La app funciona, pero sin avisos con la app cerrada.</div>'}
     <div class="kpis">
       <div class="kpi"><b>${d.hoy.pedidos}</b><span>Pedidos hoy</span></div>
@@ -4307,13 +4360,93 @@ async function vAdmin() {
       <div class="kpi"><b>${d.hoy.cancelados}</b><span>Cancelados hoy</span></div>
       <div class="kpi"><b>${money(d.hoy.vendido)}</b><span>Vendido hoy</span></div>
       <div class="kpi"><b>${d.negociosAbiertos}</b><span>Negocios abiertos</span></div>
-      <div class="kpi" style="cursor:pointer" onclick="act(null,verPromosAdmin)"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas · revisar</span></div>
+      <div class="kpi" style="cursor:pointer" onclick="${d.local ? '' : 'act(null,verPromosAdmin)'}"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas${d.local ? '' : ' · revisar'}</span></div>
       <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
       <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
+    ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
+    ${!d.local && PUEBLOS.length > 1 ? '<h3>Todos los municipios</h3><div id="pueblosRes"><div class="cargando">Cargando…</div></div>' : ''}
     <h3>Por aprobar (${d.pendientes.length})</h3>
     ${d.pendientes.length ? d.pendientes.map(tarjetaUsuario).join('') : '<div class="vacio">Nadie pendiente ✨</div>'}`);
+  if (!d.local && PUEBLOS.length > 1) resumenPueblos(d);
+}
+
+/** Tablero general: el resumen de cada municipio (cada uno en su servidor) y el total. */
+async function resumenPueblos(propio) {
+  const filas = await Promise.all(PUEBLOS.map(async pb => {
+    if (pb.id === PUEBLO.id) return { pb, d: propio, c: await api('adminComisiones').catch(() => null) };
+    const tok = lsDe(pb.id, 'token');
+    if (!tok) return { pb, falta: true };
+    try { const [d, c] = await Promise.all([apiDe(pb, 'adminResumen', {}, tok), apiDe(pb, 'adminComisiones', {}, tok)]); return { pb, d, c }; }
+    catch (e) { return { pb, falta: /SESION|solo para/.test(e.message), error: e.message }; }
+  }));
+  const el = $('#pueblosRes'); if (!el) return;
+  const ok = filas.filter(f => f.d), suma = k => ok.reduce((s, f) => s + (Number(k(f.d)) || 0), 0);
+  el.innerHTML = filas.map(f => `<div class="card"><div class="row between"><b>📍 ${esc(f.pb.nombre)}</b>
+      ${f.pb.id === PUEBLO.id ? '<span class="tag t-gray">Este panel</span>' : f.d ? `<button class="btn sm" onclick="cambiarPueblo('${f.pb.id}')">Abrir panel ›</button>` : ''}</div>
+    ${f.d ? `<div class="muted small" style="margin-top:4px">Hoy: ${f.d.hoy.pedidos} pedidos · ${f.d.hoy.entregados} entregados · ${money(f.d.hoy.vendido)} vendido · ${f.d.activos} activos</div>
+      <div class="muted small">${f.d.negociosAbiertos} negocios abiertos · ${f.d.usuarios.negocios} negocios · ${f.d.usuarios.repartidores} repartidores · <b>${f.d.pendientes.length} por aprobar</b></div>
+      ${f.c && f.c.hayLocal ? `<div class="small" style="margin-top:4px">💰 Comisiones sin liquidar: <b>${money(Math.abs(f.c.pendiente))}</b> ${f.c.pendiente >= 0 ? '(le pagas al local)' : '(el local te entrega)'}</div>` : ''}`
+      : f.falta ? `<div class="muted small" style="margin:4px 0 8px">Conecta tu cuenta de administrador de ${esc(f.pb.nombre)} para ver su resumen aquí.</div><button class="btn sm pri" onclick="conectarPueblo('${f.pb.id}')">Conectar</button>`
+      : `<div class="aviso warn" style="margin:6px 0 0">${esc(f.error || 'No respondió')}</div>`}</div>`).join('')
+    + (ok.length > 1 ? `<div class="card" style="background:var(--pri-s)"><b>Total</b><div class="small" style="margin-top:4px">Hoy: ${suma(d => d.hoy.pedidos)} pedidos · ${suma(d => d.hoy.entregados)} entregados · ${money(suma(d => d.hoy.vendido))} vendido · ${suma(d => d.activos)} activos · ${suma(d => d.pendientes.length)} por aprobar</div></div>` : '');
+}
+/** El general entra con su cuenta de administrador del otro municipio (su sesión queda guardada en este teléfono). */
+function conectarPueblo(id) {
+  const pb = PUEBLOS.find(x => x.id === id); if (!pb) return;
+  modal(`<div class="row between"><h2 style="margin:0">Conectar ${esc(pb.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">Entra con tu cuenta de administrador del servidor de ${esc(pb.nombre)}.</div>
+    <label class="f">Teléfono</label><input class="i" id="cpTel" type="tel" inputmode="numeric" value="${esc(S.user.telefono)}">
+    <label class="f">Contraseña</label><input class="i" id="cpPass" type="password">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{const r=await apiDe(PUEBLOS.find(x=>x.id==='${id}'),'login',{telefono:$('#cpTel').value,pass:$('#cpPass').value});if(r.usuario.rol!=='admin'||r.usuario.local)throw new Error('Esa cuenta no es de administrador general');lsDe('${id}','token',r.token);lsDe('${id}','user',r.usuario);lsDe('${id}','conf',r.config);cerrarModal();toast('Conectado ✓');pintar(true)})">Conectar</button></div>`);
+}
+
+/** Pestaña "Municipio" (local) o "Administrador local y comisiones" (general). */
+async function vAdminComisiones() {
+  const local = esLocal();
+  const [c, cfg] = await Promise.all([api('adminComisiones'), local ? api('adminConfig') : Promise.resolve([])]);
+  S._comis = c;
+  const mesTxt = m => { const [a, n] = m.split('-'); return ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][+n - 1] + ' ' + a; };
+  const hoyMes = new Date().toISOString().slice(0, 7);
+  html(`<div class="row between">${local ? '' : `<button class="redondo" onclick="volver('admin')">${ico('atras')}</button>`}<h2 style="margin:0">${local ? 'Mi municipio' : 'Administrador local'}</h2><span class="tag t-pri">📍 ${esc(c.pueblo || PUEBLO.nombre)}</span></div>
+    ${local ? `<div class="card"><b>🛵 Tarifas de envío de ${esc(c.pueblo)}</b>
+      ${cfg.map(x => `<label class="f">${esc(x.descripcion || x.clave)}</label><input class="i cfg" data-k="${esc(x.clave)}" value="${esc(x.valor)}" inputmode="decimal">`).join('')}
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarConfig)">Guardar tarifas</button></div></div>`
+    : `<div class="card"><b>👤 Administrador local</b>
+      <div class="muted small" style="margin:4px 0 8px">Aprueba negocios y repartidores, atiende pedidos, registra pagos en efectivo y ajusta las tarifas de envío. No cambia precios ni ajustes, ni confirma transferencias. Le toca el <b>${c.porcentaje}%</b> de lo cobrado (cámbialo en Ajustes → porcentajeLocal).</div>
+      ${c.locales.map(x => `<div class="tot"><span>${esc(x.nombre)} · ${esc(x.telefono)} ${x.estado === 'activo' ? '<span class="tag t-ok">Activo</span>' : '<span class="tag t-gray">' + esc(x.estado) + '</span>'}</span>
+        ${x.estado === 'activo' ? `<button class="lnk small" style="color:var(--err)" onclick="act(this,async()=>{if(!confirm('¿Quitar a ${esc(x.nombre)} como administrador local?'))return;await api('adminLocal',{quitar:1,usuarioId:'${x.id}'});pintar(true)})">Quitar</button>` : ''}</div>`).join('')}
+      <label class="f">Nombre</label><input class="i" id="alNom" maxlength="60">
+      <label class="f">Teléfono (10 dígitos)</label><input class="i" id="alTel" type="tel" inputmode="numeric" maxlength="14">
+      <div class="btns"><button class="btn pri" onclick="act(this,nombrarLocal)">Nombrar administrador local</button></div></div>`}
+    <h3>Comisiones</h3>
+    <div class="card"><div class="row between"><span>Sin liquidar · ${c.pendiente >= 0 ? (local ? 'Pídele te paga' : 'pagas al local') : (local ? 'entregas a Pídele' : 'el local te entrega')}</span><b style="font-size:20px">${money(Math.abs(c.pendiente))}</b></div>
+      <div class="muted small">Se calcula sobre todo lo cobrado en ${esc(c.pueblo)} (mensualidades, banners, repartidores y cuotas): ${c.porcentaje}% para el administrador local. El efectivo que él recibió ya cuenta como parte de su pago.</div></div>
+    ${c.meses.length ? c.meses.map(m => `<div class="card"><div class="row between"><b>${mesTxt(m.mes)}</b>${m.liquidado ? '<span class="tag t-ok">Liquidado</span>' : m.mes >= hoyMes ? '<span class="tag t-info">En curso</span>' : '<span class="tag t-warn">Por liquidar</span>'}</div>
+      <div class="tot"><span>Cobrado en el municipio</span><span>${money(m.cobrado)}</span></div>
+      <div class="tot"><span>Comisión (${m.porcentaje}%)</span><b>${money(m.comision)}</b></div>
+      ${m.efectivoLocal ? `<div class="tot"><span>Efectivo que recibió el local</span><span>−${money(m.efectivoLocal)}</span></div>` : ''}
+      <div class="tot g"><span>${m.saldo >= 0 ? (local ? 'Pídele te paga' : 'Pagas al local') : (local ? 'Entregas a Pídele' : 'El local te entrega')}</span><span>${money(Math.abs(m.saldo))}</span></div>
+      ${m.liquidado ? `<div class="muted small">✔ ${fechaCorta(m.liquidado.fecha)}${m.liquidado.nota ? ' · ' + esc(m.liquidado.nota) : ''}</div>` : ''}
+      <details style="margin-top:6px"><summary class="lnk small">Ver ${m.pagos.length} cobro${m.pagos.length === 1 ? '' : 's'}</summary>
+        ${m.pagos.map(x => `<div class="tot small"><span>${fechaCorta(x.fecha).split(' ').slice(0, 2).join(' ')} · ${esc(x.quien)} · ${esc(x.concepto)}${x.efectivoLocal ? ' <span class="tag t-warn">efectivo al local</span>' : ''}</span><span>${money(x.monto)}</span></div>`).join('')}</details>
+      ${!local && !m.liquidado && m.mes < hoyMes ? `<div class="btns"><button class="btn ok sm" onclick="act(this,()=>liquidarMes('${m.mes}',${m.saldo}))">Marcar liquidado</button></div>` : ''}</div>`).join('')
+    : '<div class="vacio">Aún no hay cobros confirmados</div>'}`);
+}
+async function nombrarLocal() {
+  const r = await api('adminLocal', { nombre: $('#alNom').value, telefono: $('#alTel').value });
+  const n = r.nuevo;
+  modal(`<h2 style="margin-top:0">Administrador local listo</h2>
+    <div class="aviso ok">Comparte estos datos con ${esc(n.nombre)}. Al entrar, la app le pedirá crear su propia contraseña.</div>
+    <div class="tot"><span>Teléfono</span><b>${esc(n.telefono)}</b></div><div class="tot"><span>Contraseña temporal</span><b style="font-size:20px">${esc(n.clave)}</b></div>
+    <div class="btns"><a class="btn pri" target="_blank" href="${waLink(n.telefono, 'Hola ' + n.nombre.split(' ')[0] + ', ya eres administrador de Pídele ' + PUEBLO.nombre + '. Entra en ' + location.origin + location.pathname + '?pueblo=' + PUEBLO.id + ' con tu teléfono y la contraseña temporal ' + n.clave + '.')}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="cerrarModal();pintar(true)">Listo</button></div>`);
+}
+async function liquidarMes(mes, saldo) {
+  const nota = prompt((saldo >= 0 ? 'Le pagaste ' + money(saldo) + ' al administrador local.' : 'El administrador local te entregó ' + money(-saldo) + '.') + ' Nota (opcional, ej. transferencia del día):', '');
+  if (nota === null) return;
+  await api('adminLiquidar', { mes, nota });
+  toast('Mes liquidado ✓'); pintar(true);
 }
 function tarjetaUsuario(x) {
   const est = { activo: 't-ok', pendiente: 't-warn', bloqueado: 't-err' }[x.estado];
@@ -4329,7 +4462,7 @@ function tarjetaUsuario(x) {
         : `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`) : ''}
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
-      ${x.rol === 'repartidor' || x.negocioId ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
+      ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
 }
@@ -4380,7 +4513,7 @@ async function vAdminUsuarios(p, silencioso) {
   if (!silencioso || !$('#listaU')) {
     html(`<h2>Usuarios</h2>
       <div class="buscar">${ico('search', 's')}<input id="uq" placeholder="Nombre, teléfono o negocio" value="${esc(f.q)}" onchange="filtrarU()"></div>
-      <div class="row"><select class="i" id="ur" onchange="filtrarU()"><option value="">Todos los roles</option>${['comprador', 'negocio', 'repartidor', 'admin'].map(r => `<option value="${r}" ${f.rol === r ? 'selected' : ''}>${rolNombre(r)}</option>`).join('')}</select>
+      <div class="row"><select class="i" id="ur" onchange="filtrarU()"><option value="">Todos los roles</option>${['comprador', 'negocio', 'repartidor'].concat(esLocal() ? [] : ['admin']).map(r => `<option value="${r}" ${f.rol === r ? 'selected' : ''}>${rolNombre(r)}</option>`).join('')}</select>
       <select class="i" id="ue" onchange="filtrarU()"><option value="">Todos</option>${['activo', 'pendiente', 'bloqueado'].map(e => `<option ${f.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
       <div id="listaU" style="margin-top:12px"><div class="cargando">Cargando…</div></div>`);
   }
