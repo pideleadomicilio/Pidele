@@ -124,6 +124,18 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.4.0 · nuevas promociones
+- Al crear una Promoción el negocio elige el tipo: precio especial (como antes), 2x1/3x2/3x1/4x3, % de descuento por pieza, pesos de descuento por pieza, producto de regalo o % en la primera compra (con máximo opcional).
+- Ya no hace falta poner precio especial: los precios del menú se quedan igual y el servidor descuenta lo que toca.
+- En 2x1/3x2 se pueden combinar productos de la lista y se cobran los de mayor precio.
+- En cada producto con opciones (tamaños) se elige una opción o "Todas las opciones". En %, $ y 2x1 se puede elegir "Aplica a todo el menú".
+- Lo gratis o descontado es el producto y su opción; extras y opciones con costo se cobran.
+- Regalo: en el carrito aparece "🎁 Agrega tu regalo" (si hay varios regalos, el cliente elige).
+- Si varias promos tocan la misma pieza se aplica la mejor para el cliente; el % de primera compra (en ese negocio) se suma sobre lo que queda.
+- Las piezas con precio especial no entran a otras promociones.
+- El carrito, el pago, el pedido y la vista del negocio muestran cada descuento. Hojas nuevas: Promos (mecanica, valor, lleva, paga, tope, regalos) y Pedidos (descuento, descuentos); se agregan solas.
+- Cada promoción sigue contando como un banner del plan del día.
+
 ## Versión 2.3.0 · conexión con datos móviles y animaciones de carga
 - **Ruta alterna por Cloudflare:** si la conexión directa a Google falla en una red (se vio con datos de Telcel abriendo desde WhatsApp), la app reintenta por el Worker (`/api`) y recuerda esa ruta en ese teléfono por 24 h. Si después la alterna falla, vuelve a la directa. Solo se usa cuando la directa falla, para cuidar el límite gratis de Cloudflare (100,000 llamadas al día).
 - **Sin duplicados:** cada operación lleva un identificador; si la app la reenvía por la otra ruta, el servidor devuelve el resultado anterior en vez de repetirla (pedidos, pagos, etc.).
@@ -223,5 +235,6 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 **Alertas** (*Resumen → Alertas de cuentas*): más de `alertaCuentasAparato` (2) cuentas de cliente en un mismo teléfono, o varias cuentas pidiendo al mismo punto exacto. No bloquean: son para revisar.
 
 ## Pendiente
+- Monedero por tienda (ej. 1% de cada compra para usar en ese negocio), activable solo por el negocio.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
 - Cuando Meta verifique el negocio: número real de Pídele en WhatsApp, `whatsappResponde` = 1 y publicar la app de Meta (En vivo) con aviso de privacidad.

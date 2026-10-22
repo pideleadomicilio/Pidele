@@ -368,7 +368,7 @@ textarea.i{min-height:70px;resize:vertical}
 const API_ALT = 'https://pidele-whatsapp.pidele-soporte.workers.dev/api';
 const API_URL = 'https://script.google.com/macros/s/AKfycbw16py7HK64D_1W5C5leitt313r_tviHv9NYsgH2_ZSu_z_1IWJcynEMsNSySrTUqu7pQ/exec';
 const APP = 'Pídele';
-const APP_VER = '2.3.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.4.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
@@ -1241,13 +1241,14 @@ function listaItems(items) {
     const d = detalleItem(it);
     const extra = (it.extras || []).reduce((s, e) => s + (Number(e.precio) || 0), 0);
     const pr = it.antes ? `<span class="tachado">${money((it.antes + extra) * it.cant)}</span><span class="precioPromo">${money(it.precio * it.cant)}</span>` : money(it.precio * it.cant);
-    return `<div class="tot"><span>${it.cant} × ${esc(it.nombre)}${it.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${d ? `<br><span class="detalle">${d}</span>` : ''}</span><span>${pr}</span></div>`;
+    return `<div class="tot"><span>${it.cant} × ${esc(it.nombre)}${it.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${it.desc ? ' <span class="tag t-err">−' + money(it.desc) + '</span>' : ''}${d ? `<br><span class="detalle">${d}</span>` : ''}</span><span>${pr}</span></div>`;
   }).join('');
 }
 
 function resumenCobro(p) {
   const efe = p.metodoPago === 'efectivo';
-  return `<div class="tot"><span>Subtotal</span><b>${money(p.subtotal)}</b></div>
+  const ds = p.descuento ? `<div class="tot"><span>Productos</span><b>${money(p.subtotal + p.descuento)}</b></div>` + (p.descuentos || []).map(x => `<div class="tot" style="color:var(--ok,#1a7f4b)"><span>🏷️ ${esc(x.etiqueta || '')} · ${esc(x.titulo)}</span><b>−${money(x.monto)}</b></div>`).join('') : '';
+  return `${ds}<div class="tot"><span>Subtotal</span><b>${money(p.subtotal)}</b></div>
     ${p.tipoEntrega === 'recoger' ? '<div class="tot"><span>Recoges en el negocio</span><b>$0</b></div>' : `<div class="tot"><span>Costo de envío</span><b>${money(p.envio)}</b></div>`}
     <div class="tot g"><span>Total</span><span>${money(p.total)}</span></div>
     <div class="muted small" style="margin-top:6px">${ico(efe ? 'efectivo' : 'banco', 's')} ${efe
@@ -1620,8 +1621,13 @@ function aplicarMenuFresco(m) {
 
 /* ---------- precios con promoción ---------- */
 function promosDe(negId) { return (S.promos || []).filter(p => p.negocioId === negId); }
+const mecDe = p => (p.tipo || 'promocion') === 'promocion' ? (p.mecanica || 'precio') : '';
+/** Promos con 2x1, %, $, regalo o primera compra de un negocio (las que calcula descuentosPromo). */
+function mecsDe(negId) { return promosDe(negId).filter(p => mecDe(p) && mecDe(p) !== 'precio'); }
+/** ¿La promo incluye este producto (o todo el menú)? */
+const enPromo = (p, prodId, lista) => (lista || p.aplica || []).some(x => x.productoId === '*' || x.productoId === prodId);
 function promoProducto(negId, prodId, variante) {
-  for (const p of promosDe(negId)) {
+  for (const p of promosDe(negId).filter(x => mecDe(x) === 'precio' || !mecDe(x))) {
     const x = (p.productos || []).find(y => y.productoId === prodId && (y.variante || '') === (variante || '') && y.precioPromo > 0);
     if (x) return { id: p.id, precioPromo: x.precioPromo, titulo: p.titulo, vigencia: p.vigencia };
   }
@@ -1643,12 +1649,203 @@ function precioBase(negId, p, variante) {
   const pr = promoProducto(negId, p.id, variante || '');
   return pr && pr.precioPromo < base ? { precio: pr.precioPromo, antes: base, promo: pr.id } : { precio: base, antes: 0, promo: '' };
 }
-function tienePromo(negId, p) { return idsPromo(negId).has(p.id); }
+function tienePromo(negId, p) { return !!etiquetaProducto(negId, p.id); }
+/** Etiqueta de la tarjeta del producto: 2x1, -15%, -$21, 🎁, PROMO… */
+function etiquetaProducto(negId, prodId) {
+  const l = promosDe(negId).filter(x => mecDe(x));
+  const m = l.find(x => mecDe(x) !== 'precio' && mecDe(x) !== 'primera' && enPromo(x, prodId));
+  if (m) return mecDe(m) === 'regalo' ? '🎁 Con regalo' : m.etiqueta || etiquetaPromo(m);
+  const r = l.find(x => mecDe(x) === 'regalo' && (x.regalos || []).some(y => y.productoId === prodId));
+  if (r) return '🎁 Gratis';
+  return l.some(x => mecDe(x) === 'precio' && (x.productos || []).some(y => y.productoId === prodId)) ? 'PROMO' : '';
+}
 /** Productos que están en la promoción del día de un negocio (con o sin precio especial). */
 function idsPromo(negId, tipo) {
   const s = new Set();
-  promosDe(negId).filter(p => (p.tipo || 'promocion') === (tipo || 'promocion')).forEach(p => (p.productos || []).forEach(x => s.add(x.productoId)));
+  promosDe(negId).filter(p => (p.tipo || 'promocion') === (tipo || 'promocion') && mecDe(p) !== 'primera').forEach(p => {
+    (p.productos || []).forEach(x => s.add(x.productoId));
+    (p.regalos || []).forEach(x => s.add(x.productoId));
+  });
   return s;
+}
+
+/**
+ * Descuentos de las promociones de un pedido (mismo cálculo en la app y en el servidor).
+ * lineas: [{i, id, variante, base, bruto, cant, especial}]  base = precio normal del producto/variante (sin extras);
+ *   bruto = precio de la línea por pieza (con extras); especial = la línea ya tiene precio especial (no entra a otras promos).
+ * promos: [{id, titulo, mecanica, valor, lleva, paga, tope, aplica:[{productoId, variante}], regalos:[{productoId, variante}]}]
+ * primera: true si es la primera compra del cliente en ese negocio.
+ * Reglas: lo gratis o descontado es solo el precio del producto y su variante (extras y opciones se cobran);
+ * cada pieza recibe la mejor promo para el cliente; el % de primera compra se suma sobre lo que queda.
+ */
+function descuentosPromo(lineas, promos, primera) {
+  var r2 = function (x) { return Math.round(x * 100) / 100; };
+  var entra = function (l, u) {
+    return (l || []).some(function (x) {
+      if (x.productoId === '*') return true;
+      return x.productoId === u.id && (x.variante === '*' || String(x.variante || '') === u.variante);
+    });
+  };
+  var uds = [];
+  (lineas || []).forEach(function (l) {
+    if (l.especial) return;
+    for (var k = 0; k < l.cant; k++) uds.push({ i: l.i, id: l.id, variante: String(l.variante || ''), base: Number(l.base) || 0, usada: false });
+  });
+  var lista = (promos || []).filter(function (p) { return ['nxm', 'pct', 'monto', 'regalo'].indexOf(p.mecanica) >= 0; });
+  var porPieza = lista.filter(function (p) { return p.mecanica === 'pct' || p.mecanica === 'monto'; });
+  var grupales = lista.filter(function (p) { return p.mecanica === 'nxm' || p.mecanica === 'regalo'; });
+  var valorPieza = function (p, u) {
+    if (!entra(p.aplica, u)) return 0;
+    return p.mecanica === 'pct' ? r2(u.base * Math.min(100, Number(p.valor) || 0) / 100) : Math.min(Number(p.valor) || 0, u.base);
+  };
+  var mejorPieza = function (u) {
+    var m = 0;
+    porPieza.forEach(function (p) { m = Math.max(m, valorPieza(p, u)); });
+    return m;
+  };
+  // 2x1, 3x2 y regalos: se elige primero la que más le ahorra al cliente frente a su mejor descuento por pieza
+  var plan = function (p) {
+    var libres = uds.filter(function (u) { return !u.usada; });
+    var el = libres.filter(function (u) { return entra(p.aplica, u); });
+    var usa = [], gratis = [];
+    if (p.mecanica === 'nxm') {
+      var L = Number(p.lleva) || 2, P = Number(p.paga) || 1;
+      var s = el.slice().sort(function (a, b) { return b.base - a.base; });
+      for (var g = 0; g + L <= s.length; g += L) {
+        var grupo = s.slice(g, g + L);
+        usa = usa.concat(grupo);
+        gratis = gratis.concat(grupo.slice(P)); // se cobran las de mayor precio
+      }
+    } else {
+      var Lr = Math.max(1, Number(p.lleva) || 1);
+      var reg = libres.filter(function (u) { return entra(p.regalos, u); }).sort(function (a, b) { return b.base - a.base; });
+      for (var n = reg.length; n > 0; n--) {
+        var dar = reg.slice(0, n);
+        var compras = el.filter(function (u) { return dar.indexOf(u) < 0; }).sort(function (a, b) { return a.base - b.base; });
+        if (compras.length >= n * Lr) { usa = dar.concat(compras.slice(0, n * Lr)); gratis = dar; break; }
+      }
+    }
+    var total = r2(gratis.reduce(function (t, u) { return t + u.base; }, 0));
+    var pierde = r2(usa.reduce(function (t, u) { return t + mejorPieza(u); }, 0));
+    return { usa: usa, gratis: gratis, total: total, gana: r2(total - pierde) };
+  };
+  // corre un orden de promos de grupo y luego los descuentos por pieza
+  var correr = function (ordenG) {
+    uds.forEach(function (u) { u.usada = false; });
+    var res = {}, orden = [], porLinea = {};
+    var anotar = function (p, u, m) {
+      if (!(m > 0)) return;
+      if (!res[p.id]) { res[p.id] = { id: p.id, titulo: p.titulo, mecanica: p.mecanica, etiqueta: etiquetaPromo(p), monto: 0 }; orden.push(p.id); }
+      res[p.id].monto = r2(res[p.id].monto + m);
+      porLinea[u.i] = r2((porLinea[u.i] || 0) + m);
+    };
+    ordenG.forEach(function (p) {
+      var x = plan(p);
+      if (!(x.total > 0 && x.gana > 0)) return;
+      x.usa.forEach(function (u) { u.usada = true; });
+      x.gratis.forEach(function (u) { anotar(p, u, u.base); });
+    });
+    // % y $ por pieza: a cada pieza libre, la mejor
+    uds.forEach(function (u) {
+      if (u.usada) return;
+      var best = null, m = 0;
+      porPieza.forEach(function (p) { var v = valorPieza(p, u); if (v > m) { m = v; best = p; } });
+      if (best) { u.usada = true; anotar(best, u, m); }
+    });
+    return { res: res, orden: orden, porLinea: porLinea, total: r2(orden.reduce(function (t, id) { return t + res[id].monto; }, 0)) };
+  };
+  // se prueban los órdenes posibles de 2x1/regalos (son pocos) y se queda el que más ahorra al cliente
+  var ordenes = [];
+  var permutar = function (hechos, resto) {
+    if (!resto.length) { ordenes.push(hechos); return; }
+    resto.forEach(function (p, k) { permutar(hechos.concat([p]), resto.slice(0, k).concat(resto.slice(k + 1))); });
+  };
+  if (grupales.length <= 5) permutar([], grupales);
+  else ordenes.push(grupales.slice().sort(function (a, b) { return plan(b).gana - plan(a).gana; }));
+  var mejorR = null;
+  ordenes.forEach(function (o) { var x = correr(o); if (!mejorR || x.total > mejorR.total + 0.001) mejorR = x; });
+  var res = mejorR.res, orden = mejorR.orden, porLinea = mejorR.porLinea;
+  var total = r2(orden.reduce(function (t, id) { return t + res[id].monto; }, 0));
+  // primera compra en el negocio: % sobre lo que queda del pedido (con extras), con tope opcional
+  var pp = (promos || []).filter(function (p) { return p.mecanica === 'primera'; }).sort(function (a, b) { return (Number(b.valor) || 0) - (Number(a.valor) || 0); })[0];
+  var primeraM = 0;
+  if (pp && primera) {
+    var bruto = (lineas || []).reduce(function (t, l) { return t + (Number(l.bruto) || 0) * l.cant; }, 0);
+    primeraM = r2(Math.max(0, bruto - total) * Math.min(100, Number(pp.valor) || 0) / 100);
+    if (Number(pp.tope) > 0) primeraM = Math.min(primeraM, Number(pp.tope));
+    if (primeraM > 0) { res[pp.id] = { id: pp.id, titulo: pp.titulo, mecanica: 'primera', etiqueta: etiquetaPromo(pp), monto: primeraM }; orden.push(pp.id); total = r2(total + primeraM); }
+  }
+  return { total: total, promos: orden.map(function (id) { return res[id]; }), porLinea: porLinea, primera: primeraM, hayPrimera: !!pp };
+}
+
+/** Texto corto de la mecánica: 2x1, 3x2, -15%, -$21, Regalo, -10% 1ª compra. */
+function etiquetaPromo(p) {
+  var v = Number(p.valor) || 0;
+  switch (p.mecanica) {
+    case 'nxm': return (Number(p.lleva) || 2) + 'x' + (Number(p.paga) || 1);
+    case 'pct': return '-' + v + '%';
+    case 'monto': return '-$' + v;
+    case 'regalo': return '🎁 Regalo';
+    case 'primera': return '-' + v + '% 1ª compra';
+    default: return 'PROMO';
+  }
+}
+
+/** Descuentos de un carrito con las promos guardadas del negocio. */
+function descCarrito(c) {
+  const its = Object.values(c.items || {});
+  const lineas = its.map((x, i) => ({ i, id: x.id, variante: x.variante || '', base: x.base || x.antes || x.precio, bruto: x.precio, cant: x.cant, especial: !!x.promo }));
+  const ps = mecsDe(c.negocioId);
+  const r = descuentosPromo(lineas, ps, (S._primera || {})[c.negocioId] === true);
+  r.its = its;
+  r.bruto = subtotalCarrito(c);
+  r.neto = Math.round((r.bruto - r.total) * 100) / 100;
+  // primera compra aún sin confirmar (invitado o sin respuesta del servidor)
+  const pp = ps.find(p => mecDe(p) === 'primera');
+  r.primeraNota = pp && (S._primera || {})[c.negocioId] === undefined ? pp : null;
+  r.regalos = regalosPendientes(lineas, ps);
+  return r;
+}
+/**
+ * Regalos que el cliente ya ganó pero aún no agrega al carrito: [{promo, faltan}].
+ * Se simula agregar el regalo y se ve si de verdad saldría gratis (con las demás promos que ya usa).
+ */
+function regalosPendientes(lineas, promos) {
+  const base = descuentosPromo(lineas, promos, false).total;
+  return promos.filter(p => mecDe(p) === 'regalo' && (p.regalos || []).some(x => x.disponible !== false)).map(p => {
+    const r = p.regalos.find(x => x.disponible !== false);
+    let faltan = 0;
+    for (let k = 1; k <= 5; k++) {
+      const extra = { i: lineas.length, id: r.productoId, variante: r.variante === '*' ? '*' : r.variante || '', base: r.precioAntes, bruto: r.precioAntes, cant: k };
+      const x = descuentosPromo(lineas.concat([extra]), promos, false);
+      if (x.total - base >= k * r.precioAntes - 0.01) faltan = k; else break;
+    }
+    return { promo: p, faltan };
+  }).filter(x => x.faltan > 0);
+}
+/** "Agrega tu regalo": abre el producto de regalo (si hay varios, el cliente elige). */
+function agregarRegalo(negId, promoId) {
+  const p = promosDe(negId).find(x => x.id === promoId); if (!p) return;
+  const l = (p.regalos || []).filter(x => x.disponible !== false);
+  const abrir = x => { cerrarModal(); S._abrirProd = x.productoId; S._abrirVar = x.variante === '*' ? '' : x.variante; ir('negocio', negId); };
+  if (l.length === 1) { abrir(l[0]); return; }
+  S._regalosOp = l.map(x => () => abrir(x));
+  modal(`<div class="row between"><h2 style="margin:0">🎁 Elige tu regalo</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">${esc(p.titulo)} · el producto va gratis; los extras se cobran.</div>
+    ${l.map((x, i) => `<div class="opcion" onclick="S._regalosOp[${i}]()"><span class="ico">🎁</span><div class="grow"><b>${esc(x.nombre)}${x.variante && x.variante !== '*' ? ' · ' + esc(x.variante) : ''}</b><small>Normal ${money(x.precioAntes)} · gratis</small></div></div>`).join('')}`);
+}
+/** En cuáles negocios del carrito es la primera compra del cliente (para el % de bienvenida). */
+async function cargarPrimera(ids) {
+  if (!S.token || !S.user || S.user.rol !== 'comprador') return;
+  S._primera = S._primera || {};
+  const faltan = ids.filter(id => S._primera[id] === undefined && mecsDe(id).some(p => mecDe(p) === 'primera'));
+  if (!faltan.length) return;
+  try { Object.assign(S._primera, await api('primeraCompra', { ids: faltan })); } catch (e) { }
+}
+/** Renglones de descuento de un carrito (y aviso de primera compra / regalo). */
+function lineasDesc(c, r) {
+  return r.promos.map(x => `<div class="tot" style="color:var(--ok,#1a7f4b)"><span>🏷️ ${esc(x.etiqueta)} · ${esc(x.titulo)}</span><span>−${money(x.monto)}</span></div>`).join('')
+    + (r.primeraNota ? `<div class="muted small" style="margin:2px 0">🎉 ${esc(r.primeraNota.etiqueta || etiquetaPromo(r.primeraNota))}: si es tu primera compra en ${esc(c.negocio)} se descuenta al confirmar.</div>` : '');
 }
 const SEC_PROMO = '🏷️ Promo del día', SEC_NOVEDAD = '📣 Novedades';
 const esPromo = p => (p.tipo || 'promocion') === 'promocion';
@@ -1691,7 +1888,7 @@ function repreciarCarrito(menuD) {
     const extra = ex.reduce((s, e) => s + (Number(e.precio) || 0), 0) + mods.reduce((s, m) => s + m.o.reduce((a, o) => a + (Number(o.precio) || 0), 0), 0);
     const unit = b.precio + extra;
     if (unit !== it.precio || ex.length !== (it.extras || []).length) { it.precio = unit; it.extras = ex; cambio = true; }
-    it.promo = b.promo; it.antes = b.antes ? b.antes + extra : 0;
+    it.promo = b.promo; it.antes = b.antes ? b.antes + extra : 0; it.base = b.antes || b.precio;
   });
   guardarCarritos();
   return cambio;
@@ -1804,9 +2001,11 @@ function promosOrdenadas(cat) {
 
 function slidePromo(p) {
   const prods = p.productos || [], conPrecio = prods.filter(x => x.precioPromo);
-  const precio = conPrecio.length === 1 ? `<div class="precioS"><s>${money(conPrecio[0].precioAntes)}</s>${money(conPrecio[0].precioPromo)}</div>`
+  const mec = mecDe(p);
+  const precio = mec && mec !== 'precio' ? `<div class="precioS">${esc(p.etiqueta || etiquetaPromo(p))}</div>`
+    : conPrecio.length === 1 ? `<div class="precioS"><s>${money(conPrecio[0].precioAntes)}</s>${money(conPrecio[0].precioPromo)}</div>`
     : conPrecio.length > 1 ? `<div class="precioS"><s style="text-decoration:none">Ahorra hasta</s>${money(p.ahorroMax)}</div>` : '';
-  const sub = prods.length === 1 ? ' · ' + esc(prods[0].nombre) + (prods[0].variante ? ' ' + esc(prods[0].variante) : '') : prods.length > 1 ? ' · ' + prods.length + ' productos en promo' : '';
+  const sub = p.todoMenu ? ' · en todo el menú' : mec === 'primera' ? ' · en tu primera compra' : prods.length === 1 ? ' · ' + esc(prods[0].nombre) + (prods[0].variante && prods[0].variante !== '*' ? ' ' + esc(prods[0].variante) : '') : prods.length > 1 ? ' · ' + prods.length + ' productos en promo' : '';
   return `<div class="slide" onclick="abrirPromo('${p.id}')">
     ${p.imagen ? `<img class="fondo" src="${esc(p.imagen)}" alt="" loading="lazy" decoding="async">` : `<div class="sinImg">${ICONO_CAT[p.categoria] || '🏷️'}</div>`}
     <div class="velo"></div>
@@ -1853,7 +2052,17 @@ function iniciarCarrusel(l) {
 
 /** Renglones con los productos de una promoción (nombre, precio normal tachado y precio especial). */
 function lineasPromo(p, max) {
-  const l = p.productos || [];
+  const l = p.productos || [], mec = mecDe(p);
+  const vr = x => x.variante === '*' ? ' · todas' : x.variante ? ' · ' + esc(x.variante) : '';
+  if (mec && mec !== 'precio') {
+    const que = { nxm: 'Llevas ' + p.lleva + ', pagas ' + p.paga + ' (se cobran los de mayor precio)', pct: p.valor + '% de descuento por pieza', monto: money(p.valor) + ' menos por pieza',
+      regalo: 'Por cada ' + (p.lleva > 1 ? p.lleva + ' piezas' : 'pieza') + ' te regalamos uno de los regalos', primera: p.valor + '% en tu primera compra' + (p.tope ? ' (hasta ' + money(p.tope) + ')' : '') }[mec] || '';
+    return `<div class="small" style="margin-top:6px"><b>${esc(que)}</b>
+      ${p.todoMenu ? '<div class="muted">Aplica en todo el menú</div>' : ''}
+      ${l.slice(0, max || 6).map(x => `<div class="tot" style="padding:3px 0"><span>${esc(x.nombre)}${vr(x)}${x.disponible === false ? ' <span class="tag t-warn">Agotado</span>' : ''}</span><span class="muted">${money(x.precioAntes)}</span></div>`).join('')}
+      ${(p.regalos || []).map(x => `<div class="tot" style="padding:3px 0"><span>🎁 ${esc(x.nombre)}${vr(x)}</span><b class="precioPromo">Gratis</b></div>`).join('')}
+      ${mec !== 'primera' ? '<div class="muted">Los extras y opciones con costo se cobran aparte.</div>' : ''}</div>`;
+  }
   if (!l.length) return '';
   max = max || 6;
   return `<div class="small" style="margin-top:6px">${l.slice(0, max).map(x => `<div class="tot" style="padding:3px 0"><span>${esc(x.nombre)}${x.variante ? ' · ' + esc(x.variante) : ''}${x.disponible === false ? ' <span class="tag t-warn">Agotado</span>' : ''}</span>
@@ -1868,7 +2077,7 @@ function listaPromos() {
   return `<div class="secHead"><h3>🏷️ Promociones de hoy</h3><button onclick="verTodos()">Ver negocios</button></div>` +
     l.map(p => `<div class="promoCard">${slidePromo(p)}<div class="pie" onclick="abrirPromo('${p.id}')">
       ${p.descripcion ? `<div>${esc(p.descripcion)}</div>` : ''}
-      ${(p.productos || []).length > 1 ? lineasPromo(p, 5) : ''}
+      ${(p.productos || []).length > 1 || (mecDe(p) && mecDe(p) !== 'precio') ? lineasPromo(p, 5) : ''}
       <div class="muted small" style="margin-top:3px">${ico('reloj', 's')} ${esc(p.vigencia)}${p.abierto ? '' : ' · el negocio está cerrado ahora'}</div></div></div>`).join('');
 }
 
@@ -1890,7 +2099,8 @@ function abrirPromo(id) {
 /** Barra inferior: en un negocio muestra su carrito; en inicio, todos (indicando cuántos negocios). */
 function barraCarrito(negId) {
   const it = itemsCarrito(negId); if (!it.length) return '';
-  const n = it.reduce((s, x) => s + x.cant, 0), t = it.reduce((s, x) => s + x.cant * x.precio, 0);
+  const n = it.reduce((s, x) => s + x.cant, 0);
+  const t = (negId ? [S.carritos[negId]] : carritosLista()).filter(Boolean).reduce((s, c) => s + descCarrito(c).neto, 0);
   const otros = carritosLista().filter(c => c.negocioId !== negId).length;
   const txt = negId ? 'Ver pedido · ' + n + (otros ? ' <span style="opacity:.8;font-weight:700">+' + otros + ' negocio' + (otros > 1 ? 's' : '') + '</span>' : '')
     : (otros > 1 ? 'Ver carrito · ' + otros + ' negocios' : 'Ver pedido · ' + n);
@@ -2032,7 +2242,7 @@ function pintarProductos() {
   if (s !== SEC_PROMO && s !== SEC_NOVEDAD) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
   const tarjeta = p => `<div class="pCard" onclick="abrirProducto('${p.id}')">
       ${enCarrito[p.id] ? `<span class="enCarrito">${enCarrito[p.id]}</span>` : ''}
-      ${tienePromo(d.negocio.id, p) ? '<span class="tagPromo">PROMO</span>' : ''}
+      ${(et => et ? `<span class="tagPromo">${esc(et)}</span>` : '')(etiquetaProducto(d.negocio.id, p.id))}
       <div class="img">${p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async">` : '🍽️'}</div>
       <div class="info"><b class="clamp2">${esc(p.nombre)}</b>
         ${p.descripcion ? `<div class="desc clamp2">${esc(p.descripcion)}</div>` : ''}
@@ -2057,7 +2267,8 @@ function abrirProducto(pid) {
   S._abrirVar = '';
   S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(p, d.grupos) };
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
-  const promoTxt = promosDe(n.id).filter(x => (x.productos || []).some(y => y.productoId === p.id)).map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${esc(x.titulo)} · ${esc(x.vigencia)}</div>`).join('');
+  const promoTxt = promosDe(n.id).filter(x => mecDe(x) && mecDe(x) !== 'primera' && (enPromo(x, p.id, mecDe(x) === 'precio' ? x.productos : null) || (x.regalos || []).some(y => y.productoId === p.id)))
+    .map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${mecDe(x) !== 'precio' ? '<b>' + esc(x.etiqueta || etiquetaPromo(x)) + '</b> · ' : ''}${esc(x.titulo)}${mecDe(x) === 'regalo' && (x.regalos || []).some(y => y.productoId === p.id) && !enPromo(x, p.id) ? ' (este producto es el regalo)' : ''} · ${esc(x.vigencia)}</div>`).join('');
   modal(`${p.foto ? `<img class="hojaImg" src="${esc(p.foto)}" alt="">` : ''}
     <div class="row between" style="align-items:flex-start"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
@@ -2087,7 +2298,7 @@ function selHoja() {
   const b = precioBase(negId, p, variante ? variante.nombre : '');
   const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
   const extra = extras.reduce((s, e) => s + e.precio, 0) + mods.reduce((s, m) => s + m.o.reduce((a, o) => a + (Number(o.precio) || 0), 0), 0);
-  return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: b.precio + extra, antes: b.antes ? b.antes + extra : 0, promo: b.promo };
+  return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: b.precio + extra, antes: b.antes ? b.antes + extra : 0, promo: b.promo, base: b.antes || b.precio };
 }
 /** No deja marcar más opciones de las permitidas en un grupo (desmarca la más antigua). */
 function limiteGrupo(el) {
@@ -2109,7 +2320,7 @@ function agregarHoja() {
   // misma combinación de extras/sin/nota = misma línea del carrito
   const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota, s.mods.map(m => m.g + ':' + m.o.map(o => o.nombre).sort().join('+')).join(',')].join('|');
   const it = c.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, mods: s.mods, cant: 0 };
-  it.precio = s.unit; it.antes = s.antes; it.promo = s.promo;
+  it.precio = s.unit; it.antes = s.antes; it.promo = s.promo; it.base = s.base;
   it.cant = Math.min(50, it.cant + S._hoja.cant);
   c.items[key] = it;
   guardarCarritos();
@@ -2141,6 +2352,11 @@ function vCarrito() {
   carritosLista().forEach(c => { const m = menuLocal(c.negocioId); if (m && repreciarCarrito(m)) cambio = true; });
   if (cambio) toast('Actualizamos los precios de tu carrito');
   const lista = carritosLista(), u = S.user || {};
+  // primera compra: se pregunta al servidor una vez y se vuelve a pintar
+  if (S.token && !S._primeraCargando && lista.some(c => (S._primera || {})[c.negocioId] === undefined && mecsDe(c.negocioId).some(p => mecDe(p) === 'primera'))) {
+    S._primeraCargando = true;
+    cargarPrimera(lista.map(c => c.negocioId)).finally(() => { S._primeraCargando = false; if (S.vista === 'carrito') vCarrito(); });
+  }
   const top = `<div class="titBar"><button class="redondo" onclick="volver('inicio')">${ico('atras')}</button><h2>${lista.length > 1 ? 'Tus pedidos' : 'Tu pedido'}</h2><span class="esp"></span></div>`;
   if (!lista.length) { html(top + `<div class="vacio"><span class="big">🛍️</span>Tu carrito está vacío<br><br><button class="btn pri pill" onclick="ir('inicio')">Ver restaurantes</button></div>`); return; }
   // qué carritos entran en este pedido (los de negocios cerrados quedan fuera, se guardan para después)
@@ -2150,7 +2366,7 @@ function vCarrito() {
   let sub = 0, env = 0, envSin = false, nSel = 0;
   const bloques = lista.map(c => {
     const abierto = negocioAbierto(c.negocioId), sel = S.sel[c.negocioId];
-    const s = subtotalCarrito(c), e = envioEstimado(c, u.lat, u.lng);
+    const ds = descCarrito(c), s = ds.neto, e = envioEstimado(c, u.lat, u.lng);
     if (sel) { nSel++; sub += s; if (e > 0) env += e; else envSin = true; }
     const its = Object.values(c.items);
     S._lineas[c.negocioId] = its;
@@ -2162,10 +2378,12 @@ function vCarrito() {
       ${abierto ? '' : '<div class="aviso warn" style="margin:6px 0">Este negocio no recibe pedidos ahora. Guardamos tu carrito para después.</div>'}
       ${its.map((x, i) => { const dd = detalleItem(x); return `<div class="linea">
         ${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="">` : '<div class="thumb">🍽️</div>'}
-        <div class="grow"><b>${esc(x.nombre)}</b>${x.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${dd ? `<div class="detalle">${dd}</div>` : ''}<div class="b" style="margin:6px 0 8px">${x.antes ? `<span class="tachado">${money(x.antes * x.cant)}</span><span class="precioPromo">${money(x.precio * x.cant)}</span>` : money(x.precio * x.cant)}</div>
+        <div class="grow"><b>${esc(x.nombre)}</b>${x.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${ds.porLinea[i] ? ' <span class="tag t-err">−' + money(ds.porLinea[i]) + '</span>' : ''}${dd ? `<div class="detalle">${dd}</div>` : ''}<div class="b" style="margin:6px 0 8px">${x.antes ? `<span class="tachado">${money(x.antes * x.cant)}</span><span class="precioPromo">${money(x.precio * x.cant)}</span>` : money(x.precio * x.cant)}</div>
           <div class="cant" style="display:inline-flex"><button onclick="cambiarCarrito('${c.negocioId}',${i},-1)">${ico('menos', 's')}</button><b>${x.cant}</b><button onclick="cambiarCarrito('${c.negocioId}',${i},1)">${ico('mas', 's')}</button></div></div>
         <button class="basura" onclick="cambiarCarrito('${c.negocioId}',${i},-99)" aria-label="Quitar">${ico('basura')}</button></div>`; }).join('')}
+      ${ds.regalos.map(g => `<div class="aviso ok" style="margin:8px 0;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="agregarRegalo('${c.negocioId}','${g.promo.id}')"><span style="font-size:22px">🎁</span><span class="grow"><b>¡Te toca ${g.faltan > 1 ? g.faltan + ' regalos' : 'un regalo'}!</b><br><span class="small">${esc(g.promo.titulo)}</span></span><span class="btn sm pri">Agrega tu regalo</span></div>`).join('')}
       <button class="lnk" onclick="ir('negocio','${c.negocioId}')">${ico('mas', 's')} Agregar más de ${esc(c.negocio)}</button>
+      ${ds.total || ds.primeraNota ? `<div class="tot" style="margin-top:6px"><span>Productos</span><span>${money(ds.bruto)}</span></div>${lineasDesc(c, ds)}` : ''}
       <div class="tot" style="margin-top:6px"><span>Subtotal</span><span>${money(s)}</span></div>
       <div class="tot"><span>Envío</span><span>${e === null ? '<span class="muted small">Se calcula con tu dirección</span>' : e < 0 ? '<span style="color:var(--err)" class="small">Fuera del área</span>' : money(e)}</span></div></div>`;
   }).join('');
@@ -2316,15 +2534,16 @@ async function vPago() {
     ms.forEach(m => { aplicarMenuFresco(m); if (repreciarCarrito(m)) cambio = true; negs[m.negocio.id] = m.negocio; });
     if (cambio) { toast('Actualizamos los precios de tu carrito'); ir('carrito'); return; }
   }
+  await cargarPrimera(cs.map(c => c.negocioId));
   e.metodos = e.metodos || {};
   S._pedirVerif = false; S._sinPago = false;
   let subT = 0, envT = 0;
   S._pagoTot = {};
   const bloques = cs.map(c => {
     const n = negs[c.negocioId] || {}, pg = n.pagos || { efectivo: true };
-    const sub = subtotalCarrito(c), envio = e.tipo === 'domicilio' ? envioNegocio(c.negocioId, kmRuta(c.lat, c.lng, e.lat, e.lng)) : 0;
+    const ds = descCarrito(c), sub = ds.neto, envio = e.tipo === 'domicilio' ? envioNegocio(c.negocioId, kmRuta(c.lat, c.lng, e.lat, e.lng)) : 0;
     subT += sub; envT += envio;
-    S._pagoTot[c.negocioId] = { sub, envio };
+    S._pagoTot[c.negocioId] = { sub, envio, desc: ds.total };
     const ops = [];
     const conEnvio = n.envioEnTransfer && envio > 0, montoT = conEnvio ? sub + envio : sub;
     if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
@@ -2353,7 +2572,7 @@ async function vPago() {
     ${S._sinPago ? '<div class="aviso warn">Un negocio de tu pedido solo acepta efectivo y por ahora no puedes pagar así. Verifica tu teléfono o quítalo del pedido.</div>' : ''}
     ${bloques}
     <div class="card" style="margin-top:6px"><b style="font-size:16px">Resumen</b>
-      ${cs.map(c => `<div class="tot" style="margin-top:6px"><span>${esc(c.negocio)}</span><span>${money(S._pagoTot[c.negocioId].sub)}</span></div>`).join('')}
+      ${cs.map(c => `<div class="tot" style="margin-top:6px"><span>${esc(c.negocio)}${S._pagoTot[c.negocioId].desc ? ' <span class="tag t-err">ahorras ' + money(S._pagoTot[c.negocioId].desc) + '</span>' : ''}</span><span>${money(S._pagoTot[c.negocioId].sub)}</span></div>`).join('')}
       <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Envío' + (cs.length > 1 ? 's (' + cs.length + ')' : '')}</span><span>${money(envT)}</span></div>
       <div class="tot g"><span>Total</span><span>${money(subT + envT)}</span></div></div>
     <div class="seguro">${ico('candado', 's')} Pagas directo a cada negocio, sin comisiones</div>
@@ -2387,7 +2606,7 @@ async function confirmarPedido() {
       tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
       recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps,
       pedidos: cs.map(c => ({
-        negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c),
+        negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
         items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
       }))
     });
@@ -2395,6 +2614,7 @@ async function confirmarPedido() {
     if (String(err.message).startsWith('EFECTIVO|')) throw new Error(err.message.slice(9));
     if (!String(err.message).startsWith('PRECIOS|')) throw err;
     const [, negId, msg] = err.message.split('|');
+    if (S._primera) delete S._primera[negId];
     const ms = await api('menus', { ids: [negId] });
     ms.forEach(m => { aplicarMenuFresco(m); repreciarCarrito(m); });
     toast(msg, 'err');
@@ -2403,7 +2623,7 @@ async function confirmarPedido() {
   }
   if (e.tipo === 'domicilio') { Object.assign(S.user, { direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng }); ls('user', S.user); }
   S._ultimos = r.map(x => Object.assign({}, x, { tipo: e.tipo }));
-  r.forEach(x => { sumarPref(x.negocioId, 3); delete S.carritos[x.negocioId]; delete (S.sel || {})[x.negocioId]; });
+  r.forEach(x => { sumarPref(x.negocioId, 3); if (S._primera) S._primera[x.negocioId] = false; delete S.carritos[x.negocioId]; delete (S.sel || {})[x.negocioId]; });
   guardarCarritos();
   history.replaceState({ v: 'inicio' }, '');
   ir('listo');
@@ -3390,7 +3610,7 @@ async function vPromos() {
       <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
       <button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button></div>
       <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando cada 5 s con los demás negocios.
-        Una <b>🏷️ Promoción</b> (con precios especiales) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
+        Una <b>🏷️ Promoción</b> (precio especial, 2x1, 3x2, % o $ de descuento, regalo o descuento de primera compra) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
         Puedes programar banners distintos para cada día (ej. "Martes de tacos").</div></div>
     ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true })).replace(/onclick="abrirPromo\('[^']*'\)"/, '')}
       <div class="pie"><div class="row wrap" style="gap:6px">${estadoPromoTag(p)}</div>
@@ -3413,7 +3633,8 @@ async function cambiarPromo(id, estado) {
 
 function formPromo(id) {
   const p = (S._promosNeg || []).find(x => x.id === id) || { titulo: '', descripcion: '', productos: [], inicioDia: fechaISO(0), finDia: fechaISO(0), dias: [], horaIni: '', horaFin: '', imagen: '' };
-  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p; S._promoTipo = p.tipo || 'promocion';
+  S._promoImg = null; S._promoQuitar = false; S._promoEdit = p; S._promoTipo = p.tipo || 'promocion'; S._promoMec = p.mecanica || 'precio';
+  const todoMenu = !!p.todoMenu;
   const dias = p.dias && p.dias.length ? p.dias : [0, 1, 2, 3, 4, 5, 6];
   const conHora = !!(p.horaIni && p.horaFin);
   modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nuevo'} banner</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -3427,10 +3648,26 @@ function formPromo(id) {
     <div class="muted small" style="margin-top:4px">Recomendado: foto horizontal de tus platillos. Sin imagen se usa un fondo de color.</div>
     <label class="f">Título</label><input class="i" id="prTit" maxlength="50" value="${esc(p.titulo)}" placeholder="Ej. Martes de tacos" oninput="prevPromo()">
     <label class="f">Descripción (opcional)</label><input class="i" id="prDes" maxlength="140" value="${esc(p.descripcion)}" placeholder="Ej. Solo para pedidos en la app">
+    <div id="prMecBox">
+      <label class="f">¿Qué tipo de promoción?</label>
+      <select class="i" id="prMec" onchange="S._promoMec=this.value;actualizarMec()">
+        ${[['precio', '💲 Precio especial por producto'], ['nxm', '🍔🍔 2x1, 3x2…'], ['pct', '％ Porcentaje de descuento'], ['monto', '➖ Pesos de descuento por pieza'], ['regalo', '🎁 Producto de regalo'], ['primera', '🎉 Descuento en la primera compra']]
+          .map(o => `<option value="${o[0]}" ${S._promoMec === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
+      <div class="row" id="prNxm" style="margin-top:8px"><div class="grow"><label class="f">Promoción</label><select class="i" id="prLP">${[[2, 1], [3, 2], [3, 1], [4, 3]].map(o => `<option value="${o[0]}-${o[1]}" ${(p.lleva || 2) === o[0] && (p.paga || 1) === o[1] ? 'selected' : ''}>${o[0]}x${o[1]} (llevas ${o[0]}, pagas ${o[1]})</option>`).join('')}</select></div></div>
+      <div class="row" id="prVal" style="margin-top:8px"><div class="grow"><label class="f" id="prValT">Descuento</label><input class="i" id="prValor" type="number" inputmode="decimal" value="${p.valor || ''}" oninput="prevPromo()"></div>
+        <div class="grow" id="prTopeB"><label class="f">Máximo $ (opcional)</label><input class="i" id="prTope" type="number" inputmode="decimal" value="${p.tope || ''}" placeholder="Sin límite"></div></div>
+      <div class="row" id="prReg" style="margin-top:8px"><div class="grow"><label class="f">Por cada cuántas piezas compradas hay un regalo</label><input class="i" id="prLleva" type="number" inputmode="numeric" min="1" max="10" value="${p.mecanica === 'regalo' ? p.lleva || 1 : 1}"></div></div>
+      <div class="muted small" id="prMecAyuda" style="margin-top:6px"></div>
+      <label class="opc" id="prTodoB" style="margin-top:8px"><input type="checkbox" id="prTodo" ${todoMenu ? 'checked' : ''} onchange="actualizarMec()"><span>Aplica a todo el menú</span></label>
+    </div>
     <label class="f" id="prProdsT">${S._promoTipo === 'anuncio' ? 'Productos que quieres dar a conocer (opcional)' : 'Productos en promoción'}</label>
     <div class="muted small" style="margin:-2px 0 6px" id="prProdsN">${S._promoTipo === 'anuncio' ? 'Aparecen en la sección Novedades de tu menú.' : 'Agrega los que quieras. Al menos uno con precio especial; los demás solo se destacan.'}</div>
-    <div id="prProds"></div>
-    <button class="btn sm" onclick="filaProdPromo()">${ico('mas', 's')} Agregar producto</button>
+    <div id="prProdsB"><div id="prProds"></div>
+    <button class="btn sm" onclick="filaProdPromo()">${ico('mas', 's')} Agregar producto</button></div>
+    <div id="prRegsB"><label class="f">🎁 Producto(s) de regalo</label>
+      <div class="muted small" style="margin:-2px 0 6px">Si pones varios, el cliente elige uno. Va gratis el producto (y su opción); los extras se cobran.</div>
+      <div id="prRegs"></div>
+      <button class="btn sm" onclick="filaProdPromo(null,true)">${ico('mas', 's')} Agregar regalo</button></div>
     <div class="row"><div class="grow"><label class="f">Desde</label><input class="i" id="prIni" type="date" value="${esc(p.inicioDia)}"></div>
       <div class="grow"><label class="f">Hasta</label><input class="i" id="prFin" type="date" value="${esc(p.finDia)}"></div></div>
     <label class="f">Días</label>
@@ -3442,11 +3679,38 @@ function formPromo(id) {
     <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarPromoForm)">Guardar promoción</button></div>`);
   (p.productos || []).forEach(x => filaProdPromo(x));
   if (!(p.productos || []).length) filaProdPromo();
+  (p.regalos || []).forEach(x => filaProdPromo(x, true));
+  if (!(p.regalos || []).length) filaProdPromo(null, true);
+  actualizarMec();
+}
+/** Muestra los campos de la mecánica elegida. */
+function actualizarMec() {
+  const m = S._promoMec, an = S._promoTipo === 'anuncio', vis = (id, v) => { const e = $('#' + id); if (e) e.style.display = v ? '' : 'none'; };
+  vis('prMecBox', !an);
+  vis('prNxm', !an && m === 'nxm'); vis('prVal', !an && ['pct', 'monto', 'primera'].includes(m)); vis('prTopeB', m === 'primera'); vis('prReg', !an && m === 'regalo');
+  vis('prTodoB', !an && ['pct', 'monto', 'nxm'].includes(m));
+  const todo = !an && ['pct', 'monto', 'nxm'].includes(m) && $('#prTodo').checked;
+  vis('prProdsB', an || (m !== 'primera' && !todo)); vis('prRegsB', !an && m === 'regalo');
+  vis('prProdsT', an || (m !== 'primera' && !todo)); vis('prProdsN', an || (m !== 'primera' && !todo));
+  if ($('#prValT')) $('#prValT').textContent = m === 'monto' ? 'Pesos menos por pieza ($)' : 'Descuento (%)';
+  const ayuda = {
+    precio: 'Pon el precio especial de cada producto. Los que dejes sin precio solo se destacan.',
+    nxm: 'Elige los productos que entran. El cliente puede combinarlos y se cobran los de mayor precio. Ej. 2x1: lleva 2, paga el más caro.',
+    pct: 'Se descuenta ese % del precio de cada pieza (los extras se cobran completos).',
+    monto: 'Se descuentan esos pesos a cada pieza de los productos elegidos. Ej. $21 menos en cualquier hamburguesa.',
+    regalo: 'Elige los productos que hay que comprar y abajo el regalo. En su carrito, al cliente le aparece "Agrega tu regalo".',
+    primera: 'Para clientes que nunca te han comprado en Pídele. Se descuenta del total de productos (después de otras promos).'
+  }[m] || '';
+  if ($('#prMecAyuda')) $('#prMecAyuda').textContent = ayuda;
+  if ($('#prProdsT')) $('#prProdsT').textContent = an ? 'Productos que quieres dar a conocer (opcional)' : m === 'regalo' ? 'Productos que hay que comprar' : 'Productos en promoción';
+  if ($('#prProdsN')) $('#prProdsN').textContent = an ? 'Aparecen en la sección Novedades de tu menú.' : m === 'precio' ? 'Agrega los que quieras. Al menos uno con precio especial; los demás solo se destacan.' : 'Si el producto tiene opciones (tamaños), elige una o "Todas las opciones".';
+  document.querySelectorAll('#prProds .prPre').forEach(i => { i.style.display = !an && m === 'precio' ? '' : 'none'; });
+  document.querySelectorAll('.prV option[value="*"]').forEach(o => { o.disabled = an || m === 'precio'; if (o.disabled && o.selected) { o.selected = false; o.parentNode.selectedIndex = 1; } });
   prevPromo();
 }
 
 /** Renglón de producto en el formulario: producto, opción (si tiene variantes) y precio especial. */
-function filaProdPromo(x) {
+function filaProdPromo(x, reg) {
   x = x || {};
   const prods = (S._prods || []).filter(p => p.disponible !== 'eliminado');
   const d = document.createElement('div');
@@ -3456,7 +3720,7 @@ function filaProdPromo(x) {
       ${prods.map(p => `<option value="${p.id}" ${p.id === x.productoId ? 'selected' : ''}>${esc(p.nombre)}${p.disponible === 'si' ? '' : ' (agotado)'}</option>`).join('')}</select>
       <button class="btn sm err" onclick="this.closest('.prRow').remove();prevPromo()" aria-label="Quitar">✕</button></div>
     <div class="row prDet" style="margin-top:6px"></div>`;
-  $('#prProds').appendChild(d);
+  $(reg ? '#prRegs' : '#prProds').appendChild(d);
   filaProdCambio(d.querySelector('.prP'), x);
 }
 function filaProdCambio(sel, x) {
@@ -3465,8 +3729,10 @@ function filaProdCambio(sel, x) {
   const p = (S._prods || []).find(z => z.id === sel.value);
   if (!p) { det.innerHTML = ''; prevPromo(); return; }
   const vars = p.variantes || [];
-  det.innerHTML = `${vars.length ? `<select class="i prV" style="flex:1" onchange="filaNormal(this)">${vars.map(v => `<option ${v.nombre === x.variante ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>` : ''}
-    <input class="i prPre" type="number" inputmode="decimal" style="flex:1;${S._promoTipo === 'anuncio' ? 'display:none' : ''}" placeholder="Precio especial" value="${x.precioPromo || ''}" oninput="prevPromo()">
+  const sinPrecio = S._promoTipo === 'anuncio' || S._promoMec !== 'precio' || fila.closest('#prRegs'), sinTodas = S._promoTipo === 'anuncio' || S._promoMec === 'precio';
+  const eleg = x.variante && (x.variante !== '*' || !sinTodas) ? x.variante : vars.length ? (sinTodas ? vars[0].nombre : '*') : '';
+  det.innerHTML = `${vars.length ? `<select class="i prV" style="flex:1" onchange="filaNormal(this)"><option value="*" ${eleg === '*' ? 'selected' : ''} ${sinTodas ? 'disabled' : ''}>Todas las opciones</option>${vars.map(v => `<option value="${esc(v.nombre)}" ${v.nombre === eleg ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>` : ''}
+    <input class="i prPre" type="number" inputmode="decimal" style="flex:1;${sinPrecio ? 'display:none' : ''}" placeholder="Precio especial" value="${x.precioPromo || ''}" oninput="prevPromo()">
     <span class="muted small prNor" style="white-space:nowrap"></span>`;
   filaNormal(det.querySelector('.prV') || det.querySelector('.prPre'));
 }
@@ -3474,28 +3740,25 @@ function filaNormal(el) {
   const fila = el.closest('.prRow'), p = (S._prods || []).find(z => z.id === fila.querySelector('.prP').value);
   if (!p) return;
   const v = fila.querySelector('.prV'), vars = p.variantes || [];
-  const normal = vars.length ? ((vars.find(x => x.nombre === (v ? v.value : '')) || vars[0]).precio) : p.precio;
+  const todas = v && v.value === '*';
+  const normal = vars.length ? (todas ? Math.min(...vars.map(x => Number(x.precio) || 0)) : (vars.find(x => x.nombre === (v ? v.value : '')) || vars[0]).precio) : p.precio;
   fila.dataset.normal = normal;
-  fila.querySelector('.prNor').textContent = 'Normal ' + money(normal);
+  fila.querySelector('.prNor').textContent = (todas ? 'Desde ' : 'Normal ') + money(normal);
   prevPromo();
 }
-function productosForm() {
-  return [...document.querySelectorAll('.prRow')].map(f => {
+function productosForm(reg) {
+  return [...document.querySelectorAll((reg ? '#prRegs' : '#prProds') + ' .prRow')].map(f => {
     const p = (S._prods || []).find(z => z.id === f.querySelector('.prP').value);
     if (!p) return null;
     const v = f.querySelector('.prV'), pre = f.querySelector('.prPre');
-    return { productoId: p.id, nombre: p.nombre, variante: v ? v.value : '', precioPromo: pre && S._promoTipo !== 'anuncio' ? pre.value : '', precioAntes: Number(f.dataset.normal) || p.precio };
+    return { productoId: p.id, nombre: p.nombre, variante: v ? v.value : '', precioPromo: pre && S._promoTipo !== 'anuncio' && S._promoMec === 'precio' && !reg ? pre.value : '', precioAntes: Number(f.dataset.normal) || p.precio };
   }).filter(Boolean);
 }
 
 function tipoBanner(el) {
   S._promoTipo = el.dataset.t;
   document.querySelectorAll('.tipoB').forEach(o => o.classList.toggle('on', o === el));
-  const an = S._promoTipo === 'anuncio';
-  $('#prProdsT').textContent = an ? 'Productos que quieres dar a conocer (opcional)' : 'Productos en promoción';
-  $('#prProdsN').textContent = an ? 'Aparecen en la sección Novedades de tu menú.' : 'Agrega los que quieras. Al menos uno con precio especial; los demás solo se destacan.';
-  document.querySelectorAll('.prPre').forEach(i => { i.style.display = an ? 'none' : ''; });
-  prevPromo();
+  actualizarMec();
 }
 
 async function imgPromo(inp) {
@@ -3512,17 +3775,27 @@ function prevPromo() {
   box.innerHTML = `<div class="promoFila" style="padding:0">${slidePromo({
     id: '', tipo: S._promoTipo, titulo: ($('#prTit') || {}).value || (S._promoTipo === 'anuncio' ? 'Título de tu anuncio' : 'Título de tu promoción'), negocio: n.nombre || '', logo: n.logo || '', categoria: n.categoria,
     imagen: S._promoImg || (S._promoQuitar ? '' : S._promoEdit.imagen), abierto: true,
-    productos: prods, ahorroMax: ahorros.length ? Math.max(...ahorros) : 0
+    productos: prods, ahorroMax: ahorros.length ? Math.max(...ahorros) : 0, ...mecForm(), todoMenu: mecForm().todo
   }).replace('onclick="abrirPromo(\'\')"', '')}</div>`;
 }
 
+/** Datos de la mecánica en el formulario. */
+function mecForm() {
+  const m = S._promoTipo === 'anuncio' ? 'precio' : S._promoMec, v = id => ($('#' + id) || {}).value || '';
+  const [lleva, paga] = m === 'nxm' ? v('prLP').split('-').map(Number) : [m === 'regalo' ? Number(v('prLleva')) || 1 : 0, 0];
+  const o = { mecanica: m, valor: Number(v('prValor')) || 0, lleva, paga, tope: m === 'primera' ? Number(v('prTope')) || 0 : 0, todo: ['pct', 'monto', 'nxm'].includes(m) && !!($('#prTodo') || {}).checked };
+  o.etiqueta = m === 'precio' ? '' : etiquetaPromo(o);
+  return o;
+}
 async function guardarPromoForm() {
   const dias = [...document.querySelectorAll('.prDia')].filter(x => x.checked).map(x => +x.value);
   if (!dias.length) throw new Error('Elige al menos un día');
   const conHora = $('#prConHora').checked;
   const l = await api('guardarPromo', {
     id: S._promoEdit.id || undefined, tipo: S._promoTipo, titulo: $('#prTit').value, descripcion: $('#prDes').value,
-    productos: productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
+    ...(({ mecanica, valor, lleva, paga, tope }) => ({ mecanica, valor, lleva, paga, tope }))(mecForm()),
+    productos: mecForm().todo ? [{ productoId: '*' }] : S._promoMec === 'primera' && S._promoTipo !== 'anuncio' ? [] : productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
+    regalos: S._promoMec === 'regalo' ? productosForm(true).map(x => ({ productoId: x.productoId, variante: x.variante })) : [],
     inicio: $('#prIni').value, fin: $('#prFin').value, dias, horaIni: conHora ? $('#prHI').value : '', horaFin: conHora ? $('#prHF').value : '',
     imagen: S._promoImg || undefined, quitarImagen: S._promoQuitar || undefined
   });
