@@ -1,5 +1,6 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v1.8.1';
+const VERSION = 'pidele-v2.1.0';
+const COMPARTIDO = 'pidele-compartido'; // comprobante que llega desde "Compartir" de otra app
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
 
 /* ---------- Notificaciones (Firebase Cloud Messaging) ---------- */
@@ -37,7 +38,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== COMPARTIDO).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -48,6 +49,21 @@ self.addEventListener('activate', e => {
  * - Servidor, mapas (teselas), imágenes de Drive: siempre a la red.
  */
 self.addEventListener('fetch', e => {
+  // "Compartir" desde la app del banco (Android con Pídele instalada): se guarda el archivo y se abre la app
+  if (e.request.method === 'POST' && new URL(e.request.url).pathname.endsWith('/compartir')) {
+    e.respondWith((async () => {
+      try {
+        const f = await e.request.formData();
+        const a = f.getAll('archivo').find(x => x && x.size) || null;
+        if (a) {
+          const c = await caches.open(COMPARTIDO);
+          await c.put('./compartido-archivo', new Response(a, { headers: { 'Content-Type': a.type || 'application/octet-stream', 'X-Nombre': encodeURIComponent(a.name || 'comprobante') } }));
+        }
+      } catch (err) { /* sin archivo: la app avisa */ }
+      return Response.redirect(new URL('./?compartido=1', self.registration.scope).href, 303);
+    })());
+    return;
+  }
   if (e.request.method !== 'GET') return;
   const u = new URL(e.request.url);
   const propio = u.origin === self.location.origin;

@@ -348,7 +348,7 @@ textarea.i{min-height:70px;resize:vertical}
 /* ============ CONFIGURACIÓN ============ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbw16py7HK64D_1W5C5leitt313r_tviHv9NYsgH2_ZSu_z_1IWJcynEMsNSySrTUqu7pQ/exec';
 const APP = 'Pídele';
-const APP_VER = '1.8.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.1.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
@@ -590,7 +590,7 @@ const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
   negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
-  disponibles: vDisponibles, entregas: vEntregas,
+  disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig
 };
 const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos'];
@@ -719,6 +719,7 @@ function guardarSesion(d) {
   history.replaceState(null, '');
   // entró con contraseña temporal: primero crea una nueva
   const destino = S.user.cambiarPass ? 'nuevaClave' : S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
+  if (destino === 'compartido') history.replaceState({ v: inicioRol() }, '', location.pathname);
   S.despues = null;
   ir(destino); // el inicio ya está cargado desde que se abrió la pantalla de entrar: aparece al instante
   iniciarSondeo();
@@ -731,7 +732,7 @@ function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
   ['token', 'user', 'negocio', 'entrega'].forEach(k => ls(k, null));
-  S.token = null; S.user = null; S.negocio = null; S.firma = ''; S.nuevos = 0; S.despues = null; S.entrega = null;
+  S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -878,11 +879,54 @@ function abrirDesdeUrl(url) {
   try { q = new URL(url, location.href).searchParams; } catch (e) { return false; }
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
   if (neg) { ir('negocio', neg); return true; }
+  if (q.get('instalar')) { ir(inicioRol(), null); setTimeout(instalarApp, 600); return true; }
+  if (q.get('compartido')) {
+    if (!S.token) { S.despues = 'compartido'; ir('entrar'); setTimeout(() => toast('Entra a tu cuenta para enviar tu comprobante'), 400); return true; }
+    ir('compartido'); return true;
+  }
   if (!S.token || (!ped && !v)) return false;
   if (ped) ir('pedido', ped); else if (VISTAS[v] && ((NAV[rolActual()] || []).some(x => x[0] === v) || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
+
+/* ============ COMPROBANTE COMPARTIDO DESDE LA APP DEL BANCO ============ */
+async function archivoCompartido() {
+  try {
+    const c = await caches.open('pidele-compartido'), r = await c.match('./compartido-archivo');
+    if (!r) return null;
+    const b = await r.blob();
+    return new File([b], decodeURIComponent(r.headers.get('X-Nombre') || 'comprobante'), { type: b.type || r.headers.get('Content-Type') || '' });
+  } catch (e) { return null; }
+}
+async function borrarCompartido() { try { (await caches.open('pidele-compartido')).delete('./compartido-archivo'); } catch (e) { } }
+
+async function vCompartido() {
+  const f = await archivoCompartido();
+  const top = `<div class="titBar"><button class="redondo" onclick="borrarCompartido();ir(inicioRol())">${ico('atras')}</button><h2>Enviar comprobante</h2><span class="esp"></span></div>`;
+  if (!f) { html(top + '<div class="vacio"><span class="big">📎</span>No llegó ningún archivo. Vuelve a compartirlo desde tu app del banco, o adjúntalo desde tu pedido.</div>'); return; }
+  if (rolActual() !== 'comprador') { html(top + '<div class="vacio">Los comprobantes se envían desde una cuenta de cliente.</div>'); return; }
+  const l = (await api('misPedidos')).filter(p => p.estado === 'POR_PAGAR');
+  recordar(l);
+  const pdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  if (S._urlComp) URL.revokeObjectURL(S._urlComp);
+  S._urlComp = pdf ? '' : URL.createObjectURL(f);
+  const vista = pdf ? '<div class="card" style="text-align:center"><span style="font-size:42px">📄</span><div><b>Comprobante en PDF</b></div><div class="muted small">' + esc(f.name) + '</div></div>'
+    : `<div class="card" style="text-align:center"><img src="${S._urlComp}" alt="Comprobante" style="max-width:100%;max-height:45vh;border-radius:12px"></div>`;
+  if (!l.length) { html(top + vista + '<div class="aviso warn">No tienes pedidos esperando pago. Si ya enviaste tu comprobante, el negocio lo está revisando.</div><div class="btns"><button class="btn pill full" onclick="borrarCompartido();ir(\'pedidos\')">Ver mis pedidos</button></div>'); return; }
+  html(top + vista + `<h3>¿De qué pedido es?</h3>
+    ${l.map((p, i) => `<label class="opc"><input type="radio" name="pcomp" value="${p.id}" ${i === 0 ? 'checked' : ''}><span><b>${esc(p.negocio.nombre)}</b> · ${esc(p.folio)}<div class="muted small">Pagar ${money(p.montoTransferencia || p.subtotal)} · ${hora(p.creado)}</div></span></label>`).join('')}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,enviarCompartido)">📎 Enviar comprobante</button></div>`);
+}
+async function enviarCompartido() {
+  const id = (document.querySelector('input[name=pcomp]:checked') || {}).value;
+  const f = await archivoCompartido();
+  if (!id || !f) throw new Error('Elige el pedido');
+  await enviarComprobante(id, f);
+  await borrarCompartido();
+  toast('Comprobante enviado ✓');
+  ir('pedido', id);
+}
 
 /* ============ COMPARTIR ============ */
 function urlApp(params) {
@@ -903,7 +947,7 @@ function cargarQR() {
 
 const TXT_APP = '🍔 Pide comida a domicilio en La Cruz de Elota con Pídele. Pagas directo al negocio, sin comisiones.';
 
-function compartirApp(btn) { return compartir(btn, 'Pídele', TXT_APP, urlApp(), 'Comparte Pídele', 'Pidele'); }
+function compartirApp(btn) { return compartir(btn, 'Pídele', TXT_APP + ' Instálala aquí:', urlApp('instalar=1'), 'Comparte Pídele', 'Pidele'); }
 function compartirNegocio(btn, id, nombre) {
   return compartir(btn, nombre + ' en Pídele', '😋 Pide en ' + nombre + ' desde Pídele, a domicilio o para recoger.', urlApp('negocio=' + id), 'Comparte ' + nombre, nombre);
 }
@@ -987,9 +1031,10 @@ async function sondear(forzar) {
     const d = await api('sondeo', S.user.rol === 'repartidor' && S.pos ? S.pos : {});
     const cambio = S.firma && d.firma !== S.firma;
     const masNuevos = d.nuevos > S.nuevos;
+    if (d.turno && S.user.rol === 'repartidor') S.user.turno = d.turno;
     if (S.firma && Date.now() - (S._pushReciente || 0) > 20000) {
       if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', 'Revisa la pestaña Pedidos');
-      else if (S.user.rol === 'repartidor' && masNuevos) avisar('📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
+      else if (S.user.rol === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar('📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
     S.firma = d.firma; S.nuevos = d.nuevos;
@@ -1014,6 +1059,42 @@ function iniciarGPS() {
     },
     e => { S.gpsErr = e.code || 2; if (e.code === 1) { navigator.geolocation.clearWatch(S._gps); S._gps = null; } },
     { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 });
+}
+
+/** Estado del turno del repartidor: disponible, en pausa o fuera de horario, con sus botones. */
+function tarjetaTurno(t) {
+  if (!t || S.user.estado !== 'activo') return '';
+  const pausas = `<div class="row wrap" style="gap:6px;margin-top:8px"><span class="muted small" style="width:100%">Tomar un descanso (no te llegan avisos):</span>
+      <button class="btn sm" onclick="act(this,()=>turno('pausa',30))">⏸️ 30 min</button><button class="btn sm" onclick="act(this,()=>turno('pausa',60))">⏸️ 1 hora</button>
+      <button class="btn sm" onclick="act(this,()=>turno('pausa',0))">⏸️ Hasta que la quite</button></div>`;
+  const hor = `<button class="lnk small" onclick="ir('perfil');setTimeout(()=>{const e=$('#horRep');if(e&&e.scrollIntoView)e.scrollIntoView({behavior:'smooth'})},400)">🗓️ ${(S.user.horarioRep || []).length ? 'Editar mi horario' : 'Definir mi horario'}</button>`;
+  if (t.disponible) return `<div class="card" style="border:2px solid var(--ok)"><div class="row between"><div><b style="color:var(--ok)">🟢 Disponible</b>
+      <div class="muted small">${t.por === 'horario' ? 'En tu horario hasta las ' + hora(t.hasta) : t.por === 'manual' ? 'Activo fuera de tu horario hasta las ' + hora(t.hasta) : 'Te llegan avisos de pedidos'}</div></div>${hor}</div>
+      ${pausas}${t.por === 'manual' ? `<div class="btns"><button class="btn sm" onclick="act(this,()=>turno('terminar'))">🌙 Terminar mi turno</button></div>` : ''}</div>`;
+  const txt = t.por === 'pausa' ? (t.hasta ? '⏸️ En pausa hasta las ' + hora(t.hasta) : '⏸️ En pausa') : '🌙 Fuera de tu horario';
+  const sub = t.por === 'pausa' ? 'No te llegan avisos de pedidos. Si tomas uno, vuelves a quedar disponible.'
+    : 'No te llegan avisos' + (t.desde ? '. Tu turno empieza ' + (new Date(t.desde).toDateString() === new Date().toDateString() ? 'hoy' : fechaCorta(t.desde).split(' ').slice(0, 2).join(' ')) + ' a las ' + hora(t.desde) : '') + '.';
+  return `<div class="card" style="border:2px solid var(--warn)"><div class="row between"><div><b>${txt}</b><div class="muted small">${sub}</div></div>${hor}</div>
+    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>turno('activar'))">${t.por === 'pausa' ? '▶️ Reanudar ahora' : '▶️ Activarme ahora'}</button></div></div>`;
+}
+async function turno(accion, minutos) {
+  const t = await api('turnoRepartidor', { accion, minutos });
+  S.user.turno = t; ls('user', S.user);
+  toast(t.disponible ? '🟢 Estás disponible' : '⏸️ En pausa: no te llegarán avisos');
+  pintar(true);
+}
+/** Horario de trabajo del repartidor (en Perfil). */
+function tarjetaHorarioRep() {
+  const hs = S.user.horarioRep || [], tiene = hs.length === 7;
+  return `<h3 id="horRep">🗓️ Mi horario de trabajo</h3><div class="card">
+    <label class="opc"><input type="checkbox" id="hrUsa" ${tiene ? 'checked' : ''} onchange="$('#hrFilas').style.display=this.checked?'':'none'"><span><b>Tengo horario fijo</b><div class="muted small">Fuera de tu horario no te llegan avisos. Sin horario, te llegan siempre (salvo cuando te pones en pausa).</div></span></label>
+    <div id="hrFilas" style="${tiene ? '' : 'display:none'}">${filasHorario(tiene ? hs : null, '07:00', '18:00')}
+      <button class="btn sm" style="margin-top:8px" onclick="copiarLunes()">Copiar el lunes a todos los días</button></div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarHorarioRep)">Guardar horario</button></div></div>`;
+}
+async function guardarHorarioRep() {
+  S.user = await api('guardarHorarioRep', { horarios: $('#hrUsa').checked ? leerHorario() : null });
+  ls('user', S.user); toast('Horario guardado ✓');
 }
 
 /** Aviso del repartidor sin ubicación, con botón para activarla. */
@@ -1131,7 +1212,8 @@ function resumenCobro(p) {
     <div class="tot g"><span>Total</span><span>${money(p.total)}</span></div>
     <div class="muted small" style="margin-top:6px">${ico(efe ? 'efectivo' : 'banco', 's')} ${efe
       ? (p.tipoEntrega === 'recoger' ? 'Pago en efectivo al recoger.' : 'Pago en efectivo al repartidor: ' + money(p.total) + '.')
-      : PAGO_TXT[p.metodoPago] + ' al negocio: ' + money(p.subtotal) + (p.envio ? ' · envío ' + money(p.envio) + ' en efectivo al repartidor.' : '.')}</div>`;
+      : p.envioEn === 'negocio' ? PAGO_TXT[p.metodoPago] + ' al negocio: ' + money(p.montoTransferencia) + ' (incluye el envío).'
+      : PAGO_TXT[p.metodoPago] + ' al negocio: ' + money(p.subtotal) + (p.envio ? ' · envío ' + money(p.envio) + ' al repartidor (efectivo o transferencia).' : '.')}</div>`;
 }
 
 /** Botones de acción según el rol (negocio, repartidor, admin). */
@@ -1155,10 +1237,25 @@ function botonesPedido(p, enTarjeta) {
     if (p.estado === 'POR_PAGAR') b.push(`<button class="btn ok" onclick="act(this,()=>confirmarPago('${id}'))">Ya me pagó ✓</button>`);
     if (p.estado === 'PREPARANDO') b.push(`<button class="btn" onclick="act(this,()=>accion('marcarListo',{id:'${id}'},'Marcado como listo'))">📦 Ya está listo</button>`);
     if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && p.repartidor) {
-      b.push(`<button class="btn pri" onclick="act(this,()=>entregarRep('${id}',${efe ? p.subtotal : 0},'${esc(p.repartidor.nombre.replace(/['"\\]/g, ''))}'))">${ico('moto', 's')} Entregar a ${esc(p.repartidor.nombre.split(' ')[0])}${efe ? ' · cóbrale ' + money(p.subtotal) : ''}</button>`);
+      const pagaEnv = p.envioEn === 'negocio' ? p.envio : 0;
+      b.push(`<button class="btn pri" onclick="act(this,()=>entregarRep('${id}',${efe ? p.subtotal : 0},'${esc(p.repartidor.nombre.replace(/['"\\]/g, ''))}',${pagaEnv}))">${ico('moto', 's')} Entregar a ${esc(p.repartidor.nombre.split(' ')[0])}${efe ? ' · cóbrale ' + money(p.subtotal) : pagaEnv ? ' · págale ' + money(pagaEnv) + ' de envío' : ''}</button>`);
     }
     if (['PREPARANDO', 'LISTO'].includes(p.estado) && recoger) {
       b.push(`<button class="btn pri" onclick="act(this,()=>entregarCli('${id}',${efe ? p.total : 0}))">${ico('check', 's')} Entregado al cliente${efe ? ' · cobra ' + money(p.total) : ''}</button>`);
+    }
+    // reparto propio del negocio
+    const rep = (S.negocio && S.negocio.reparto) || 'pidele';
+    if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && !p.repartidor && (p.propio || rep !== 'pidele')) {
+      b.push(`<button class="btn pri" onclick="elegirRepPropio('${id}')">${ico('moto', 's')} Enviar con mi repartidor</button>`);
+    } else if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && !p.repartidor && (p.sinRepartidor || p.estado === 'LISTO')) {
+      // nadie lo ha tomado: el negocio puede mandarlo por su cuenta o escribirle a un repartidor
+      b.push(`<button class="btn pri" onclick="porMisMedios('${id}')">${ico('moto', 's')} Lo envío por mis medios</button>`);
+      b.push(`<button class="btn" onclick="act(this,()=>directorioRep('${id}'))">📒 Repartidores disponibles</button>`);
+    }
+    if (p.estado === 'EN_CAMINO' && p.propio) {
+      if (p.repPropio && p.repPropio.telefono) b.push(`<a class="btn" href="${waLink(p.repPropio.telefono, fichaReparto(p))}" target="_blank">${ico('chat', 's')} Reenviar ficha a ${esc(p.repPropio.nombre.split(' ')[0])}</a>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>entregadoPropio('${id}'))">${ico('check', 's')} Ya se entregó</button>`);
+      if (!enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar</button>`);
     }
     if (['POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO'].includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar</button>`);
   }
@@ -1175,6 +1272,11 @@ function botonesPedido(p, enTarjeta) {
     }
   }
   if (r === 'admin' && ACTIVOS.includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar (admin)</button>`);
+  if (p.puedeCalificar && (r === 'negocio' || r === 'repartidor')) {
+    const nomRep = p.repartidor ? p.repartidor.nombre.split(' ')[0] : '';
+    b.push(`<button class="btn" onclick='calificarCruzado("${id}","${r}",${JSON.stringify(p.negocio.nombre).replace(/'/g, '&#39;')},${JSON.stringify(p.comprador.nombre).replace(/'/g, '&#39;')},${JSON.stringify(nomRep).replace(/'/g, '&#39;')})'>⭐ Calificar</button>`);
+  }
+  if (p.puedeReabrir) b.push(`<button class="btn" onclick="act(this,()=>reabrir('${id}'))">↩️ Aún no se entrega</button>`);
   if (r !== 'comprador') b.push(`<button class="btn" onclick="abrirChat('${id}')">${ico('chat', 's')} Chat</button>`);
   return b.length ? `<div class="btns">${b.join('')}</div>` : '';
 }
@@ -1198,9 +1300,88 @@ async function noRecibido(id) {
   if (m === null) return;
   await accion('pagoNoRecibido', { id, motivo: m }, 'Se avisó al cliente');
 }
-async function entregarRep(id, cobro, nombre) {
-  if (!confirm('¿Entregas el pedido a ' + nombre + '?' + (cobro ? '\nCóbrale ' + money(cobro) + ' de la comida (pago en efectivo).' : ''))) return;
+async function entregarRep(id, cobro, nombre, pagaEnvio) {
+  if (!confirm('¿Entregas el pedido a ' + nombre + '?' + (cobro ? '\nCóbrale ' + money(cobro) + ' de la comida (pago en efectivo).' : '') + (pagaEnvio ? '\nPágale ' + money(pagaEnvio) + ' en efectivo por el envío (el cliente te lo pagó en su transferencia).' : ''))) return;
   await accion('entregarRepartidor', { id }, '¡Pedido en camino! 🛵');
+}
+/** Ficha para el repartidor del negocio: solo el primer nombre de quien recibe (privacidad). */
+function fichaReparto(p) {
+  const rec = p.recibe || { nombre: p.comprador.nombre, telefono: p.comprador.telefono };
+  const nom = String(rec.nombre || '').trim().split(/\s+/)[0] || 'Cliente';
+  const tel = String(rec.telefono || p.comprador.telefono || '');
+  const cobro = p.metodoPago === 'efectivo' ? `${money(p.total)} en efectivo (pedido ${money(p.subtotal)}${p.envio ? ' + envío ' + money(p.envio) : ''})`
+    : p.envio ? `${money(p.envio)} del envío (la comida ya está pagada)` : 'Nada, ya está pagado';
+  return [`🛵 *Entrega ${p.folio}* · ${p.negocio.nombre}`, '',
+    `👤 Recibe: ${nom}`, tel ? `📞 Tel: ${tel}` : '',
+    `📍 ${p.direccion}${p.referencia ? '\n🏠 Ref: ' + p.referencia : ''}`,
+    p.lat ? `🗺️ Ubicación: https://maps.google.com/?q=${p.lat},${p.lng}` : '',
+    `💵 Cobrar: ${cobro}`, p.notas ? `📝 Nota: ${p.notas}` : '',
+    `📦 ${p.items.reduce((s, i) => s + i.cant, 0)} producto(s)`].filter(Boolean).join('\n');
+}
+/** El negocio elige a cuál de sus repartidores manda el pedido. */
+function elegirRepPropio(id) {
+  const p = (S._pedidosVistos || {})[id];
+  const l = (S.negocio && S.negocio.repartidoresPropios) || [];
+  if (!p) { toast('Abre el pedido e inténtalo de nuevo', 'err'); return; }
+  if (!l.length) { modal(`<h2>Enviar con mi repartidor</h2><div class="aviso warn">Primero registra a tus repartidores en <b>Negocio → Envíos</b>.</div><div class="btns"><button class="btn pri pill full" onclick="cerrarModal();ir('miNegocio')">Ir a Envíos</button></div>`); return; }
+  modal(`<div class="row between"><h2 style="margin:0">¿Quién lo lleva?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">${esc(p.folio)} · ${esc(p.direccion)}</div>
+    ${l.map((x, i) => `<label class="opc"><input type="radio" name="rp" value="${i}" ${i === 0 ? 'checked' : ''}><span><b>${esc(x.nombre)}</b> · ${esc(x.tel)}</span></label>`).join('')}
+    <div class="muted small" style="margin-top:8px">El pedido pasará a <b>En camino</b> y se abrirá WhatsApp con la ficha de entrega (primer nombre y teléfono de quien recibe, dirección y ubicación).</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>enviarRepPropio('${id}'))">${ico('chat', 's')} Enviar y mandar ficha</button></div>
+    <div style="text-align:center"><button class="lnk" onclick="porMisMedios('${id}')">Lo lleva otra persona</button></div>`);
+}
+/** Enviar por cuenta del negocio aunque no tenga repartidores registrados: nombre y teléfono opcionales. */
+function porMisMedios(id) {
+  const p = (S._pedidosVistos || {})[id];
+  if (!p) { toast('Abre el pedido e inténtalo de nuevo', 'err'); return; }
+  modal(`<div class="row between"><h2 style="margin:0">Enviar por mis medios</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">${esc(p.folio)} · ${esc(p.direccion)}</div>
+    <div class="aviso info">Tú te encargas de la entrega (alguien de tu equipo, un conocido o un repartidor por fuera). El pedido pasa a <b>En camino</b> y tú marcas cuando se entregue.</div>
+    <label class="f">¿Quién lo lleva? (opcional)</label><input class="i" id="mmNom" maxlength="40" placeholder="Nombre">
+    <label class="f">Su WhatsApp (opcional)</label><input class="i" id="mmTel" inputmode="tel" maxlength="14" placeholder="10 dígitos">
+    <div class="muted small" style="margin-top:6px">Si no pones teléfono, podrás elegir el contacto en WhatsApp o copiar la ficha.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>enviarMisMedios('${id}'))">${ico('chat', 's')} Enviar y compartir ficha</button></div>`);
+}
+async function enviarMisMedios(id) {
+  const nombre = $('#mmNom').value.trim(), tel = $('#mmTel').value.replace(/\D/g, '');
+  if (tel && tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
+  const v = await api('enviarConPropio', { id, libre: true, nombre, tel });
+  recordar([v]);
+  const ficha = fichaReparto(v);
+  const link = tel ? waLink(tel, ficha) : 'https://wa.me/?text=' + encodeURIComponent(ficha);
+  S._ficha = ficha;
+  modal(`<div style="text-align:center"><span style="font-size:42px">🛵</span><h2>¡Pedido en camino!</h2>
+    <div class="muted">Comparte la ficha de entrega con quien lo lleva.</div>
+    <div class="btns"><a class="btn pri pill full" href="${link}" target="_blank">${ico('chat', 's')} ${tel ? 'Mandar ficha por WhatsApp' : 'Elegir contacto en WhatsApp'}</a></div>
+    <div class="btns"><button class="btn pill full" onclick="copiar(S._ficha,'Ficha')">${ico('copiar', 's')} Copiar ficha</button></div>
+    <button class="lnk" onclick="cerrarModal()">Listo</button></div>`);
+  pintar(true);
+}
+/** Repartidores de Pídele disponibles ahora, para escribirles si nadie toma el pedido. */
+async function directorioRep(id) {
+  const p = (S._pedidosVistos || {})[id] || {}, l = await api('directorioRepartidores');
+  const neg = (S.negocio && S.negocio.nombre) || 'tu negocio';
+  modal(`<div class="row between"><h2 style="margin:0">Repartidores disponibles</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">Escríbeles para que tomen tu pedido en la app (pestaña Disponibles).</div>
+    ${l.length ? l.map(x => `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--ln)"><div><b>${esc(x.nombre)}</b> <span class="muted small">${esc(x.vehiculo)}</span></div>
+      <a class="btn sm" target="_blank" href="${waLink(x.telefono, 'Hola ' + x.nombre + ', soy de ' + neg + '. Tengo el pedido ' + (p.folio || '') + ' listo en Pídele, ¿lo puedes tomar? Está en Disponibles.')}">${ico('chat', 's')} WhatsApp</a></div>`).join('')
+      : '<div class="vacio">Ahorita no hay repartidores disponibles. Puedes enviarlo por tus propios medios.</div>'}
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal();porMisMedios('${id}')">${ico('moto', 's')} Lo envío por mis medios</button></div>`);
+}
+async function enviarRepPropio(id) {
+  const l = S.negocio.repartidoresPropios, x = l[Number((document.querySelector('input[name=rp]:checked') || {}).value || 0)];
+  const v = await api('enviarConPropio', { id, nombre: x.nombre, tel: x.tel });
+  recordar([v]);
+  const link = waLink(x.tel, fichaReparto(v));
+  modal(`<div style="text-align:center"><span style="font-size:42px">🛵</span><h2>¡En camino con ${esc(x.nombre.split(' ')[0])}!</h2>
+    <div class="muted">Mándale la ficha con los datos de entrega.</div>
+    <div class="btns"><a class="btn pri pill full" href="${link}" target="_blank" onclick="setTimeout(cerrarModal,300)">${ico('chat', 's')} Mandar ficha por WhatsApp</a></div></div>`);
+  pintar(true);
+}
+async function entregadoPropio(id) {
+  if (!confirm('¿Tu repartidor ya entregó el pedido?')) return;
+  await accion('entregarCliente', { id }, 'Pedido entregado ✓');
 }
 async function entregarCli(id, cobro) {
   if (!confirm('¿El cliente ya recogió su pedido?' + (cobro ? '\nCobra ' + money(cobro) + ' en efectivo.' : ''))) return;
@@ -1211,8 +1392,57 @@ async function recogido(id) {
   await accion('marcarRecogido', { id }, '¡En camino!');
 }
 async function entregado(id, cobro) {
-  if (!confirm('¿Entregaste el pedido y cobraste ' + money(cobro) + ' en efectivo?\nLos datos de quien recibe se borrarán.')) return;
-  await accion('marcarEntregado', { id }, '¡Entrega completada!');
+  const p = (S._pedidosVistos || {})[id] || {};
+  const preguntar = p.envio > 0 && p.envioEn !== 'negocio';
+  if (!preguntar) {
+    if (!confirm('¿Entregaste el pedido' + (cobro ? ' y cobraste ' + money(cobro) : '') + '?\nLos datos de quien recibe se borrarán.')) return;
+    await terminarEntrega(id, '');
+    return;
+  }
+  const efe = p.metodoPago === 'efectivo';
+  modal(`<div style="text-align:center"><span style="font-size:42px">✅</span><h2>¿Entregaste el pedido?</h2>
+    <div class="muted">${efe ? 'Cobras ' + money(p.total) + ' (comida y envío).' : 'Cobras el envío: ' + money(p.envio) + '.'} ¿Cómo te pagaron el envío?</div>
+    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>terminarEntrega('${id}','efectivo'))">💵 En efectivo</button></div>
+    <div class="btns"><button class="btn pill full" onclick="act(this,()=>terminarEntrega('${id}','transferencia'))">🏦 Por transferencia a mi cuenta</button></div>
+    <div class="muted small">Los datos de quien recibe se borrarán.</div><button class="lnk" onclick="cerrarModal()">Aún no</button></div>`);
+}
+async function terminarEntrega(id, envioPago) {
+  await api('marcarEntregado', { id, envioPago });
+  cerrarModal(); toast('¡Entrega completada!');
+  const p = (S._pedidosVistos || {})[id] || {};
+  calificarCruzado(id, 'repartidor', p.negocio ? p.negocio.nombre : '', p.comprador ? p.comprador.nombre : '');
+  pintar(true);
+}
+/** El repartidor (negocio y cliente) o el negocio (cliente y repartidor) califican un pedido entregado. */
+function calificarCruzado(id, rol, negocio, cliente, repartidor) {
+  S._cal = { id, cruzado: rol, cliente: 0, negocio: 0, repartidor: 0 };
+  const fila = (k, t) => `<div style="margin:14px 0 4px"><b>${t}</b><div class="estrellas" data-k="${k}">${[1, 2, 3, 4, 5].map(i => `<button onclick="ponerEstrella('${k}',${i})" aria-label="${i} estrellas">★</button>`).join('')}</div></div>`;
+  modal(`<div style="text-align:center"><h2 style="margin-top:4px">Califica este pedido</h2>
+    <div class="muted small">Solo lo ve Pídele; ayuda a que la app funcione mejor para todos.</div>
+    ${rol === 'repartidor' ? fila('negocio', 'Negocio' + (negocio ? ' · ' + esc(negocio) : '') + '<div class="muted small">¿Estaba listo a tiempo? ¿Buen trato?</div>') : ''}
+    ${fila('cliente', 'Cliente' + (cliente ? ' · ' + esc(String(cliente).split(' ')[0]) : '') + '<div class="muted small">¿Estaba en el lugar? ¿Pagó sin problema?</div>')}
+    ${rol === 'negocio' && repartidor ? fila('repartidor', 'Repartidor · ' + esc(repartidor) + '<div class="muted small">¿Llegó a tiempo? ¿Buen trato?</div>') : ''}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,enviarCruzado)">Enviar</button></div>
+    <button class="lnk" onclick="cerrarModal()">Ahora no</button></div>`);
+}
+async function enviarCruzado() {
+  const c = S._cal;
+  if (!c.cliente && !c.negocio && !c.repartidor) throw new Error('Toca las estrellas para calificar');
+  await api('calificarPedido', { id: c.id, cliente: c.cliente, negocio: c.negocio, repartidor: c.repartidor });
+  cerrarModal(); toast('¡Gracias por calificar! ⭐'); pintar(true);
+}
+async function reabrir(id) {
+  if (!confirm('¿Regresar este pedido a "pendiente de entrega"?\nÚsalo solo si el cliente lo marcó como recibido por error. Se quitarán las calificaciones de este pedido.')) return;
+  await api('reabrirEntrega', { id });
+  toast('Pedido regresado a pendiente de entrega ↩️'); pintar(true);
+}
+/** Indicador del cliente para el negocio y el repartidor (el puntaje nunca se muestra). */
+function chipCliente(c) {
+  const n = c && c.nivel; if (!n) return '';
+  const t = { nuevo: ['t-info', '🆕 Cliente nuevo'], confiable: ['t-ok', '✅ Cliente confiable'], atencion: ['t-warn', '⚠️ Atención'], normal: ['t-gray', '👤 Cliente'] }[n.nivel];
+  if (!t) return '';
+  const det = n.entregados + ' entregado' + (n.entregados === 1 ? '' : 's') + (n.cancelados ? ' · ' + n.cancelados + ' cancelado' + (n.cancelados === 1 ? '' : 's') : '') + (n.numCalif ? ' · ★ ' + n.calif : '');
+  return `<span class="tag ${t[0]}" title="${esc(det)}">${t[1]}</span> <span class="muted small">${esc(det)}</span>`;
 }
 async function liberar(id) {
   const m = prompt('¿Por qué liberas el pedido? Otro repartidor podrá tomarlo.');
@@ -1220,8 +1450,17 @@ async function liberar(id) {
   await accion('liberarPedido', { id, motivo: m }, 'Pedido liberado');
 }
 async function verImagen(pedidoId, fileId) {
-  toast('Cargando imagen…');
-  visor(await api('imagen', { pedidoId, fileId }));
+  toast('Cargando…');
+  const d = await api('imagen', { pedidoId, fileId });
+  if (/^data:application\/pdf/.test(d)) {
+    // PDF: se abre con el visor del teléfono
+    const b = await (await fetch(d)).blob(), url = URL.createObjectURL(b);
+    modal(`<div style="text-align:center"><span style="font-size:42px">📄</span><h2>Comprobante en PDF</h2>
+      <div class="btns"><a class="btn pri pill full" href="${url}" target="_blank" download="comprobante.pdf">Abrir PDF</a></div>
+      <button class="lnk" onclick="cerrarModal()">Cerrar</button></div>`);
+    return;
+  }
+  visor(d);
 }
 /** Copia la ubicación de entrega para usarla en Waze, WhatsApp u otra app. */
 function copiarUbicacion(id) {
@@ -1257,7 +1496,7 @@ async function cargarChat() {
     box.innerHTML = l.length ? l.map(m => `<div class="msg ${m.mio ? 'mio' : ''} ${m.rol === 'sistema' ? 'sis' : ''}">
       ${m.rol === 'sistema' ? '' : `<small>${esc(m.nombre)} · ${esc(rolNombre(m.rol))} · ${hora(m.fecha)}</small>`}
       ${m.texto ? `<div>${esc(m.texto)}</div>` : ''}
-      ${m.imagenId ? `<button class="lnk" onclick="act(this,()=>verImagen('${pid}','${m.imagenId}'))">🖼️ Ver imagen</button>` : ''}
+      ${m.imagenId ? `<button class="lnk" onclick="act(this,()=>verImagen('${pid}','${m.imagenId}'))">${/comprobante/i.test(m.texto || '') ? '🧾 Ver comprobante' : '🖼️ Ver imagen'}</button>` : ''}
     </div>`).join('') : '<div class="vacio">Aún no hay mensajes</div>';
     if (abajo || !box._ya) { box.scrollTop = box.scrollHeight; box._ya = true; }
   } catch (e) { }
@@ -1441,6 +1680,7 @@ async function vInicio(p, silencioso) {
       ${botonCarrito()}
     </div>
     ${bannerPush()}
+    ${tarjetaInstalar()}
     <h1>¿Qué se te antoja hoy?</h1>
     <div class="buscar" onclick="ir('buscar')">${ico('search', 's')}<span>Busca tu comida favorita…</span></div>
     <div id="promoBanner"></div>
@@ -1815,7 +2055,14 @@ function subtotalCarrito(c) { return Object.values(c.items).reduce((s, x) => s +
 function envioEstimado(c, lat, lng) {
   if (!lat || !c.lat || !S.conf) return null;
   const km = kmRuta(c.lat, c.lng, lat, lng);
-  return km <= S.conf.kmMaximo ? tarifa(km) : -1; // -1 = fuera del área
+  return km <= S.conf.kmMaximo ? envioNegocio(c.negocioId, km) : -1; // -1 = fuera del área
+}
+/** Envío de un negocio: con reparto propio puede ser gratis o un precio fijo; si no, la tarifa de la app. */
+function envioNegocio(negId, km) {
+  const n = (S._negs || []).find(x => x.id === negId), e = n && n.envioPropio;
+  if (e && e.tipo === 'gratis') return 0;
+  if (e && e.tipo === 'fijo' && e.monto > 0) return e.monto;
+  return tarifa(km);
 }
 function negocioAbierto(id) { const n = (S._negs || []).find(x => x.id === id); return n ? n.abierto : true; }
 
@@ -1937,14 +2184,16 @@ function pintarCamposEntrega() {
     return;
   }
   $('#entregaCampos').innerHTML = `<h3>Dirección de entrega</h3>
-    <div class="conIco">${ico('pin', 's')}<input class="i" id="eDir" value="${esc(e.direccion)}" placeholder="Calle, número y colonia"></div>
+    <div class="conIco">${ico('pin', 's')}<input class="i" id="eDir" value="${esc(e.direccion)}" placeholder="Se llena sola al marcar el mapa (puedes corregirla)" oninput="S.entrega.dirManual=!!this.value"></div>
     <label class="f">Referencia (opcional)</label><input class="i" id="eRef" value="${esc(e.referencia)}" placeholder="Ej. Casa color blanco, junto al parque">
     <div class="row between" style="margin:12px 0 8px"><span class="muted small">Mueve el marcador a la puerta de tu casa</span>
       <button class="btn sm" onclick="miUbicacion((a,b)=>S._sel.fijar(a,b,true))">${ico('pin', 's')} Mi ubicación</button></div>
     <div id="mapaEnt" class="mapa"></div>
     <div class="muted small" id="eEnv" style="margin-top:6px"></div>`;
   S._sel = mapaSelector('mapaEnt', e.lat, e.lng, (la, ln) => {
+    const movio = Math.abs((e.lat || 0) - la) > 1e-5 || Math.abs((e.lng || 0) - ln) > 1e-5;
     e.lat = la; e.lng = ln; ls('entrega', e);
+    if (!e.dirManual && (movio || !e.direccion)) direccionDesdeMapa(la, ln);
     if (!S.conf) return;
     $('#eEnv').innerHTML = cs.map(c => {
       const v = envioEstimado(c, la, ln);
@@ -1954,12 +2203,29 @@ function pintarCamposEntrega() {
   });
 }
 
+/** Calle y colonia del punto marcado (OpenStreetMap, gratis). Solo si el cliente no la escribió a mano. */
+function direccionDesdeMapa(la, ln) {
+  clearTimeout(S._geoT);
+  S._geoT = setTimeout(async () => {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 5000);
+    try {
+      const r = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=es&lat=${la}&lon=${ln}`, { signal: ctl.signal })).json();
+      const a = r.address || {};
+      const calle = [a.road || a.pedestrian || a.footway || '', a.house_number || ''].filter(Boolean).join(' ');
+      const col = a.neighbourhood || a.suburb || a.quarter || a.hamlet || '';
+      const txt = [calle, col].filter(Boolean).join(', ') || (r.display_name || '').split(',').slice(0, 2).join(',');
+      const i = $('#eDir');
+      if (txt && S.entrega && !S.entrega.dirManual && i && i.tagName) { i.value = txt; S.entrega.direccion = txt; ls('entrega', S.entrega); }
+    } catch (e) { } finally { clearTimeout(to); }
+  }, 700);
+}
+
 async function continuarEntrega() {
   guardarCamposEntrega();
   const e = S.entrega;
   if (e.tipo === 'domicilio') {
     if (!e.lat) throw new Error('Marca en el mapa dónde te entregamos');
-    if ((e.direccion || '').trim().length < 5) throw new Error('Escribe tu dirección de entrega');
+    if (!(e.direccion || '').trim()) e.direccion = 'Ubicación marcada en el mapa';
     const fuera = carritosSel().filter(c => envioEstimado(c, e.lat, e.lng) < 0);
     if (fuera.length) throw new Error(fuera.map(c => c.negocio).join(', ') + ' no entrega hasta tu ubicación. Quítalo del pedido o elige recoger.');
   }
@@ -1987,11 +2253,12 @@ async function vPago() {
   S._pagoTot = {};
   const bloques = cs.map(c => {
     const n = negs[c.negocioId] || {}, pg = n.pagos || { efectivo: true };
-    const sub = subtotalCarrito(c), envio = e.tipo === 'domicilio' ? tarifa(kmRuta(c.lat, c.lng, e.lat, e.lng)) : 0;
+    const sub = subtotalCarrito(c), envio = e.tipo === 'domicilio' ? envioNegocio(c.negocioId, kmRuta(c.lat, c.lng, e.lat, e.lng)) : 0;
     subT += sub; envT += envio;
     S._pagoTot[c.negocioId] = { sub, envio };
     const ops = [];
-    if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(sub) + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
+    const conEnvio = n.envioEnTransfer && envio > 0, montoT = conEnvio ? sub + envio : sub;
+    if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
     if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
     if (pg.efectivo) {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
@@ -2133,6 +2400,7 @@ async function vPedido(id, silencioso) {
       ${p.estado !== 'CANCELADO' ? pasos4(p) : ''}
     </div>
     ${bloquePago(p)}
+    ${bloquePagoEnvio(p)}
     ${bloqueRecibido(p)}
     <div class="card"><div class="row between"><b>Pedido ${p.folio}</b><span class="muted small">${fechaCorta(p.creado)}</span></div>
       <div class="muted small" style="margin:2px 0 8px">${esc(p.negocio.nombre)} · ${recoger ? 'Recoger en restaurante' : esc(p.direccion)}</div>
@@ -2152,10 +2420,10 @@ function estadoCliente(p) {
     case 'NUEVO': return { icono: 'tienda', titulo: 'Esperando que el negocio confirme', sub: p.negocio.nombre };
     case 'POR_PAGAR': return { icono: 'banco', titulo: 'Confirmado: realiza tu pago', sub: 'Transfiere y adjunta tu comprobante' };
     case 'PAGO_ENVIADO': return { icono: 'banco', titulo: 'Verificando tu pago', sub: 'El negocio está revisando' };
-    case 'PREPARANDO': return { icono: 'reloj', titulo: 'Tu pedido se está preparando', sub: rec ? llega : p.repartidor ? 'Repartidor asignado: ' + p.repartidor.nombre.split(' ')[0] : 'Buscando repartidor…' };
+    case 'PREPARANDO': return { icono: 'reloj', titulo: 'Tu pedido se está preparando', sub: rec ? llega : p.repartidor ? 'Repartidor asignado: ' + p.repartidor.nombre.split(' ')[0] : p.propio ? 'Lo entrega el repartidor del negocio' : 'Buscando repartidor…' };
     case 'LISTO': return rec ? { icono: 'tienda', titulo: '¡Listo para recoger!', sub: 'Pasa por él a ' + p.negocio.nombre }
-      : { icono: 'moto', titulo: 'Tu pedido está listo', sub: p.repartidor ? p.repartidor.nombre.split(' ')[0] + ' va por él' : 'Buscando repartidor…' };
-    case 'EN_CAMINO': return { icono: 'moto', titulo: 'Tu pedido está en camino', sub: llega };
+      : { icono: 'moto', titulo: 'Tu pedido está listo', sub: p.repartidor ? p.repartidor.nombre.split(' ')[0] + ' va por él' : p.propio ? 'Sale en un momento con el repartidor del negocio' : 'Buscando repartidor…' };
+    case 'EN_CAMINO': return { icono: 'moto', titulo: 'Tu pedido está en camino', sub: (p.repPropio ? 'Con ' + p.repPropio.nombre + ' · ' : '') + llega };
     case 'ENTREGADO': return { icono: 'check', titulo: 'Pedido entregado', sub: '¡Buen provecho!' };
   }
   return { icono: 'recibo', titulo: EST[p.estado] ? EST[p.estado][0] : p.estado, sub: '' };
@@ -2163,9 +2431,9 @@ function estadoCliente(p) {
 
 function tarjetaContacto(p) {
   if (p.tipoEntrega === 'recoger' || !p.repartidor) {
-    const busc = p.tipoEntrega !== 'recoger' && ['PREPARANDO', 'LISTO'].includes(p.estado);
+    const busc = p.tipoEntrega !== 'recoger' && !p.propio && ['PREPARANDO', 'LISTO'].includes(p.estado);
     return `<div class="row">${p.negocio.logo ? `<img class="avatar" src="${esc(p.negocio.logo)}" alt="" style="object-fit:cover">` : `<div class="avatar">${ico('tienda')}</div>`}
-      <div class="grow"><b>${esc(p.negocio.nombre)}</b><div class="muted small">${busc ? 'Buscando repartidor…' : 'Restaurante'}</div></div>
+      <div class="grow"><b>${esc(p.negocio.nombre)}</b><div class="muted small">${busc ? 'Buscando repartidor…' : p.repPropio ? 'Te lo lleva ' + esc(p.repPropio.nombre) + ', su repartidor' : p.propio ? 'Entrega con su propio repartidor' : 'Restaurante'}</div></div>
       ${p.negocio.telefono ? `<a class="redondo verde" href="tel:${esc(p.negocio.telefono)}" aria-label="Llamar">${ico('tel', 's')}</a>` : ''}
       <button class="redondo verde" onclick="abrirChat('${p.id}')" aria-label="Mensajes">${ico('chat', 's')}</button></div>`;
   }
@@ -2214,27 +2482,46 @@ function moverTrk(p) {
   if (S._trk.linea && p.estado === 'EN_CAMINO') S._trk.linea.setLatLngs([[u.lat, u.lng], [p.lat, p.lng]]);
 }
 
+/** El cliente puede pagarle el envío al repartidor por transferencia (si el repartidor registró su cuenta). */
+function bloquePagoEnvio(p) {
+  const g = p.repartidor && p.repartidor.pagoEnvio;
+  if (!g || !['PREPARANDO', 'LISTO', 'EN_CAMINO'].includes(p.estado)) return '';
+  return `<details class="card"><summary><b>🏦 ¿Pagas el envío (${money(p.envio)}) por transferencia?</b></summary>
+    <div class="muted small" style="margin:6px 0">Transfiere a ${esc(p.repartidor.nombre.split(' ')[0])}, tu repartidor, y muéstrale tu comprobante al recibir.</div>
+    <div class="copiar"><div><div class="muted small">${g.clabe.length === 16 ? 'Tarjeta' : 'CLABE'}${g.banco ? ' · ' + esc(g.banco) : ''}</div><div class="v">${esc(g.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(g.clabe)}','Cuenta')">${ico('copiar', 's')}</button></div>
+    <div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b></div></details>`;
+}
+
 /** Bloque de transferencia o CoDi cuando el negocio ya aceptó. */
 function bloquePago(p) {
   if (p.estado === 'PAGO_ENVIADO') return `<div class="aviso info">🔎 Enviaste tu comprobante. El negocio está verificando el pago.</div>`;
   if (p.estado !== 'POR_PAGAR' || !p.pago) return '';
-  const g = p.pago, codi = p.metodoPago === 'codi';
+  const g = p.pago, codi = p.metodoPago === 'codi', monto = p.montoTransferencia || p.subtotal;
   return `<div class="card" style="border:2px solid var(--pri)">
-    <h3 style="margin-top:0">${ico(codi ? 'qr' : 'banco', 's')} Paga ${money(p.subtotal)} a ${esc(p.negocio.nombre)}</h3>
-    <div class="muted small">El pago va directo al negocio, sin comisiones. Tienes hasta las <b>${hora(g.limite)}</b>.</div>
+    <h3 style="margin-top:0">${ico(codi ? 'qr' : 'banco', 's')} Paga ${money(monto)} a ${esc(p.negocio.nombre)}</h3>
+    <div class="muted small">El pago va directo al negocio, sin comisiones${p.envioEn === 'negocio' ? '. Incluye el envío (' + money(p.envio) + ')' : ''}. Tienes hasta las <b>${hora(g.limite)}</b>.</div>
     ${codi && g.qrId ? `<div class="btns"><button class="btn pri" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} Ver QR CoDi</button></div>` : ''}
-    <div class="copiar"><div><div class="muted small">Monto exacto</div><div class="v">${money(p.subtotal)}</div></div><button class="btn sm" onclick="copiar('${p.subtotal}','Monto')">${ico('copiar', 's')}</button></div>
+    <div class="copiar"><div><div class="muted small">Monto exacto</div><div class="v">${money(monto)}</div></div><button class="btn sm" onclick="copiar('${monto}','Monto')">${ico('copiar', 's')}</button></div>
     ${g.clabe ? `<div class="copiar"><div><div class="muted small">CLABE · ${esc(g.banco)}</div><div class="v">${esc(g.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(g.clabe)}','CLABE')">${ico('copiar', 's')}</button></div>` : ''}
     ${g.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta · ${esc(g.banco)}</div><div class="v">${esc(g.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(g.tarjeta)}','Tarjeta')">${ico('copiar', 's')}</button></div>` : ''}
     ${g.titular ? `<div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b></div>` : ''}
     ${!codi && g.qrId ? `<div class="btns"><button class="btn" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} También puedes pagar con CoDi</button></div>` : ''}
-    <div class="btns"><label class="btn pri pill full">📎 Adjuntar comprobante<input type="file" accept="image/*" hidden onchange="subirComprobante('${p.id}',this)"></label></div></div>`;
+    <div class="btns"><label class="btn pri pill full">📎 Adjuntar comprobante<input type="file" accept="image/*,application/pdf" hidden onchange="subirComprobante('${p.id}',this)"></label></div></div>`;
 }
 
+/** Sube un comprobante: las imágenes se comprimen; los PDF (algunos bancos los comparten así) van tal cual. */
+async function enviarComprobante(id, f) {
+  if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '')) {
+    if (f.size > 4 * 1024 * 1024) throw new Error('El PDF pesa más de 4 MB');
+    const pdf = await new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^;]*;/, 'data:application/pdf;')); r.onerror = () => mal(new Error('No se pudo leer el PDF')); r.readAsDataURL(f); });
+    return api('subirComprobante', { pedidoId: id, pdf });
+  }
+  return api('subirComprobante', { pedidoId: id, imagen: await comprimir(f, 1400) });
+}
 async function subirComprobante(id, inp) {
   const f = inp.files[0]; if (!f) return;
   toast('Subiendo comprobante…');
-  try { const img = await comprimir(f, 1400); await api('subirComprobante', { pedidoId: id, imagen: img }); toast('Comprobante enviado ✓'); pintar(true); }
+  try { await enviarComprobante(id, f); toast('Comprobante enviado ✓'); pintar(true); }
   catch (e) { toast(e.message, 'err'); }
 }
 
@@ -2246,7 +2533,7 @@ function bloqueRecibido(p) {
   if (!puede) return '';
   return `<div class="card" style="text-align:center"><b style="font-size:16px">${p.estado === 'ENTREGADO' ? '¿Cómo estuvo tu pedido?' : '¿Ya recibiste tu pedido?'}</b>
     <div class="muted small" style="margin:4px 0 10px">Confirma y califica el servicio. Nos ayuda a que todo funcione mejor.</div>
-    <button class="btn pri pill full" onclick="abrirCalificar('${p.id}')">${p.estado === 'ENTREGADO' ? 'Calificar' : 'Sí, lo recibí'}</button></div>`;
+    <button class="btn pri pill full" onclick="${p.estado === 'ENTREGADO' ? '' : "if(!confirm('¿Ya tienes tu pedido en tus manos?\\nSi todavía no llega, no lo confirmes: el repartidor lo marcará al entregarlo.'))return;"}abrirCalificar('${p.id}')">${p.estado === 'ENTREGADO' ? 'Calificar' : 'Sí, lo recibí'}</button></div>`;
 }
 
 function abrirCalificar(id) {
@@ -2289,12 +2576,17 @@ function vPerfil() {
     ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
     <div class="card"><b>Mis datos</b>
       <label class="f">Nombre</label><input class="i" id="uNom" value="${esc(u.nombre)}">
-      ${r === 'repartidor' ? `<label class="f">Vehículo</label><input class="i" id="uVeh" value="${esc(u.vehiculo)}">` : ''}
+      ${r === 'repartidor' ? `<label class="f">Vehículo</label><input class="i" id="uVeh" value="${esc(u.vehiculo)}">
+        <hr class="hr"><b>Cuenta para cobrar envíos por transferencia</b><div class="muted small">Opcional. Si la registras, el cliente puede pagarte el envío a tu cuenta.</div>
+        <label class="f">Banco</label><input class="i" id="uBan" value="${esc(u.repBanco || '')}" placeholder="BBVA, Nu, Mercado Pago…">
+        <label class="f">Titular</label><input class="i" id="uTit" value="${esc(u.repTitular || '')}">
+        <label class="f">CLABE (18) o tarjeta (16)</label><input class="i" id="uCla" inputmode="numeric" maxlength="22" value="${esc(u.repClabe || '')}">` : ''}
       ${r === 'comprador' ? `<label class="f">Mi dirección de entrega</label><div class="conIco">${ico('pin', 's')}<input class="i" id="uDir" value="${esc(u.direccion)}"></div>
         <label class="f">Referencias</label><input class="i" id="uRef" value="${esc(u.referencia)}">
         <div class="row between" style="margin-top:10px"><span class="muted small">Ubicación de mi casa</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._selP.fijar(a,b,true))">${ico('pin', 's')} Estoy aquí</button></div>
         <div id="mapaPerfil" class="mapa" style="margin-top:6px"></div>` : ''}
       <div class="btns"><button class="btn pri" onclick="act(this,guardarPerfil)">Guardar</button></div></div>
+    ${r === 'repartidor' ? '<div id="miPts"></div>' + tarjetaHorarioRep() : ''}
     <div class="card"><b>Cambiar contraseña</b>
       <label class="f">Contraseña actual</label><input class="i" id="pAct" type="password">
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
@@ -2302,17 +2594,36 @@ function vPerfil() {
     <div class="card">
       <button class="btn pri full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
-      ${S.instalar ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
+      ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
       ${estadoPushTexto() ? `<div class="muted small" style="margin-bottom:8px">${estadoPushTexto()}</div>` : ''}
       ${pushDisponible() && Notification.permission === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
     <div class="muted small" style="text-align:center">${APP} · app ${APP_VER}${S.conf ? ' · servidor ' + S.conf.version : ''}</div>`);
   if (r === 'comprador') S._selP = mapaSelector('mapaPerfil', u.lat, u.lng, (a, b) => { S._perfPos = { lat: a, lng: b }; });
+  if (r === 'repartidor') cargarPuntaje('miPts');
+}
+/** Puntaje del repartidor o del negocio, con cómo se calcula (se carga aparte para no frenar la pantalla). */
+async function cargarPuntaje(idBox) {
+  try {
+    const d = await api('miPuntaje');
+    const box = $('#' + idBox); if (!box || !box.tagName) return;
+    const rep = S.user.rol === 'repartidor';
+    const nivel = rep && d.prioridad ? (d.esperaMin ? `Ves los pedidos nuevos <b>${d.esperaMin} min</b> después de los repartidores con ${d.esperaMin > 1 ? d.nivelMedio : d.nivelAlto} puntos o más.` : '⭐ Ves los pedidos nuevos <b>sin espera</b>.') : '';
+    const barra = (t, v, max, det) => `<div class="tot"><span>${t}<div class="muted small">${det}</div></span><b>${v}/${max}</b></div>`;
+    box.innerHTML = `<h3>📈 Mi puntaje</h3><div class="card"><div class="row between"><div><div style="font-size:34px;font-weight:900;line-height:1">${d.total}<span class="muted" style="font-size:16px">/100</span></div>
+        ${nivel ? `<div class="small" style="margin-top:4px">${nivel}</div>` : ''}</div><span style="font-size:36px">${d.total >= 80 ? '🏆' : d.total >= 60 ? '👍' : '💪'}</span></div><hr class="hr">
+      ${barra('Calificaciones', d.calificacion, 70, d.numCalif ? d.numCalif + ' calificaciones' + (d.prom ? ' · ★ ' + d.prom : '') : 'Aún sin calificaciones: empiezas con 4★')}
+      ${barra('Experiencia', d.experiencia, 20, d.entregas + ' entregas' + (rep ? ' (1 punto cada 5)' : ' (1 punto cada 10)'))}
+      ${barra('Cumplimiento', d.cumplimiento, 10, rep ? d.liberados + ' pedidos liberados' : d.cancelados + ' pedidos cancelados por ti')}
+      ${d.bonus ? barra('Bonus', '+' + d.bonus, 30, 'Hasta el ' + fechaLarga(d.bonusVence)) : ''}
+      <div class="muted small" style="margin-top:6px">${rep ? 'Sube tu puntaje entregando a tiempo, con buen trato y sin liberar pedidos.' : 'Tu puntaje ordena tu negocio en la app: buenas calificaciones, pedidos a tiempo y pocas cancelaciones.'}</div></div>`;
+  } catch (e) { }
 }
 async function guardarPerfil() {
   const d = { nombre: $('#uNom').value };
   if ($('#uVeh')) d.vehiculo = $('#uVeh').value;
+  if ($('#uCla') && $('#uCla').tagName) { d.repBanco = $('#uBan').value; d.repTitular = $('#uTit').value; d.repClabe = $('#uCla').value; }
   if ($('#uDir')) { d.direccion = $('#uDir').value; d.referencia = $('#uRef').value; d.lat = S._perfPos.lat; d.lng = S._perfPos.lng; }
   S.user = await api('actualizarPerfil', d); ls('user', S.user); toast('Perfil guardado ✓');
 }
@@ -2370,8 +2681,21 @@ function tarjetaVerificar(compacta) {
 async function verificarTel() {
   const r = await api('solicitarVerificacion');
   if (r.verificado) { S.user.telVerificado = true; ls('user', S.user); toast('Tu teléfono ya está verificado ✓'); pintar(true); return; }
-  window.open(waLink(r.numero, r.texto), '_blank');
-  const e = $('#verifEstado'); if (e) e.innerHTML = `⏳ Esperando tu mensaje <b>${esc(r.texto)}</b>… Envíalo tal cual y regresa a la app: ${S.conf && S.conf.whatsappResponde ? 'te contestaremos por WhatsApp y ' : ''}esta pantalla se actualiza sola en unos segundos.`;
+  S._verif = r;
+  const paso = (n, t, d) => `<div class="row" style="gap:12px;align-items:flex-start;margin:12px 0;text-align:left"><span style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:900">${n}</span><div><b>${t}</b>${d ? `<div class="muted small">${d}</div>` : ''}</div></div>`;
+  modal(`<div style="text-align:center"><span style="font-size:42px">📱</span><h2 style="margin:4px 0">Verifica tu teléfono</h2></div>
+    ${paso(1, 'Se abrirá WhatsApp con un mensaje listo', 'Dice <b>' + esc(r.texto) + '</b>. No lo cambies.')}
+    <div class="row" style="gap:12px;align-items:center;margin:12px 0;padding:12px;border-radius:14px;background:var(--ok-s);border:2px solid var(--ok)"><span style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-weight:900">2</span>
+      <div><b style="font-size:17px">Toca el botón ENVIAR</b> <span style="display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#25D366;color:#fff;font-size:18px;vertical-align:middle">➤</span><div class="small">Si no lo envías, no podemos verificarte.</div></div></div>
+    ${paso(3, 'Regresa a Pídele', 'Tu cuenta se verifica sola en unos segundos.')}
+    <div class="btns"><a class="btn ok pill full" href="${waLink(r.numero, r.texto)}" target="_blank" onclick="setTimeout(()=>{cerrarModal();esperandoVerif()},400)">${ico('chat', 's')} Abrir WhatsApp</a></div>`);
+}
+/** Mientras espera: recordatorio de tocar ENVIAR y opción de abrir WhatsApp otra vez. */
+function esperandoVerif() {
+  const r = S._verif; if (!r) return;
+  const e = $('#verifEstado');
+  if (e && e.tagName) e.innerHTML = `<div class="aviso warn" style="margin-top:8px">⏳ Esperando tu mensaje <b>${esc(r.texto)}</b>…<br>¿Ya tocaste <b>ENVIAR ➤</b> en WhatsApp? En cuanto llegue, esta pantalla se actualiza sola.
+    <div class="btns" style="margin-top:6px"><a class="btn sm" href="${waLink(r.numero, r.texto)}" target="_blank">${ico('chat', 's')} Abrir WhatsApp otra vez</a></div></div>`;
   esperarVerificacion();
 }
 /** Revisa cada 6 s (máximo 3 min) si ya quedó verificado; la notificación push también lo actualiza. */
@@ -2409,7 +2733,8 @@ function reglaEfectivo(totalEfectivo, tipo) {
   const u = S.user || {}, e = (S.conf && S.conf.efectivo) || {};
   if (e.verificado && !u.telVerificado) return { ok: false, motivo: 'Verifica tu teléfono para pagar en efectivo', verificar: true };
   if (e.topeNuevos > 0 && (u.entregados || 0) < e.pedidosNuevo && totalEfectivo > e.topeNuevos) return { ok: false, motivo: 'En tus primeros ' + e.pedidosNuevo + ' pedidos, máximo ' + money(e.topeNuevos) + ' en efectivo' };
-  const gps = tipo === 'domicilio' && ((u.entregados || 0) - (u.cancelados || 0)) < e.pedidosOtraDir;
+  // con el teléfono verificado ya no se pide estar en el punto de entrega
+  const gps = tipo === 'domicilio' && !u.telVerificado && ((u.entregados || 0) - (u.cancelados || 0)) < e.pedidosOtraDir;
   return { ok: true, gps, nota: gps ? 'Solo si estás en el punto de entrega (usaremos tu ubicación al confirmar)' : '' };
 }
 /** Ubicación actual para comprobar que el cliente está donde recibirá su pedido en efectivo. */
@@ -2481,7 +2806,9 @@ function cobroRepartidor(p) {
   if (p.tipoEntrega === 'recoger') return '';
   return p.metodoPago === 'efectivo'
     ? `${ico('efectivo', 's')} <b>Efectivo:</b> pagas ${money(p.subtotal)} al negocio al recoger y cobras <b>${money(p.total)}</b> al cliente (tu envío: ${money(p.envio)}).`
-    : `${ico('banco', 's')} <b>Comida ya pagada</b> por ${PAGO_TXT[p.metodoPago]}. Cobras solo el envío: <b>${money(p.envio)}</b> en efectivo.`;
+    : !p.envio ? `${ico('banco', 's')} <b>Todo pagado</b> por ${PAGO_TXT[p.metodoPago]}. No cobras nada.`
+    : p.envioEn === 'negocio' ? `${ico('banco', 's')} <b>Todo pagado</b> por ${PAGO_TXT[p.metodoPago]}. <b>El negocio te paga tu envío (${money(p.envio)}) en efectivo</b> al recoger.`
+    : `${ico('banco', 's')} <b>Comida ya pagada</b> por ${PAGO_TXT[p.metodoPago]}. Cobras solo el envío: <b>${money(p.envio)}</b> (efectivo o transferencia a tu cuenta).`;
 }
 
 function bloqueRecibe(p) {
@@ -2507,8 +2834,9 @@ function vPedidoOperacion(p) {
       ${botonesPedido(p, false)}</div>
     <div class="card">
       <div class="row between"><div><div class="muted small">Negocio</div><b>${esc(p.negocio.nombre)}</b></div>${r !== 'negocio' ? telLink(p.negocio.telefono) : ''}</div>
-      <hr class="hr"><div class="row between"><div><div class="muted small">Cliente</div><b>${esc(p.comprador.nombre)}</b></div>${p.comprador.telefono && r !== 'repartidor' ? telLink(p.comprador.telefono) : ''}</div>
-      ${p.repartidor && r !== 'repartidor' ? `<hr class="hr"><div class="row between"><div><div class="muted small">Repartidor</div><b>${esc(p.repartidor.nombre)}</b> <span class="muted small">${esc(p.repartidor.vehiculo)}</span></div>${telLink(p.repartidor.telefono)}</div>` : ''}</div>
+      <hr class="hr"><div class="row between"><div><div class="muted small">Cliente</div><b>${esc(p.comprador.nombre)}</b><div>${chipCliente(p.comprador)}</div></div>${p.comprador.telefono && r !== 'repartidor' ? telLink(p.comprador.telefono) : ''}</div>
+      ${p.repartidor && r !== 'repartidor' ? `<hr class="hr"><div class="row between"><div><div class="muted small">Repartidor</div><b>${esc(p.repartidor.nombre)}</b> <span class="muted small">${esc(p.repartidor.vehiculo)}</span></div>${telLink(p.repartidor.telefono)}</div>` : ''}
+      ${p.repPropio && r !== 'comprador' ? `<hr class="hr"><div class="row between"><div><div class="muted small">Repartidor del negocio</div><b>${esc(p.repPropio.nombre)}</b></div>${p.repPropio.telefono ? telLink(p.repPropio.telefono) : ''}</div>` : ''}</div>
     <div class="card"><b>Productos</b>${listaItems(p.items)}<hr class="hr">${resumenCobro(p)}
       ${p.notas ? `<div class="aviso info" style="margin:10px 0 0">📝 ${esc(p.notas)}</div>` : ''}</div>
     ${p.califNegocio || p.califRepartidor ? `<div class="card"><b>Calificación del cliente</b><div style="margin-top:4px">Restaurante <span class="estrella">${'★'.repeat(p.califNegocio)}</span>${p.califRepartidor ? ' · Entrega <span class="estrella">' + '★'.repeat(p.califRepartidor) + '</span>' : ''}</div>${p.comentario ? `<div class="muted">“${esc(p.comentario)}”</div>` : ''}</div>` : ''}
@@ -2536,16 +2864,17 @@ async function vNegPedidos() {
   const vendido = grupos.hoy.filter(x => x.estado === 'ENTREGADO').reduce((s, x) => s + x.subtotal, 0);
   const t = S.tabNeg;
   const card = x => `<div class="card">
-    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)}
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${ACTIVOS.includes(x.estado) ? chipCliente(x.comprador) : ''}
       <div class="muted small">${hora(x.creado)} · ${money(x.subtotal)} · ${x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${PAGO_TXT[x.metodoPago]}</div></div>${etiqueta(x.estado, x)}</div>
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div style="margin-top:6px">${x.items.map(i => { const d = detalleItem(i); return `<div class="small"><b>${i.cant}×</b> ${esc(i.nombre)}${d ? ` <span class="detalle">· ${d}</span>` : ''}</div>`; }).join('')}</div>
     ${x.notas ? `<div class="muted small">📝 ${esc(x.notas)}</div>` : ''}
-    ${x.estado === 'PREPARANDO' ? `<div class="muted small">Salida: <b>${hora(x.horaSalida)}</b> (${enMin(x.horaSalida)})${x.tipoEntrega === 'recoger' ? '' : ' · ' + (x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) : 'Sin repartidor aún')}</div>` : ''}
-    ${x.estado === 'LISTO' && x.tipoEntrega !== 'recoger' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : 'Esperando repartidor'}</div>` : ''}
+    ${x.estado === 'PREPARANDO' ? `<div class="muted small">Salida: <b>${hora(x.horaSalida)}</b> (${enMin(x.horaSalida)})${x.tipoEntrega === 'recoger' ? '' : ' · ' + (x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) : x.propio ? '🛵 Con tu repartidor' : 'Sin repartidor aún')}</div>` : ''}
+    ${x.estado === 'LISTO' && x.tipoEntrega !== 'recoger' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : x.propio ? '🛵 Listo para salir con tu repartidor' : 'Esperando repartidor'}</div>` : ''}
+    ${x.estado === 'EN_CAMINO' && x.repPropio ? `<div class="muted small">🛵 ${x.repPropio.nombre === 'Repartidor del negocio' ? 'En camino por tus propios medios' : 'En camino con ' + esc(x.repPropio.nombre)}</div>` : ''}
     ${x.califNegocio ? `<div class="small">Calificación: <span class="estrella">${'★'.repeat(x.califNegocio)}</span></div>` : ''}
     ${botonesPedido(x, true)}</div>`;
-  html(`${pendienteAviso()}${bannerPush()}
+  html(`${pendienteAviso()}${bannerPush()}${tarjetaInstalar()}
     <div class="card row between"><div class="grow"><b>${esc(n.nombre)}</b> ${n.numCalif ? `<span class="small"><span class="estrella">★</span> ${n.calif} (${n.numCalif})</span>` : ''}
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
       <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
@@ -3164,6 +3493,7 @@ async function vMiNegocio() {
       <div class="copiar"><div class="v" style="font-size:12.5px">${esc(urlApp('negocio=' + n.id))}</div><button class="btn sm" onclick="copiar(urlApp('negocio=${n.id}'),'Enlace')">${ico('copiar', 's')}</button></div>
       <div class="btns"><button class="btn pri" onclick="compartirNegocio(this,'${n.id}',S.negocio.nombre)">${ico('compartir', 's')} Compartir</button>
         <button class="btn" onclick="compartir(this,S.negocio.nombre+' en Pídele','😋 Pide en '+S.negocio.nombre+' desde Pídele.',urlApp('negocio=${n.id}'),'QR de tu negocio',S.negocio.nombre,true)">📱 Ver y descargar QR</button></div></div>
+    <div id="negPts"></div>
     <h3>${ico('reloj', 's')} Horario de atención</h3>
     <div class="card"><div class="muted small">Fuera de este horario la app no deja hacer pedidos. Si cierras después de medianoche, pon la hora tal cual (ej. 18:00 a 02:00).</div>
       ${filasHorario(n.horarios)}
@@ -3172,10 +3502,19 @@ async function vMiNegocio() {
     <div class="card"><div class="row between"><span class="muted small">Marca la entrada de tu negocio</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._selN.fijar(a,b,true))">${ico('pin', 's')} Estoy aquí</button></div>
       <div id="mapaNeg" class="mapa" style="margin-top:8px"></div>
       <label class="f">Dirección</label><input class="i" id="nDir" value="${esc(n.direccion)}"></div>
+    <h3>${ico('moto', 's')} Envíos</h3>
+    <div class="card"><b>¿Quién entrega tus pedidos a domicilio?</b>
+      ${[['pidele', 'Repartidores de Pídele', 'La app avisa a los repartidores y uno toma tu pedido.'],
+         ['propio', 'Mis repartidores', 'Tú los mandas con tu gente; los repartidores de Pídele no ven tus pedidos.'],
+         ['ambos', 'Ambos', 'Los repartidores de Pídele pueden tomarlo, pero tú puedes mandarlo con los tuyos antes. El cliente paga la tarifa de la app.']]
+        .map(o => `<label class="opc"><input type="radio" name="nRep" value="${o[0]}" ${(n.reparto || 'pidele') === o[0] ? 'checked' : ''} onchange="pintarEnvios()"><span><b>${o[1]}</b><div class="muted small">${o[2]}</div></span></label>`).join('')}
+      <div id="envPropio"></div></div>
     <h3>${ico('efectivo', 's')} Formas de pago</h3>
     <div class="card">
       <div class="row between"><div><b>Aceptar efectivo</b><div class="muted small">A domicilio, el repartidor te paga la comida al recogerla y la cobra al cliente.</div></div>
         <label class="sw"><input type="checkbox" id="nEfe" ${n.efectivo ? 'checked' : ''}><i></i></label></div>
+      <hr class="hr"><div class="row between"><div><b>Cobrar el envío en la transferencia</b><div class="muted small">Si el cliente paga por transferencia, te transfiere también el envío y tú le pagas el envío en efectivo al repartidor al entregarle el pedido.</div></div>
+        <label class="sw"><input type="checkbox" id="nEnvTr" ${n.envioEnTransfer ? 'checked' : ''}><i></i></label></div>
       <hr class="hr"><b>Transferencia y CoDi (opcional)</b><div class="muted small">Si los registras, tus clientes podrán pagarte directo, sin comisiones.</div>
       <label class="f">Banco</label><input class="i" id="nBan" value="${esc(n.banco)}" placeholder="BBVA, Banorte, Nu, Mercado Pago…">
       <label class="f">Titular de la cuenta</label><input class="i" id="nTit" value="${esc(n.titular)}">
@@ -3188,6 +3527,38 @@ async function vMiNegocio() {
     </div>
     <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarNegocio)">Guardar cambios</button></div><div style="height:20px"></div>`);
   S._selN = mapaSelector('mapaNeg', n.lat, n.lng, (a, b) => { S._negPos = { lat: a, lng: b }; });
+  cargarPuntaje('negPts');
+  S._repsP = (n.repartidoresPropios || []).map(x => Object.assign({}, x));
+  S._envP = { tipo: n.envioPropioTipo || 'app', monto: n.envioPropioMonto || '' };
+  pintarEnvios();
+}
+/** Opciones de reparto propio: costo del envío (solo si usa únicamente sus repartidores) y lista de repartidores. */
+function pintarEnvios() {
+  const box = $('#envPropio'); if (!box || !box.tagName) return;
+  leerEnvios(true);
+  const modo = (document.querySelector('input[name=nRep]:checked') || {}).value || 'pidele';
+  if (modo === 'pidele') { box.innerHTML = ''; return; }
+  const c = S.conf || {}, e = S._envP;
+  box.innerHTML = `<hr class="hr">
+    ${modo === 'propio' ? `<b>Costo del envío con tus repartidores</b>
+      <div class="muted small">Entregas hasta ${c.kmMaximo || 5} km, igual que la app.</div>
+      ${[['gratis', 'Envío gratis'], ['fijo', 'Precio fijo'], ['app', `Tarifa de la app (${money(c.envioBase || 0)} hasta ${c.kmIncluidos || 0} km + ${money(c.envioPorKm || 0)} por km extra)`]]
+        .map(o => `<label class="opc"><input type="radio" name="nEnvT" value="${o[0]}" ${e.tipo === o[0] ? 'checked' : ''} onchange="pintarEnvios()"><span>${o[1]}</span></label>`).join('')}
+      ${e.tipo === 'fijo' ? `<label class="f">Precio del envío</label><input class="i" id="nEnvM" inputmode="numeric" value="${esc(e.monto)}" placeholder="Ej. 25">` : ''}<hr class="hr">`
+    : '<div class="muted small" style="margin-bottom:8px">En modo <b>Ambos</b> el cliente paga la tarifa de la app; si lo llevas tú, ese envío es tuyo.</div>'}
+    <b>Mis repartidores</b><div class="muted small">A ellos les mandas la ficha de entrega por WhatsApp.</div>
+    ${S._repsP.map((x, i) => `<div class="row" style="gap:6px;margin-top:6px"><input class="i grow" id="rpN${i}" placeholder="Nombre" maxlength="40" value="${esc(x.nombre)}">
+      <input class="i" id="rpT${i}" placeholder="Teléfono" inputmode="tel" maxlength="14" style="max-width:140px" value="${esc(x.tel)}">
+      <button class="redondo" onclick="leerEnvios();S._repsP.splice(${i},1);pintarEnvios()" aria-label="Quitar">✕</button></div>`).join('')}
+    ${S._repsP.length < 20 ? `<button class="btn sm" style="margin-top:8px" onclick="leerEnvios();S._repsP.push({nombre:'',tel:''});pintarEnvios()">+ Agregar repartidor</button>` : ''}`;
+}
+/** Guarda en memoria lo escrito en Envíos antes de repintar. */
+function leerEnvios(soloSiHay) {
+  if (!S._repsP) return;
+  S._repsP = S._repsP.map((x, i) => $('#rpN' + i) && $('#rpN' + i).tagName ? { nombre: $('#rpN' + i).value.trim(), tel: $('#rpT' + i).value.trim() } : x);
+  const t = document.querySelector('input[name=nEnvT]:checked');
+  if (t) S._envP.tipo = t.value;
+  if ($('#nEnvM') && $('#nEnvM').tagName) S._envP.monto = $('#nEnvM').value;
 }
 async function imgNegocio(inp, tipo) {
   const f = inp.files[0]; if (!f) return;
@@ -3207,15 +3578,21 @@ async function guardarNegocio() {
   const n = await api('guardarNegocio', {
     nombre: v('nNom'), categoria: v('nCat'), descripcion: v('nDes'), horarios: leerHorario(), tiempoPrep: v('nTie'), telefono: v('nTel'),
     direccion: v('nDir'), lat: S._negPos.lat, lng: S._negPos.lng, banco: v('nBan'), titular: v('nTit'), clabe: v('nCla'), tarjeta: v('nTar'),
-    efectivo: $('#nEfe').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined
+    efectivo: $('#nEfe').checked, envioEnTransfer: $('#nEnvTr').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined,
+    ...datosEnvios()
   });
   S.negocio = n; ls('negocio', n); toast('Datos guardados ✓'); pintar(true);
 }
-function filasHorario(hs) {
-  hs = hs && hs.length === 7 ? hs : DIAS.map(() => ({ on: true, a: '09:00', c: '21:00' }));
+function datosEnvios() {
+  leerEnvios();
+  const modo = (document.querySelector('input[name=nRep]:checked') || {}).value || 'pidele';
+  return { reparto: modo, envioPropioTipo: S._envP.tipo, envioPropio: S._envP.monto, repartidoresPropios: (S._repsP || []).filter(x => x.nombre || x.tel) };
+}
+function filasHorario(hs, a0, c0) {
+  hs = hs && hs.length === 7 ? hs : DIAS.map(() => ({ on: true, a: a0 || '09:00', c: c0 || '21:00' }));
   return [1, 2, 3, 4, 5, 6, 0].map(d => { const h = hs[d]; return `<div class="hRow ${h.on ? '' : 'off'}">
     <label><input type="checkbox" id="hOn${d}" ${h.on ? 'checked' : ''} onchange="this.closest('.hRow').classList.toggle('off',!this.checked)">${DIAS[d]}</label>
-    <input type="time" id="hA${d}" value="${esc(h.a || '09:00')}"><input type="time" id="hC${d}" value="${esc(h.c || '21:00')}"></div>`; }).join('');
+    <input type="time" id="hA${d}" value="${esc(h.a || a0 || '09:00')}"><input type="time" id="hC${d}" value="${esc(h.c || c0 || '21:00')}"></div>`; }).join('');
 }
 function leerHorario() { return DIAS.map((x, d) => ({ on: $('#hOn' + d).checked, a: $('#hA' + d).value, c: $('#hC' + d).value })); }
 function copiarLunes() {
@@ -3227,17 +3604,24 @@ function copiarLunes() {
 /* ============ REPARTIDOR ============ */
 async function vDisponibles() {
   const d = await api('disponibles', S.pos || {});
+  if (d.t) S._dt = d.t - Date.now(); // diferencia con el reloj del servidor
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
   if (d.suscripcion && S.user) { S.user.suscripcion = d.suscripcion; ls('user', S.user); }
+  if (d.turno && S.user) { S.user.turno = d.turno; S.user.horarioRep = d.horarioRep; ls('user', S.user); }
   // por qué el botón "Tomar pedido" está apagado (el tiempo de espera se muestra arriba con el reloj)
   const motivo = S.user.estado !== 'activo' ? 'tu cuenta aún no está aprobada. Completa los pasos de tu perfil y muestra tu INE al administrador.'
     : d.puedeTomar === false ? `tu mensualidad venció. <a href="#" onclick="ir('suscripcion');return false">Págala aquí</a>.`
     : lleno ? 'ya tienes el máximo de pedidos activos. Entrega uno para tomar otro.' : '';
   S._bloqTomar = !!motivo;
+  // al abrir la app con pedidos en curso, se va directo a Mis entregas (una vez por sesión)
+  if (d.activos > 0 && !S._yaAbrioEntregas) { S._yaAbrioEntregas = true; ir('entregas'); return; }
+  S._yaAbrioEntregas = true;
   html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
       <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
+    ${tarjetaInstalar()}${tarjetaTurno(d.turno)}
+    ${d.activos ? `<div class="aviso info row between" style="align-items:center"><span>🛵 Tienes <b>${d.activos}</b> pedido${d.activos > 1 ? 's' : ''} en curso.</span><button class="btn pri sm" onclick="ir('entregas')">Ver mis entregas</button></div>` : ''}
     ${avisoGPS()}
     ${motivo ? `<div class="aviso err">🚫 <b>Por ahora no puedes tomar pedidos:</b> ${motivo}</div>` : ''}
     <div class="muted small" style="margin-bottom:8px">Puedes tomar 1 pedido cada ${d.minutosEntreTomas} min, para que el trabajo se reparta entre todos.</div>
@@ -3250,10 +3634,13 @@ async function vDisponibles() {
       <div class="small" style="margin-top:8px">${x.metodoPago === 'efectivo' ? `${ico('efectivo', 's')} <b>Efectivo:</b> necesitas ${money(x.subtotal)} para pagar al negocio` : `${ico('banco', 's')} Comida pagada por ${PAGO_TXT[x.metodoPago]}`}</div>
       <div class="aviso ${x.viabilidad.viable ? 'ok' : 'warn'}" style="margin:10px 0 0">${x.viabilidad.viable ? '✅' : '⚠️'} ${esc(x.viabilidad.motivo)}</div>
       <div class="btns"><a class="btn" href="${gmaps(x.negLat, x.negLng)}" target="_blank">${ico('mapa', 's')} Ver negocio</a>
-        <button class="btn pri tomar" ${S.user.estado !== 'activo' || lleno || d.puedeTomar === false ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">Tomar pedido</button></div></div>`).join('')
+        <button class="btn pri tomar" data-desde="${x.desde || 0}" ${S.user.estado !== 'activo' || lleno || d.puedeTomar === false || (x.desde && x.desde > ahoraSrv()) ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">${x.desde && x.desde > ahoraSrv() ? '⏳ Disponible en ' + mmss(x.desde - ahoraSrv()) : 'Tomar pedido'}</button></div>
+      ${x.desde && x.desde > ahoraSrv() ? '<div class="muted small" style="margin-top:6px">Los repartidores con mejor calificación lo ven primero. Sube tu puntaje en Perfil.</div>' : ''}</div>`).join('')
     : `<div class="vacio"><span class="big">🛵</span>No hay pedidos disponibles ahorita.<br>Te avisamos cuando haya uno.</div>`}`);
   relojEspera();
 }
+function ahoraSrv() { return Date.now() + (S._dt || 0); }
+function mmss(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 function textoEspera() {
   const ms = S.esperaHasta - Date.now();
   if (ms <= 0) return '<span style="color:var(--ok)">¡Disponible!</span>';
@@ -3265,7 +3652,12 @@ function relojEspera() {
     const e = $('#espera'); if (!e || !e.tagName) { clearInterval(S._reloj); return; }
     e.innerHTML = textoEspera();
     const espera = S.esperaHasta > Date.now();
-    document.querySelectorAll('.tomar').forEach(b => { if (espera) { b.disabled = true; b.dataset.w = 1; } else if (b.dataset.w) { b.disabled = !!S._bloqTomar; delete b.dataset.w; } });
+    document.querySelectorAll('.tomar').forEach(b => {
+      const desde = Number(b.dataset.desde) || 0, falta = desde - ahoraSrv();
+      if (falta > 0) { b.disabled = true; b.textContent = '⏳ Disponible en ' + mmss(falta); b.dataset.p = 1; return; }
+      if (b.dataset.p) { b.textContent = 'Tomar pedido'; delete b.dataset.p; b.dataset.w = 1; }
+      if (espera) { b.disabled = true; b.dataset.w = 1; } else if (b.dataset.w) { b.disabled = !!S._bloqTomar; delete b.dataset.w; }
+    });
   };
   tick(); S._reloj = setInterval(tick, 1000);
 }
@@ -3283,17 +3675,52 @@ async function vEntregas(p, silencioso) {
   S._rutaFirma = firma;
   html(`${pendienteAviso()}
     <div class="kpis"><div class="kpi"><b>${d.hoy.entregas}</b><span>Entregas hoy</span></div><div class="kpi"><b>${money(d.hoy.envios)}</b><span>Envíos cobrados hoy</span></div></div>
-    ${d.pedidos.length ? `<div class="card"><div class="row between"><b>${ico('mapa', 's')} Tu ruta</b><span class="muted small">${d.kmRuta} km · ~${d.minRuta} min</span></div>
+    ${d.pedidos.length ? `<div class="card"><div class="row between"><b>${ico('mapa', 's')} Tu ruta</b><span class="muted small" id="rutaInfo">${d.kmRuta} km · ~${d.minRuta} min</span></div>
       <div id="mapaRuta" class="mapa alto" style="margin-top:8px"></div>
       <div style="margin-top:8px">${d.ruta.map((s, i) => `<div class="parada"><div class="num ${s.tipo === 'recoger' ? 'r' : 'e'}">${i + 1}</div><div class="grow"><b>${s.tipo === 'recoger' ? 'Recoger en' : 'Entregar a'} ${esc(s.nombre)}</b><div class="muted small">${s.folio}</div></div><a class="btn sm" href="${gmaps(s.lat, s.lng)}" target="_blank">${ico('mapa', 's')}</a></div>`).join('')}</div>
       <div class="btns"><a class="btn pri pill full" href="${urlRuta(d.ruta)}" target="_blank">${ico('mapa', 's')} Abrir ruta completa en Google Maps</a></div></div>
       <div id="listaEnt">${tarjetasEntrega(d)}</div>`
-    : `<div class="vacio"><span class="big">🛵</span>No tienes entregas activas.<br><br><button class="btn pri pill" onclick="ir('disponibles')">Ver pedidos disponibles</button></div>`}`);
+    : `<div class="vacio"><span class="big">🛵</span>No tienes entregas activas.<br><br><button class="btn pri pill" onclick="ir('disponibles')">Ver pedidos disponibles</button></div>`}
+    <h3>Hoy</h3>
+    ${(d.hoy.lista || []).length ? (d.hoy.lista || []).map(filaEntregaHecha).join('') : '<div class="muted small" style="margin-bottom:10px">Aún no tienes entregas terminadas hoy.</div>'}
+    <div class="btns"><button class="btn pill full" onclick="ir('historialRep')">📅 Ver mi historial (30 días)</button></div>`);
   if (d.pedidos.length) dibujarRuta(d.ruta);
 }
+/** Una entrega terminada (o cancelada) en la lista de hoy o del historial. */
+function filaEntregaHecha(x) {
+  const ok = x.estado === 'ENTREGADO';
+  return `<div class="card" onclick="ir('pedido','${x.id}')" style="cursor:pointer">
+    <div class="row between"><div><b>${esc(x.folio)}</b> · ${esc(x.negocio)}</div>${ok ? '<span class="tag t-ok">Entregado</span>' : '<span class="tag t-err">Cancelado</span>'}</div>
+    <div class="row between small" style="margin-top:6px"><span>🕒 ${hora(x.fecha)} · ${esc(PAGO_TXT[x.metodoPago] || x.metodoPago || '')}</span><b>${ok ? money(x.envio) : '—'}</b></div>
+    ${x.direccion ? `<div class="muted small">📍 ${esc(x.direccion)}</div>` : ''}
+    ${!ok && x.motivo ? `<div class="muted small">✖️ ${esc(x.motivo)}</div>` : ''}
+    ${ok && x.envioEn ? `<div class="muted small">Envío: ${x.envioEn === 'negocio' ? 'te lo pagó el negocio' : x.envioEn === 'transferencia' ? 'por transferencia' : 'en efectivo'}${x.cerradoPor === 'cliente' ? ' · lo confirmó el cliente' : ''}</div>` : ''}
+    ${x.puedeCalificar || x.puedeReabrir ? `<div class="btns" onclick="event.stopPropagation()">${x.puedeCalificar ? `<button class="btn sm" onclick='calificarCruzado("${x.id}","repartidor",${JSON.stringify(x.negocio).replace(/'/g, '&#39;')},"")'>⭐ Calificar</button>` : ''}${x.puedeReabrir ? `<button class="btn sm" onclick="act(this,()=>reabrir('${x.id}'))">↩️ Aún no lo entrego</button>` : ''}</div>` : ''}</div>`;
+}
+
+/** Historial del repartidor: últimos 30 días agrupados por día, con totales. */
+async function vHistorialRep() {
+  const d = await api('historialRepartidor', { dias: 30 });
+  const ent = d.lista.filter(x => x.estado === 'ENTREGADO');
+  const dias = [];
+  d.lista.forEach(x => {
+    let k = new Date(x.fecha).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+    k = k.charAt(0).toUpperCase() + k.slice(1);
+    let g = dias[dias.length - 1];
+    if (!g || g.k !== k) { g = { k, l: [] }; dias.push(g); }
+    g.l.push(x);
+  });
+  html(`<div class="titBar"><button class="redondo" onclick="volver('entregas')">${ico('atras')}</button><h2>Mi historial</h2><span class="esp"></span></div>
+    <div class="kpis"><div class="kpi"><b>${ent.length}</b><span>Entregas (30 días)</span></div><div class="kpi"><b>${money(ent.reduce((s, x) => s + x.envio, 0))}</b><span>Envíos cobrados</span></div></div>
+    ${dias.length ? dias.map(g => {
+      const e = g.l.filter(x => x.estado === 'ENTREGADO');
+      return `<div class="row between" style="margin:16px 0 6px"><b>${g.k}</b><span class="muted small">${e.length} entrega${e.length === 1 ? '' : 's'} · ${money(e.reduce((s, x) => s + x.envio, 0))}</span></div>${g.l.map(filaEntregaHecha).join('')}`;
+    }).join('') : '<div class="vacio"><span class="big">📅</span>Aún no tienes entregas en los últimos 30 días.</div>'}`);
+}
+
 function tarjetasEntrega(d) {
   return d.pedidos.map(x => `<div class="card">
-    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.negocio.nombre)}</div>${etiqueta(x.estado, x)}</div>
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.negocio.nombre)}<div>${chipCliente(x.comprador)}</div></div>${etiqueta(x.estado, x)}</div>
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div class="small" style="margin-top:8px">${cobroRepartidor(x)}</div>
     ${x.estado === 'EN_CAMINO' ? bloqueRecibe(x) : `<div class="muted small" style="margin-top:6px">${x.estado === 'LISTO' ? '📦 Listo en el negocio' : '👩‍🍳 Sale ' + hora(x.horaSalida) + ' (' + enMin(x.horaSalida) + ')'} · ${telLink(x.negocio.telefono, 'Negocio')}</div>`}
@@ -3317,7 +3744,35 @@ function dibujarRuta(ruta) {
     L.marker([s.lat, s.lng], { icon: pinNum(i + 1, s.tipo === 'recoger' ? '#D9822B' : '#3B5A2C') }).addTo(m).bindPopup((s.tipo === 'recoger' ? 'Recoger: ' : 'Entregar: ') + esc(s.nombre));
     pts.push([s.lat, s.lng]);
   });
-  if (pts.length > 1) { L.polyline(pts, { color: '#3B5A2C', weight: 4, opacity: .7, dashArray: '6 8' }).addTo(m); m.fitBounds(pts, { padding: [30, 30] }); }
+  if (pts.length > 1) {
+    const recta = L.polyline(pts, { color: '#3B5A2C', weight: 4, opacity: .7, dashArray: '6 8' }).addTo(m);
+    m.fitBounds(pts, { padding: [30, 30] });
+    if (S.conf && S.conf.rutaCalles) rutaPorCalles(pts, m, recta);
+  }
+}
+/**
+ * Recorrido por calles (opcional, Ajustes → rutaCalles): lo calcula el teléfono del repartidor con el servicio
+ * gratuito OSRM (OpenStreetMap); no usa el servidor de Pídele. Si falla o tarda, se queda la línea recta.
+ */
+async function rutaPorCalles(pts, m, recta) {
+  const clave = pts.map(p => p[0].toFixed(4) + ',' + p[1].toFixed(4)).join('|');
+  S._rutasCalle = S._rutasCalle || {};
+  let geo = S._rutasCalle[clave];
+  if (!geo) {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 5000);
+    try {
+      const url = 'https://router.project-osrm.org/route/v1/driving/' + pts.map(p => p[1] + ',' + p[0]).join(';') + '?overview=full&geometries=geojson';
+      const r = await (await fetch(url, { signal: ctl.signal })).json();
+      if (r.code !== 'Ok' || !r.routes || !r.routes[0]) return;
+      geo = { linea: r.routes[0].geometry.coordinates.map(c => [c[1], c[0]]), km: r.routes[0].distance / 1000, min: r.routes[0].duration / 60 };
+      S._rutasCalle[clave] = geo;
+    } catch (e) { return; } finally { clearTimeout(to); }
+  }
+  if (S.map !== m || !document.body.contains(m.getContainer())) return;
+  m.removeLayer(recta);
+  L.polyline(geo.linea, { color: '#3B5A2C', weight: 5, opacity: .85 }).addTo(m);
+  const info = $('#rutaInfo');
+  if (info && info.tagName) info.textContent = geo.km.toFixed(1) + ' km por calles · ~' + Math.round(geo.min) + ' min';
 }
 
 /* ============ ADMINISTRADOR ============ */
@@ -3348,14 +3803,26 @@ function tarjetaUsuario(x) {
       ${x.negocio ? `<div class="small">🏪 ${esc(x.negocio)} · ${esc(x.categoria)} ${x.negocioListo ? '<span class="tag t-ok">Datos completos</span>' : '<span class="tag t-warn">Falta ubicación</span>'}</div>` : ''}
       ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}
       <div class="row wrap" style="gap:4px;margin-top:4px">${x.telVerificado ? '<span class="tag t-ok">📱 Verificado</span>' : '<span class="tag t-gray">📱 Sin verificar</span>'}
+        ${x.rol === 'repartidor' || x.negocioId ? `<span class="tag t-info">📈 ${x.puntaje}/100${x.bonus ? ' · bonus +' + x.bonus + ' hasta ' + fechaCorta(x.bonusVence).split(' ').slice(0, 2).join(' ') : ''}</span>` : ''}
         ${x.rol === 'repartidor' ? (x.inscrito ? '<span class="tag t-ok">Inscripción pagada</span>' : '<span class="tag t-warn">Sin inscripción</span>') + (x.curp ? ` <span class="tag t-gray">${esc(x.curp)}</span>` : '') : ''}</div></div><span class="tag ${est}">${x.estado}</span></div>
     ${x.notasAdmin ? `<div class="muted small" style="margin-top:6px">📝 ${esc(x.notasAdmin)}</div>` : ''}
     <div class="btns">${x.estado !== 'activo' ? (x.rol === 'repartidor' && (x.estado === 'pendiente' || !x.curp || !x.inscrito) ? `<button class="btn ok sm" onclick='formAprobarRep(${JSON.stringify({ id: x.id, nombre: x.nombre, telefono: x.telefono, curp: x.curp, inscrito: x.inscrito, reactivar: x.estado !== 'pendiente' }).replace(/'/g, '&#39;')})'>${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`
         : `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`) : ''}
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
+      ${x.rol === 'repartidor' || x.negocioId ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
+}
+/** Bonus de ranking (acuerdos comerciales o publicidad): suma puntos sin etiqueta visible, con vencimiento. */
+function formBonus(usuarioId, negocioId, nombre, actual) {
+  modal(`<div class="row between"><h2 style="margin:0">Bonus de ranking</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:4px 0 10px">${esc(nombre)}</div>
+    <div class="aviso info">Suma puntos al puntaje (0-100) para que ${negocioId ? 'el negocio aparezca más arriba' : 'el repartidor vea los pedidos antes'}. No se muestra ninguna etiqueta. Pon 0 para quitarlo.</div>
+    <label class="f">Puntos (0 a 30)</label><input class="i" id="boP" type="number" min="0" max="30" value="${actual || 10}">
+    <label class="f">Días que dura</label><input class="i" id="boD" type="number" min="1" max="365" value="30">
+    <label class="f">Nota (acuerdo, publicidad…)</label><input class="i" id="boN" maxlength="120">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{const r=await api('adminBonus',{usuarioId:'${usuarioId}',negocioId:'${negocioId}',puntos:$('#boP').value,dias:$('#boD').value,nota:$('#boN').value});cerrarModal();toast('Puntaje ahora: '+r.puntaje+'/100');pintar(true)})">Guardar</button></div>`);
 }
 /** El administrador revisa las promociones y puede ocultar las que no cumplan. */
 async function verPromosAdmin(lista) {
@@ -3428,11 +3895,44 @@ async function guardarConfig() {
 }
 
 /* ============ INSTALACIÓN PWA ============ */
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.instalar = e; $('#btnInstalar').style.display = ''; });
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); S.instalar = e; $('#btnInstalar').style.display = '';
+  const t = $('#tarjInst'); if (t && t.tagName) t.outerHTML = tarjetaInstalar();
+});
+window.addEventListener('appinstalled', () => { S.instalar = null; const t = $('#tarjInst'); if (t && t.tagName) t.remove(); toast('¡Pídele quedó instalada! 🎉'); });
+function esIOS() { return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+/** Tarjeta en Inicio para instalar la app (se puede ocultar por 7 días). */
+function tarjetaInstalar() {
+  if (instalada()) return '';
+  let no = 0; try { no = Number(localStorage.getItem('pe_instNo')) || 0; } catch (e) { }
+  if (Date.now() - no < 7 * 864e5) return '';
+  return `<div class="card row" id="tarjInst" style="border:2px solid var(--pri);gap:10px"><span style="font-size:30px">📲</span>
+    <div class="grow"><b>Instala Pídele en tu teléfono</b><div class="muted small">Ábrela con un toque desde tu pantalla de inicio y recibe avisos de tus pedidos.</div>
+      <div class="btns" style="margin-top:6px"><button class="btn pri sm" onclick="instalarApp()">⬇ Instalar</button><button class="lnk small" onclick="try{localStorage.setItem('pe_instNo',Date.now())}catch(e){};$('#tarjInst').remove()">Ahora no</button></div></div></div>`;
+}
 function instalarApp() {
-  if (!S.instalar) { toast('Usa el menú del navegador → "Agregar a pantalla de inicio"'); return; }
-  S.instalar.prompt();
-  S.instalar.userChoice.finally(() => { S.instalar = null; $('#btnInstalar').style.display = 'none'; });
+  if (S.instalar) {
+    S.instalar.prompt();
+    S.instalar.userChoice.finally(() => { S.instalar = null; $('#btnInstalar').style.display = 'none'; const t = $('#tarjInst'); if (t && t.tagName) t.remove(); });
+    return;
+  }
+  guiaInstalar();
+}
+/** Guía con pasos grandes: en iPhone no existe un botón que instale solo. */
+function guiaInstalar() {
+  if (instalada()) { toast('Pídele ya está instalada en este teléfono ✓'); return; }
+  const paso = (n, t, d) => `<div class="row" style="gap:12px;align-items:flex-start;margin:12px 0"><span style="flex:none;width:34px;height:34px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:900">${n}</span><div><b>${t}</b>${d ? `<div class="muted small">${d}</div>` : ''}</div></div>`;
+  const ios = esIOS(), noSafari = ios && /CriOS|FxiOS|EdgiOS|GSA\//i.test(navigator.userAgent);
+  const svgCompartir = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-5px"><path d="M12 3v12M7 8l5-5 5 5"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>';
+  modal(`<div class="row between"><h2 style="margin:0">Instalar Pídele</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${ios ? `${noSafari ? '<div class="aviso warn" style="margin-top:10px">Si no ves la opción, abre esta página en <b>Safari</b>.</div>' : ''}
+      ${paso(1, 'Toca el botón Compartir ' + svgCompartir, 'Está abajo en el centro (o arriba a la derecha en iPad).')}
+      ${paso(2, 'Elige “Agregar a pantalla de inicio” ➕', 'Si no aparece, desliza la lista hacia arriba.')}
+      ${paso(3, 'Toca “Agregar”', 'Listo: abre Pídele desde el ícono en tu pantalla de inicio.')}`
+    : `${paso(1, 'Toca el menú ⋮ del navegador', 'Arriba a la derecha en Chrome.')}
+      ${paso(2, 'Elige “Instalar app” o “Agregar a pantalla de inicio”', '')}
+      ${paso(3, 'Confirma con “Instalar”', 'Listo: abre Pídele desde el ícono en tu pantalla de inicio.')}`}
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal()">Entendido</button></div>`);
 }
 
 arrancar();

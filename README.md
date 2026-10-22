@@ -124,6 +124,54 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.1.0 · pedidos sin repartidor, instalación y verificación más fácil
+- **Pedido que nadie toma:** si a los `minutosSinRepartidor` (10) de su hora de salida ningún repartidor lo ha tomado, se avisa una sola vez al negocio y al administrador, y se vuelve a avisar a los repartidores disponibles. El negocio ve en el pedido:
+  - **🛵 Lo envío por mis medios**: aunque no tenga repartidores registrados; nombre y WhatsApp de quien lo lleva son opcionales. Se comparte la ficha por WhatsApp (o se elige el contacto, o se copia) y el negocio marca *Ya se entregó*.
+  - **📒 Repartidores disponibles**: directorio de los repartidores de Pídele activos ahora (en su horario y sin pausa), con botón de WhatsApp para pedirles que lo tomen.
+- **Efectivo con teléfono verificado:** ya no se pide estar en el punto de entrega (GPS); se mantiene el tope de efectivo en los primeros pedidos.
+- **Dirección:** al marcar el punto en el mapa, la calle y la colonia se llenan solas (OpenStreetMap); el texto ya no es obligatorio.
+- **Instalar:** tarjeta "Instala Pídele" en Inicio, Pedidos del negocio y Disponibles. En Android instala con un toque; en iPhone (y si el navegador no lo permite) muestra la guía de 3 pasos. Enlace `?instalar=1` (el que se comparte desde "Compartir Pídele") abre directo la instalación.
+- **Verificación por WhatsApp:** pantalla con pasos grandes que resalta **"Toca el botón ENVIAR ➤"** y, mientras espera, recuerda enviarlo y permite abrir WhatsApp otra vez. Respuesta: "✅ ¡Gracias por verificar tu cuenta! Ya puedes regresar a Pídele." (llega cuando Meta apruebe el negocio).
+
+## Versión 2.0.0 · ranking, pagos del envío y correcciones
+**Calificaciones cruzadas y ranking (0-100)**
+- Además de que el cliente califique, ahora el **repartidor** califica al negocio y al cliente (se le pide al marcar *Entregado*) y el **negocio** califica al cliente y al repartidor (botón *⭐ Calificar* en sus pedidos de hoy). Hay `diasCalificar` (2) días para hacerlo.
+- **Puntaje del repartidor**: calificaciones de clientes y negocios (70) + experiencia, 1 punto cada 5 entregas (20) + cumplimiento, entregas vs. pedidos liberados (10) + bonus. Lo ve en *Perfil → Mi puntaje*.
+- **Prioridad**: con `rankingPrioridad` = 1, los repartidores con `rankingNivelAlto` (80) o más toman los pedidos al instante; los de `rankingNivelMedio` (60) o más esperan `rankingEsperaMedioMin` (1 min) y el resto `rankingEsperaBajoMin` (2 min). A todos les llega el aviso; mientras esperan ven una cuenta regresiva.
+- **Puntaje del negocio**: calificaciones de clientes y repartidores (70) + pedidos entregados (20) + cumplimiento, pocas cancelaciones (10) + bonus. Ordena los negocios en la app (abiertos primero). Lo ve en *Negocio → Mi puntaje*.
+- **Puntaje del cliente (oculto)**: el negocio y el repartidor solo ven un indicador (🆕 nuevo · 👤 cliente · ✅ confiable · ⚠️ atención) con sus entregas y cancelaciones. Con `clienteMinCalif` (3) calificaciones o más y puntaje menor a `clienteUmbralEfectivo` (35), solo puede pagar por transferencia (0 = sin límite).
+- **Bonus manual** (*Usuarios → 🎯 Bonus*): 0 a 30 puntos con días de vigencia, para repartidores y negocios; sin etiqueta visible.
+
+**Pago del envío**
+- *Negocio → Formas de pago → Cobrar el envío en la transferencia*: el cliente transfiere comida + envío al negocio y el negocio le paga el envío en efectivo al repartidor al entregarle el pedido (la app se lo recuerda).
+- El repartidor puede registrar su **CLABE o tarjeta** en *Perfil*: el cliente ve "¿Pagas el envío por transferencia?" con sus datos. Al entregar, el repartidor marca si le pagaron en efectivo o por transferencia (queda en su historial).
+
+**"Recibido" por error**
+- Si el pedido va en camino, la app le pregunta al cliente "¿Ya tienes tu pedido en tus manos?" antes de confirmar.
+- Si aun así lo confirma por error, el repartidor o el negocio pueden tocar **↩️ Aún no se entrega** dentro de `minutosCorregirEntrega` (60 min); el admin puede hacerlo con cualquier pedido entregado en ese tiempo. El pedido vuelve a *En camino* con los datos de quien recibe, y se quitan las calificaciones y los contadores de ese pedido.
+
+**Comprobante desde la app del banco**
+- En Android, con Pídele instalada en la pantalla de inicio, Pídele aparece al tocar *Compartir* en la app del banco. Se abre *Enviar comprobante*, el cliente elige el pedido y listo (imagen o PDF de hasta 4 MB). En iPhone sigue el botón *Adjuntar comprobante*, que ahora también acepta PDF.
+
+**Recorrido por calles (opcional)**
+- Con `rutaCalles` = 1, el mapa de *Mis entregas* dibuja el recorrido por calles (servicio gratuito OSRM con mapas de OpenStreetMap, lo calcula el teléfono del repartidor). Si falla, queda la línea recta. Sigue el botón de Google Maps.
+
+## Versión 1.9.0 · turnos de repartidor y reparto propio
+**Repartidor: horario y pausa**
+- *Perfil → Mi horario de trabajo*: horario semanal (por defecto 7:00 a 18:00). Fuera de horario no recibe avisos; puede tocar **Activarme ahora** (queda activo hasta que termine el día) y **Terminar mi turno**.
+- En *Disponibles*: **🟢 Disponible / ⏸️ En pausa** con pausas de 30 min, 1 hora o "hasta que la quite". En pausa no recibe avisos, pero ve la lista; si toma un pedido vuelve a quedar disponible.
+- Sin horario configurado: recibe avisos siempre (salvo en pausa).
+
+**Negocio: mis propios repartidores**
+- *Negocio → Envíos*: **Repartidores de Pídele**, **Mis repartidores** o **Ambos**, más la lista de sus repartidores (nombre y teléfono, hasta 20).
+- Con *Mis repartidores* el envío puede ser **gratis**, **precio fijo** o la **tarifa de la app**, siempre dentro de `kmMaximo`. Con *Ambos* el cliente paga la tarifa de la app.
+- En el pedido: **Enviar con mi repartidor** → elige a quién → pasa a *En camino* y abre WhatsApp con la ficha (primer nombre y teléfono de quien recibe, dirección, referencia, ubicación en Google Maps y cuánto cobrar). Luego **Ya se entregó**. También puede reenviar la ficha o cancelar.
+- Los pedidos con reparto propio no aparecen ni se avisan a los repartidores de Pídele. El cliente ve "Te lo lleva Pepe, su repartidor" (solo el primer nombre) y no califica repartidor.
+
+## Versión 1.8.2 · historial del repartidor
+- *Mis entregas* muestra la lista de **hoy** (entregados y cancelados, con hora, negocio, envío, forma de pago y dirección) y el botón **Ver mi historial (30 días)**, agrupado por día con totales; incluye pedidos ya archivados.
+- Si el repartidor tiene pedidos en curso, la app abre directo en *Mis entregas* y *Disponibles* avisa "Tienes X pedido(s) en curso".
+
 ## Versión 1.8.1 · correcciones
 - **Verificación sin respuesta automática:** mientras Meta no verifique el negocio, WhatsApp no deja contestar (error 131031), pero el mensaje *PIDELE 123456* sí llega y el teléfono se verifica solo; la app lo detecta en segundos.
   - `whatsappPidele` acepta números con lada de otro país (ej. `15556585439`, el número de prueba de Meta). 10 dígitos = México.
@@ -161,5 +209,5 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 **Alertas** (*Resumen → Alertas de cuentas*): más de `alertaCuentasAparato` (2) cuentas de cliente en un mismo teléfono, o varias cuentas pidiendo al mismo punto exacto. No bloquean: son para revisar.
 
 ## Pendiente
-- 1.9: calificaciones cruzadas (cliente, negocio y repartidor), ranking 0–100 y bonus manual con vencimiento; los repartidores mejor calificados ven los pedidos antes; puntaje oculto del cliente con indicador para el negocio y límite al efectivo.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
+- Cuando Meta verifique el negocio: número real de Pídele en WhatsApp, `whatsappResponde` = 1 y publicar la app de Meta (En vivo) con aviso de privacidad.
