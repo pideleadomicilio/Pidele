@@ -124,6 +124,25 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.5.3 · enlaces de Cosalá
+- Página `cosala/` con su vista previa (título e imagen de Cosalá) que abre la app en Cosalá; los enlaces que se comparten desde Cosalá la usan. Imágenes de vista previa en icons/og-*.jpg.
+
+## Versión 2.5.2 · Cosalá activado
+- index.html ya trae la URL del servidor de Cosalá.
+
+## Versión 2.5.1 · identidad de cada municipio
+- La pantalla de inicio y las cargas usan el dibujo del municipio (la cruz en La Cruz, el arco en Cosalá) y el nombre debajo de Pídele; también en la barra verde y en la pantalla de entrar. Mismo index.html para todos.
+
+## Versión 2.5.0 · municipios (Cosalá) y administrador local
+- Cada municipio tiene su propio servidor (otra hoja y otro Apps Script con este mismo código, de preferencia en otra cuenta de Google): el tráfico de uno no hace lenta la app en el otro.
+- La app es la misma página: la primera vez pregunta "¿Dónde estás?" y se conecta al servidor de ese municipio. El enlace `?pueblo=cosala` abre directo en Cosalá. Cada municipio guarda su sesión, carritos y menús por separado.
+- Los municipios activos están en `PUEBLOS` (index.html); un municipio sin URL no aparece.
+- Ajustes nuevos: `pueblo` (nombre del municipio del servidor) y `porcentajeLocal` (50).
+- Administrador local: lo nombra el general (Resumen → Administrador local y comisiones). Aprueba negocios y repartidores, atiende pedidos, registra pagos en efectivo y ajusta las tarifas de envío. No cambia precios ni ajustes, ni confirma transferencias.
+- Comisiones por mes: todo lo cobrado en el municipio × porcentaje; el efectivo que recibió el local cuenta como parte de su pago. El general marca cada mes como liquidado.
+- Tablero general: en Resumen, "Todos los municipios" muestra cada servidor y el total (conecta tu cuenta de administrador de cada uno una vez).
+- Worker: `/api/cosala` usa la variable `APPS_SCRIPT_URL_COSALA`; los mensajes de WhatsApp prueban cada servidor hasta encontrar el código.
+
 ## Versión 2.4.0 · nuevas promociones
 - Al crear una Promoción el negocio elige el tipo: precio especial (como antes), 2x1/3x2/3x1/4x3, % de descuento por pieza, pesos de descuento por pieza, producto de regalo o % en la primera compra (con máximo opcional).
 - Ya no hace falta poner precio especial: los precios del menú se quedan igual y el servidor descuenta lo que toca.
@@ -235,6 +254,9 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 **Alertas** (*Resumen → Alertas de cuentas*): más de `alertaCuentasAparato` (2) cuentas de cliente en un mismo teléfono, o varias cuentas pidiendo al mismo punto exacto. No bloquean: son para revisar.
 
 ## Pendiente
+- Aviso a clientes: Pídele une al cliente con el negocio; al no cobrar comisiones no emite facturas, la factura se solicita directamente al negocio.
+- Solicitar factura desde la app: el cliente guarda sus datos fiscales una vez y, al pedir factura de un pedido, el negocio los recibe listos.
+- Cuota de validación (inscripción) para negocios que se sumen en 2027, después de la etapa inicial.
 - Monedero por tienda (ej. 1% de cada compra para usar en ese negocio), activable solo por el negocio.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
 - Cuando Meta verifique el negocio: número real de Pídele en WhatsApp, `whatsappResponde` = 1 y publicar la app de Meta (En vivo) con aviso de privacidad.
