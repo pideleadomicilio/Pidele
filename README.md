@@ -124,6 +124,14 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.2.0 · menú con subsecciones y opciones
+- **Plantilla de Excel a la medida** (*Mi menú → ⬇ Plantilla*): 3 preguntas (cómo acomodas el menú: secciones / secciones con subsecciones / lista; qué necesitan tus productos: opciones de preparación, variantes de precio, extras con costo, extras sin costo, ingredientes que se quitan; tiempo por producto) y descarga un Excel solo con esas columnas, con ejemplos.
+- **Subsecciones:** columna *Subsección* en el Excel o botón *🗂️ Subsecciones* en cada sección de *Mi menú* (crear y asignar productos). El cliente las ve como subtítulos dentro de la sección.
+- **Opciones de sección** (*Mi menú → 🧩 Opciones de sección*, o la hoja *Opciones* del Excel): un grupo (ej. *Tipo de leche*: Entera, Deslactosada, Almendra +$10) que se aplica a toda una sección, a una subsección (*Bebidas calientes > Café*) o a productos sueltos, con productos excluidos. Cada grupo es obligatorio u opcional y permite elegir 1 o hasta N. Los productos nuevos de esa sección lo toman solos.
+- **Opciones de preparación por producto:** columna *Opciones de preparación* (`Término: Medio, Tres cuartos | Salsa (opcional, hasta 2): Verde, Roja:5`) o en el formulario del producto.
+- El cliente elige en la hoja del producto (la app no deja agregar sin las obligatorias), el precio suma las opciones y el negocio, el repartidor y el carrito ven "Tipo de leche: Almendra". El servidor valida opciones y precios.
+- *Exportar mi menú* incluye subsecciones, opciones de preparación, extras con y sin costo separados y la hoja *Opciones*. Los Excel anteriores (una sola columna de *Extras*) se siguen importando igual.
+
 ## Versión 2.1.0 · pedidos sin repartidor, instalación y verificación más fácil
 - **Pedido que nadie toma:** si a los `minutosSinRepartidor` (10) de su hora de salida ningún repartidor lo ha tomado, se avisa una sola vez al negocio y al administrador, y se vuelve a avisar a los repartidores disponibles. El negocio ve en el pedido:
   - **🛵 Lo envío por mis medios**: aunque no tenga repartidores registrados; nombre y WhatsApp de quien lo lleva son opcionales. Se comparte la ficha por WhatsApp (o se elige el contacto, o se copia) y el negocio marca *Ya se entregó*.
