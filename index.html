@@ -568,7 +568,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.9.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.9.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1089,6 +1089,24 @@ async function vInvitacion(codigo) {
     html(`<div class="entrar"><div class="vacio"><span class="big">✉️</span>${esc(e.message)}<br><br><button class="btn" onclick="vLogin()">Ir a entrar</button></div></div>`);
     return;
   }
+  if (d.tipo === 'repartidor') {
+    html(`<div class="entrar">
+    <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
+    <div class="card" style="text-align:center"><div style="font-size:40px">🛵</div><h2 style="margin:4px 0">¡Te invitamos a repartir con Pídele ${esc(PUEBLO.nombre)}!</h2>
+      <div class="muted">Crea tu cuenta: queda aprobada al instante y <b>sin pagar inscripción</b>.</div>
+      <div class="tot" style="margin-top:10px"><span>Mensualidad (después de tu prueba)</span><b>${money(d.cuota)} al mes</b></div>
+      <div class="muted small">${textoPrueba(0, true) ? textoPrueba(0, true).replace('Al aprobar tu cuenta, tu', 'Tu') : 'Tus primeros ' + d.diasPrueba + ' días son gratis.'} Lo que cobras de envío es tuyo: Pídele no te cobra comisión.</div></div>
+    <div class="card">
+      <label class="f" style="margin-top:0">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name" value="${esc(d.nombre)}">
+      <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
+      <label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" value="${esc(d.vehiculo)}" placeholder="Ej. Moto Italika roja">
+      <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta de repartidor</button></div>
+    </div>
+    <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta</button></div>
+  </div>`);
+    return;
+  }
   const basico = d.plan === 'basico';
   html(`<div class="entrar">
     <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
@@ -1109,10 +1127,10 @@ async function vInvitacion(codigo) {
   </div>`);
 }
 async function registrarInv(codigo) {
-  const v = id => $('#' + id).value;
-  const d = await api('registrar', { invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), aparato: aparatoId() });
+  const v = id => { const e = $('#' + id); return e ? e.value : ''; };
+  const d = await api('registrar', { invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
   PUEBLO_INV = '';
-  toast('¡Bienvenido a ' + APP + '! Tu negocio ya está aprobado');
+  toast('¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
   guardarSesion(d);
 }
 
@@ -4681,7 +4699,7 @@ async function vAdmin() {
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
     ${d.local ? '' : `<div class="row" style="gap:10px;align-items:stretch">
       <div class="card grow" style="cursor:pointer;margin:0" onclick="ir('adminEstadisticas')"><b>📊 Estadísticas</b><div class="muted small">Ventas y envíos por día, hora, semana y mes. Solo tú las ves.</div></div>
-      <div class="card grow" style="cursor:pointer;margin:0" onclick="act(null,formInvitar)"><b>✉️ Invitar negocio</b><div class="muted small">Cuenta aprobada al instante, plan Básico o con publicidad.</div></div></div>`}
+      <div class="card grow" style="cursor:pointer;margin:0" onclick="act(null,formInvitar)"><b>✉️ Invitar</b><div class="muted small">Negocios y repartidores: cuenta aprobada al instante.</div></div></div>`}
     ${!d.local && PUEBLOS.length > 1 ? '<h3>Todos los municipios</h3><div id="pueblosRes"><div class="cargando">Cargando…</div></div>' : ''}
     <h3>Por aprobar (${d.pendientes.length})</h3>
     ${d.pendientes.length ? d.pendientes.map(tarjetaUsuario).join('') : '<div class="vacio">Nadie pendiente ✨</div>'}`);
@@ -4772,11 +4790,12 @@ function tarjetaUsuario(x) {
       ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}
       <div class="row wrap" style="gap:4px;margin-top:4px">${x.telVerificado ? '<span class="tag t-ok">📱 Verificado</span>' : '<span class="tag t-gray">📱 Sin verificar</span>'}
         ${x.rol === 'repartidor' || x.negocioId ? `<span class="tag t-info">📈 ${x.puntaje}/100${x.bonus ? ' · bonus +' + x.bonus + ' hasta ' + fechaCorta(x.bonusVence).split(' ').slice(0, 2).join(' ') : ''}</span>` : ''}
-        ${x.rol === 'repartidor' ? (x.inscrito ? '<span class="tag t-ok">Inscripción pagada</span>' : '<span class="tag t-warn">Sin inscripción</span>') + (x.curp ? ` <span class="tag t-gray">${esc(x.curp)}</span>` : '') : ''}</div></div><span class="tag ${est}">${x.estado}</span></div>
+        ${x.rol === 'repartidor' ? (x.inscrito ? '<span class="tag t-ok">Inscripción pagada</span>' : '<span class="tag t-warn">Sin inscripción</span>') + (x.curp ? ` <span class="tag t-gray">${esc(x.curp)}</span>` : x.estado === 'activo' ? ' <span class="tag t-warn">Falta CURP</span>' : '') : ''}</div></div><span class="tag ${est}">${x.estado}</span></div>
     ${x.notasAdmin ? `<div class="muted small" style="margin-top:6px">📝 ${esc(x.notasAdmin)}</div>` : ''}
     <div class="btns">${x.estado !== 'activo' ? (x.rol === 'repartidor' && (x.estado === 'pendiente' || !x.curp || !x.inscrito) ? `<button class="btn ok sm" onclick='formAprobarRep(${JSON.stringify({ id: x.id, nombre: x.nombre, telefono: x.telefono, curp: x.curp, inscrito: x.inscrito, reactivar: x.estado !== 'pendiente' }).replace(/'/g, '&#39;')})'>${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`
         : `<button class="btn ok sm" onclick="act(this,()=>estadoUsuario('${x.id}','activo'))">${x.estado === 'pendiente' ? 'Aprobar' : 'Reactivar'}</button>`) : ''}
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
+      ${x.rol === 'repartidor' && x.estado === 'activo' && !x.curp ? `<button class="btn sm" onclick="act(this,()=>agregarCurp('${x.id}'))">🪪 Agregar CURP</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() && x.estado === 'activo' ? `<button class="btn sm" onclick="formDonar('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')})">🎁 Donar meses</button>` : ''}
@@ -4786,34 +4805,45 @@ function tarjetaUsuario(x) {
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
 }
 /** Invitación a un negocio (solo el general): enlace para crear su cuenta ya aprobada. */
-async function formInvitar(lista) {
+async function formInvitar(lista, tipo) {
   const l = Array.isArray(lista) ? lista : await api('adminInvitaciones');
-  const c = S.conf || {};
+  tipo = tipo || S._ivTipo || 'negocio'; S._ivTipo = tipo; S._ivL = l;
+  const rep = tipo === 'repartidor';
   const EST = { pendiente: 't-warn', usada: 't-ok', cancelada: 't-gray' };
-  modal(`<div class="row between"><h2 style="margin:0">Invitar negocio</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:6px 0 10px">Le llega un enlace para crear su cuenta: queda aprobada al instante, sin pasar por “Por aprobar”.</div>
-    <label class="f">Nombre del negocio</label><input class="i" id="ivN" maxlength="60">
-    <label class="f">Teléfono del dueño (10 dígitos)</label><input class="i" id="ivT" type="tel" inputmode="numeric" maxlength="14">
-    <label class="f">Plan</label>
-    <div class="opcion on" onclick="this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.remove('on'));this.classList.add('on');S._ivPlan='basico'"><span class="radio"></span><div class="grow"><b>Básico</b> <span class="muted small">· todo menos el banner de Inicio</span></div></div>
-    <div class="opcion" onclick="this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.remove('on'));this.classList.add('on');S._ivPlan='completo'"><span class="radio"></span><div class="grow"><b>Con publicidad</b> <span class="muted small">· incluye el banner de Inicio</span></div></div>
+  const sel = "this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.remove('on'));this.classList.add('on');";
+  modal(`<div class="row between"><h2 style="margin:0">Invitar</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="tabs" style="margin:10px 0"><button class="${rep ? '' : 'on'}" onclick="formInvitar(S._ivL,'negocio')">🏪 Negocio</button><button class="${rep ? 'on' : ''}" onclick="formInvitar(S._ivL,'repartidor')">🛵 Repartidor</button></div>
+    ${rep ? `<div class="muted small" style="margin-bottom:6px">Le llega un enlace para crear su cuenta: queda aprobada al instante, sin inscripción y con su mes de prueba. Su CURP la agregas después en su tarjeta.</div>
+      <label class="f">Nombre del repartidor</label><input class="i" id="ivN" maxlength="60">
+      <label class="f">Teléfono (10 dígitos)</label><input class="i" id="ivT" type="tel" inputmode="numeric" maxlength="14">
+      <label class="f">Vehículo (opcional)</label><input class="i" id="ivV" maxlength="40" placeholder="Ej. Moto Italika roja">`
+    : `<div class="muted small" style="margin-bottom:6px">Le llega un enlace para crear su cuenta: queda aprobada al instante, sin pasar por “Por aprobar”.</div>
+      <label class="f">Nombre del negocio</label><input class="i" id="ivN" maxlength="60">
+      <label class="f">Teléfono del dueño (10 dígitos)</label><input class="i" id="ivT" type="tel" inputmode="numeric" maxlength="14">
+      <label class="f">Plan</label><div>
+      <div class="opcion on" onclick="${sel}S._ivPlan='basico'"><span class="radio"></span><div class="grow"><b>Básico</b> <span class="muted small">· todo menos el banner de Inicio</span></div></div>
+      <div class="opcion" onclick="${sel}S._ivPlan='completo'"><span class="radio"></span><div class="grow"><b>Con publicidad</b> <span class="muted small">· incluye el banner de Inicio</span></div></div></div>`}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,crearInvitacion)">Crear invitación</button></div>
-    ${l.length ? `<h3>Invitaciones</h3>${l.map(x => `<div class="tot small"><span>${esc(x.negocio)} · ${esc(x.telefono)} · ${x.plan === 'basico' ? 'Básico' : 'Con publicidad'}<br><span class="muted">${fechaCorta(x.creado)}</span></span>
+    ${l.length ? `<h3>Invitaciones</h3>${l.map(x => `<div class="tot small"><span>${x.tipo === 'repartidor' ? '🛵' : '🏪'} ${esc(x.negocio)} · ${esc(x.telefono)}${x.tipo === 'repartidor' ? '' : ' · ' + (x.plan === 'basico' ? 'Básico' : 'Con publicidad')}<br><span class="muted">${fechaCorta(x.creado)}</span></span>
       <span style="text-align:right"><span class="tag ${EST[x.estado] || 't-gray'}">${esc(x.estado)}</span>${x.estado === 'pendiente' ? `<br><button class="lnk small" onclick='mandarInvitacion(${JSON.stringify(x).replace(/'/g, '&#39;')})'>Reenviar</button>` : ''}</span></div>`).join('')}` : ''}`);
   S._ivPlan = 'basico';
 }
 async function crearInvitacion() {
-  const r = await api('adminInvitar', { negocio: $('#ivN').value, telefono: $('#ivT').value, plan: S._ivPlan || 'basico' });
+  const rep = S._ivTipo === 'repartidor';
+  const r = await api('adminInvitar', rep ? { tipo: 'repartidor', nombre: $('#ivN').value, telefono: $('#ivT').value, vehiculo: $('#ivV').value }
+    : { negocio: $('#ivN').value, telefono: $('#ivT').value, plan: S._ivPlan || 'basico' });
   mandarInvitacion(r);
 }
 function enlaceInvitacion(x) { return urlApp('inv=' + encodeURIComponent(x.codigo) + (PUEBLO.id === PUEBLOS[0].id ? '&pueblo=' + PUEBLO.id : '')); }
 function mandarInvitacion(x) {
   const link = enlaceInvitacion(x), c = S.conf || {};
-  const msg = `¡Hola! Te invitamos a vender en Pídele ${PUEBLO.nombre} con ${x.negocio}. Crea tu cuenta aquí (queda aprobada al instante): ${link}`;
+  const msg = x.tipo === 'repartidor'
+    ? `¡Hola ${String(x.negocio).split(' ')[0]}! Te invitamos a repartir con Pídele ${PUEBLO.nombre}. Crea tu cuenta aquí (queda aprobada al instante y sin inscripción): ${link}`
+    : `¡Hola! Te invitamos a vender en Pídele ${PUEBLO.nombre} con ${x.negocio}. Crea tu cuenta aquí (queda aprobada al instante): ${link}`;
   modal(`<h2 style="margin-top:0">Invitación lista ✉️</h2>
     <div class="aviso ok">Envíasela a ${esc(x.negocio)}. Solo sirve para el teléfono ${esc(x.telefono)} y una sola vez.</div>
     <div class="copiar"><div style="min-width:0"><div class="muted small">Enlace</div><div class="v small" style="word-break:break-all">${esc(link)}</div></div><button class="btn sm" onclick="copiar('${esc(link)}','Enlace')">${ico('copiar', 's')}</button></div>
-    <div class="btns"><a class="btn pri" target="_blank" href="${waLink(x.telefono, msg)}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="act(this,formInvitar)">Listo</button></div>`);
+    <div class="btns"><a class="btn pri" target="_blank" href="${waLink(x.telefono, msg)}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="act(this,()=>formInvitar(null,'${x.tipo === 'repartidor' ? 'repartidor' : 'negocio'}'))">Listo</button></div>`);
 }
 /** Meses donados (solo el general): recorre su fecha de pago sin cobrarle. */
 function formDonar(repartidorId, negocioId, nombre) {
@@ -4860,6 +4890,12 @@ async function promoAdmin(id, estado) {
   verPromosAdmin(l);
 }
 
+/** CURP de un repartidor que entró por invitación (se valida igual: 18 caracteres y una sola cuenta por persona). */
+async function agregarCurp(id) {
+  const curp = prompt('CURP del repartidor (18 caracteres, como viene en su INE):'); if (!curp) return;
+  await api('adminEstadoUsuario', { usuarioId: id, estado: 'activo', curp });
+  toast('CURP guardada ✓'); pintar(true);
+}
 async function rechazarSolicitud(id) {
   const nota = prompt('Motivo (se le envía; la cuenta queda como cliente):'); if (nota === null) return;
   await api('adminRechazarSolicitud', { usuarioId: id, nota });
