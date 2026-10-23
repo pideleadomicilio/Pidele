@@ -325,6 +325,8 @@ textarea.i{min-height:70px;resize:vertical}
 .promoCard .pie{padding:10px 13px 12px}
 .tachado{text-decoration:line-through;color:var(--tx2);font-weight:700;font-size:.82em;margin-right:4px}
 .precioPromo{color:var(--err)}
+#bloqueoUbic{position:fixed;inset:0;z-index:900;background:rgba(34,40,29,.6);display:flex;align-items:center;justify-content:center;padding:20px}
+#bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center}
 .chipPueblo{border:0;background:var(--pri-s);color:var(--pri2);font-weight:800;font-size:12.5px;border-radius:999px;padding:7px 11px;white-space:nowrap;cursor:pointer}
 .tagPromo{position:absolute;top:7px;left:7px;background:var(--err);color:#fff;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:900;letter-spacing:.3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -395,11 +397,11 @@ const PUEBLO = (() => {
   let id = '';
   try {
     const param = new URLSearchParams(location.search).get('pueblo') || '';
-    const guardado = localStorage.getItem('pe_pueblo') || '', elegido = !!localStorage.getItem('pe_puebloElegido');
+    const guardado = localStorage.getItem('pe_pueblo') || '';
     id = guardado || param;
     if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
       let u = null; try { u = JSON.parse(localStorage.getItem('pe_' + (guardado && guardado !== PUEBLOS[0].id ? guardado + '_' : '') + 'user')); } catch (e) { }
-      if (!guardado || !elegido || (u && u.rol === 'admin')) { id = param; localStorage.setItem('pe_puebloElegido', '1'); }
+      if (!localStorage.getItem('pe_casa') || (u && u.rol === 'admin')) id = param; // teléfono nuevo: el enlace es solo una pista, la ubicación decide
       else { PUEBLO_PEND = param; const q = new URLSearchParams(location.search); q.delete('pueblo'); PUEBLO_QUERY = q.toString(); }
     }
   } catch (e) { }
@@ -433,13 +435,17 @@ function lsDe(id, k, v) {
 }
 /** Cambiar de municipio: se recarga la app conectada al servidor de ese municipio. */
 function cambiarPueblo(id, query) {
-  try { localStorage.setItem('pe_pueblo', id); localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { }
+  try { localStorage.setItem('pe_pueblo', id); } catch (e) { }
   location.href = location.pathname + (query ? '?' + query : '');
 }
-/* ---------- candado de municipio: cambiarse requiere estar ahí (15 km del centro), salvo administradores ---------- */
-const puebloVerificado = id => { try { return !!localStorage.getItem('pe_verif_' + id); } catch (e) { return false; } };
-const marcarVerificado = id => { try { localStorage.setItem('pe_verif_' + id, String(Date.now())); } catch (e) { } };
-const primeraVez = () => { try { return !localStorage.getItem('pe_puebloElegido'); } catch (e) { return false; } };
+/*
+ * La ciudad la decide la ubicación (no se ofrece elegir):
+ * - La primera vez es obligatoria; si está dentro de una ciudad (radio del municipio) se queda en ella.
+ * - Fuera de las dos ciudades elige una, y solo puede pagar por transferencia.
+ * - Si después abre la app estando en la otra ciudad, cambia sola, con opción de regresar a la suya.
+ * - Los administradores se cambian libres desde su panel.
+ */
+const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('pe_' + k); if (v === null) localStorage.removeItem('pe_' + k); else localStorage.setItem('pe_' + k, String(v)); } catch (e) { return null; } };
 /** Centro y radio de un municipio (la ubicación registrada en su servidor). */
 async function centroDe(pb) {
   S._centros = S._centros || {};
@@ -452,12 +458,11 @@ async function centroDe(pb) {
 function gpsAhora(motivo) {
   return new Promise((ok, mal) => {
     if (!navigator.geolocation) { mal(new Error('Tu teléfono no permite ubicación.')); return; }
-    toast('Comprobando tu ubicación…');
-    navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => mal(new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy || 0) }),
+      () => mal(new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
   });
 }
-/** ¿En qué municipio estás? Devuelve el más cercano dentro de su radio, o null. */
+/** ¿En qué ciudad estás? La más cercana dentro de su radio, o null. */
 async function puebloDeUbicacion(g) {
   let mejor = null;
   for (const pb of PUEBLOS) {
@@ -466,46 +471,86 @@ async function puebloDeUbicacion(g) {
   }
   return mejor && mejor.pb;
 }
-/** Ir a un municipio comprobando la ubicación (los administradores pasan directo). */
-async function irConUbicacion(id, query) {
-  const pb = PUEBLOS.find(x => x.id === id); if (!pb) return;
-  if (S.user && S.user.rol === 'admin') { cambiarPueblo(id, query); return; }
-  const g = await gpsAhora('para cambiarte de municipio');
-  const c = await centroDe(pb);
-  if (hav(g.lat, g.lng, c.lat, c.lng) > c.radio) throw new Error('Para usar Pídele ' + pb.nombre + ' necesitas estar en ' + pb.nombre + '.');
-  marcarVerificado(id);
-  if (id === PUEBLO.id) { try { localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { } cerrarModal(); toast('Ubicación comprobada ✓'); return; }
-  cambiarPueblo(id, query);
+const esAdminU = () => !!(S.user && S.user.rol === 'admin');
+/** ¿Ya sabemos tu ciudad? Las cuentas que ya usaban la app la conservan sin volver a preguntar. */
+function ciudadDefinida() {
+  if (lsG('casa')) return true;
+  if (S.token && S.user) { lsG('casa', PUEBLO.id); return true; }
+  return false;
 }
-/** "Usar mi ubicación": elige solo el municipio donde estás. */
-async function detectarPueblo() {
-  const g = await gpsAhora('para saber en qué municipio estás');
-  const pb = await puebloDeUbicacion(g);
-  if (!pb) throw new Error('Tu ubicación no está dentro del área de ' + PUEBLOS.map(x => x.nombre).join(' ni de ') + '.');
-  marcarVerificado(pb.id);
-  if (pb.id === PUEBLO.id) { try { localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { } cerrarModal(); toast('📍 ' + pb.nombre + ' ✓'); }
-  else cambiarPueblo(pb.id);
+async function permisoUbicacion() {
+  try { const r = await navigator.permissions.query({ name: 'geolocation' }); return r.state; } catch (e) { return 'prompt'; }
 }
-function elegirPueblo(cerrable) {
-  if (PUEBLOS.length < 2) return;
-  const admin = S.user && S.user.rol === 'admin', libre = admin || primeraVez();
-  modal(`<div class="row between"><h2 style="margin:0">¿Dónde estás?</h2>${cerrable ? '<button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button>' : ''}</div>
-    <div class="muted" style="margin:6px 0 12px">${libre ? 'Usa tu ubicación para ver los negocios que te entregan.' : 'Para cambiarte de municipio comprobamos con tu ubicación que estás ahí.'}</div>
-    <button class="btn pri pill full" onclick="act(this,detectarPueblo)">📍 Usar mi ubicación</button>
-    ${libre ? `<div class="muted small" style="margin:14px 0 6px">${admin ? 'Como administrador puedes entrar a cualquiera:' : 'O elige tu municipio (para pedir te pediremos tu ubicación):'}</div>
-      ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? "try{localStorage.setItem('pe_puebloElegido','1')}catch(e){};cerrarModal()" : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`
-    : `<div class="muted small" style="margin-top:12px">Estás en <b>${esc(PUEBLO.nombre)}</b>. ${PUEBLOS.filter(x => x.id !== PUEBLO.id).map(x => `<button class="lnk small" onclick="act(this,()=>irConUbicacion('${x.id}'))">Cambiar a ${esc(x.nombre)}</button>`).join(' ')}</div>`}`);
+/** Al abrir la app: define o confirma la ciudad con la ubicación. */
+async function ubicarAlAbrir() {
+  if (PUEBLOS.length < 2 || esAdminU() || S._ubicando) return;
+  S._ubicando = true;
+  try {
+    const primera = !ciudadDefinida();
+    if (!primera && (await permisoUbicacion()) !== 'granted') return; // sin preguntar de más a quien ya tiene su ciudad
+    let g;
+    try { g = await gpsAhora('para mostrarte los negocios de tu ciudad'); }
+    catch (e) { if (primera) bloqueoUbicacion(e.message); return; }
+    quitarBloqueoUbicacion();
+    const pb = await puebloDeUbicacion(g);
+    lsG('fuera', pb ? null : '1'); S.fueraZona = !pb;
+    if (primera) {
+      if (pb) { lsG('casa', pb.id); if (pb.id !== PUEBLO.id) cambiarPueblo(pb.id); }
+      else elegirCiudadFuera();
+      return;
+    }
+    // ya tiene ciudad: si está en la otra (solo clientes), cambia sola con opción de regresar
+    if (pb && pb.id !== PUEBLO.id && !esStaff()) {
+      const q = JSON.parse(lsG('quedarse') || 'null');
+      if (q && q.id === PUEBLO.id && q.hasta > Date.now()) return;
+      lsG('autoDesde', PUEBLO.id);
+      cambiarPueblo(pb.id);
+    }
+  } catch (e) { } finally { S._ubicando = false; }
 }
-/** Un enlace de otro municipio en un teléfono que ya tiene elegido otro: se pide comprobar la ubicación. */
+/** Pantalla que no deja avanzar sin ubicación (solo la primera vez). */
+function bloqueoUbicacion(msg) {
+  let d = $('#bloqueoUbic');
+  if (!d) { d = document.createElement('div'); d.id = 'bloqueoUbic'; document.body.appendChild(d); }
+  d.innerHTML = `<div class="caja"><div style="font-size:52px">📍</div><h2>Activa tu ubicación</h2>
+    <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
+    <button class="btn pri pill full" onclick="act(this,async()=>{S._ubicando=false;await ubicarAlAbrir()})">Activar ubicación</button>
+    <button class="lnk small" style="margin-top:12px" onclick="ayudaUbicacion()">¿Cómo la activo?</button>
+    ${msg ? `<div class="muted small" style="margin-top:10px">${esc(msg)}</div>` : ''}</div>`;
+}
+function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); }
+/** Fuera de las dos ciudades: elige dónde quiere pedir (solo con transferencia). */
+function elegirCiudadFuera() {
+  bloqueoUbicacion('');
+  $('#bloqueoUbic').innerHTML = `<div class="caja" style="text-align:left"><h2 style="margin-top:0">¿En qué ciudad quieres pedir?</h2>
+    <div class="muted" style="margin:6px 0 12px">Estás fuera de ${PUEBLOS.map(x => esc(x.nombre)).join(' y ')}. Puedes pedir para alguien que esté allá; desde fuera solo se paga por transferencia.</div>
+    ${PUEBLOS.map(x => `<div class="opcion" onclick="lsG('casa','${x.id}');${x.id === PUEBLO.id ? 'quitarBloqueoUbicacion()' : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}</div>`;
+}
+/** Después de un cambio automático: aviso con la opción de regresar a su ciudad. */
+function avisoCambioAuto() {
+  const desde = lsG('autoDesde'); if (!desde) return;
+  lsG('autoDesde', null);
+  const pb = PUEBLOS.find(x => x.id === desde); if (!pb) return;
+  modal(`<h2 style="margin-top:0">📍 Estás en ${esc(PUEBLO.nombre)}</h2>
+    <div class="muted" style="margin:6px 0 14px">Te mostramos los negocios de ${esc(PUEBLO.nombre)}. Aquí usas tu cuenta de ${esc(PUEBLO.nombre)} (o puedes crear una).</div>
+    <button class="btn pri pill full" onclick="cerrarModal()">Ver ${esc(PUEBLO.nombre)}</button>
+    <button class="btn full" style="margin-top:8px" onclick="lsG('quedarse',JSON.stringify({id:'${pb.id}',hasta:Date.now()+12*3600e3}));cambiarPueblo('${pb.id}')">Seguir en ${esc(pb.nombre)}</button>`);
+}
+/** Administradores: entrar al panel de cualquier ciudad. */
+function elegirPueblo() {
+  if (PUEBLOS.length < 2 || !esAdminU()) return;
+  modal(`<div class="row between"><h2 style="margin:0">Ciudad</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">Como administrador puedes entrar a cualquiera:</div>
+    ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? 'cerrarModal()' : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`);
+}
+/** Enlace de otra ciudad en un teléfono que ya tiene la suya: solo se avisa. */
 function avisoEnlaceOtroPueblo() {
   const pb = PUEBLOS.find(x => x.id === PUEBLO_PEND); if (!pb) return;
-  S._queryPend = PUEBLO_QUERY;
-  modal(`<h2 style="margin-top:0">Este enlace es de Pídele ${esc(pb.nombre)}</h2>
-    <div class="muted" style="margin:6px 0 12px">Tu app está en ${esc(PUEBLO.nombre)}. Para cambiarte a ${esc(pb.nombre)} comprobamos con tu ubicación que estás ahí.</div>
-    <button class="btn pri pill full" onclick="act(this,()=>irConUbicacion('${pb.id}','pueblo=${pb.id}'+(S._queryPend?'&'+S._queryPend:'')))">📍 Comprobar mi ubicación</button>
-    <button class="btn full" style="margin-top:8px" onclick="cerrarModal()">Seguir en ${esc(PUEBLO.nombre)}</button>`);
+  modal(`<h2 style="margin-top:0">Ese enlace es de Pídele ${esc(pb.nombre)}</h2>
+    <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
+    <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.6.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.7.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -918,6 +963,7 @@ async function refrescarArranque() {
     enReposo(() => activarPush(false).catch(() => { }), 1500);
   }
   enReposo(precargar, 600);
+  ubicarAlAbrir();
 }
 
 function guardarSesion(d) {
@@ -955,7 +1001,7 @@ function vLogin() {
   html(`<div class="entrar">
     <button class="redondo" onclick="ir('inicio')" aria-label="Volver">${ico('atras')}</button>
     <div class="marca"><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
-    ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}<button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
+    ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}${esAdminU() ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     <div class="card">
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
@@ -2096,7 +2142,7 @@ async function vInicio(p, silencioso) {
       <div class="u" onclick="${u ? "ir('perfil')" : "ir('entrar')"}">
         <b>${ico('pin', 's')} Tu ubicación ${ico('abajo', 's')}</b>
         <small>${u && u.direccion ? esc(u.direccion) : u ? 'Toca para guardar tu dirección' : esc(PUEBLO.nombre) + ', Sin.'}</small></div>
-      ${botonPanel() || (PUEBLOS.length > 1 ? `<button class="chipPueblo" onclick="elegirPueblo(true)">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))} ▾</button>` : '')}
+      ${botonPanel() || (PUEBLOS.length > 1 ? `<span class="chipPueblo" style="cursor:default">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))}</span>` : '')}
       <button class="redondo" onclick="ir('buscar')" aria-label="Buscar">${ico('search')}</button>
       ${botonCarrito()}
     </div>
@@ -2113,7 +2159,7 @@ async function vInicio(p, silencioso) {
   pintarInicioDatos();
   // primera vez con varios municipios: se pregunta dónde está
   if (PUEBLO_PEND && !S._pendMostrado) { S._pendMostrado = true; avisoEnlaceOtroPueblo(); }
-  else if (PUEBLOS.length > 1 && primeraVez() && !$('#modal').classList.contains('on')) elegirPueblo(false);
+  else if (lsG('autoDesde')) avisoCambioAuto();
 }
 
 function categoriasInicio() {
@@ -2729,7 +2775,8 @@ async function vPago() {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
       const rg = reglaEfectivo(sub + envio, e.tipo);
       if (rg.verificar) S._pedirVerif = true;
-      ops.push(['efectivo', 'efectivo', 'Efectivo', rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir') + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
+      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
+      else ops.push(['efectivo', 'efectivo', 'Efectivo', rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir') + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
     }
     const disp = ops.filter(o => !o[4]);
     const m = e.metodos[c.negocioId];
@@ -2773,15 +2820,10 @@ function notaPago(neg) {
 async function confirmarPedido() {
   const e = S.entrega, cs = carritosSel();
   if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
-  // candado de municipio: si no comprobó su ubicación al elegirlo, se comprueba antes de su pedido
-  if (PUEBLOS.length > 1 && !puebloVerificado(PUEBLO.id)) {
-    const g = await gpsAhora('para pedir en ' + PUEBLO.nombre), c = await centroDe(PUEBLO);
-    if (hav(g.lat, g.lng, c.lat, c.lng) > c.radio) throw new Error('Para pedir en Pídele ' + PUEBLO.nombre + ' necesitas estar en ' + PUEBLO.nombre + '.');
-    marcarVerificado(PUEBLO.id);
-  }
   // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
   let gps;
-  if (e.tipo === 'domicilio' && cs.some(c => e.metodos[c.negocioId] === 'efectivo') && reglaEfectivo(0, e.tipo).gps) gps = await ubicacionActual();
+  // efectivo: siempre con la ubicación actual (solo se acepta dentro de la ciudad)
+  if (cs.some(c => e.metodos[c.negocioId] === 'efectivo')) gps = await ubicacionActual();
   let r;
   try {
     // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
@@ -3062,7 +3104,7 @@ function vPerfil() {
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
     ${u.telVerificado ? '' : tarjetaVerificar()}
-    ${PUEBLOS.length > 1 && r !== 'negocio' ? `<div class="card row between"><div><b>📍 Municipio</b><div class="muted small">${esc(PUEBLO.nombre)} · cada municipio tiene sus propias cuentas</div></div><button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
+    ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
