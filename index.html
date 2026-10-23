@@ -327,6 +327,15 @@ textarea.i{min-height:70px;resize:vertical}
 .precioPromo{color:var(--err)}
 #bloqueoUbic{position:fixed;inset:0;z-index:900;background:rgba(34,40,29,.6);display:flex;align-items:center;justify-content:center;padding:20px}
 #bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center}
+/* recorrido guiado */
+#tour{position:fixed;inset:0;z-index:950}
+#tour .hueco{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(20,26,16,.66);transition:all .3s ease;pointer-events:none;outline:3px solid #F3C27A;outline-offset:2px}
+#tour .globo{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--card);border-radius:20px;padding:16px 18px;box-shadow:0 16px 40px rgba(0,0,0,.35);transition:top .3s ease}
+#tour .globo h3{margin:0 0 4px;font-size:18px}
+#tour .globo p{margin:0;color:var(--tx2);font-size:14.5px;line-height:1.45}
+#tour .flecha{position:fixed;width:18px;height:18px;background:var(--card);transform:rotate(45deg);transition:all .3s ease}
+#tour .pie{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px}
+#tour .puntos{display:flex;gap:4px} #tour .puntos i{width:7px;height:7px;border-radius:50%;background:var(--ln)} #tour .puntos i.on{background:var(--pri)}
 .chipPueblo{border:0;background:var(--pri-s);color:var(--pri2);font-weight:800;font-size:12.5px;border-radius:999px;padding:7px 11px;white-space:nowrap;cursor:pointer}
 .tagPromo{position:absolute;top:7px;left:7px;background:var(--err);color:#fff;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:900;letter-spacing:.3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -392,14 +401,19 @@ const PUEBLOS = [
  * Candado: un enlace de otro municipio (?pueblo=cosala o /cosala/) solo cambia el municipio en un teléfono nuevo
  * o de un administrador; si ya eligió otro, se le pide comprobar con su ubicación que está ahí.
  */
-let PUEBLO_PEND = '', PUEBLO_QUERY = '';
+let PUEBLO_PEND = '', PUEBLO_QUERY = '', PUEBLO_INV = '';
 const PUEBLO = (() => {
   let id = '';
   try {
-    const param = new URLSearchParams(location.search).get('pueblo') || '';
+    const qs = new URLSearchParams(location.search);
+    const param = qs.get('pueblo') || '';
     const guardado = localStorage.getItem('pe_pueblo') || '';
     id = guardado || param;
-    if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
+    // invitación del administrador: el municipio es el del enlace y no se cambia por ubicación
+    if (qs.get('inv') && PUEBLOS.some(x => x.id === (param || PUEBLOS[0].id))) {
+      PUEBLO_INV = qs.get('inv'); id = param || PUEBLOS[0].id;
+      localStorage.setItem('pe_casa', id); localStorage.removeItem('pe_fuera');
+    } else if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
       let u = null; try { u = JSON.parse(localStorage.getItem('pe_' + (guardado && guardado !== PUEBLOS[0].id ? guardado + '_' : '') + 'user')); } catch (e) { }
       if (!localStorage.getItem('pe_casa') || (u && u.rol === 'admin')) id = param; // teléfono nuevo: el enlace es solo una pista, la ubicación decide
       else { PUEBLO_PEND = param; const q = new URLSearchParams(location.search); q.delete('pueblo'); PUEBLO_QUERY = q.toString(); }
@@ -483,7 +497,7 @@ async function permisoUbicacion() {
 }
 /** Al abrir la app: define o confirma la ciudad con la ubicación. */
 async function ubicarAlAbrir() {
-  if (PUEBLOS.length < 2 || esAdminU() || S._ubicando) return;
+  if (PUEBLOS.length < 2 || esAdminU() || S._ubicando || PUEBLO_INV) return;
   S._ubicando = true;
   try {
     const primera = !ciudadDefinida();
@@ -506,7 +520,11 @@ async function ubicarAlAbrir() {
       lsG('autoDesde', PUEBLO.id);
       cambiarPueblo(pb.id);
     }
-  } catch (e) { } finally { S._ubicando = false; }
+  } catch (e) { } finally {
+    S._ubicando = false;
+    // ya con su ciudad: si es su primera vez, la guía
+    setTimeout(() => { if (lsG('casa') && S.vista === inicioRol() && !$('#bloqueoUbic')) iniciarTour(); }, 900);
+  }
 }
 /** Pantalla que no deja avanzar sin ubicación (solo la primera vez). */
 function bloqueoUbicacion(msg) {
@@ -524,7 +542,7 @@ function elegirCiudadFuera() {
   bloqueoUbicacion('');
   $('#bloqueoUbic').innerHTML = `<div class="caja" style="text-align:left"><h2 style="margin-top:0">¿En qué ciudad quieres pedir?</h2>
     <div class="muted" style="margin:6px 0 12px">Estás fuera de ${PUEBLOS.map(x => esc(x.nombre)).join(' y ')}. Puedes pedir para alguien que esté allá; desde fuera solo se paga por transferencia.</div>
-    ${PUEBLOS.map(x => `<div class="opcion" onclick="lsG('casa','${x.id}');${x.id === PUEBLO.id ? 'quitarBloqueoUbicacion()' : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}</div>`;
+    ${PUEBLOS.map(x => `<div class="opcion" onclick="lsG('casa','${x.id}');${x.id === PUEBLO.id ? 'quitarBloqueoUbicacion();setTimeout(()=>iniciarTour(),500)' : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}</div>`;
 }
 /** Después de un cambio automático: aviso con la opción de regresar a su ciudad. */
 function avisoCambioAuto() {
@@ -550,7 +568,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.7.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.9.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -835,7 +853,7 @@ const VISTAS = {
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
   negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
-  admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones
+  admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas
 };
 const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos'];
 // pantallas a pantalla completa (sin barra inferior)
@@ -865,6 +883,9 @@ async function pintar(silencioso) {
     if (CON_MAPA.includes(vista)) await cargarLeaflet();
     if (S.vista !== vista) return;
     await f(S.params, silencioso);
+    // primera vez de cada tipo de cuenta: recorrido guiado (cuando ya sabemos su ciudad)
+    if (!silencioso && vista === inicioRol() && TOURS[tourKey()] && !tourVisto(tourKey()) && (PUEBLOS.length < 2 || lsG('casa') || esStaff()))
+      setTimeout(() => { if (S.vista === vista) iniciarTour(); }, 1200);
   }
   catch (e) {
     if (!silencioso) html(`<div class="vacio"><span class="big">⚠️</span>${esc(e.message)}<br><br><button class="btn" onclick="pintar()">Reintentar</button></div>`);
@@ -1020,6 +1041,16 @@ async function entrar() {
   guardarSesion(d);
 }
 
+/** Tarjetas para elegir plan al registrar un negocio (se puede cambiar en el mes de prueba). */
+function eligePlanHTML() {
+  const c = S.conf || {}, p = S._plan || 'completo';
+  const op = (v, t, precio, txt) => `<div class="opcion ${p === v ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${v}';this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.toggle('on',o===this))">
+      <span class="radio"></span><div class="grow"><b>${t}${precio ? ' · ' + money(precio) + ' al mes' : ''}</b><small>${txt}</small></div></div>`;
+  return `<label class="f">Tu plan</label><div>
+    ${op('completo', '📣 Con publicidad', c.cuotaMensual, 'Todo Pídele y tus promociones en el banner de Inicio.')}
+    ${op('basico', '🏪 Básico', c.cuotaBasica, 'Todo Pídele; tus promociones se ven en Promociones y en tu negocio, sin banner de Inicio.')}</div>
+    <div class="muted small" style="margin-top:6px">Puedes cambiarlo cuando quieras durante tu mes de prueba.</div>`;
+}
 function vRegistro(rol) {
   rol = rol || 'comprador';
   const R = [['comprador', '🙋', 'Solo pedir'], ['negocio', '🏪', 'Registrar mi negocio'], ['repartidor', '🛵', 'Quiero repartir']];
@@ -1031,7 +1062,8 @@ function vRegistro(rol) {
       <label class="f">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name">
       <label class="f">Teléfono (10 dígitos)</label><input class="i" id="rTel" type="tel" inputmode="numeric" maxlength="14">
       ${rol === 'negocio' ? `<label class="f">Nombre del negocio</label><input class="i" id="rNeg">
-        <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>` : ''}
+        <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
+        ${eligePlanHTML()}` : ''}
       ${rol === 'repartidor' ? `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" placeholder="Ej. Moto Italika roja">` : ''}
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
       ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu solicitud quedará en revisión hasta que el administrador la apruebe. Mientras, ya puedes pedir comida con esta cuenta.</div>` : ''}
@@ -1042,8 +1074,45 @@ function vRegistro(rol) {
 
 async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
-  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
+  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'completo' : '', aparato: aparatoId() });
   toast('¡Bienvenido a ' + APP + '!');
+  guardarSesion(d);
+}
+
+/** Registro con invitación del administrador: el negocio queda aprobado de una vez. */
+async function vInvitacion(codigo) {
+  S.vista = 'entrar';
+  html('<div class="cargando" style="margin-top:40px">Abriendo tu invitación…</div>');
+  let d;
+  try { [d] = await Promise.all([api('invitacion', { codigo }), (S._catProm || Promise.resolve()).catch(() => { })]); }
+  catch (e) {
+    html(`<div class="entrar"><div class="vacio"><span class="big">✉️</span>${esc(e.message)}<br><br><button class="btn" onclick="vLogin()">Ir a entrar</button></div></div>`);
+    return;
+  }
+  const basico = d.plan === 'basico';
+  html(`<div class="entrar">
+    <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
+    <div class="card" style="text-align:center"><div style="font-size:40px">✉️</div><h2 style="margin:4px 0">¡Te invitamos a Pídele ${esc(PUEBLO.nombre)}!</h2>
+      <div class="muted">Crea tu cuenta para <b>${esc(d.negocio)}</b>: queda aprobada al instante.</div>
+      <div class="tot" style="margin-top:10px"><span>Plan ${basico ? 'Básico' : 'con publicidad'}</span><b>${money(d.cuota)} al mes</b></div>
+      <div class="muted small">${basico ? 'Tu menú, pedidos, envíos y promociones (se ven en Promociones y en tu negocio). No incluye el banner de Inicio; puedes cambiar al plan con publicidad desde Mi suscripción.' : 'Todo Pídele, y tus promociones salen en el banner de Inicio.'}
+        ${textoPrueba(0, true) ? '<div style="margin-top:8px">' + textoPrueba(0, true).replace('Al aprobar tu cuenta, tu', 'Tu') + '</div>' : ''}</div></div>
+    <div class="card">
+      <label class="f" style="margin-top:0">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name">
+      <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
+      <label class="f">Nombre del negocio</label><input class="i" id="rNeg" value="${esc(d.negocio)}">
+      <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
+      <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta de negocio</button></div>
+    </div>
+    <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta</button></div>
+  </div>`);
+}
+async function registrarInv(codigo) {
+  const v = id => $('#' + id).value;
+  const d = await api('registrar', { invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), aparato: aparatoId() });
+  PUEBLO_INV = '';
+  toast('¡Bienvenido a ' + APP + '! Tu negocio ya está aprobado');
   guardarSesion(d);
 }
 
@@ -1134,6 +1203,11 @@ function abrirDesdeUrl(url) {
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
   if (PUEBLO_PEND && q.get('pueblo') === PUEBLO_PEND) return false; // enlace de otro municipio: primero se comprueba la ubicación
   if (neg) { ir('negocio', neg); return true; }
+  if (q.get('inv')) {
+    if (S.token) { ir(inicioRol(), null); setTimeout(() => toast('Esa invitación es para crear una cuenta nueva: cierra tu sesión para usarla'), 500); }
+    else vInvitacion(q.get('inv'));
+    return true;
+  }
   if (q.get('instalar')) { ir(inicioRol(), null); setTimeout(instalarApp, 600); return true; }
   if (q.get('compartido')) {
     if (!S.token) { S.despues = 'compartido'; ir('entrar'); setTimeout(() => toast('Entra a tu cuenta para enviar tu comprobante'), 400); return true; }
@@ -2239,7 +2313,7 @@ function slidePromo(p) {
 function pintarBanner(cat) {
   const b = $('#promoBanner'); if (!b) return;
   clearInterval(S._carrusel);
-  const l = cat === 'Promociones' ? [] : promosOrdenadas(cat).slice(0, 8);
+  const l = cat === 'Promociones' ? [] : promosOrdenadas(cat).filter(p => !p.sinBanner).slice(0, 8); // plan Básico: sin banner de Inicio
   if (!l.length) { b.innerHTML = ''; return; }
   b.innerHTML = `<div class="promoWrap"><div class="promoFila" id="promoFila">${l.map(slidePromo).join('')}</div>
     ${l.length > 1 ? `<div class="puntos" id="puntos">${l.map((x, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`;
@@ -3082,7 +3156,8 @@ async function enviarCalificacion(sinEstrellas) {
 function formAlta(tipo) {
   modal(`<div class="row between"><h2 style="margin:0">${tipo === 'negocio' ? '🏪 Registrar mi negocio' : '🛵 Quiero repartir'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${tipo === 'negocio' ? `<label class="f">Nombre del negocio</label><input class="i" id="alNeg" maxlength="60">
-      <label class="f">Categoría</label><select class="i" id="alCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>`
+      <label class="f">Categoría</label><select class="i" id="alCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
+      ${eligePlanHTML()}`
     : `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="alVeh" maxlength="40" placeholder="Ej. Moto Italika roja">
       <div class="muted small" style="margin-top:8px">Te validaremos en persona con tu identificación y tu CURP.</div>`}
     <div class="aviso info" style="margin-top:12px">Tu solicitud queda en revisión. Mientras, sigues pidiendo comida con esta misma cuenta.</div>
@@ -3090,7 +3165,7 @@ function formAlta(tipo) {
 }
 async function enviarAlta(tipo) {
   const v = id => ($('#' + id) || {}).value || '';
-  const r = await api('solicitarAlta', { tipo, negocio: v('alNeg'), categoria: v('alCat'), vehiculo: v('alVeh') });
+  const r = await api('solicitarAlta', { tipo, negocio: v('alNeg'), categoria: v('alCat'), vehiculo: v('alVeh'), plan: tipo === 'negocio' ? S._plan || 'completo' : '' });
   S.user = r.usuario; S.negocio = r.negocio; ls('user', S.user); ls('negocio', S.negocio);
   S.modoCliente = false; ls('modoCliente', null);
   cerrarModal(); toast('Solicitud enviada ✓'); pintarNav(); ir(inicioRol());
@@ -3130,6 +3205,7 @@ function vPerfil() {
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
     <div class="card">
+      ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía otra vez</button><div style="height:8px"></div>` : ''}
       <button class="btn pri full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
@@ -3210,7 +3286,7 @@ function olvideClave() {
 function tarjetaVerificar(compacta) {
   const u = S.user;
   if (!u || u.telVerificado || u.rol === 'admin') return '';
-  return `<div class="card" style="border:2px solid var(--pri)"><div class="row"><span style="font-size:28px">📱</span><div class="grow"><b>Verifica tu teléfono</b>
+  return `<div class="card" id="tarjVerif" style="border:2px solid var(--pri)"><div class="row"><span style="font-size:28px">📱</span><div class="grow"><b>Verifica tu teléfono</b>
       <div class="muted small">${u.rol === 'comprador' ? 'Para pagar en efectivo necesitamos confirmar que este número es tuyo.' : 'Confirma que este número es tuyo.'} Toma 10 segundos.</div></div></div>
     ${compacta ? '' : '<div class="muted small" style="margin-top:6px">Se abrirá WhatsApp con un mensaje listo: solo envíalo, sin cambiarlo, desde el teléfono con el que te registraste.</div>'}
     <div class="btns"><button class="btn pri" onclick="act(this,verificarTel)">${ico('chat', 's')} Verificar por WhatsApp</button></div>
@@ -3858,6 +3934,7 @@ async function vPromos() {
     <div class="card"><div class="row between"><div><b>Tu plan: ${incl + ext} banner${incl + ext > 1 ? 's' : ''} por día</b>
       <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
       <button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button></div>
+      ${n.plan === 'basico' ? `<div class="aviso info" style="margin:8px 0 0">Tienes el <b>plan Básico</b>: tus promociones se ven en la categoría Promociones y dentro de tu negocio, pero no en el banner de Inicio. <button class="lnk small" onclick="ir('suscripcion')">Subir de plan ›</button></div>` : ''}
       <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando cada 5 s con los demás negocios.
         Una <b>🏷️ Promoción</b> (precio especial, 2x1, 3x2, % o $ de descuento, regalo o descuento de primera compra) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
         Puedes programar banners distintos para cada día (ej. "Martes de tacos").</div></div>
@@ -4078,10 +4155,18 @@ function avisoSuscripcion() {
 }
 
 function conceptoPago(p) {
-  return [p.inscripcion ? 'Inscripción' : '', p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : ''].filter(Boolean).join(' + ');
+  return [p.inscripcion ? 'Inscripción' : '', p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') + (p.donado ? ' 🎁 donado' + (p.meses > 1 ? 's' : '') + ' por Pídele' : '') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : '', p.plan === 'completo' ? 'sube a plan con publicidad' : ''].filter(Boolean).join(' + ');
 }
 function tagPago(e) { return { pendiente: '<span class="tag t-warn">En revisión</span>', confirmado: '<span class="tag t-ok">Confirmado</span>', rechazado: '<span class="tag t-err">Rechazado</span>' }[e] || ''; }
 
+/** "Tu primer mes es de prueba…": desde cuándo corre y antes de cuándo es el primer pago. */
+function textoPrueba(vence, sinPagos) {
+  const dpp = (S.conf && S.conf.diasPorPago) || 30, f = ms => fechaLarga(ms).replace(/ de \d{4}$/, '');
+  if (vence && sinPagos) return `🎁 Tu primer mes es de prueba: empieza a correr el <b>${f(vence - dpp * 864e5)}</b> y tu primer pago es antes del <b>${f(vence)}</b>.`;
+  const pc = S.conf && S.conf.primerCobro && Date.parse(S.conf.primerCobro + 'T12:00:00');
+  if (!vence && pc && pc > Date.now()) return `🎁 Al aprobar tu cuenta, tu primer mes de prueba empieza a correr el <b>${f(pc - dpp * 864e5)}</b> y tu primer pago es antes del <b>${f(pc)}</b>.`;
+  return '';
+}
 async function vSuscripcion() {
   const d = await api('miSuscripcion');
   S._susc = d; S._compPago = null;
@@ -4094,21 +4179,21 @@ async function vSuscripcion() {
   const wa = (S.conf && S.conf.soporteWhatsApp) || numPidele();
   const soloInscripcion = rep && !d.inscrito, esperaValidacion = rep && d.inscrito && !d.aprobado;
   const nombre = rep ? (S.user || {}).nombre : (S.negocio || {}).nombre;
+  const prueba = textoPrueba(s.vence, !(d.pagos || []).some(x => x.estado === 'confirmado' && (x.meses > 0)));
+  const basico = !rep && d.plan === 'basico', precioBas = basico || !!d.bajaPendiente;
   html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
+    ${prueba ? `<div class="aviso ok" id="avisoPrueba">${prueba}</div>` : ''}
     ${s.vence ? `<div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
       <div class="muted" style="margin-top:10px">${s.estado === 'suspendido' || s.estado === 'gracia' ? 'Tu fecha de corte fue el' : 'Activo hasta el'}</div>
       <div style="font-size:26px;font-weight:900;line-height:1.15">${fechaLarga(s.vence)}</div>
       <div class="muted small" style="margin-top:4px">${diasTxt(s)}</div></div>`
     : rep ? `<div class="card"><b>${d.inscrito ? '✅ Inscripción pagada' : '1 · Paga tu inscripción'}</b>
       <div class="muted small">${d.inscrito ? 'Falta tu validación en persona: muestra tu INE al administrador. Al aprobarte empiezan tus ' + d.diasPrueba + ' días gratis.' : 'Después muestras tu INE al administrador y, al aprobarte, empiezan tus ' + d.diasPrueba + ' días gratis.'}</div></div>` : ''}
-    <div class="card"><b>${rep ? 'Tu plan de repartidor' : 'Tu plan'}</b>
+    <div class="card">${rep ? '<b>Tu plan de repartidor</b>' : ''}
       ${rep ? `<div class="tot" style="margin-top:6px"><span>Inscripción (una sola vez)</span><b>${money(d.inscripcion)}</b></div>
         <div class="tot"><span>Mensualidad</span><b>${money(d.cuota)}</b></div>
         <div class="muted small" style="margin-top:8px">Pídele no te cobra comisión por tus envíos: lo que cobras de envío es tuyo. La mensualidad mantiene tu cuenta activa para recibir pedidos.</div>`
-      : `<div class="tot" style="margin-top:6px"><span>Mensualidad: app completa + ${s.bannersIncluidos} banner${s.bannersIncluidos > 1 ? 's' : ''} por día</span><b>${money(d.cuota)}</b></div>
-        <div class="tot"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>
-        ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
-        <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div>`}</div>
+      : planesSusc(d, s)}</div>
     ${d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
     : esperaValidacion ? '' : `
     <h3>Pagar</h3>
@@ -4120,9 +4205,10 @@ async function vSuscripcion() {
       : `<div class="aviso warn" style="margin:0">Aún no están los datos bancarios de Pídele.${wa ? ` <a href="${waLink(wa, 'Hola, quiero pagar mi ' + (rep ? 'inscripción/mensualidad de repartidor' : 'suscripción') + ' de Pídele')}" target="_blank">Pídelos por WhatsApp</a>.` : ''}</div>`}
       ${soloInscripcion ? `<input type="hidden" id="sMes" value="0"><input type="hidden" id="sExt" value="0">`
       : `<div class="row" style="margin-top:6px"><div class="grow"><label class="f">Meses</label>
-        <select class="i" id="sMes" onchange="calcSusc()">${activo && !rep ? '<option value="0">Solo banners extra</option>' : ''}${[1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select></div>
-        ${rep ? '<input type="hidden" id="sExt" value="0">' : `<div class="grow"><label class="f">Banners extra</label>
+        <select class="i" id="sMes" onchange="calcSusc()">${activo && !rep && !precioBas ? '<option value="0">Solo banners extra</option>' : ''}${[1, 2, 3, 6, 12].map(m => `<option value="${m}" ${m === 1 ? 'selected' : ''}>${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select></div>
+        ${rep ? '<input type="hidden" id="sExt" value="0">' : `<div class="grow" id="sExtBox" ${precioBas ? 'style="display:none"' : ''}><label class="f">Banners extra</label>
         <select class="i" id="sExt" onchange="calcSusc()">${[0, 1, 2, 3, 4, 5].map(e => `<option value="${e}">${e ? '+' + e + ' por día' : 'Ninguno'}</option>`).join('')}</select></div>`}</div>`}
+      ${basico && !d.cambioLibre ? `<label class="opcion" style="margin-top:10px"><input type="checkbox" id="sSubir" onchange="$('#sExtBox').style.display=this.checked?'':'none';if(!this.checked)$('#sExt').value='0';calcSusc()"> <div class="grow"><b>⬆️ Subir a plan con publicidad</b><div class="muted small">${money(d.cuotaCompleta)} al mes · tus promociones en el banner de Inicio</div></div></label>` : ''}
       <div class="tot g" style="margin-top:10px"><span>${soloInscripcion ? 'Inscripción' : 'Total a transferir'}</span><span id="sTot"></span></div>
       <div class="muted small" id="sNota"></div>
       <div class="btns"><label class="btn">📎 <span id="sComp">Adjuntar comprobante</span><input type="file" accept="image/*" hidden onchange="compSusc(this)"></label>
@@ -4135,11 +4221,41 @@ async function vSuscripcion() {
   if (!d.pendiente && !esperaValidacion) calcSusc();
 }
 
+/** Los dos planes del negocio: cada uno elige el suyo. */
+function planesSusc(d, s) {
+  const basico = d.plan === 'basico', baja = d.bajaPendiente;
+  const op = (v, t, precio, txt) => `<div class="opcion ${(v === 'basico') === basico ? 'on' : ''}" style="margin:8px 0 0" onclick="act(null,()=>elegirPlanSusc('${v}'))">
+      <span class="radio"></span><div class="grow"><b>${t} · ${money(precio)} al mes</b><small>${txt}</small></div></div>`;
+  return `<div class="row between"><b>Tu plan</b><span class="tag ${basico ? 't-gray' : 't-pri'}">${basico ? 'Básico' : 'Con publicidad'}</span></div>
+    ${op('completo', '📣 Con publicidad', d.cuotaCompleta, `Todo Pídele y tus promociones en el banner de Inicio: ${s.bannersIncluidos} banner${s.bannersIncluidos > 1 ? 's' : ''} por día incluido${s.bannersIncluidos > 1 ? 's' : ''}, y puedes comprar extra.`)}
+    ${op('basico', '🏪 Básico', d.cuotaBasica, 'Todo Pídele: menú, pedidos, envíos y promociones (se ven en Promociones y dentro de tu negocio). Sin banner de Inicio.')}
+    ${d.cambioLibre ? `<div class="muted small" style="margin-top:8px">${(d.pagos || []).some(x => x.estado === 'confirmado' && x.meses > 0) ? 'Elige tu plan antes de pagar.' : 'Estás en tu mes de prueba: cambia de plan cuando quieras, sin costo.'}</div>`
+      : baja ? `<div class="aviso warn" style="margin:8px 0 0">Pasas al plan Básico el <b>${fechaLarga(baja)}</b>; hasta entonces conservas tu banner. Tus próximos pagos ya son de ${money(d.cuotaBasica)}. <button class="lnk small" onclick="act(this,()=>elegirPlanSusc('completo'))">Mantener con publicidad</button></div>`
+      : basico ? `<div class="muted small" style="margin-top:8px">Para subir al plan con publicidad marca la casilla “Subir a plan con publicidad” al hacer tu pago.</div>`
+      : `<div class="muted small" style="margin-top:8px">Si bajas al Básico, conservas tu banner hasta tu fecha de corte y después pagas ${money(d.cuotaBasica)}.</div>`}
+    ${!basico ? `<div class="tot" style="margin-top:8px"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>` : ''}
+    ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
+    <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div>`;
+}
+async function elegirPlanSusc(plan) {
+  const d = S._susc;
+  if ((plan === 'basico') === (d.plan === 'basico') && !(plan === 'completo' && d.bajaPendiente)) return;
+  if (plan === 'completo' && d.plan === 'basico' && !d.cambioLibre) {
+    const c = $('#sSubir'); if (c) { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.closest('.opcion').style.borderColor = 'var(--pri)'; }
+    toast('Marca “Subir a plan con publicidad” al hacer tu pago'); return;
+  }
+  if (plan === 'basico' && !d.cambioLibre && !confirm('Pasas al plan Básico el ' + fechaLarga(d.suscripcion.vence) + ': hasta entonces conservas tu banner y tus siguientes pagos serán de ' + money(d.cuotaBasica) + '. ¿Continuar?')) return;
+  await api('cambiarPlan', { plan });
+  toast(plan === 'basico' ? (d.cambioLibre ? 'Ahora tienes el plan Básico' : 'Cambio programado ✓') : 'Plan con publicidad ✓');
+  pintar(true);
+}
+
 /** Mismo cálculo que el servidor. */
 function montoSusc() {
   const d = S._susc, m = +$('#sMes').value, e = +$('#sExt').value;
   if (d.tipo === 'repartidor') return (!d.inscrito ? d.inscripcion : 0) + m * d.cuota;
-  if (m > 0) return m * d.cuota + e * d.precioBannerExtra * m;
+  const cuota = $('#sSubir') && $('#sSubir').checked ? d.cuotaCompleta : d.cuota;
+  if (m > 0) return m * cuota + e * d.precioBannerExtra * m;
   const rest = Math.max(1, Math.ceil((d.suscripcion.vence - Date.now()) / 864e5));
   return Math.ceil(e * d.precioBannerExtra * rest / d.diasPorPago / 5) * 5;
 }
@@ -4162,7 +4278,7 @@ async function enviarPagoSusc() {
   if (d.tipo !== 'repartidor' && !m && !e) throw new Error('Elige cuántos banners extra quieres');
   if (!S._compPago) throw new Error('Adjunta la foto de tu comprobante');
   if (!confirm('¿Ya transferiste ' + money(montoSusc()) + '?')) return;
-  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago });
+  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago, plan: $('#sSubir') && $('#sSubir').checked ? 'completo' : '' });
   toast('Comprobante enviado ✓ Te avisamos al confirmarlo');
   pintar();
 }
@@ -4563,6 +4679,9 @@ async function vAdmin() {
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
+    ${d.local ? '' : `<div class="row" style="gap:10px;align-items:stretch">
+      <div class="card grow" style="cursor:pointer;margin:0" onclick="ir('adminEstadisticas')"><b>📊 Estadísticas</b><div class="muted small">Ventas y envíos por día, hora, semana y mes. Solo tú las ves.</div></div>
+      <div class="card grow" style="cursor:pointer;margin:0" onclick="act(null,formInvitar)"><b>✉️ Invitar negocio</b><div class="muted small">Cuenta aprobada al instante, plan Básico o con publicidad.</div></div></div>`}
     ${!d.local && PUEBLOS.length > 1 ? '<h3>Todos los municipios</h3><div id="pueblosRes"><div class="cargando">Cargando…</div></div>' : ''}
     <h3>Por aprobar (${d.pendientes.length})</h3>
     ${d.pendientes.length ? d.pendientes.map(tarjetaUsuario).join('') : '<div class="vacio">Nadie pendiente ✨</div>'}`);
@@ -4649,7 +4768,7 @@ function tarjetaUsuario(x) {
   const est = { activo: 't-ok', pendiente: 't-warn', bloqueado: 't-err' }[x.estado];
   return `<div class="card"><div class="row between"><div><b>${esc(x.nombre)}</b> <span class="muted small">${esc(rolNombre(x.rol))}</span>
       <div class="muted small">${esc(x.telefono)} · alta ${fechaCorta(x.fechaAlta)}</div>
-      ${x.negocio ? `<div class="small">🏪 ${esc(x.negocio)} · ${esc(x.categoria)} ${x.negocioListo ? '<span class="tag t-ok">Datos completos</span>' : '<span class="tag t-warn">Falta ubicación</span>'}</div>` : ''}
+      ${x.negocio ? `<div class="small">🏪 ${esc(x.negocio)} · ${esc(x.categoria)} ${x.plan === 'basico' ? '<span class="tag t-gray">Plan Básico</span> ' : ''}${x.negocioListo ? '<span class="tag t-ok">Datos completos</span>' : '<span class="tag t-warn">Falta ubicación</span>'}</div>` : ''}
       ${x.vehiculo ? `<div class="small">🛵 ${esc(x.vehiculo)}</div>` : ''}
       <div class="row wrap" style="gap:4px;margin-top:4px">${x.telVerificado ? '<span class="tag t-ok">📱 Verificado</span>' : '<span class="tag t-gray">📱 Sin verificar</span>'}
         ${x.rol === 'repartidor' || x.negocioId ? `<span class="tag t-info">📈 ${x.puntaje}/100${x.bonus ? ' · bonus +' + x.bonus + ' hasta ' + fechaCorta(x.bonusVence).split(' ').slice(0, 2).join(' ') : ''}</span>` : ''}
@@ -4660,9 +4779,55 @@ function tarjetaUsuario(x) {
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
+      ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() && x.estado === 'activo' ? `<button class="btn sm" onclick="formDonar('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')})">🎁 Donar meses</button>` : ''}
+      ${x.negocioId && !esLocal() ? `<button class="btn sm" onclick="act(this,()=>cambiarPlanAdmin('${x.negocioId}','${x.plan === 'basico' ? 'completo' : 'basico'}',${JSON.stringify(x.negocio).replace(/"/g, '&quot;')}))">${x.plan === 'basico' ? '⬆️ Plan con publicidad' : '⬇️ Plan Básico'}</button>` : ''}
       ${x.estado === 'pendiente' && (x.rol === 'negocio' || x.rol === 'repartidor') ? `<button class="btn sm" onclick="act(this,()=>rechazarSolicitud('${x.id}'))">Rechazar solicitud</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
+}
+/** Invitación a un negocio (solo el general): enlace para crear su cuenta ya aprobada. */
+async function formInvitar(lista) {
+  const l = Array.isArray(lista) ? lista : await api('adminInvitaciones');
+  const c = S.conf || {};
+  const EST = { pendiente: 't-warn', usada: 't-ok', cancelada: 't-gray' };
+  modal(`<div class="row between"><h2 style="margin:0">Invitar negocio</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0 10px">Le llega un enlace para crear su cuenta: queda aprobada al instante, sin pasar por “Por aprobar”.</div>
+    <label class="f">Nombre del negocio</label><input class="i" id="ivN" maxlength="60">
+    <label class="f">Teléfono del dueño (10 dígitos)</label><input class="i" id="ivT" type="tel" inputmode="numeric" maxlength="14">
+    <label class="f">Plan</label>
+    <div class="opcion on" onclick="this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.remove('on'));this.classList.add('on');S._ivPlan='basico'"><span class="radio"></span><div class="grow"><b>Básico</b> <span class="muted small">· todo menos el banner de Inicio</span></div></div>
+    <div class="opcion" onclick="this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.remove('on'));this.classList.add('on');S._ivPlan='completo'"><span class="radio"></span><div class="grow"><b>Con publicidad</b> <span class="muted small">· incluye el banner de Inicio</span></div></div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,crearInvitacion)">Crear invitación</button></div>
+    ${l.length ? `<h3>Invitaciones</h3>${l.map(x => `<div class="tot small"><span>${esc(x.negocio)} · ${esc(x.telefono)} · ${x.plan === 'basico' ? 'Básico' : 'Con publicidad'}<br><span class="muted">${fechaCorta(x.creado)}</span></span>
+      <span style="text-align:right"><span class="tag ${EST[x.estado] || 't-gray'}">${esc(x.estado)}</span>${x.estado === 'pendiente' ? `<br><button class="lnk small" onclick='mandarInvitacion(${JSON.stringify(x).replace(/'/g, '&#39;')})'>Reenviar</button>` : ''}</span></div>`).join('')}` : ''}`);
+  S._ivPlan = 'basico';
+}
+async function crearInvitacion() {
+  const r = await api('adminInvitar', { negocio: $('#ivN').value, telefono: $('#ivT').value, plan: S._ivPlan || 'basico' });
+  mandarInvitacion(r);
+}
+function enlaceInvitacion(x) { return urlApp('inv=' + encodeURIComponent(x.codigo) + (PUEBLO.id === PUEBLOS[0].id ? '&pueblo=' + PUEBLO.id : '')); }
+function mandarInvitacion(x) {
+  const link = enlaceInvitacion(x), c = S.conf || {};
+  const msg = `¡Hola! Te invitamos a vender en Pídele ${PUEBLO.nombre} con ${x.negocio}. Crea tu cuenta aquí (queda aprobada al instante): ${link}`;
+  modal(`<h2 style="margin-top:0">Invitación lista ✉️</h2>
+    <div class="aviso ok">Envíasela a ${esc(x.negocio)}. Solo sirve para el teléfono ${esc(x.telefono)} y una sola vez.</div>
+    <div class="copiar"><div style="min-width:0"><div class="muted small">Enlace</div><div class="v small" style="word-break:break-all">${esc(link)}</div></div><button class="btn sm" onclick="copiar('${esc(link)}','Enlace')">${ico('copiar', 's')}</button></div>
+    <div class="btns"><a class="btn pri" target="_blank" href="${waLink(x.telefono, msg)}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="act(this,formInvitar)">Listo</button></div>`);
+}
+/** Meses donados (solo el general): recorre su fecha de pago sin cobrarle. */
+function formDonar(repartidorId, negocioId, nombre) {
+  modal(`<div class="row between"><h2 style="margin:0">🎁 Donar meses</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:4px 0 10px">${esc(nombre)}</div>
+    <div class="aviso info">Para apoyar a un negocio o repartidor en un mal momento: su fecha de pago se recorre sin cobrarle. Queda en su historial como “donado” y le llega un aviso.</div>
+    <label class="f">Meses</label><select class="i" id="dnM">${[1, 2, 3, 4, 5, 6].map(m => `<option value="${m}">${m} mes${m > 1 ? 'es' : ''}</option>`).join('')}</select>
+    <label class="f">Nota (solo la ves tú)</label><input class="i" id="dnN" maxlength="120" placeholder="Ej. temporada baja, reparación del local">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{const r=await api('adminDonarMeses',{repartidorId:'${repartidorId}',negocioId:'${negocioId}',meses:$('#dnM').value,nota:$('#dnN').value});cerrarModal();toast('Listo: activo hasta el '+fechaLarga(r.vence));pintar(true)})">Donar</button></div>`);
+}
+async function cambiarPlanAdmin(negocioId, plan, nombre) {
+  if (!confirm(plan === 'basico' ? '¿Pasar ' + nombre + ' al plan Básico? Sus promociones dejan de salir en el banner de Inicio.' : '¿Pasar ' + nombre + ' al plan con publicidad? Sus promociones salen en el banner de Inicio y su mensualidad será la completa.')) return;
+  await api('adminPlan', { negocioId, plan });
+  toast('Plan cambiado ✓'); pintar(true);
 }
 /** Bonus de ranking (acuerdos comerciales o publicidad): suma puntos sin etiqueta visible, con vencimiento. */
 function formBonus(usuarioId, negocioId, nombre, actual) {
@@ -4735,19 +4900,241 @@ async function vAdminPedidos() {
       ${x.estado === 'CANCELADO' && x.motivo ? `<div class="muted small">✖️ ${esc(x.canceladoPor)}: ${esc(x.motivo)}</div>` : ''}
       ${x.califNegocio ? `<div class="small">Restaurante <span class="estrella">${'★'.repeat(x.califNegocio)}</span>${x.califRepartidor ? ' · Entrega <span class="estrella">' + '★'.repeat(x.califRepartidor) + '</span>' : ''}</div>` : ''}</div>`).join('') : '<div class="vacio">Sin pedidos</div>'}`);
 }
+/* ============ AJUSTES POR CATEGORÍAS ============ */
+const GRUPOS_CFG = [
+  ['📍 Ciudad y mapa', ['pueblo', 'centroLat', 'centroLng', 'radioMunicipioKm', 'rutaCalles', 'factorRuta', 'velocidadKmh']],
+  ['🛵 Envíos y tarifas', ['envioBase', 'kmIncluidos', 'envioPorKm', 'kmMaximo', 'desvioMaxKm']],
+  ['⏱️ Pedidos y tiempos', ['minutosAceptar', 'minutosPago', 'minutosAntesCierre', 'diasCalificar', 'diasArchivo']],
+  ['🏍️ Repartidores', ['inscripcionRepartidor', 'mensualidadRepartidor', 'diasPruebaRepartidor', 'minutosEntreTomas', 'maxPedidosActivos', 'minutosSinRepartidor', 'minutosCorregirEntrega']],
+  ['💳 Cobros y planes', ['cuotaMensual', 'cuotaBasica', 'diasPrueba', 'primerCobro', 'diasPorPago', 'diasGracia', 'diasAviso', 'porcentajeLocal', 'pagoBanco', 'pagoTitular', 'pagoClabe', 'pagoTarjeta']],
+  ['🏷️ Promociones y banners', ['bannersIncluidos', 'precioBannerExtra', 'pesoPromocion', 'pesoAnuncio', 'pesoExtra', 'promoRequierePrecio', 'maxProductosPromo']],
+  ['💵 Efectivo y seguridad', ['efectivoSoloEnZona', 'efectivoVerificado', 'efectivoRadioM', 'efectivoPedidosOtraDir', 'efectivoTopeNuevos', 'efectivoPedidosNuevo', 'clienteUmbralEfectivo', 'clienteMinCalif', 'alertaCuentasAparato']],
+  ['📈 Ranking', ['rankingPrioridad', 'rankingNivelAlto', 'rankingNivelMedio', 'rankingEsperaMedioMin', 'rankingEsperaBajoMin']],
+  ['💬 WhatsApp y soporte', ['soporteWhatsApp', 'whatsappPidele', 'whatsappResponde']]
+];
 async function vAdminConfig() {
   const l = await api('adminConfig');
+  S._cfgOrig = Object.fromEntries(l.map(c => [c.clave, String(c.valor)]));
+  const usados = new Set(GRUPOS_CFG.flatMap(g => g[1]));
+  const grupos = GRUPOS_CFG.map(([t, ks]) => [t, ks.map(k => l.find(c => c.clave === k)).filter(Boolean)])
+    .concat([['⚙️ Otros', l.filter(c => !usados.has(c.clave))]]).filter(g => g[1].length);
+  const campo = c => `<div class="cfgF" data-txt="${esc((c.clave + ' ' + (c.descripcion || '')).toLowerCase())}">
+      <label class="f">${esc(c.descripcion || c.clave)}</label>
+      <input class="i cfg" data-k="${esc(c.clave)}" value="${esc(c.valor)}" oninput="cfgCambio()"><div class="muted" style="font-size:11px;margin-top:2px">${esc(c.clave)}</div></div>`;
   html(`<h2>Ajustes de la app</h2>
-    <div class="card">${l.map(c => `<label class="f">${esc(c.descripcion || c.clave)}</label><input class="i cfg" data-k="${esc(c.clave)}" value="${esc(c.valor)}">`).join('')}
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarConfig)">Guardar ajustes</button></div></div>`);
+    <div class="buscar">${ico('search', 's')}<input id="cfgQ" placeholder="Buscar un ajuste (ej. envío, efectivo, cuota)" oninput="filtrarCfg()"></div>
+    <div class="muted small" style="margin:6px 2px 10px">Toca una categoría para abrirla. Lo que cambies se marca y se guarda con el botón de abajo.</div>
+    ${grupos.map(([t, cs]) => `<details class="card cfgG"><summary class="row between" style="cursor:pointer;list-style:none"><b>${t}</b><span class="muted small"><span class="cfgN"></span>${cs.length} ajuste${cs.length > 1 ? 's' : ''} ›</span></summary>
+      <div style="margin-top:4px">${cs.map(campo).join('')}</div></details>`).join('')}
+    <div style="position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5"><button class="btn pri pill full" id="cfgGuardar" onclick="act(this,guardarConfig)">Guardar ajustes</button></div>
+    <div style="height:20px"></div>`);
 }
+function filtrarCfg() {
+  const q = $('#cfgQ').value.trim().toLowerCase();
+  document.querySelectorAll('.cfgG').forEach(g => {
+    let n = 0;
+    g.querySelectorAll('.cfgF').forEach(f => { const si = !q || f.dataset.txt.includes(q); f.style.display = si ? '' : 'none'; if (si) n++; });
+    g.style.display = n ? '' : 'none';
+    g.open = !!q && n > 0;
+  });
+}
+function cfgCambio() {
+  let total = 0;
+  document.querySelectorAll('.cfgG').forEach(g => {
+    const n = [...g.querySelectorAll('.cfg')].filter(i => { const c = i.value !== S._cfgOrig[i.dataset.k]; i.style.borderColor = c ? 'var(--pri)' : ''; return c; }).length;
+    total += n; g.querySelector('.cfgN').textContent = n ? '● ' + n + ' cambio' + (n > 1 ? 's' : '') + ' · ' : '';
+  });
+  const b = $('#cfgGuardar'); if (b) b.textContent = total ? 'Guardar ' + total + ' cambio' + (total > 1 ? 's' : '') : 'Guardar ajustes';
+}
+
+/* ============ ESTADÍSTICAS (solo el administrador general) ============ */
+/** Barras simples en SVG: una serie, con valor al tocar cada barra. */
+function barrasSVG(vals, etiquetas, fmt, id, cadaEt) {
+  const W = 340, H = 150, izq = 34, abajo = 20, arriba = 8, n = vals.length;
+  const max = Math.max(1, ...vals), paso = (W - izq) / n, ancho = Math.max(2, Math.min(22, paso * 0.68));
+  const y = v => arriba + (H - abajo - arriba) * (1 - v / max);
+  const corto = v => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k' : String(Math.round(v));
+  const k = cadaEt || Math.ceil(n / 7);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img">
+    ${[1, 0.5].map(f => `<line x1="${izq}" x2="${W}" y1="${y(max * f)}" y2="${y(max * f)}" stroke="var(--ln)" stroke-width="1"/><text x="${izq - 4}" y="${y(max * f) + 3}" text-anchor="end" font-size="9" fill="var(--tx2)">${corto(max * f)}</text>`).join('')}
+    <line x1="${izq}" x2="${W}" y1="${H - abajo}" y2="${H - abajo}" stroke="var(--ln)" stroke-width="1"/>
+    ${vals.map((v, i) => { const x = izq + paso * i + (paso - ancho) / 2, yy = y(v), h = H - abajo - yy, r = Math.min(3, ancho / 2, h);
+      const txt = esc(etiquetas[i] + ': ' + fmt(v));
+      return `<g style="cursor:pointer" onclick="const c=document.getElementById('${id}');if(c)c.innerHTML='${txt.replace(/'/g, '&#39;')}'"><title>${txt}</title>
+        <rect x="${izq + paso * i}" y="${arriba}" width="${paso}" height="${H - abajo - arriba}" fill="transparent"/>
+        ${v > 0 ? `<path d="M${x},${H - abajo} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + ancho - r} Q${x + ancho},${yy} ${x + ancho},${yy + r} V${H - abajo} Z" fill="var(--pri)"/>` : ''}
+        ${i % k === 0 ? `<text x="${x + ancho / 2}" y="${H - 6}" text-anchor="middle" font-size="9" fill="var(--tx2)">${esc(etiquetas[i].replace(/^Semana del /, ''))}</text>` : ''}</g>`; }).join('')}
+  </svg><div class="muted small" id="${id}" style="min-height:18px;text-align:center">Toca una barra para ver el dato</div>`;
+}
+async function vAdminEstadisticas() {
+  const todos = S._estTodos && PUEBLOS.length > 1;
+  let datos;
+  if (todos) {
+    const l = await Promise.all(PUEBLOS.map(async pb => {
+      if (pb.id === PUEBLO.id) return api('adminEstadisticas').catch(() => null);
+      const tok = lsDe(pb.id, 'token'); if (!tok) return null;
+      return apiDe(pb, 'adminEstadisticas', {}, tok).catch(() => null);
+    }));
+    const ok = l.filter(Boolean);
+    const sumaSerie = k => ok[0][k].map((x, i) => ({ k: x.k, pedidos: ok.reduce((s, d) => s + ((d[k][i] || {}).pedidos || 0), 0), ventas: ok.reduce((s, d) => s + ((d[k][i] || {}).ventas || 0), 0) }));
+    const suma = (k, c) => ok.reduce((s, d) => s + d[k][c], 0);
+    datos = {
+      pueblo: 'Todos los municipios', faltan: PUEBLOS.length - ok.length,
+      totales: { pedidos: suma('totales', 'pedidos'), ventas: suma('totales', 'ventas'), domicilio: suma('totales', 'domicilio'), negocios: suma('totales', 'negocios') },
+      hoy: { pedidos: suma('hoy', 'pedidos'), ventas: suma('hoy', 'ventas') }, semana: { pedidos: suma('semana', 'pedidos'), ventas: suma('semana', 'ventas') }, mes: { pedidos: suma('mes', 'pedidos'), ventas: suma('mes', 'ventas') },
+      porDia: sumaSerie('porDia'), porSemana: sumaSerie('porSemana'), porMes: sumaSerie('porMes'),
+      porHora: ok[0].porHora.map((_, i) => ok.reduce((s, d) => s + d.porHora[i], 0)), porDiaSemana: ok[0].porDiaSemana.map((_, i) => ok.reduce((s, d) => s + d.porDiaSemana[i], 0)),
+      tops: ok.map(d => ({ pueblo: d.pueblo, top: d.top }))
+    };
+  } else { datos = await api('adminEstadisticas'); datos.tops = [{ pueblo: datos.pueblo || PUEBLO.nombre, top: datos.top }]; }
+  S._est = datos;
+  const d = datos, per = S._estPer || 'dia', met = S._estMet || 'pedidos';
+  const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const etDia = k => { const [, m, dd] = k.split('-'); return +dd + ' ' + MES[+m - 1]; };
+  const serie = per === 'mes' ? d.porMes : per === 'semana' ? d.porSemana : d.porDia;
+  const ets = serie.map(x => per === 'mes' ? MES[+x.k.split('-')[1] - 1] + ' ' + x.k.slice(2, 4) : per === 'semana' ? 'Semana del ' + etDia(x.k) : etDia(x.k));
+  const fmtMet = met === 'ventas' ? money : v => v + ' pedido' + (v === 1 ? '' : 's');
+  const ticket = d.mes.pedidos ? d.mes.ventas / d.mes.pedidos : 0;
+  const tab = (v, t, k) => `<button class="${(k === 'per' ? per : met) === v ? 'on' : ''}" onclick="S._est${k === 'per' ? 'Per' : 'Met'}='${v}';pintar(true)">${t}</button>`;
+  const hrs = d.porHora.map((v, i) => [i, v]), DS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const orden = [1, 2, 3, 4, 5, 6, 0];
+  html(`<div class="row between"><button class="redondo" onclick="volver('admin')">${ico('atras')}</button><h2 style="margin:0">Estadísticas</h2><span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span></div>
+    <div class="aviso info small">🔒 Solo tú ves esta pantalla. Los negocios aparecen sin montos; los totales son del municipio. Tú decides qué compartir y a qué nivel.</div>
+    ${PUEBLOS.length > 1 ? `<div class="tabs"><button class="${todos ? '' : 'on'}" onclick="S._estTodos=false;pintar(true)">${esc(PUEBLO.nombre)}</button><button class="${todos ? 'on' : ''}" onclick="S._estTodos=true;pintar(true)">Todos los municipios</button></div>
+      ${todos && d.faltan ? `<div class="aviso warn">Falta${d.faltan > 1 ? 'n' : ''} ${d.faltan} municipio${d.faltan > 1 ? 's' : ''}: conéctalo${d.faltan > 1 ? 's' : ''} desde Resumen → Todos los municipios.</div>` : ''}` : ''}
+    <div class="kpis">
+      <div class="kpi"><b>${d.hoy.pedidos}</b><span>Pedidos hoy · ${money(d.hoy.ventas)}</span></div>
+      <div class="kpi"><b>${d.semana.pedidos}</b><span>Últimos 7 días · ${money(d.semana.ventas)}</span></div>
+      <div class="kpi"><b>${d.mes.pedidos}</b><span>Últimos 30 días · ${money(d.mes.ventas)}</span></div>
+      <div class="kpi"><b>${money(Math.round(ticket))}</b><span>Ticket promedio (30 días)</span></div>
+      <div class="kpi"><b>${d.totales.pedidos}</b><span>Entregados desde el inicio · ${money(d.totales.ventas)}</span></div>
+      <div class="kpi"><b>${d.totales.pedidos ? Math.round(d.totales.domicilio / d.totales.pedidos * 100) : 0}%</b><span>Con envío a domicilio · ${d.totales.domicilio} envíos</span></div></div>
+    <div class="card"><div class="row between wrap" style="gap:6px"><b>${met === 'ventas' ? 'Ventas' : 'Pedidos entregados'}</b>
+      <div class="tabs" style="margin:0">${tab('pedidos', 'Pedidos', 'met')}${tab('ventas', 'Ventas', 'met')}</div></div>
+      <div class="tabs" style="margin:8px 0">${tab('dia', '30 días', 'per')}${tab('semana', '12 semanas', 'per')}${tab('mes', '12 meses', 'per')}</div>
+      ${barrasSVG(serie.map(x => x[met]), ets, fmtMet, 'estC1')}</div>
+    <div class="card"><b>¿A qué hora piden?</b><div class="muted small">Pedidos por hora del día (desde el inicio)</div>
+      ${barrasSVG(hrs.map(h => h[1]), hrs.map(h => h[0] + ':00'), v => v + ' pedidos', 'estC2', 3)}</div>
+    <div class="card"><b>¿Qué día piden más?</b>
+      ${barrasSVG(orden.map(i => d.porDiaSemana[i]), orden.map(i => DS[i]), v => v + ' pedidos', 'estC3', 1)}</div>
+    <h3>🏆 Más vendidos (últimos 30 días)</h3>
+    ${d.tops.map(t => `<div class="card">${d.tops.length > 1 ? `<b>📍 ${esc(t.pueblo)}</b>` : ''}${t.top.length ? t.top.map(x => `<div class="tot"><span><b>${x.pos}.</b> ${esc(x.nombre)}</span>${x.pos <= 3 ? ['🥇', '🥈', '🥉'][x.pos - 1] : ''}</div>`).join('') : '<div class="vacio">Aún no hay ventas</div>'}</div>`).join('')}
+    <div class="muted small" style="margin:4px 2px">El top va solo por posición, sin montos. Las ventas son la suma de los productos (sin envío) de los pedidos entregados.</div>
+    <div class="btns"><button class="btn" onclick="copiarResumenEst()">📋 Copiar resumen sin nombres</button></div>
+    <div style="height:20px"></div>`);
+}
+/** Texto para compartir (ej. con negocios interesados): solo totales del municipio, sin nombres ni montos por negocio. */
+function copiarResumenEst() {
+  const d = S._est; if (!d) return;
+  copiar(`Pídele ${d.pueblo || PUEBLO.nombre}\nÚltimos 30 días: ${d.mes.pedidos} pedidos entregados, ${money(d.mes.ventas)} en ventas.\nÚltimos 7 días: ${d.semana.pedidos} pedidos.\nDesde el inicio: ${d.totales.pedidos} pedidos y ${d.totales.domicilio} envíos a domicilio.\n${d.totales.negocios} negocios activos.`, 'Resumen');
+}
+
 async function guardarConfig() {
   const valores = {};
   document.querySelectorAll('.cfg').forEach(i => valores[i.dataset.k] = i.value);
   await api('adminGuardarConfig', { valores });
   S.conf = await api('configPublica'); ls('conf', S.conf);
+  if (S._cfgOrig) { Object.assign(S._cfgOrig, valores); setTimeout(cfgCambio, 60); } // después de que el botón termine de cargar
   toast('Ajustes guardados ✓');
 }
+
+
+/* ============ RECORRIDO GUIADO (primera vez de cada tipo de cuenta) ============ */
+/*
+ * Cada paso: { sel, titulo, texto, ir?, si? }. Ilumina el elemento "sel" (si no está, el globo va al centro),
+ * con una flecha que lo señala. Los pasos con "si" que dé falso se saltan (ej. ya instaló o ya verificó).
+ * Se muestra una sola vez por tipo de cuenta en este teléfono; se repite desde Perfil → "Ver guía otra vez".
+ */
+const tourVisto = k => !!lsG('tour_' + k);
+function tourKey() { const r = rolActual(); return r === 'invitado' ? 'invitado' : r === 'comprador' ? 'cliente' : r; }
+async function iniciarTour(k, forzar) {
+  k = k || tourKey();
+  if (navigator.webdriver && !lsG('tourTest')) return; // pruebas automáticas
+  if (!TOURS[k] || (!forzar && tourVisto(k)) || $('#tour') || $('#bloqueoUbic')) return;
+  if ($('#modal').classList.contains('on')) return;
+  const pasos = TOURS[k]().filter(p => !p.si || p.si());
+  if (!pasos.length) return;
+  S._tour = { k, pasos, i: 0 };
+  const d = document.createElement('div'); d.id = 'tour';
+  d.innerHTML = '<div class="hueco"></div><div class="flecha"></div><div class="globo"></div>';
+  document.body.appendChild(d);
+  await pasoTour(0);
+}
+async function pasoTour(i) {
+  const t = S._tour; if (!t) return;
+  if (i >= t.pasos.length) { cerrarTour(); return; }
+  t.i = i;
+  const p = t.pasos[i], d = $('#tour'); if (!d) return;
+  if (p.ir && S.vista !== p.ir) { await ir(p.ir); await new Promise(r => setTimeout(r, 700)); }
+  const el = p.sel ? document.querySelector(p.sel) : null;
+  if (el && el.scrollIntoView) { el.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 250)); }
+  const g = d.querySelector('.globo'), h = d.querySelector('.hueco'), f = d.querySelector('.flecha');
+  const ult = i === t.pasos.length - 1;
+  g.innerHTML = `<h3>${p.titulo}</h3><p>${typeof p.texto === 'function' ? p.texto() : p.texto}</p>
+    <div class="pie"><button class="lnk small" onclick="cerrarTour()">${ult ? '' : 'Saltar guía'}</button>
+      <div class="puntos">${t.pasos.map((x, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="row" style="gap:6px">${i ? `<button class="btn sm" onclick="pasoTour(${i - 1})">Atrás</button>` : ''}<button class="btn sm pri" onclick="pasoTour(${i + 1})">${ult ? '¡Listo!' : 'Siguiente'}</button></div></div>`;
+  const vh = window.innerHeight;
+  if (el) {
+    const r = el.getBoundingClientRect(), pad = 6;
+    Object.assign(h.style, { display: '', left: (r.left - pad) + 'px', top: (r.top - pad) + 'px', width: (r.width + pad * 2) + 'px', height: (r.height + pad * 2) + 'px' });
+    const abajo = r.top + r.height / 2 < vh / 2;
+    const gh = g.offsetHeight;
+    const top = abajo ? Math.min(r.bottom + 18, vh - gh - 12) : Math.max(12, r.top - gh - 18);
+    g.style.top = top + 'px';
+    const fx = Math.max(28, Math.min(window.innerWidth - 46, r.left + r.width / 2 - 9));
+    Object.assign(f.style, { display: '', left: fx + 'px', top: (abajo ? top - 8 : top + gh - 10) + 'px' });
+  } else {
+    h.style.display = 'none'; f.style.display = 'none';
+    Object.assign(h.style, { left: '50%', top: '50%', width: '0px', height: '0px' });
+    g.style.top = Math.max(12, (vh - g.offsetHeight) / 2) + 'px';
+  }
+}
+function cerrarTour() {
+  const t = S._tour; if (t) lsG('tour_' + t.k, '1');
+  S._tour = null; const d = $('#tour'); if (d) d.remove();
+  if (t && t.vuelta && S.vista !== t.vuelta) ir(t.vuelta);
+}
+/** Perfil → "Ver guía otra vez". */
+function repetirTour() { const k = tourKey(); lsG('tour_' + k, null); iniciarTour(k, true); }
+const navBtn = n => '#nav button:nth-child(' + n + ')';
+const pruebaTxt = () => {
+  const u = S.user || {}, sus = u.rol === 'repartidor' ? u.suscripcion : (S.negocio || {}).suscripcion;
+  return textoPrueba(sus && sus.vence, true) || 'Aquí ves tu fecha de pago y cómo pagar tu mensualidad.';
+};
+const TOURS = {
+  invitado: () => [
+    { titulo: '👋 ¡Bienvenido a Pídele!', texto: `Te mostramos los negocios de <b>${esc(PUEBLO.nombre)}</b>, donde estás. Te enseñamos lo básico en unos pasos.` },
+    { sel: '#tarjInst', titulo: '📲 Instala la app', texto: 'Tenla en tu pantalla de inicio: abre más rápido y te llegan los avisos de tu pedido.', si: () => !instalada() && !!$('#tarjInst') },
+    { sel: '#promoBanner', titulo: '🏷️ Promociones del día', texto: '2x1, descuentos y regalos de los negocios. Toca una para verla.', si: () => !!$('#promoBanner .slide') },
+    { sel: '#catFila', titulo: '🍔 Elige lo que se te antoje', texto: 'Busca por categoría, o con el buscador de arriba.' },
+    { sel: navBtn(3), titulo: '👤 Crea tu cuenta', texto: 'Para pedir, toca <b>Entrar</b> y crea tu cuenta. Solo necesitas tu nombre y tu teléfono.' }
+  ],
+  cliente: () => [
+    { titulo: '🎉 ¡Ya tienes tu cuenta!', texto: 'Te mostramos cómo pedir en unos pasos.' },
+    { ir: 'perfil', sel: '#tarjVerif', titulo: '✅ Verifica tu número', texto: 'Toca aquí y envía el mensaje por WhatsApp. Así puedes pagar en efectivo.', si: () => S.user && !S.user.telVerificado },
+    { ir: 'inicio', sel: '#promoBanner', titulo: '🏷️ Pon atención aquí', texto: 'Aquí salen las promociones del día. ¡No te las pierdas!', si: () => !tourVisto('invitado') },
+    { ir: 'inicio', sel: '#listaNeg', titulo: '😋 Elige un negocio', texto: 'Entra a su menú, toca lo que quieras y agrégalo. Abajo aparece tu carrito con el total; toca <b>Ver pedido</b> para continuar.' },
+    { ir: 'inicio', sel: navBtn(3), titulo: '🧾 Sigue tu pedido', texto: 'En <b>Pedidos</b> ves si el negocio ya lo aceptó y por dónde va el repartidor en el mapa.' },
+    { ir: 'inicio', sel: navBtn(4), titulo: '⚙️ Tu perfil', texto: 'Tu dirección, tu teléfono y esta guía, por si la quieres ver otra vez.' }
+  ],
+  negocio: () => [
+    { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos cómo dejar listo tu negocio para recibir pedidos.' },
+    { sel: navBtn(4), titulo: '1 · Completa tu negocio', texto: 'En <b>Negocio</b>: ubicación en el mapa, horario, logo, portada y formas de pago.' },
+    { sel: navBtn(2), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> agrega tus productos uno por uno, o todos de una vez con la plantilla de Excel.' },
+    { sel: navBtn(3), titulo: '3 · Crea una promoción', texto: 'En <b>Banners</b>: un 2x1, un descuento o un regalo para salir en el inicio de la app.' },
+    { sel: navBtn(1), titulo: '4 · Recibe pedidos', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>.' },
+    { sel: navBtn(5), titulo: '💳 Tu suscripción', texto: () => pruebaTxt() + ' En Perfil también puedes <b>Pedir comida</b> a otros negocios.' }
+  ],
+  repartidor: () => [
+    { titulo: '🛵 ¡Bienvenido a Pídele!', texto: 'Te mostramos cómo empezar a repartir.' },
+    { ir: 'perfil', sel: '#tarjVerif', titulo: '✅ Verifica tu número', texto: 'Toca aquí y envía el mensaje por WhatsApp.', si: () => S.user && !S.user.telVerificado },
+    { ir: 'disponibles', sel: '#vista .card', titulo: '🟢 Tu turno', texto: 'Cuando estés <b>Disponible</b> te llegan avisos de pedidos. Puedes tomar un descanso con un toque.' },
+    { ir: 'disponibles', titulo: '📋 Toma un pedido', texto: 'En <b>Disponibles</b> ves a qué hora sale, la distancia y cuánto ganas. Toca <b>Tomar pedido</b>.' },
+    { ir: 'disponibles', sel: navBtn(2), titulo: '🗺️ Tu ruta', texto: 'En <b>Mis entregas</b> ves la ruta del negocio al cliente y lo que llevas cobrado hoy.' },
+    { ir: 'disponibles', sel: navBtn(3), titulo: '💳 Tu mensualidad', texto: () => pruebaTxt() }
+  ]
+};
 
 /* ============ INSTALACIÓN PWA ============ */
 window.addEventListener('beforeinstallprompt', e => {
