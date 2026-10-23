@@ -568,7 +568,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.9.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.9.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -586,7 +586,7 @@ const APP_VER = '2.9.2'; // versión de esta pantalla (index.html); el servidor 
 
 /* ============ ESTADO ============ */
 const S = {
-  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'), modoCliente: !!ls('modoCliente'),
+  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'),
   // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
   carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
@@ -695,7 +695,8 @@ function rolNombre(r) { return { comprador: 'Cliente', negocio: 'Negocio', repar
  */
 async function api(accion, datos) {
   if (API_URL.indexOf('PEGA_AQUI') === 0) throw new Error('Falta configurar API_URL en index.html');
-  return apiDe(PUEBLO, accion, datos, S.token, true, esStaff() && S.modoCliente && accion !== 'sondeo' ? 'cliente' : '');
+  const modo = esAdminU() && S.modoRep ? 'repartidor' : (esStaff() || esAdminU()) && S.modoCliente && accion !== 'sondeo' ? 'cliente' : '';
+  return apiDe(PUEBLO, accion, datos, S.token, true, modo);
 }
 /** Llamada al servidor de un municipio (el administrador general consulta también los otros). */
 async function apiDe(pb, accion, datos, token, propio, modo) {
@@ -846,7 +847,11 @@ const NAV = {
   // administrador local de un municipio: sin ajustes generales; su pestaña muestra tarifas y comisiones
   adminLocal: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminComisiones', 'ajustes', 'Municipio']]
 };
-function navRol() { const r = rolActual(); return NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || []; }
+function navRol() {
+  const r = rolActual(), l = NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || [];
+  // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
+  return esAdminU() && r !== 'admin' ? l.filter(x => x[0] !== 'perfil').concat([['_panel', 'grafica', 'Mi panel']]) : l;
+}
 const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
@@ -892,15 +897,28 @@ async function pintar(silencioso) {
   }
 }
 
-function rolActual() { return S.user ? (esStaff() && S.modoCliente ? 'comprador' : S.user.rol) : 'invitado'; }
+function rolActual() {
+  if (!S.user) return 'invitado';
+  if (esAdminU()) return S.modoRep ? 'repartidor' : S.modoCliente ? 'comprador' : 'admin'; // el administrador también ve la app como cliente o repartidor
+  return esStaff() && S.modoCliente ? 'comprador' : S.user.rol;
+}
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
 function modoCliente(on) {
   S.modoCliente = !!on; ls('modoCliente', S.modoCliente ? 1 : null);
-  pintarNav();
+  S.modoRep = false; ls('modoRep', null);
+  S.firma = ''; pintarNav();
   ir(on ? 'inicio' : inicioRol());
 }
-function botonPanel() { return esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
+/** El administrador como repartidor: solo ve y entrega pedidos de muestra. */
+function modoRepartidor(on) {
+  S.modoRep = !!on && esAdminU(); ls('modoRep', S.modoRep ? 1 : null);
+  S.modoCliente = false; ls('modoCliente', null);
+  S.firma = ''; S._yaAbrioEntregas = false;
+  if (S.modoRep) iniciarGPS();
+  pintarNav(); ir(inicioRol());
+}
+function botonPanel() { return esAdminU() && (S.modoCliente || S.modoRep) ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi panel</button>` : esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
 function inicioRol() { return (navRol()[0] || ['inicio'])[0]; }
 function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
@@ -920,7 +938,7 @@ function pintarNav() {
   const raiz = { pedido: rol === 'comprador' ? 'pedidos' : rol === 'negocio' ? 'negPedidos' : rol === 'admin' ? 'adminPedidos' : 'entregas' }[S.vista] || S.vista;
   $('#nav').innerHTML = navRol().map(([v, i, t]) => {
     const badge = (v === 'negPedidos' || v === 'disponibles') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
-    return `<button class="${raiz === v ? 'on' : ''}" onclick="ir('${v}')">${ico(i)}${t}${badge}</button>`;
+    return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
 }
 
@@ -980,7 +998,7 @@ async function refrescarArranque() {
   pintarNav();
   if (S.token && S.user) {
     iniciarSondeo();
-    if (S.user.rol === 'repartidor') iniciarGPS();
+    if (rolActual() === 'repartidor') iniciarGPS();
     enReposo(() => activarPush(false).catch(() => { }), 1500);
   }
   enReposo(precargar, 600);
@@ -988,7 +1006,7 @@ async function refrescarArranque() {
 }
 
 function guardarSesion(d) {
-  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null);
+  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
   ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
   history.replaceState(null, '');
   // entró con contraseña temporal: primero crea una nueva
@@ -1005,8 +1023,8 @@ function guardarSesion(d) {
 function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
-  ['token', 'user', 'negocio', 'entrega', 'modoCliente'].forEach(k => ls(k, null));
-  S.modoCliente = false; S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
+  ['token', 'user', 'negocio', 'entrega', 'modoCliente', 'modoRep'].forEach(k => ls(k, null));
+  S.modoCliente = false; S.modoRep = false; S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -1232,6 +1250,7 @@ function abrirDesdeUrl(url) {
     ir('compartido'); return true;
   }
   if (!S.token || (!ped && !v)) return false;
+  if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
   if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || (v === 'adminComisiones' && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
   return true;
 }
@@ -1376,13 +1395,13 @@ async function sondear(forzar) {
   if (S._sondeando) return;
   S._sondeando = true;
   try {
-    const d = await api('sondeo', S.user.rol === 'repartidor' && S.pos ? S.pos : {});
+    const d = await api('sondeo', rolActual() === 'repartidor' && S.pos ? S.pos : {});
     const cambio = S.firma && d.firma !== S.firma;
     const masNuevos = d.nuevos > S.nuevos;
     if (d.turno && S.user.rol === 'repartidor') S.user.turno = d.turno;
     if (S.firma && Date.now() - (S._pushReciente || 0) > 20000) {
       if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', 'Revisa la pestaña Pedidos');
-      else if (S.user.rol === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar('📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
+      else if (rolActual() === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar(S.modoRep ? '🧪 Pedido de muestra para entregar' : '📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
     S.firma = d.firma; S.nuevos = d.nuevos;
@@ -1528,6 +1547,7 @@ function pinNum(txt, color) {
 
 /* ============ COMPONENTES DE PEDIDO ============ */
 function etiqueta(e, p) {
+  if (p && p.muestra) return '<span class="tag t-warn" style="margin-right:4px">🧪 MUESTRA</span>' + etiqueta(e, Object.assign({}, p, { muestra: false }));
   const cls = { NUEVO: 't-info', POR_PAGAR: 't-warn', PAGO_ENVIADO: 't-warn', PREPARANDO: 't-pri', LISTO: 't-pri', EN_CAMINO: 't-info', ENTREGADO: 't-ok', CANCELADO: 't-err' }[e] || 't-gray';
   let txt = EST[e] ? EST[e][1] + ' ' + EST[e][0] : e;
   if (e === 'LISTO' && p && p.tipoEntrega === 'recoger') txt = '📦 Listo para recoger';
@@ -2600,7 +2620,7 @@ function abrirProducto(pid) {
     <textarea class="i" id="hNota" maxlength="120" placeholder="Ej. bien dorado, salsa aparte, poco hielo…"></textarea>
     <div class="row between" style="margin-top:16px">
       <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
-      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
+      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
 }
 
 function selHoja() {
@@ -2728,7 +2748,7 @@ function carritosSel() { return carritosLista().filter(c => S.sel && S.sel[c.neg
 function continuarCarrito() {
   if (!carritosSel().length) { toast('Elige al menos un negocio', 'err'); return; }
   if (!S.token) { S.despues = 'entrega'; toast('Entra o crea tu cuenta para continuar'); ir('entrar'); return; }
-  if (S.user.rol === 'admin') { toast('Para pedir entra con una cuenta de cliente', 'err'); return; }
+  if (esAdminU() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); S.modoRep = false; ls('modoRep', null); pintarNav(); }
   if (esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
   ir('entrega');
 }
@@ -2892,7 +2912,9 @@ async function vPago() {
       <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Envío' + (cs.length > 1 ? 's (' + cs.length + ')' : '')}</span><span>${money(envT)}</span></div>
       <div class="tot g"><span>Total</span><span>${money(subT + envT)}</span></div></div>
     <div class="seguro">${ico('candado', 's')} Pagas directo a cada negocio, sin comisiones</div>
-    <button class="btn pri pill full" ${cerrado || S._sinPago ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
+    ${esAdminU() ? `<label class="opcion" style="border-color:var(--warn)"><input type="checkbox" id="pMuestra" ${cerrado ? 'checked disabled' : S._muestra ? 'checked' : ''} onchange="S._muestra=this.checked">
+      <div class="grow"><b>🧪 Pedido de muestra</b><small>Para enseñar la app: el negocio lo recibe en vivo y tú lo entregas en “Ver como repartidor”. No cuenta en ventas ni ranking y se borra a las 24 h.${cerrado ? ' Un negocio de tu pedido está cerrado: solo puede ser de muestra.' : ''}</small></div></label>` : ''}
+    <button class="btn pri pill full" ${(cerrado && !esAdminU()) || S._sinPago ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
   cs.forEach(c => notaPago(c.negocioId));
 }
 
@@ -2915,13 +2937,14 @@ async function confirmarPedido() {
   // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
   let gps;
   // efectivo: siempre con la ubicación actual (solo se acepta dentro de la ciudad)
-  if (cs.some(c => e.metodos[c.negocioId] === 'efectivo')) gps = await ubicacionActual();
+  const muestra = esAdminU() && !!($('#pMuestra') && $('#pMuestra').checked);
+  if (!muestra && cs.some(c => e.metodos[c.negocioId] === 'efectivo')) gps = await ubicacionActual();
   let r;
   try {
     // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
     r = await api('crearPedidos', {
       tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
-      recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps,
+      recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps, muestra: muestra ? 1 : '',
       pedidos: cs.map(c => ({
         negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
         items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
@@ -3114,7 +3137,8 @@ function bloquePago(p) {
     ${g.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta · ${esc(g.banco)}</div><div class="v">${esc(g.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(g.tarjeta)}','Tarjeta')">${ico('copiar', 's')}</button></div>` : ''}
     ${g.titular ? `<div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b></div>` : ''}
     ${!codi && g.qrId ? `<div class="btns"><button class="btn" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} También puedes pagar con CoDi</button></div>` : ''}
-    <div class="btns"><label class="btn pri pill full">📎 Adjuntar comprobante<input type="file" accept="image/*,application/pdf" hidden onchange="subirComprobante('${p.id}',this)"></label></div></div>`;
+    <div class="btns"><label class="btn pri pill full">📎 Adjuntar comprobante<input type="file" accept="image/*,application/pdf" hidden onchange="subirComprobante('${p.id}',this)"></label></div>
+    ${p.muestra ? `<div class="btns"><button class="btn pill full" onclick="act(this,async()=>{await api('subirComprobante',{pedidoId:'${p.id}',simulado:1});toast('Comprobante simulado ✓');pintar(true)})">🧪 Simular comprobante</button></div>` : ''}</div>`;
 }
 
 /** Sube un comprobante: las imágenes se comprimen; los PDF (algunos bancos los comparten así) van tal cual. */
@@ -4519,6 +4543,17 @@ async function vDisponibles() {
   // al abrir la app con pedidos en curso, se va directo a Mis entregas (una vez por sesión)
   if (d.activos > 0 && !S._yaAbrioEntregas) { S._yaAbrioEntregas = true; ir('entregas'); return; }
   S._yaAbrioEntregas = true;
+  if (d.muestra) { // el administrador como repartidor: solo pedidos de muestra
+    html(`<div class="aviso warn">🧪 <b>Modo repartidor de muestra.</b> Aquí solo aparecen tus pedidos de muestra; ningún repartidor real los ve. Tómalo y entrégalo para enseñar cómo funciona.</div>
+      ${d.activos ? `<div class="aviso info row between" style="align-items:center"><span>🛵 Tienes <b>${d.activos}</b> en curso.</span><button class="btn pri sm" onclick="ir('entregas')">Ver mis entregas</button></div>` : ''}
+      ${d.lista.length ? d.lista.map(x => `<div class="card">
+        <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div><span class="tag t-warn">🧪 MUESTRA</span></div>
+        <div class="row wrap" style="margin-top:8px;gap:16px"><div><div class="muted small">Sale</div><b>${x.estado === 'LISTO' ? 'Ya' : enMin(x.horaSalida)}</b></div>
+          <div><div class="muted small">Entrega</div><b>${x.distanciaKm} km</b></div><div><div class="muted small">Envío</div><b>${money(x.envio)}</b></div></div>
+        <div class="btns"><button class="btn pri" onclick="act(this,()=>tomar('${x.id}'))">Tomar pedido</button></div></div>`).join('')
+      : `<div class="vacio"><span class="big">🧪</span>No hay pedidos de muestra por entregar.<br>Haz uno en “Ver como cliente” y, cuando el negocio lo prepare, aparece aquí.</div>`}`);
+    return;
+  }
   html(`${pendienteAviso()}${bannerPush()}
     <div class="card row between"><div><div class="muted small">Siguiente pedido</div><div class="espera" id="espera">${textoEspera()}</div></div>
       <div style="text-align:right"><div class="muted small">Activos</div><b style="font-size:22px">${d.activos}/${d.maxActivos}</b></div></div>
@@ -4697,6 +4732,11 @@ async function vAdmin() {
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
+    <div class="row" style="gap:10px;align-items:stretch;margin-bottom:10px">
+      <div class="card grow" style="cursor:pointer;margin:0" onclick="modoCliente(true)"><b>🍽️ Ver como cliente</b><div class="muted small">Pide o haz un pedido de muestra para enseñar la app.</div></div>
+      <div class="card grow" style="cursor:pointer;margin:0" onclick="modoRepartidor(true)"><b>🛵 Ver como repartidor</b><div class="muted small">Entrega tus pedidos de muestra.</div></div></div>
+    ${d.muestras ? `<div class="card row between"><span>🧪 ${d.muestras} pedido${d.muestras > 1 ? 's' : ''} de muestra <span class="muted small">(se borran solos a las 24 h)</span></span>
+      <button class="btn sm err" onclick="act(this,async()=>{if(!confirm('¿Borrar los pedidos de muestra y sus mensajes?'))return;const r=await api('adminBorrarMuestras');toast(r.borrados+' borrado(s)');pintar(true)})">🗑️ Borrar</button></div>` : ''}
     ${d.local ? '' : `<div class="row" style="gap:10px;align-items:stretch">
       <div class="card grow" style="cursor:pointer;margin:0" onclick="ir('adminEstadisticas')"><b>📊 Estadísticas</b><div class="muted small">Ventas y envíos por día, hora, semana y mes. Solo tú las ves.</div></div>
       <div class="card grow" style="cursor:pointer;margin:0" onclick="act(null,formInvitar)"><b>✉️ Invitar</b><div class="muted small">Negocios y repartidores: cuenta aprobada al instante.</div></div></div>`}
