@@ -384,11 +384,25 @@ const PUEBLOS = [
   { id: 'cosala', nombre: 'Cosalá', api: 'https://script.google.com/macros/s/AKfycbzS9hFJRNcWzytF8OL9grSpzx2jhQu49U7rEou6wKoCpt6HtVMmteXUmw75dg9gU_iJ0Q/exec', alt: API_ALT + '/cosala' }
 ].filter(x => x.api);
 /** Municipio de este teléfono: ?pueblo=cosala en el enlace, o el que eligió antes. */
+/*
+ * Candado: un enlace de otro municipio (?pueblo=cosala o /cosala/) solo cambia el municipio en un teléfono nuevo
+ * o de un administrador; si ya eligió otro, se le pide comprobar con su ubicación que está ahí.
+ */
+let PUEBLO_PEND = '', PUEBLO_QUERY = '';
 const PUEBLO = (() => {
   let id = '';
-  try { id = new URLSearchParams(location.search).get('pueblo') || localStorage.getItem('pe_pueblo') || ''; } catch (e) { }
+  try {
+    const param = new URLSearchParams(location.search).get('pueblo') || '';
+    const guardado = localStorage.getItem('pe_pueblo') || '', elegido = !!localStorage.getItem('pe_puebloElegido');
+    id = guardado || param;
+    if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
+      let u = null; try { u = JSON.parse(localStorage.getItem('pe_' + (guardado && guardado !== PUEBLOS[0].id ? guardado + '_' : '') + 'user')); } catch (e) { }
+      if (!guardado || !elegido || (u && u.rol === 'admin')) { id = param; localStorage.setItem('pe_puebloElegido', '1'); }
+      else { PUEBLO_PEND = param; const q = new URLSearchParams(location.search); q.delete('pueblo'); PUEBLO_QUERY = q.toString(); }
+    }
+  } catch (e) { }
   const p = PUEBLOS.find(x => x.id === id) || PUEBLOS[0];
-  try { localStorage.setItem('pe_pueblo', p.id); if (new URLSearchParams(location.search).get('pueblo')) localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { }
+  try { localStorage.setItem('pe_pueblo', p.id); } catch (e) { }
   return p;
 })();
 /* ---------- identidad de cada municipio: pantalla de inicio, cargas y nombre bajo el logo ---------- */
@@ -416,21 +430,84 @@ function lsDe(id, k, v) {
   try { v === null ? localStorage.removeItem(key) : localStorage.setItem(key, JSON.stringify(v)); } catch (e) { }
 }
 /** Cambiar de municipio: se recarga la app conectada al servidor de ese municipio. */
-function cambiarPueblo(id) {
+function cambiarPueblo(id, query) {
   try { localStorage.setItem('pe_pueblo', id); localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { }
-  location.href = location.pathname;
+  location.href = location.pathname + (query ? '?' + query : '');
+}
+/* ---------- candado de municipio: cambiarse requiere estar ahí (15 km del centro), salvo administradores ---------- */
+const puebloVerificado = id => { try { return !!localStorage.getItem('pe_verif_' + id); } catch (e) { return false; } };
+const marcarVerificado = id => { try { localStorage.setItem('pe_verif_' + id, String(Date.now())); } catch (e) { } };
+const primeraVez = () => { try { return !localStorage.getItem('pe_puebloElegido'); } catch (e) { return false; } };
+/** Centro y radio de un municipio (la ubicación registrada en su servidor). */
+async function centroDe(pb) {
+  S._centros = S._centros || {};
+  if (!S._centros[pb.id]) {
+    const c = pb.id === PUEBLO.id && S.conf && S.conf.centroLat ? S.conf : await apiDe(pb, 'configPublica', {}, null);
+    S._centros[pb.id] = { lat: Number(c.centroLat), lng: Number(c.centroLng), radio: Number(c.radioMunicipioKm) || 15 };
+  }
+  return S._centros[pb.id];
+}
+function gpsAhora(motivo) {
+  return new Promise((ok, mal) => {
+    if (!navigator.geolocation) { mal(new Error('Tu teléfono no permite ubicación.')); return; }
+    toast('Comprobando tu ubicación…');
+    navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => mal(new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  });
+}
+/** ¿En qué municipio estás? Devuelve el más cercano dentro de su radio, o null. */
+async function puebloDeUbicacion(g) {
+  let mejor = null;
+  for (const pb of PUEBLOS) {
+    const c = await centroDe(pb), km = hav(g.lat, g.lng, c.lat, c.lng);
+    if (km <= c.radio && (!mejor || km < mejor.km)) mejor = { pb, km };
+  }
+  return mejor && mejor.pb;
+}
+/** Ir a un municipio comprobando la ubicación (los administradores pasan directo). */
+async function irConUbicacion(id, query) {
+  const pb = PUEBLOS.find(x => x.id === id); if (!pb) return;
+  if (S.user && S.user.rol === 'admin') { cambiarPueblo(id, query); return; }
+  const g = await gpsAhora('para cambiarte de municipio');
+  const c = await centroDe(pb);
+  if (hav(g.lat, g.lng, c.lat, c.lng) > c.radio) throw new Error('Para usar Pídele ' + pb.nombre + ' necesitas estar en ' + pb.nombre + '.');
+  marcarVerificado(id);
+  if (id === PUEBLO.id) { try { localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { } cerrarModal(); toast('Ubicación comprobada ✓'); return; }
+  cambiarPueblo(id, query);
+}
+/** "Usar mi ubicación": elige solo el municipio donde estás. */
+async function detectarPueblo() {
+  const g = await gpsAhora('para saber en qué municipio estás');
+  const pb = await puebloDeUbicacion(g);
+  if (!pb) throw new Error('Tu ubicación no está dentro del área de ' + PUEBLOS.map(x => x.nombre).join(' ni de ') + '.');
+  marcarVerificado(pb.id);
+  if (pb.id === PUEBLO.id) { try { localStorage.setItem('pe_puebloElegido', '1'); } catch (e) { } cerrarModal(); toast('📍 ' + pb.nombre + ' ✓'); }
+  else cambiarPueblo(pb.id);
 }
 function elegirPueblo(cerrable) {
   if (PUEBLOS.length < 2) return;
+  const admin = S.user && S.user.rol === 'admin', libre = admin || primeraVez();
   modal(`<div class="row between"><h2 style="margin:0">¿Dónde estás?</h2>${cerrable ? '<button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button>' : ''}</div>
-    <div class="muted" style="margin:6px 0 12px">Elige tu municipio para ver los negocios que te entregan.</div>
-    ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? "try{localStorage.setItem('pe_puebloElegido','1')}catch(e){};cerrarModal()" : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`);
+    <div class="muted" style="margin:6px 0 12px">${libre ? 'Usa tu ubicación para ver los negocios que te entregan.' : 'Para cambiarte de municipio comprobamos con tu ubicación que estás ahí.'}</div>
+    <button class="btn pri pill full" onclick="act(this,detectarPueblo)">📍 Usar mi ubicación</button>
+    ${libre ? `<div class="muted small" style="margin:14px 0 6px">${admin ? 'Como administrador puedes entrar a cualquiera:' : 'O elige tu municipio (para pedir te pediremos tu ubicación):'}</div>
+      ${PUEBLOS.map(x => `<div class="opcion ${x.id === PUEBLO.id ? 'on' : ''}" onclick="${x.id === PUEBLO.id ? "try{localStorage.setItem('pe_puebloElegido','1')}catch(e){};cerrarModal()" : `cambiarPueblo('${x.id}')`}"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}`
+    : `<div class="muted small" style="margin-top:12px">Estás en <b>${esc(PUEBLO.nombre)}</b>. ${PUEBLOS.filter(x => x.id !== PUEBLO.id).map(x => `<button class="lnk small" onclick="act(this,()=>irConUbicacion('${x.id}'))">Cambiar a ${esc(x.nombre)}</button>`).join(' ')}</div>`}`);
 }
-const APP_VER = '2.5.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
+/** Un enlace de otro municipio en un teléfono que ya tiene elegido otro: se pide comprobar la ubicación. */
+function avisoEnlaceOtroPueblo() {
+  const pb = PUEBLOS.find(x => x.id === PUEBLO_PEND); if (!pb) return;
+  S._queryPend = PUEBLO_QUERY;
+  modal(`<h2 style="margin-top:0">Este enlace es de Pídele ${esc(pb.nombre)}</h2>
+    <div class="muted" style="margin:6px 0 12px">Tu app está en ${esc(PUEBLO.nombre)}. Para cambiarte a ${esc(pb.nombre)} comprobamos con tu ubicación que estás ahí.</div>
+    <button class="btn pri pill full" onclick="act(this,()=>irConUbicacion('${pb.id}','pueblo=${pb.id}'+(S._queryPend?'&'+S._queryPend:'')))">📍 Comprobar mi ubicación</button>
+    <button class="btn full" style="margin-top:8px" onclick="cerrarModal()">Seguir en ${esc(PUEBLO.nombre)}</button>`);
+}
+const APP_VER = '2.6.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ ESTADO ============ */
 const S = {
-  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'),
+  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'), modoCliente: !!ls('modoCliente'),
   // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
   carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
@@ -539,14 +616,14 @@ function rolNombre(r) { return { comprador: 'Cliente', negocio: 'Negocio', repar
  */
 async function api(accion, datos) {
   if (API_URL.indexOf('PEGA_AQUI') === 0) throw new Error('Falta configurar API_URL en index.html');
-  return apiDe(PUEBLO, accion, datos, S.token, true);
+  return apiDe(PUEBLO, accion, datos, S.token, true, esStaff() && S.modoCliente && accion !== 'sondeo' ? 'cliente' : '');
 }
 /** Llamada al servidor de un municipio (el administrador general consulta también los otros). */
-async function apiDe(pb, accion, datos, token, propio) {
+async function apiDe(pb, accion, datos, token, propio, modo) {
   const URL1 = pb.api, ALT = pb.alt;
   // id de la operación: si se reenvía por la ruta alterna, el servidor no la repite
   const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const cuerpo = JSON.stringify({ accion, datos: datos || {}, token, rid });
+  const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}));
   let alt = false;
   try { alt = Number(localStorage.getItem('pe_rutaAlt')) > Date.now(); } catch (e) { }
   const intento = async url => {
@@ -733,7 +810,15 @@ async function pintar(silencioso) {
   }
 }
 
-function rolActual() { return S.user ? S.user.rol : 'invitado'; }
+function rolActual() { return S.user ? (esStaff() && S.modoCliente ? 'comprador' : S.user.rol) : 'invitado'; }
+/** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
+function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
+function modoCliente(on) {
+  S.modoCliente = !!on; ls('modoCliente', S.modoCliente ? 1 : null);
+  pintarNav();
+  ir(on ? 'inicio' : inicioRol());
+}
+function botonPanel() { return esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
 function inicioRol() { return (navRol()[0] || ['inicio'])[0]; }
 function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
@@ -820,7 +905,7 @@ async function refrescarArranque() {
 }
 
 function guardarSesion(d) {
-  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config;
+  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null);
   ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
   history.replaceState(null, '');
   // entró con contraseña temporal: primero crea una nueva
@@ -837,8 +922,8 @@ function guardarSesion(d) {
 function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
-  ['token', 'user', 'negocio', 'entrega'].forEach(k => ls(k, null));
-  S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
+  ['token', 'user', 'negocio', 'entrega', 'modoCliente'].forEach(k => ls(k, null));
+  S.modoCliente = false; S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -875,7 +960,7 @@ async function entrar() {
 
 function vRegistro(rol) {
   rol = rol || 'comprador';
-  const R = [['comprador', '🙋', 'Quiero pedir'], ['negocio', '🏪', 'Tengo un negocio'], ['repartidor', '🛵', 'Soy repartidor']];
+  const R = [['comprador', '🙋', 'Solo pedir'], ['negocio', '🏪', 'Registrar mi negocio'], ['repartidor', '🛵', 'Quiero repartir']];
   html(`<div class="entrar">
     <button class="redondo" onclick="vLogin()" aria-label="Volver">${ico('atras')}</button>
     <h1 style="text-align:center">Crear cuenta</h1>
@@ -887,7 +972,7 @@ function vRegistro(rol) {
         <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>` : ''}
       ${rol === 'repartidor' ? `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" placeholder="Ej. Moto Italika roja">` : ''}
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
-      ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu cuenta quedará en revisión hasta que el administrador la apruebe.</div>` : ''}
+      ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu solicitud quedará en revisión hasta que el administrador la apruebe. Mientras, ya puedes pedir comida con esta cuenta.</div>` : ''}
       <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrar('${rol}'))">Crear cuenta</button></div>
     </div>
   </div>`);
@@ -985,6 +1070,7 @@ function abrirDesdeUrl(url) {
   let q;
   try { q = new URL(url, location.href).searchParams; } catch (e) { return false; }
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
+  if (PUEBLO_PEND && q.get('pueblo') === PUEBLO_PEND) return false; // enlace de otro municipio: primero se comprueba la ubicación
   if (neg) { ir('negocio', neg); return true; }
   if (q.get('instalar')) { ir(inicioRol(), null); setTimeout(instalarApp, 600); return true; }
   if (q.get('compartido')) {
@@ -1905,7 +1991,7 @@ function agregarRegalo(negId, promoId) {
 }
 /** En cuáles negocios del carrito es la primera compra del cliente (para el % de bienvenida). */
 async function cargarPrimera(ids) {
-  if (!S.token || !S.user || S.user.rol !== 'comprador') return;
+  if (!S.token || !S.user || rolActual() !== 'comprador') return;
   S._primera = S._primera || {};
   const faltan = ids.filter(id => S._primera[id] === undefined && mecsDe(id).some(p => mecDe(p) === 'primera'));
   if (!faltan.length) return;
@@ -1994,7 +2080,7 @@ async function vInicio(p, silencioso) {
       <div class="u" onclick="${u ? "ir('perfil')" : "ir('entrar')"}">
         <b>${ico('pin', 's')} Tu ubicación ${ico('abajo', 's')}</b>
         <small>${u && u.direccion ? esc(u.direccion) : u ? 'Toca para guardar tu dirección' : esc(PUEBLO.nombre) + ', Sin.'}</small></div>
-      ${PUEBLOS.length > 1 ? `<button class="chipPueblo" onclick="elegirPueblo(true)">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))} ▾</button>` : ''}
+      ${botonPanel() || (PUEBLOS.length > 1 ? `<button class="chipPueblo" onclick="elegirPueblo(true)">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))} ▾</button>` : '')}
       <button class="redondo" onclick="ir('buscar')" aria-label="Buscar">${ico('search')}</button>
       ${botonCarrito()}
     </div>
@@ -2010,8 +2096,8 @@ async function vInicio(p, silencioso) {
     ${barraCarrito()}`);
   pintarInicioDatos();
   // primera vez con varios municipios: se pregunta dónde está
-  let elegido = false; try { elegido = !!localStorage.getItem('pe_puebloElegido'); } catch (e) { }
-  if (PUEBLOS.length > 1 && !elegido && !$('#modal').classList.contains('on')) elegirPueblo(false);
+  if (PUEBLO_PEND && !S._pendMostrado) { S._pendMostrado = true; avisoEnlaceOtroPueblo(); }
+  else if (PUEBLOS.length > 1 && primeraVez() && !$('#modal').classList.contains('on')) elegirPueblo(false);
 }
 
 function categoriasInicio() {
@@ -2057,7 +2143,8 @@ function pintarNegocios() {
   pintarBanner(cat);
   const box = $('#listaNeg'); if (!box) return;
   if (cat === 'Promociones') { box.innerHTML = listaPromos(); return; }
-  const l = (S._negs || []).filter(n => cat === 'Todos' || n.categoria === cat);
+  const propio = esStaff() && S.negocio ? S.negocio.id : ''; // en "Pedir comida" no se muestra su propio negocio
+  const l = (S._negs || []).filter(n => (cat === 'Todos' || n.categoria === cat) && n.id !== propio);
   box.innerHTML = `<div class="secHead"><h3>${cat === 'Todos' ? 'Restaurantes cerca de ti' : ICONO_CAT[cat] + ' ' + esc(cat)}</h3>${cat !== 'Todos' ? '<button onclick="verTodos()">Ver todos</button>' : ''}</div>` +
     (l.length ? `<div class="grid2">${l.map(tarjetaNegocio).join('')}</div>`
       : `<div class="vacio"><span class="big">🍽️</span>${S._negs && S._negs.length ? 'No hay negocios en esta categoría' : 'Aún no hay negocios disponibles. ¡Pronto!'}</div>`);
@@ -2487,7 +2574,8 @@ function carritosSel() { return carritosLista().filter(c => S.sel && S.sel[c.neg
 function continuarCarrito() {
   if (!carritosSel().length) { toast('Elige al menos un negocio', 'err'); return; }
   if (!S.token) { S.despues = 'entrega'; toast('Entra o crea tu cuenta para continuar'); ir('entrar'); return; }
-  if (S.user.rol !== 'comprador') { toast('Para pedir entra con una cuenta de cliente', 'err'); return; }
+  if (S.user.rol === 'admin') { toast('Para pedir entra con una cuenta de cliente', 'err'); return; }
+  if (esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
   ir('entrega');
 }
 
@@ -2669,6 +2757,12 @@ function notaPago(neg) {
 async function confirmarPedido() {
   const e = S.entrega, cs = carritosSel();
   if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
+  // candado de municipio: si no comprobó su ubicación al elegirlo, se comprueba antes de su pedido
+  if (PUEBLOS.length > 1 && !puebloVerificado(PUEBLO.id)) {
+    const g = await gpsAhora('para pedir en ' + PUEBLO.nombre), c = await centroDe(PUEBLO);
+    if (hav(g.lat, g.lng, c.lat, c.lng) > c.radio) throw new Error('Para pedir en Pídele ' + PUEBLO.nombre + ' necesitas estar en ' + PUEBLO.nombre + '.');
+    marcarVerificado(PUEBLO.id);
+  }
   // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
   let gps;
   if (e.tipo === 'domicilio' && cs.some(c => e.metodos[c.negocioId] === 'efectivo') && reglaEfectivo(0, e.tipo).gps) gps = await ubicacionActual();
@@ -2747,6 +2841,8 @@ async function verAntiguos() {
 async function vPedido(id, silencioso) {
   const p = await api('pedido', { id });
   recordar([p]);
+  // un pedido que el negocio o repartidor hizo como cliente se ve como cliente
+  if (p.esMio && esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
   if (rolActual() !== 'comprador') { vPedidoOperacion(p); return; }
   // en refresco silencioso solo se mueven los marcadores si el mapa ya existe
   if (silencioso && S.map && S._trk && S._trk.id === p.id && S._trk.estado === p.estado) { moverTrk(p); return; }
@@ -2924,6 +3020,23 @@ async function enviarCalificacion(sinEstrellas) {
 }
 
 /* ============ PERFIL ============ */
+/** Solicitud de un cliente para ser negocio o repartidor. */
+function formAlta(tipo) {
+  modal(`<div class="row between"><h2 style="margin:0">${tipo === 'negocio' ? '🏪 Registrar mi negocio' : '🛵 Quiero repartir'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${tipo === 'negocio' ? `<label class="f">Nombre del negocio</label><input class="i" id="alNeg" maxlength="60">
+      <label class="f">Categoría</label><select class="i" id="alCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>`
+    : `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="alVeh" maxlength="40" placeholder="Ej. Moto Italika roja">
+      <div class="muted small" style="margin-top:8px">Te validaremos en persona con tu identificación y tu CURP.</div>`}
+    <div class="aviso info" style="margin-top:12px">Tu solicitud queda en revisión. Mientras, sigues pidiendo comida con esta misma cuenta.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>enviarAlta('${tipo}'))">Enviar solicitud</button></div>`);
+}
+async function enviarAlta(tipo) {
+  const v = id => ($('#' + id) || {}).value || '';
+  const r = await api('solicitarAlta', { tipo, negocio: v('alNeg'), categoria: v('alCat'), vehiculo: v('alVeh') });
+  S.user = r.usuario; S.negocio = r.negocio; ls('user', S.user); ls('negocio', S.negocio);
+  S.modoCliente = false; ls('modoCliente', null);
+  cerrarModal(); toast('Solicitud enviada ✓'); pintarNav(); ir(inicioRol());
+}
 function vPerfil() {
   const u = S.user;
   if (!u) { ir('entrar'); return; }
@@ -2933,10 +3046,14 @@ function vPerfil() {
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
     ${u.telVerificado ? '' : tarjetaVerificar()}
-    ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Municipio</b><div class="muted small">${esc(PUEBLO.nombre)} · cada municipio tiene sus propias cuentas</div></div><button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
+    ${PUEBLOS.length > 1 && r !== 'negocio' ? `<div class="card row between"><div><b>📍 Municipio</b><div class="muted small">${esc(PUEBLO.nombre)} · cada municipio tiene sus propias cuentas</div></div><button class="lnk small" onclick="elegirPueblo(true)">Cambiar</button></div>` : ''}
     ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
+    ${esStaff() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
+      : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
+    ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
+      <div class="row" style="gap:8px"><button class="btn sm" style="flex:1" onclick="formAlta('negocio')">🏪 Registrar mi negocio</button><button class="btn sm" style="flex:1" onclick="formAlta('repartidor')">🛵 Quiero repartir</button></div></div>` : ''}
     <div class="card"><b>Mis datos</b>
       <label class="f">Nombre</label><input class="i" id="uNom" value="${esc(u.nombre)}">
       ${r === 'repartidor' ? `<label class="f">Vehículo</label><input class="i" id="uVeh" value="${esc(u.vehiculo)}">
@@ -4485,6 +4602,7 @@ function tarjetaUsuario(x) {
       ${!x.telVerificado && x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,async()=>{await api('adminVerificar',{usuarioId:'${x.id}'});toast('Verificado ✓');pintar(true)})">Verificar tel.</button>` : ''}
       ${x.rol !== 'admin' ? `<button class="btn sm" onclick="act(this,()=>claveTemporalAdmin('${x.id}'))">🔑 Clave temporal</button>` : ''}
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
+      ${x.estado === 'pendiente' && (x.rol === 'negocio' || x.rol === 'repartidor') ? `<button class="btn sm" onclick="act(this,()=>rechazarSolicitud('${x.id}'))">Rechazar solicitud</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
 }
@@ -4519,6 +4637,11 @@ async function promoAdmin(id, estado) {
   verPromosAdmin(l);
 }
 
+async function rechazarSolicitud(id) {
+  const nota = prompt('Motivo (se le envía; la cuenta queda como cliente):'); if (nota === null) return;
+  await api('adminRechazarSolicitud', { usuarioId: id, nota });
+  toast('Solicitud rechazada: queda como cliente'); pintar(true);
+}
 async function estadoUsuario(id, estado) {
   let nota = '';
   if (estado === 'bloqueado') { nota = prompt('Motivo del bloqueo (queda registrado):'); if (nota === null) return; }
