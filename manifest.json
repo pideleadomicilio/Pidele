@@ -1,14 +1,22 @@
 {
+  "id": "./",
   "name": "Pídele",
   "short_name": "Pídele",
-  "description": "Tu comida favorita, a un click · La Cruz de Elota",
+  "description": "Pide comida y más de los negocios de tu ciudad, con envío a domicilio y seguimiento en el mapa. Sin comisiones para los negocios.",
   "lang": "es-MX",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#3B5A2C",
   "theme_color": "#3B5A2C",
+  "categories": [
+    "food",
+    "shopping",
+    "lifestyle"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -27,6 +35,49 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/capturas/cli-inicio.jpg",
+      "sizes": "540x1169",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Inicio con promociones y negocios cerca"
+    },
+    {
+      "src": "icons/capturas/cli-menu.jpg",
+      "sizes": "540x1169",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Menú del negocio con fotos y promociones"
+    },
+    {
+      "src": "icons/capturas/cli-seguimiento.jpg",
+      "sizes": "540x1169",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Sigue tu pedido en el mapa"
+    },
+    {
+      "src": "icons/capturas/neg-planes.jpg",
+      "sizes": "540x1169",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Planes para negocios"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mis pedidos",
+      "short_name": "Pedidos",
+      "url": "./?v=pedidos",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "share_target": {

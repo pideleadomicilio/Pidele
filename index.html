@@ -570,7 +570,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.11.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.12.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1005,6 +1005,7 @@ async function refrescarArranque() {
     else if (d.usuario) {
       S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio);
       if (S.user.cambiarPass && S.vista !== 'nuevaClave') ir('nuevaClave');
+      else setTimeout(pedirAviso, 1200);
     }
   }
   if (d.catalogo) guardarCatalogo(d.catalogo);
@@ -1027,6 +1028,7 @@ function guardarSesion(d) {
   if (destino === 'compartido') history.replaceState({ v: inicioRol() }, '', location.pathname);
   S.despues = null;
   ir(destino); // el inicio ya está cargado desde que se abrió la pantalla de entrar: aparece al instante
+  if (destino !== 'nuevaClave') setTimeout(pedirAviso, 1200);
   iniciarSondeo();
   if (S.user.rol === 'repartidor') iniciarGPS();
   activarPush(false).catch(() => { });
@@ -1108,6 +1110,7 @@ function vRegistro(rol) {
       ${rol === 'repartidor' ? `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" placeholder="Ej. Moto Italika roja">` : ''}
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
       ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu solicitud quedará en revisión hasta que el administrador la apruebe. Mientras, ya puedes pedir comida con esta cuenta.</div>` : ''}
+      ${casillaAviso()}
       <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrar('${rol}'))">Crear cuenta</button></div>
     </div>
   </div>`);
@@ -1115,7 +1118,7 @@ function vRegistro(rol) {
 
 async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
-  const d = await api('registrar', { rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', aparato: aparatoId() });
+  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', aparato: aparatoId() });
   toast('¡Bienvenido a ' + APP + '!');
   guardarSesion(d);
 }
@@ -1142,6 +1145,7 @@ async function vInvitacion(codigo) {
       <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
       <label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" value="${esc(d.vehiculo)}" placeholder="Ej. Moto Italika roja">
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      ${casillaAviso()}
       <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta de repartidor</button></div>
     </div>
     <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta</button></div>
@@ -1161,6 +1165,7 @@ async function vInvitacion(codigo) {
       <label class="f">Nombre del negocio</label><input class="i" id="rNeg" value="${esc(d.negocio)}">
       <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      ${casillaAviso()}
       <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta de negocio</button></div>
     </div>
     <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta</button></div>
@@ -1168,7 +1173,7 @@ async function vInvitacion(codigo) {
 }
 async function registrarInv(codigo) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
-  const d = await api('registrar', { invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
+  const d = await api('registrar', { aceptoAviso: avisoMarcado(), invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
   PUEBLO_INV = '';
   toast('¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
   guardarSesion(d);
@@ -1738,6 +1743,48 @@ async function nombrarModerador() {
     <div class="aviso ok">Comparte estos datos con ${esc(n.nombre)}. Al entrar, la app le pedirá crear su propia contraseña.</div>
     <div class="tot"><span>Teléfono</span><b>${esc(n.telefono)}</b></div><div class="tot"><span>Contraseña temporal</span><b style="font-size:20px">${esc(n.clave)}</b></div>
     <div class="btns"><a class="btn pri" target="_blank" href="${waLink(n.telefono, 'Hola ' + n.nombre.split(' ')[0] + ', ya eres moderador de Pídele ' + PUEBLO.nombre + '. Entra en ' + urlApp('') + ' con tu teléfono y la contraseña temporal ' + n.clave + '.')}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="cerrarModal();pintar(true)">Listo</button></div>`);
+}
+
+/* ============ PRIVACIDAD Y ELIMINAR CUENTA (2.12) ============ */
+/** Casilla para aceptar el aviso de privacidad al crear cuenta (aviso simplificado). */
+function casillaAviso() {
+  return `<label class="opc" style="margin-top:14px;align-items:flex-start"><input type="checkbox" id="rAviso">
+    <span class="small">Acepto el <a href="privacidad.html" target="_blank">aviso de privacidad</a> y los <a href="terminos.html" target="_blank">términos</a>. Pídele usa tu nombre, teléfono y ubicación para tu cuenta y tus pedidos, y los comparte solo con el negocio y el repartidor de cada pedido.</span></label>`;
+}
+function avisoMarcado() {
+  const c = $('#rAviso');
+  if (c && !c.checked) throw new Error('Para crear tu cuenta acepta el aviso de privacidad y los términos');
+  return 1;
+}
+/** Cuentas que aún no aceptan la versión vigente del aviso: se les pide una vez. */
+function pedirAviso() {
+  if (!S.user || S.user.rol === 'admin' || !S.user.avisoPendiente || S._avisoMostrado || $('#modal').classList.contains('on')) return;
+  S._avisoMostrado = true;
+  modal(`<h2 style="margin-top:0">🔒 Tu privacidad</h2>
+    <p>Publicamos nuestro <a href="privacidad.html" target="_blank">aviso de privacidad</a> y los <a href="terminos.html" target="_blank">términos y condiciones</a>. Pídele usa tu nombre, teléfono y ubicación para tu cuenta y tus pedidos, y los comparte solo con el negocio y el repartidor de cada pedido.</p>
+    <p class="muted small">Puedes eliminar tu cuenta cuando quieras desde Perfil.</p>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{S.user=await api('aceptarAviso');ls('user',S.user);cerrarModal();toast('¡Gracias!')})">Acepto</button></div>`);
+}
+/** Perfil → Eliminar mi cuenta. */
+function formEliminarCuenta() {
+  const r = S.user.rol;
+  modal(`<div class="row between"><h2 style="margin:0">Eliminar mi cuenta</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="aviso err" style="margin-top:10px">Esto no se puede deshacer. Se borran tu nombre, teléfono, direcciones${r === 'repartidor' ? ', CURP y datos bancarios' : ''}${r === 'negocio' ? ' y tu negocio deja de aparecer en la app' : ''}. Tus pedidos anteriores quedan como “Cuenta eliminada”.</div>
+    <p class="muted small"><a href="eliminar-cuenta.html" target="_blank">Qué se borra y qué se conserva</a></p>
+    <label class="f">Escribe tu contraseña para confirmar</label><input class="i" id="elPass" type="password" autocomplete="current-password">
+    <div class="btns"><button class="btn err pill full" onclick="act(this,eliminarMiCuenta)">Eliminar mi cuenta</button></div>`);
+}
+async function eliminarMiCuenta() {
+  if (!confirm('¿Seguro? Tu cuenta se eliminará para siempre.')) return;
+  await api('eliminarCuenta', { pass: $('#elPass').value });
+  cerrarModal(); salir(true); toast('Tu cuenta fue eliminada');
+}
+/** El administrador elimina la cuenta de quien lo pidió por WhatsApp o correo. */
+async function eliminarCuentaAdmin(id, nombre, tel) {
+  const c = prompt('Eliminar la cuenta de ' + nombre + ' (no se puede deshacer). Escribe su teléfono para confirmar:');
+  if (c === null) return;
+  await api('adminEliminarCuenta', { usuarioId: id, confirma: c.replace(/\D/g, '') });
+  toast('Cuenta eliminada'); pintar(true);
 }
 
 /* ============ COMPONENTES DE PEDIDO ============ */
@@ -3461,6 +3508,7 @@ function vPerfil() {
       ${pushDisponible() && Notification.permission === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
+    <div class="muted small" style="text-align:center;margin-bottom:6px"><a href="privacidad.html" target="_blank">Aviso de privacidad</a> · <a href="terminos.html" target="_blank">Términos</a>${r !== 'admin' && S.user.rol !== 'admin' ? ` · <a href="#" style="color:var(--err)" onclick="formEliminarCuenta();return false">Eliminar mi cuenta</a>` : ''}</div>
     <div class="muted small" style="text-align:center">${APP} · app ${APP_VER}${S.conf ? ' · servidor ' + S.conf.version : ''}</div>`);
   if (r === 'comprador') S._selP = mapaSelector('mapaPerfil', u.lat, u.lng, (a, b) => { S._perfPos = { lat: a, lng: b }; });
   if (r === 'repartidor') cargarPuntaje('miPts');
@@ -3729,8 +3777,8 @@ async function vNegPedidos() {
   const vendido = grupos.hoy.filter(x => x.estado === 'ENTREGADO').reduce((s, x) => s + x.subtotal, 0);
   const t = S.tabNeg;
   const card = x => `<div class="card">
-    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${ACTIVOS.includes(x.estado) ? chipCliente(x.comprador) : ''}
-      <div class="muted small">${hora(x.creado)} · ${money(x.subtotal)} · ${x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${PAGO_TXT[x.metodoPago]}</div></div>${etiqueta(x.estado, x)}</div>
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${ACTIVOS.includes(x.estado) && !x.servicio ? chipCliente(x.comprador) : ''}
+      <div class="muted small">${hora(x.creado)} · ${money(x.subtotal)} · ${x.servicio ? '🛵 Lo recoge el repartidor' : x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${PAGO_TXT[x.metodoPago]}</div></div>${etiqueta(x.estado, x)}</div>
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div style="margin-top:6px">${x.items.map(i => { const d = detalleItem(i); return `<div class="small"><b>${i.cant}×</b> ${esc(i.nombre)}${d ? ` <span class="detalle">· ${d}</span>` : ''}</div>`; }).join('')}</div>
     ${x.notas ? `<div class="muted small">📝 ${esc(x.notas)}</div>` : ''}
@@ -5069,6 +5117,7 @@ function tarjetaUsuario(x) {
       ${x.negocioId && !esLocal() ? `<button class="btn sm" onclick="formPlanAdmin('${x.negocioId}','${x.plan}',${JSON.stringify(x.negocio).replace(/"/g, '&quot;')})">📋 Plan</button>` : ''}
       ${x.estado === 'pendiente' && (x.rol === 'negocio' || x.rol === 'repartidor') ? `<button class="btn sm" onclick="act(this,()=>rechazarSolicitud('${x.id}'))">Rechazar solicitud</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
+      ${x.rol !== 'admin' && !esLocal() ? `<button class="btn err sm" onclick="act(this,()=>eliminarCuentaAdmin('${x.id}',${JSON.stringify(x.nombre).replace(/"/g, '&quot;')},'${esc(x.telefono)}'))">🗑️ Eliminar cuenta</button>` : ''}
       <a class="btn sm" href="${waLink(x.telefono)}" target="_blank">${ico('chat', 's')} WhatsApp</a></div></div>`;
 }
 /** Invitación a un negocio (solo el general): enlace para crear su cuenta ya aprobada. */

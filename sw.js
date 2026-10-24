@@ -1,5 +1,5 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v2.11.0';
+const VERSION = 'pidele-v2.12.0';
 const COMPARTIDO = 'pidele-compartido'; // comprobante que llega desde "Compartir" de otra app
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
 

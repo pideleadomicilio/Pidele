@@ -124,6 +124,75 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.12.0 · lista para Google Play
+- **Aviso de privacidad** (`privacidad.html`), **Términos** (`terminos.html`) y **Eliminar cuenta** (`eliminar-cuenta.html`), públicos. Los datos del responsable se escriben una sola vez en `legal-datos.js`.
+- Al crear cuenta hay que aceptar el aviso (se guarda fecha y versión). Las cuentas que ya existían lo aceptan una vez al entrar.
+- **Eliminar mi cuenta** en Perfil (con contraseña) y **🗑️ Eliminar cuenta** en la tarjeta del usuario (administrador general, confirmando el teléfono): se borran los datos personales, los pedidos quedan como "Cuenta eliminada" y el teléfono queda libre para registrarse otra vez. No se puede con pedidos en curso.
+- `manifest.json` con id, categorías, capturas y atajo; `.nojekyll` y `.well-known/assetlinks.json` (plantilla) para la verificación de la app de Android.
+
+## Versión 2.11.0 · tarifas por horario, zonas, servicios de repartidor y moderador
+- **Tres tabuladores de horario** (Ajustes → Envíos y tarifas): hora de inicio y tarifa base de cada uno (inicial: 7:00 $30 · 18:00 $35 · 23:00 $40). El último sigue después de medianoche. Reemplaza a `envioBase`. El administrador local también los edita.
+- **Zonas con tarifa fija** (otros poblados o puntos lejanos: Ceuta, Bella Vista, UPMyS…): nombre, tarifa, radio y centro en el mapa. Dentro de una zona se cobra su tarifa (aunque pase del máximo de km) y de tarde o noche sube lo mismo que la tarifa base. Fuera de las zonas: tarifa base del horario + extra por km.
+- **Foráneo**: el pedido que cae en una zona o a más de `radioCiudadKm` del centro. Se marca con 📍 y el nombre de la zona.
+- **Oferta escalonada de foráneos**: primero al tercio de repartidores disponibles con mejor puntaje de foráneos (cumplimiento + cuántos ha entregado), a los `forEscalonMin` minutos al siguiente tercio y luego a todos. A los `forMinModerador` minutos sin repartidor, aviso al moderador.
+- **➕ Capturar servicio** (repartidor, en Disponibles): elige negocio y productos del menú para un cliente suyo; el negocio le dice en cuánto tiempo estará listo, él paga en efectivo al recogerlo y lo marca entregado. Sin destino ni datos del cliente. Cuenta por separado en estadísticas y suma a sus entregas (no a calificaciones de clientes).
+- **🎧 Moderador** (lo nombra el administrador en Resumen → Moderadores): pantalla **Atención** con los pedidos atorados (el negocio no acepta en `modMinAceptar` min, no confirma el pago en `modMinPago`, nadie lo toma, listo y el repartidor no pasa en `modMinRecoger`, o tarda en llegar). Puede llamar, asignar o reasignar repartidor, aceptar por el negocio, cambiar el método de pago, cancelar y ver todos los pedidos. Le llega una notificación por cada problema (si no hay moderador, al administrador). El administrador también tiene la pantalla Atención.
+
+## Versión 2.10.0 · planes configurables, varias categorías y SVG
+- **Cuatro planes** que se editan en Ajustes → "📋 Planes de los negocios": precio, categorías, anuncios por día, anuncio fijo semanal, visibilidad (x) y segundos en pantalla.
+  - Inicial: Donado $0 · 1 categoría · sin anuncios | Básico $249 · 2 · 1 anuncio fijo por semana · x1 · 4 s | Plus $399 · 3 · 1 por día · x2 · 5 s | Pro $549 · 4 · 2 por día · x3 · 6 s.
+  - Al actualizar: los precios de `cuotaBasica` / `cuotaMensual` y los `bannersIncluidos` pasan a Básico y Plus, y esos ajustes se quitan. Los negocios "con publicidad" quedan en **Plus**.
+- El negocio elige Básico, Plus o Pro al registrarse y en Mi suscripción (libre en la prueba; con periodo pagado: subir al pagar con "Plan con este pago", bajar en su fecha de corte). **Donado** solo lo asigna el administrador (botón "📋 Plan" en su tarjeta): sin cobro ni suspensión; sus promociones solo salen en Promociones y en su negocio.
+- **Anuncio fijo** (Básico): el anuncio que ya empezó no se puede editar, pausar ni borrar en sus primeros 7 días.
+- **Visibilidad**: en cada vuelta del banner, un anuncio sale (visibilidad del plan × peso del tipo) veces; una promoción pesa `pesoPromocion` y un anuncio `pesoAnuncio`. Los banners extra (se mantienen) pesan `pesoExtra`.
+- **Varias categorías** en Mi negocio (hasta las de su plan; la primera es la principal). El negocio aparece al filtrar por cualquiera y en el buscador. Si baja de plan, se quedan las primeras.
+- **SVG** en promociones, portada y logo: el teléfono lo convierte en imagen nítida al tamaño del banner (no se guarda el código del SVG). Recomendado: exportarlo con el texto convertido a curvas.
+
+## Versión 2.9.3 · ver como cliente o repartidor y pedidos de muestra
+- En Resumen: **🍽️ Ver como cliente** (pide como cualquier cliente) y **🛵 Ver como repartidor**. La pestaña "Mi panel" regresa al administrador.
+- **🧪 Pedido de muestra** (casilla al pagar, solo administradores): el negocio lo recibe en vivo con la etiqueta MUESTRA, aunque esté cerrado o recién registrado. Se puede simular el comprobante de transferencia.
+- Como repartidor, el administrador solo ve y entrega sus pedidos de muestra; ningún repartidor real los ve ni recibe avisos.
+- No cuentan en ventas, estadísticas, resumen, ranking, calificaciones ni cancelaciones. Se borran con "🗑️ Borrar" en Resumen o solos a las 24 h (con sus mensajes).
+
+## Versión 2.9.2 · invitar repartidores
+- "✉️ Invitar" (Resumen) tiene dos pestañas: Negocio y Repartidor. Para un repartidor: nombre, teléfono y vehículo; el enlace es de un solo uso para ese teléfono.
+- El repartidor invitado queda aprobado al instante, con la inscripción gratis (queda en su historial como $0) y su mes de prueba. Su ciudad es la del enlace.
+- La CURP se agrega después: su tarjeta dice "Falta CURP" y tiene el botón "🪪 Agregar CURP" (misma validación: 18 caracteres y una sola cuenta por persona).
+
+## Versión 2.9.1 · cada negocio elige su plan
+- Al registrar un negocio (o al pedir ser negocio desde el Perfil) se elige **Con publicidad ($399)** o **Básico ($249)**. Los negocios que ya existían quedan con publicidad.
+- En "Mi suscripción" están los dos planes. Durante el mes de prueba (o sin periodo pagado) se cambia al instante y sin costo.
+- Con un periodo pagado: bajar al Básico conserva el banner hasta la fecha de corte y los siguientes pagos ya son de $249 (se puede cancelar el cambio); subir se hace al pagar, con la casilla "Subir a plan con publicidad".
+
+## Versión 2.9.0 · plan Básico por invitación, meses donados y estadísticas
+- **Invitar negocio** (Resumen, solo el administrador general): nombre, teléfono y plan. Sale un enlace de un solo uso para ese teléfono; la cuenta queda aprobada al instante con su mes de prueba. El municipio es el del enlace (no lo cambia la ubicación).
+- **Plan Básico** (`cuotaBasica`, $249): todo igual, sus promociones salen en la categoría Promociones y dentro de su negocio, pero no en el banner de Inicio. Desde "Mi suscripción" puede **subir al plan con publicidad** (se cobra la cuota completa y cambia al confirmar el pago). El administrador también cambia el plan desde la tarjeta del negocio.
+- **🎁 Donar meses** (tarjeta del negocio o repartidor, solo el general): recorre su fecha de pago sin cobro; queda en su historial como donado y le llega aviso.
+- **📊 Estadísticas** (solo el general): pedidos entregados y ventas de hoy, 7 y 30 días, por día, semana y mes; por hora y día de la semana; % con envío; top 10 de negocios **sin montos**. Opción de ver todos los municipios juntos y de copiar un resumen sin nombres para compartir.
+- **Ajustes ordenados por categorías** con buscador; lo que cambias se marca antes de guardar.
+- `cuotaMensual` nueva por omisión: $399 (en servidores ya instalados se conserva lo que tengas en Ajustes).
+
+## Versión 2.8.0 · guía para nuevos usuarios
+- Recorrido guiado la primera vez (invitado, cliente, negocio, repartidor): ilumina cada sección con una flecha y explica qué hacer. Se repite desde Perfil → "Ver guía otra vez".
+- "Mi suscripción" y la guía explican el mes de prueba: desde cuándo corre y antes de cuándo es el primer pago.
+
+## Versión 2.7.0 · la ciudad la decide la ubicación
+- Ya no se ofrece elegir ciudad. La primera vez la ubicación es obligatoria y define la ciudad (radioMunicipioKm). Quien está fuera de las dos elige una y solo paga por transferencia.
+- Si un cliente abre la app en la otra ciudad, cambia sola y puede regresar a la suya (12 h sin volver a cambiar). Negocios y repartidores no cambian solos; los administradores eligen desde Perfil.
+- Servidor: `efectivoSoloEnZona` (1): el efectivo solo se acepta con ubicación dentro del municipio.
+
+## Versión 2.6.0 · negocios y repartidores que también piden
+- Registro: "Solo pedir", "Registrar mi negocio" o "Quiero repartir". Un cliente puede pedir después ser negocio o repartidor desde Perfil (Súmate a Pídele); mientras se revisa sigue pidiendo. Al rechazarla, la cuenta vuelve a cliente.
+- Negocios y repartidores tienen "Pedir comida" (modo cliente) con su misma cuenta. No pueden pedirse a sí mismos ni entregar su propio pedido; su negocio no aparece en su catálogo.
+
+## Versión 2.5.5 · periodo de gracia general
+- Ajuste `primerCobro` (2026-12-01): ningún negocio ni repartidor paga antes de esa fecha. Al aprobar, el primer pago es la fecha más tarde entre los días de prueba y `primerCobro`; a los ya aprobados se les recorre su fecha (nunca se acorta) y se les avisa.
+
+## Versión 2.5.4 · candado de municipio
+- La primera vez la app usa la ubicación para elegir el municipio (si no da permiso, elige a mano y al pedir se le pide la ubicación).
+- Para cambiarse de municipio (clientes y repartidores) hay que estar a menos de `radioMunicipioKm` (15) del centro del mapa de ese municipio. Los negocios no pueden cambiarse; los administradores sí, sin ubicación.
+- Un enlace de otro municipio en un teléfono que ya eligió el suyo pide comprobar la ubicación antes de cambiar.
+
 ## Versión 2.5.3 · enlaces de Cosalá
 - Página `cosala/` con su vista previa (título e imagen de Cosalá) que abre la app en Cosalá; los enlaces que se comparten desde Cosalá la usan. Imágenes de vista previa en icons/og-*.jpg.
 
@@ -254,9 +323,12 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 **Alertas** (*Resumen → Alertas de cuentas*): más de `alertaCuentasAparato` (2) cuentas de cliente en un mismo teléfono, o varias cuentas pidiendo al mismo punto exacto. No bloquean: son para revisar.
 
 ## Pendiente
+- Aviso de privacidad y manejo de datos conforme a la nueva LFPDPPP (DOF 20/03/2025): aviso integral (página pública) y simplificado al registrarse con aceptación registrada; procedimiento para derechos ARCO (incluido borrar la cuenta desde la app); qué datos se guardan y cuánto tiempo; terceros que procesan datos (Google, Firebase, Cloudflare, Meta/WhatsApp, OpenStreetMap). Revisarlo con un abogado.
+- Términos y condiciones de uso (Pídele como intermediario: facturas, cancelaciones, responsabilidad del negocio y del repartidor).
 - Aviso a clientes: Pídele une al cliente con el negocio; al no cobrar comisiones no emite facturas, la factura se solicita directamente al negocio.
 - Solicitar factura desde la app: el cliente guarda sus datos fiscales una vez y, al pedir factura de un pedido, el negocio los recibe listos.
 - Cuota de validación (inscripción) para negocios que se sumen en 2027, después de la etapa inicial.
 - Monedero por tienda (ej. 1% de cada compra para usar en ese negocio), activable solo por el negocio.
 - Más adelante: entrega combinada de varios negocios con precio especial; reportes de mal uso, amonestaciones y tickets de soporte para apelar bloqueos.
+- Seguridad extra: límite de intentos de contraseña, de registros por teléfono/aparato y de llamadas por minuto.
 - Cuando Meta verifique el negocio: número real de Pídele en WhatsApp, `whatsappResponde` = 1 y publicar la app de Meta (En vivo) con aviso de privacidad.
