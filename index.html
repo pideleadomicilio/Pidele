@@ -289,11 +289,14 @@ textarea.i{min-height:70px;resize:vertical}
 .num{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0}
 .num.r{background:var(--moto)} .num.e{background:var(--pri)}
 .espera{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums}
-.hRow{display:grid;grid-template-columns:100px 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--ln)}
+/* horario: día a la izquierda y "abre a cierra" a la derecha; si no cabe, las horas bajan debajo del día */
+.hRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--ln)}
 .hRow:last-child{border-bottom:0}
-.hRow label{display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px}
-.hRow input[type=time]{padding:8px;border:1.5px solid var(--ln);border-radius:10px;width:100%;background:var(--card)}
-.hRow.off input[type=time]{opacity:.35}
+.hRow label{flex:1 0 104px;display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px;min-width:0}
+.hRow .hHoras{flex:1 1 230px;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center}
+.hRow .hHoras span{color:var(--tx2);font-size:13px;font-weight:700}
+.hRow input[type=time]{padding:8px 6px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;background:var(--card);text-align:center}
+.hRow.off .hHoras{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
 .entregaBox{background:var(--pri-xs);border-radius:16px;padding:12px;margin-top:10px}
 .qrCaja{background:#fff;border-radius:18px;padding:14px;display:inline-block;margin:6px auto 10px;box-shadow:var(--sh)}
@@ -353,6 +356,8 @@ textarea.i{min-height:70px;resize:vertical}
 @keyframes brillo{to{background-position:-200% 0}}
 /* campos de 16px: así el iPhone no acerca la pantalla al escribir (al final para que tenga prioridad) */
 input,select,textarea,input.i,select.i,textarea.i,.buscar input{font-size:16px}
+input.i,select.i,textarea.i{min-width:0;max-width:100%}
+.row > input.i,.row > select.i{flex:1 1 0}
 </style>
 </head>
 <body class="sinNav">
@@ -577,7 +582,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.12.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.12.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -4792,7 +4797,7 @@ function filasHorario(hs, a0, c0) {
   hs = hs && hs.length === 7 ? hs : DIAS.map(() => ({ on: true, a: a0 || '09:00', c: c0 || '21:00' }));
   return [1, 2, 3, 4, 5, 6, 0].map(d => { const h = hs[d]; return `<div class="hRow ${h.on ? '' : 'off'}">
     <label><input type="checkbox" id="hOn${d}" ${h.on ? 'checked' : ''} onchange="this.closest('.hRow').classList.toggle('off',!this.checked)">${DIAS[d]}</label>
-    <input type="time" id="hA${d}" value="${esc(h.a || a0 || '09:00')}"><input type="time" id="hC${d}" value="${esc(h.c || c0 || '21:00')}"></div>`; }).join('');
+    <div class="hHoras"><input type="time" id="hA${d}" aria-label="Abre el ${DIAS[d]}" value="${esc(h.a || a0 || '09:00')}"><span>a</span><input type="time" id="hC${d}" aria-label="Cierra el ${DIAS[d]}" value="${esc(h.c || c0 || '21:00')}"></div></div>`; }).join('');
 }
 function leerHorario() { return DIAS.map((x, d) => ({ on: $('#hOn' + d).checked, a: $('#hA' + d).value, c: $('#hC' + d).value })); }
 function copiarLunes() {
