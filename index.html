@@ -41,7 +41,7 @@ html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.42 Nunito,sy
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 body.sinNav{padding-bottom:0}
 /* pantalla fija como app: sin acercar con doble toque, sin rebote al llegar arriba/abajo y sin desplazarse de lado */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;overflow-x:hidden;max-width:100%}
 body{overscroll-behavior:none;overflow-x:clip}
 /* listas con desplazamiento propio: al llegar a su fin no arrastran la pantalla */
 #modal .caja,.msgs,.secs,.catFila,.promoFila{overscroll-behavior:contain}
@@ -295,7 +295,7 @@ textarea.i{min-height:70px;resize:vertical}
 .hRow label{flex:1 0 104px;display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px;min-width:0}
 .hRow .hHoras{flex:1 1 230px;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center}
 .hRow .hHoras span{color:var(--tx2);font-size:13px;font-weight:700}
-.hRow input[type=time]{padding:8px 6px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;background:var(--card);text-align:center}
+.hRow select{padding:9px 4px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;max-width:100%;background:var(--card);text-align:center;text-align-last:center;text-overflow:ellipsis;color:inherit}
 .hRow.off .hHoras{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
 .entregaBox{background:var(--pri-xs);border-radius:16px;padding:12px;margin-top:10px}
@@ -596,7 +596,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.13.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.13.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1627,7 +1627,7 @@ function campoEspecial(c) {
       <label class="f">Tarifa base del envío por horario (3 tabuladores)</label>
       <div class="muted small">Cada tarifa empieza a la hora indicada y sigue hasta la siguiente; la última sigue después de medianoche hasta la primera.</div>
       ${l.slice(0, 3).map((x, i) => `<div class="row" style="gap:8px;margin-top:6px"><span class="muted small" style="width:70px">${['☀️ Día', '🌆 Tarde', '🌙 Noche'][i]}</span>
-        <input class="i tabH" type="time" value="${esc(x.desde)}" oninput="leerTabuladores()"><span class="muted">$</span><input class="i tabB" type="number" min="0" value="${esc(x.base)}" oninput="leerTabuladores()"></div>`).join('')}
+        ${selHora('class="i tabH" onchange="leerTabuladores()"', x.desde || '00:00')}<span class="muted">$</span><input class="i tabB" type="number" min="0" value="${esc(x.base)}" oninput="leerTabuladores()"></div>`).join('')}
       <input type="hidden" class="cfg" data-k="tarifasHorario" value="${esc(c.valor)}"></div>`;
   }
   if (c.clave === 'zonasEnvio') {
@@ -4325,8 +4325,8 @@ function formPromo(id) {
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" class="prDia" value="${d}" ${dias.includes(d) ? 'checked' : ''}>${DIAS[d].slice(0, 3)}</label>`).join('')}</div>
     <div class="muted small" style="margin-top:6px">Cada día puedes tener los banners de tu plan (1 incluido + los extra que compres). Si alguno de estos días ya está lleno, te avisamos.</div>
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="prConHora" ${conHora ? 'checked' : ''} onchange="$('#prHoras').style.display=this.checked?'':'none'"><span>Solo en un horario (ej. happy hour)</span></label>
-    <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label><input class="i" id="prHI" type="time" value="${esc(p.horaIni || '13:00')}"></div>
-      <div class="grow"><label class="f">A</label><input class="i" id="prHF" type="time" value="${esc(p.horaFin || '17:00')}"></div></div>
+    <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label>${selHora('class="i" id="prHI"', p.horaIni || '13:00')}</div>
+      <div class="grow"><label class="f">A</label>${selHora('class="i" id="prHF"', p.horaFin || '17:00')}</div></div>
     <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarPromoForm)">Guardar promoción</button></div>`);
   (p.productos || []).forEach(x => filaProdPromo(x));
   if (!(p.productos || []).length) filaProdPromo();
@@ -4896,12 +4896,22 @@ function filasHorario(hs, a0, c0) {
   hs = hs && hs.length === 7 ? hs : DIAS.map(() => ({ on: true, a: a0 || '09:00', c: c0 || '21:00' }));
   return [1, 2, 3, 4, 5, 6, 0].map(d => { const h = hs[d]; return `<div class="hRow ${h.on ? '' : 'off'}">
     <label><input type="checkbox" id="hOn${d}" ${h.on ? 'checked' : ''} onchange="this.closest('.hRow').classList.toggle('off',!this.checked)">${DIAS[d]}</label>
-    <div class="hHoras"><input type="time" id="hA${d}" aria-label="Abre el ${DIAS[d]}" value="${esc(h.a || a0 || '09:00')}"><span>a</span><input type="time" id="hC${d}" aria-label="Cierra el ${DIAS[d]}" value="${esc(h.c || c0 || '21:00')}"></div></div>`; }).join('');
+    <div class="hHoras">${selHora(`id="hA${d}" aria-label="Abre el ${DIAS[d]}"`, h.a || a0 || '09:00')}<span>a</span>${selHora(`id="hC${d}" aria-label="Cierra el ${DIAS[d]}"`, h.c || c0 || '21:00')}</div></div>`; }).join('');
 }
+/* Horas como lista (cada 15 min + 11:59 p. m.): el selector de hora nativo de Android es más ancho que la pantalla en algunos teléfonos. */
+const HORAS_OPC = (() => { const l = []; for (let m = 0; m < 1440; m += 15) l.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); l.push('23:59'); return l; })();
+const normHora = v => { const m = String(v || '').match(/^(\d{1,2}):(\d{2})/); return m ? m[1].padStart(2, '0') + ':' + m[2] : ''; };
+function hora12(v) { const [h, m] = v.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' a. m.' : ' p. m.'); }
+function selHora(attrs, v) {
+  v = normHora(v);
+  const l = !v || HORAS_OPC.includes(v) ? HORAS_OPC : [...HORAS_OPC, v].sort();
+  return `<select ${attrs}>${l.map(x => `<option value="${x}"${x === v ? ' selected' : ''}>${hora12(x)}</option>`).join('')}</select>`;
+}
+function ponHora(el, v) { v = normHora(v); if (!v) return; if (![...el.options].some(o => o.value === v)) el.add(new Option(hora12(v), v)); el.value = v; }
 function leerHorario() { return DIAS.map((x, d) => ({ on: $('#hOn' + d).checked, a: $('#hA' + d).value, c: $('#hC' + d).value })); }
 function copiarLunes() {
   const on = $('#hOn1').checked, a = $('#hA1').value, c = $('#hC1').value;
-  [0, 2, 3, 4, 5, 6].forEach(d => { $('#hOn' + d).checked = on; $('#hA' + d).value = a; $('#hC' + d).value = c; $('#hOn' + d).closest('.hRow').classList.toggle('off', !on); });
+  [0, 2, 3, 4, 5, 6].forEach(d => { $('#hOn' + d).checked = on; ponHora($('#hA' + d), a); ponHora($('#hC' + d), c); $('#hOn' + d).closest('.hRow').classList.toggle('off', !on); });
   toast('Horario copiado; recuerda guardar');
 }
 
