@@ -124,6 +124,32 @@ Pídele no cobra comisiones por venta: cada negocio paga una **cuota mensual** p
 - La categoría *Promociones* y la etiqueta "PROMO DEL DÍA" solo muestran promociones.
 - Al actualizar, las promociones existentes con precio especial quedan como Promoción y las demás como Anuncio.
 
+## Versión 2.13.0 · suscripción con Google Play
+- Nuevos precios: Básico $299, Plus $399 y Pro $599 al mes (se actualizan solos en Ajustes al publicar el servidor).
+- **Dentro de la app de Google Play**, Mi suscripción se paga con Google Play (Básico, Plus o Pro) y no se muestran transferencias ni banners extra: así lo exige Google para cobros digitales. En el navegador (pidele.app) todo sigue igual, con transferencia y comprobante.
+- La app de Play pide suscribirse a partir del **20 de noviembre** (ajuste `playDesde`) a los negocios que **no** tienen plan **Donado**. Los que tienen Donado (los tuyos y los que ya pagaron por otro medio) nunca ven el cobro de Google.
+- El servidor verifica cada compra con Google, la confirma (si no, Google la reembolsa a los 3 días), cambia el plan, fija la fecha de corte que da Google y registra el pago en Cobros como "Google Play". Cada 6 horas revisa renovaciones y cancelaciones.
+- Si alguien reinstala la app o cambia de teléfono, su suscripción se liga sola al abrir Mi suscripción.
+- En Cobros, cada negocio muestra si paga con ▶ Google Play o tiene 🎁 Donado. Para regalar el servicio: cambia su plan a Donado o usa "Donar meses".
+- Repartidores: en la app de Play ven "Escribir a Pídele" mientras no exista el producto `repartidor` en el ajuste `playProductos`.
+- Para probar el modo Play desde el navegador: `pidele.app/?modo=play` (y `?modo=web` para regresar).
+- Configuración (una vez): en Play Console crea las suscripciones `pidele_basico`, `pidele_plus` y `pidele_pro`; en Usuarios y permisos invita el correo de la cuenta de servicio (el de `FCM_CUENTA`, o pon otra en la propiedad `PLAY_CUENTA`) con permiso de ver datos financieros y administrar pedidos y suscripciones; activa la "Google Play Android Developer API" en Google Cloud; pon el Package ID real en el ajuste `playPaquete` y ejecuta `probarGooglePlay()` desde el editor.
+
+## Versión 2.12.3 · dominio pidele.app
+- Archivo `CNAME` con `pidele.app` para GitHub Pages; vistas previas (WhatsApp/Facebook) de La Cruz y Cosalá apuntan a https://pidele.app/.
+- DNS en GoDaddy: registros A de `@` a 185.199.108.153, 185.199.109.153, 185.199.110.153 y 185.199.111.153 (sin el 160.153.0.177 de GoDaddy) y CNAME `www` → `pideleadomicilio.github.io`.
+- Con el dominio propio, `.well-known/assetlinks.json` queda en la raíz (https://pidele.app/.well-known/assetlinks.json), como lo pide la app de Android.
+
+## Versión 2.12.2 · horarios que caben en la pantalla
+- Horario del negocio (Mi negocio) y del repartidor (Perfil): el día a la izquierda y "abre a cierra" a la derecha; en teléfonos angostos las horas bajan debajo del día. Antes las casillas de hora ensanchaban la pantalla.
+- Ningún campo de texto puede ensanchar su tarjeta (ni las filas con varios campos, como los tabuladores de tarifas).
+- Revisado en anchos de 320, 360, 390 y 412 px: ninguna pantalla se sale.
+
+## Versión 2.12.1 · pantalla fija
+- La pantalla ya no se puede agrandar con dos dedos o doble toque ni arrastrar de lado; sin rebote al llegar arriba o abajo, así la barra inferior no se mueve.
+- Campos de texto a 16 px para que el iPhone no acerque la pantalla al escribir.
+- Las listas con desplazamiento propio (secciones del menú, categorías, banners, chat, ventanas) ya no arrastran la página al llegar a su final.
+
 ## Versión 2.12.0 · lista para Google Play
 - **Aviso de privacidad** (`privacidad.html`), **Términos** (`terminos.html`) y **Eliminar cuenta** (`eliminar-cuenta.html`), públicos. Los datos del responsable se escriben una sola vez en `legal-datos.js`.
 - Al crear cuenta hay que aceptar el aviso (se guarda fecha y versión). Las cuentas que ya existían lo aceptan una vez al entrar.

@@ -474,6 +474,20 @@ function cambiarPueblo(id, query) {
  * - Los administradores se cambian libres desde su panel.
  */
 const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('pe_' + k); if (v === null) localStorage.removeItem('pe_' + k); else localStorage.setItem('pe_' + k, String(v)); } catch (e) { return null; } };
+/**
+ * ¿Se abrió desde la app de Android de Google Play? Ahí la suscripción se paga con Google Play y no se muestran transferencias.
+ * Se recuerda en el teléfono. Para probar en el navegador: pidele.app/?modo=play (y ?modo=web para volver).
+ */
+(function () {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (document.referrer.indexOf('android-app://') === 0 || q.get('modo') === 'play') localStorage.setItem('pe_enPlay', '1');
+    if (q.get('modo') === 'web') localStorage.removeItem('pe_enPlay');
+  } catch (e) { }
+})();
+const enPlay = () => lsG('enPlay') === '1';
+/** El cobro de Google Play está disponible (app de Play con el cobro activado). */
+const playCobro = () => enPlay() && 'getDigitalGoodsService' in window;
 /** Centro y radio de un municipio (la ubicación registrada en su servidor). */
 async function centroDe(pb) {
   S._centros = S._centros || {};
@@ -582,7 +596,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.12.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.13.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -4507,7 +4521,7 @@ async function vSuscripcion() {
         <div class="tot"><span>Mensualidad</span><b>${money(d.cuota)}</b></div>
         <div class="muted small" style="margin-top:8px">Pídele no te cobra comisión por tus envíos: lo que cobras de envío es tuyo. La mensualidad mantiene tu cuenta activa para recibir pedidos.</div>`
       : planesSusc(d, s)}</div>
-    ${donado ? `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar mensualidad.</div>` : d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
+    ${enPlay() ? seccionPlay(d) : donado ? `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar mensualidad.</div>` : d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
     : esperaValidacion ? '' : `
     <h3>Pagar</h3>
     <div class="card">
@@ -4532,7 +4546,90 @@ async function vSuscripcion() {
         ${p.estado === 'rechazado' && p.nota ? `<br><span class="small" style="color:var(--err)">${esc(p.nota)}</span>` : ''}</span>
       <span style="text-align:right">${tagPago(p.estado)}${p.comprobanteId ? `<br><button class="lnk small" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">Comprobante</button>` : ''}</span></div>`).join('')}</div>` : ''}
     <div style="height:20px"></div>`);
+  if (enPlay()) { preciosPlay(d); restaurarPlay(d); return; }
   if (!d.pendiente && !esperaValidacion) calcSusc();
+}
+
+/* ---------- Suscripción con Google Play (solo en la app de Android) ---------- */
+function urlPlaySubs(p) { return 'https://play.google.com/store/account/subscriptions' + (p.producto ? '?sku=' + encodeURIComponent(p.producto) + '&package=' + encodeURIComponent(p.paquete) : ''); }
+
+function seccionPlay(d) {
+  const p = d.play || {}, rep = d.tipo === 'repartidor', s = d.suscripcion || {}, P = d.planes || {};
+  const wa = (S.conf && S.conf.soporteWhatsApp) || numPidele();
+  if (!rep && d.plan === 'donado') return `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar.</div>`;
+  if (rep && !d.inscrito || rep && !d.aprobado) return `<div class="card"><b>Tu registro</b><div class="muted small">Pídele te contactará para completar tu inscripción y validar tu cuenta en persona.</div>
+    ${wa ? `<div class="btns"><a class="btn" href="${waLink(wa, 'Hola, quiero completar mi registro como repartidor de Pídele')}" target="_blank">${ico('chat', 's')} Escribir a Pídele</a></div>` : ''}</div>`;
+  if (p.vigente) {
+    const nom = rep ? 'Repartidor' : esc(nombrePlan(p.plan || d.plan, P));
+    return `<h3>Tu suscripción</h3><div class="card"><div class="row between"><b>✅ Activa con Google Play</b><span class="tag t-ok">${nom}</span></div>
+      <div class="muted small" style="margin-top:6px">${p.estado === 'SUBSCRIPTION_STATE_CANCELED' ? 'Cancelaste la renovación: sigues activo hasta el <b>' + fechaLarga(p.vence) + '</b>.' : 'Se renueva sola el <b>' + fechaLarga(p.vence) + '</b>.'}</div>
+      <div class="btns"><a class="btn" href="${urlPlaySubs(p)}" target="_blank">Administrar o cancelar en Google Play</a></div></div>`;
+  }
+  if (!p.disponible) return `<div class="card"><b>Pago de tu ${rep ? 'mensualidad' : 'suscripción'}</b><div class="muted small">Comunícate con Pídele para mantener tu cuenta activa.</div>
+    ${wa ? `<div class="btns"><a class="btn pri" href="${waLink(wa, 'Hola, quiero mantener activa mi cuenta de ' + (rep ? 'repartidor' : 'negocio') + ' en Pídele')}" target="_blank">${ico('chat', 's')} Escribir a Pídele</a></div>` : ''}</div>`;
+  if (!playCobro()) return `<div class="aviso warn">Para suscribirte, actualiza la app de Pídele desde Google Play.</div>`;
+  const lista = rep ? ['repartidor'] : ['basico', 'plus', 'pro'].filter(k => P[k] && p.productos[k]);
+  const cur = rep ? 'repartidor' : (d.planSig || d.plan);
+  const pagadoHasta = s.vence && s.vence > Date.now() ? s.vence : 0;
+  const antes = p.desde && Date.now() < p.desde;
+  return `<h3>Suscríbete con Google Play</h3><div class="card">
+    <div class="muted small">${pagadoHasta ? 'Tu servicio está activo hasta el <b>' + fechaLarga(pagadoHasta) + '</b>. ' : ''}Google cobra desde el día en que te suscribes y se renueva cada mes. Cancelas cuando quieras desde Google Play.${antes ? ' A partir del <b>' + fechaLarga(p.desde) + '</b> te pediremos suscribirte para seguir después de tu fecha de corte.' : ''}</div>
+    ${lista.map(k => `<div class="opcion ${k === cur ? 'on' : ''}" data-plan-play="${k}" style="margin:10px 0 0;cursor:default"><div class="grow">
+        <b>${rep ? '🛵 Mensualidad de repartidor' : (PLAN_ICO[k] || '') + ' ' + esc(P[k].nombre)} · <span class="precioPlay" data-sku="${esc(p.productos[k])}">${money(rep ? d.cuota : P[k].precio)}</span> al mes</b>
+        <small>${k === cur ? 'Tu plan actual' : rep ? '' : esc(textoPlan(P[k]))}</small></div>
+      <button class="btn pri sm" onclick="act(this,()=>suscribirPlay('${k}'))">Suscribirme</button></div>`).join('')}</div>`;
+}
+
+async function servicioPlay() {
+  if (!playCobro()) throw new Error('Google Play no está disponible. Abre Pídele desde la app instalada de Google Play.');
+  const svc = await window.getDigitalGoodsService('https://play.google.com/billing');
+  if (!svc) throw new Error('Google Play no está disponible en este teléfono');
+  return svc;
+}
+
+/** Muestra el precio real de Google Play (con impuestos y en la moneda del teléfono). */
+async function preciosPlay(d) {
+  if (!playCobro() || !d.play || d.play.vigente) return;
+  const els = [...document.querySelectorAll('.precioPlay')]; if (!els.length) return;
+  try {
+    const det = await (await servicioPlay()).getDetails(els.map(e => e.dataset.sku));
+    det.forEach(x => { const e = els.find(y => y.dataset.sku === x.itemId); if (e && x.price) e.textContent = new Intl.NumberFormat('es-MX', { style: 'currency', currency: x.price.currency }).format(+x.price.value); });
+  } catch (e) { }
+}
+
+/** Si ya tiene una suscripción en su cuenta de Google (por ejemplo, reinstaló la app), se liga sola. */
+async function restaurarPlay(d) {
+  if (!playCobro() || !d.play || d.play.vigente || d.play.donado || S._playRest) return;
+  S._playRest = true;
+  try {
+    const mios = Object.values(d.play.productos || {}).filter(Boolean);
+    const l = (await (await servicioPlay()).listPurchases()).filter(x => mios.includes(x.itemId));
+    if (!l.length) return;
+    S._susc = await api('playVerificar', { token: l[0].purchaseToken });
+    toast('Tu suscripción de Google Play quedó ligada ✓');
+    pintar(true);
+  } catch (e) { }
+}
+
+async function suscribirPlay(k) {
+  const d = S._susc, p = d.play || {}, sku = (p.productos || {})[k];
+  if (!sku) throw new Error('Este plan aún no está disponible en Google Play');
+  const svc = await servicioPlay();
+  const det = await svc.getDetails([sku]);
+  if (!det || !det.length) throw new Error('No encontramos este plan en Google Play. Intenta más tarde.');
+  const pr = det[0].price || { currency: 'MXN', value: '0' };
+  const req = new PaymentRequest([{ supportedMethods: 'https://play.google.com/billing', data: { sku } }], { total: { label: 'Total', amount: { currency: pr.currency, value: pr.value } } });
+  let resp;
+  try { resp = await req.show(); }
+  catch (e) { if (e && e.name === 'AbortError') return; throw new Error('No se completó la compra' + (e && e.message ? ': ' + e.message : '')); }
+  const token = resp.details && (resp.details.purchaseToken || resp.details.token);
+  try {
+    if (!token) throw new Error('Google no devolvió la compra. Si se te cobró, abre de nuevo Mi suscripción y se ligará sola.');
+    S._susc = await api('playVerificar', { token });
+    await resp.complete('success');
+  } catch (e) { try { await resp.complete('fail'); } catch (x) { } throw e; }
+  toast('¡Listo! Tu suscripción quedó activa ✓');
+  pintar(true);
 }
 
 /** Planes del negocio en Mi suscripción: elige entre Básico, Plus y Pro (Donado lo asigna el administrador). */
@@ -4547,12 +4644,14 @@ function planesSusc(d, s) {
     ${d.cambioLibre ? `<div class="muted small" style="margin-top:8px">${conPagos ? 'Elige tu plan antes de pagar.' : 'Estás en tu mes de prueba: cambia de plan cuando quieras, sin costo.'}</div>`
       : d.planSig ? `<div class="aviso warn" style="margin:8px 0 0">Pasas al plan ${esc(nombrePlan(d.planSig, P))} el <b>${fechaLarga(d.planDesde)}</b>; hasta entonces conservas tu plan ${esc(nombrePlan(cur, P))}. Tus próximos pagos ya son de ${money(P[d.planSig].precio)}. <button class="lnk small" onclick="act(this,()=>elegirPlanSusc('${cur}'))">Quedarme en ${esc(nombrePlan(cur, P))}</button></div>`
       : `<div class="muted small" style="margin-top:8px">Para subir de plan elígelo en “Plan con este pago”. Si bajas, conservas tu plan hasta tu fecha de corte.</div>`}`}
-    ${(P[d.planSig || cur] || {}).anuncios > 0 ? `<div class="tot" style="margin-top:8px"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>` : ''}
+    ${!enPlay() && (P[d.planSig || cur] || {}).anuncios > 0 ? `<div class="tot" style="margin-top:8px"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>` : ''}
     ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
-    <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div>`;
+    <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. ${enPlay() ? 'Tu suscripción se renueva sola cada mes con Google Play y la cancelas cuando quieras.' : 'Cada mes que pagas suma ' + d.diasPorPago + ' días a tu fecha de corte, sin importar el día en que pagues.'}</div>`;
 }
 async function elegirPlanSusc(plan) {
   const d = S._susc, P = d.planes;
+  if (enPlay() && d.play && d.play.vigente && plan !== d.plan) { toast('Para cambiar de plan, cancela tu suscripción en Google Play y suscríbete al nuevo cuando termine tu periodo.'); return; }
+  if (enPlay() && !d.cambioLibre && plan !== d.plan) { const b = document.querySelector('[data-plan-play="' + plan + '"]'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   if (plan === d.plan && !d.planSig) return;
   if (plan !== d.plan && !d.cambioLibre && P[plan].precio > P[d.plan].precio) {
     const c = $('#sPlan'); if (c) { c.value = plan; cambioPlanPago(); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -4599,7 +4698,7 @@ async function enviarPagoSusc() {
   if (d.tipo !== 'repartidor' && !m && !e) throw new Error('Elige cuántos banners extra quieres');
   if (!S._compPago) throw new Error('Adjunta la foto de tu comprobante');
   if (!confirm('¿Ya transferiste ' + money(montoSusc()) + '?')) return;
-  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago, plan: $('#sPlan') ? $('#sPlan').value : '' });
+  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago, plan: $('#sPlan') ? $('#sPlan').value : '', enPlay: enPlay() });
   toast('Comprobante enviado ✓ Te avisamos al confirmarlo');
   pintar();
 }
@@ -4613,7 +4712,7 @@ async function vAdminCobros() {
   const porVencer = todos.filter(n => n.estado === 'por_vencer').length, vencidos = todos.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
   const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; const rep = n.tipo === 'repartidor';
     return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
-      <div class="muted small">${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
+      <div class="muted small">${n.play ? '<span class="tag t-ok" style="margin-right:4px">▶ Google Play</span>' : ''}${n.donado ? '<span class="tag t-gray" style="margin-right:4px">🎁 Donado</span>' : ''}${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
       ${n.vence ? `<span class="tag ${e[0]}">${e[1]}</span>` : '<span class="tag t-gray">Pendiente</span>'}</div>
       <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.tipo}','${n.id}')">Registrar pago</button>
         ${n.telefono && n.vence ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu ' + (rep ? 'mensualidad' : 'suscripción') + ' de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
