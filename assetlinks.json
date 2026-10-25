@@ -1,10 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "PAQUETE_DE_LA_APP",
-      "sha256_cert_fingerprints": ["HUELLA_SHA256_QUE_TE_DA_PWABUILDER"]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.pidele",
+        "sha256_cert_fingerprints": ["A3:71:EA:6A:4E:81:9C:DD:88:2A:76:DE:B3:76:E6:D2:98:19:59:F3:5A:83:2F:73:0E:64:DD:B5:A5:C4:C1:5E"]
+      }
+    }]
