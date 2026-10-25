@@ -3,9 +3,9 @@
  * Cambia solo lo que está entre comillas y sube este archivo a GitHub. Las tres páginas se actualizan solas.
  */
 window.LEGAL = {
-  responsable: 'ESCRIBE AQUÍ TU NOMBRE COMPLETO',          // persona física responsable de Pídele
-  domicilio: 'ESCRIBE AQUÍ TU DOMICILIO (calle, número, colonia, C.P., municipio y estado)',
-  correo: 'ESCRIBE AQUÍ UN CORREO PARA DUDAS DE PRIVACIDAD',
+  responsable: 'Pavel Cruz Salazar',          // persona física responsable de Pídele
+  domicilio: 'Francisco I. Madero #550, Col. Centro, C.P. 82700, La Cruz, Elota, Sinaloa',
+  correo: 'pidele.soporte@gmail.com',
   whatsapp: '',                                             // ej. 6961234567 (opcional)
-  actualizado: '24 de octubre de 2026'
+  actualizado: '25 de octubre de 2026'
 };
