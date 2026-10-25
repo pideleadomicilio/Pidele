@@ -364,6 +364,36 @@ textarea.i{min-height:70px;resize:vertical}
 input,select,textarea,input.i,select.i,textarea.i,.buscar input{font-size:16px}
 input.i,select.i,textarea.i{min-width:0;max-width:100%}
 .row > input.i,.row > select.i{flex:1 1 0}
+
+/* ===== Computadora (2.18): menú a la izquierda, contenido más ancho, más columnas y ventanas centradas ===== */
+@media (min-width:1024px){
+  body{padding-bottom:0}
+  body:not(.sinNav){padding-left:104px}
+  body:not(.sinNav) header{margin-left:-104px}
+  nav{top:0;bottom:0;right:auto;width:104px;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:6px;border-top:0;border-right:1px solid var(--ln);padding:20px 8px;z-index:45;box-shadow:none}
+  body.conTop nav{top:61px}
+  nav button{flex:0 0 auto;max-width:none;width:100%;padding:12px 4px;border-radius:14px;font-size:12.5px}
+  nav button:hover{background:var(--pri-xs)}
+  nav button.on{background:var(--pri-xs)}
+  nav .badge{top:4px;right:calc(50% - 26px)}
+  main{max-width:1180px;padding:22px 32px 48px}
+  body[data-rol="negocio"] main,body[data-rol="repartidor"] main,body[data-rol="moderador"] main{max-width:980px}
+  .grid2{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+  .prods .grid2{grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px}
+  .pCard .img{aspect-ratio:4/3}
+  .catFila{margin:0 0 6px;padding:2px 0 10px;flex-wrap:wrap}
+  .slide{flex-basis:calc(50% - 8px)}
+  .secs{flex-basis:160px}
+  .sec{font-size:13.5px;padding:11px 8px}
+  .mapa{height:300px}.mapa.alto{height:460px}
+  #modal{align-items:center;padding:24px}
+  #modal .caja{border-radius:24px;max-width:620px;max-height:88vh;padding:20px}
+  .hojaImg{width:calc(100% + 40px);margin:-20px -20px 14px}
+  .barra{left:128px;right:24px;bottom:24px;max-width:760px}
+  body.sinNav .barra{left:24px}
+  .kpis{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+}
+@media (min-width:1440px){ .grid2{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
 </style>
 </head>
 <body class="sinNav">
@@ -602,7 +632,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.17.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.18.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1001,6 +1031,7 @@ async function responderEquipo(id, aceptar) {
 }
 const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
+const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
 function modoCliente(on) {
   S.modoCliente = !!on; ls('modoCliente', S.modoCliente ? 1 : null);
@@ -1028,6 +1059,8 @@ function pintarNav() {
   const rol = rolActual();
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
   $('#top').style.display = esCliente() || S.vista === 'entrar' ? 'none' : 'flex';
+  document.body.classList.toggle('conTop', !(esCliente() || S.vista === 'entrar'));
+  document.body.dataset.rol = rol;
   const u = S.user;
   const varios = rol === 'negocio' && (S.negocios || []).length > 1 && S.negocio;
   $('#yo').innerHTML = !u ? '' : varios ? `<button class="selNeg" onclick="menuNegocios()" aria-label="Cambiar de negocio">${esc(S.negocio.nombre)} ▾${S.porNeg && Object.keys(S.porNeg).some(k => k !== S.negActivo && S.porNeg[k]) ? ' <i class="punto"></i>' : ''}</button><br><span style="opacity:.8">${esc(u.nombre.split(' ')[0])}${S.negocio.dueno === false ? ' · colaborador' : ''}</span>`
@@ -5996,7 +6029,7 @@ function tarjetaInstalar() {
   let no = 0; try { no = Number(localStorage.getItem('pe_instNo')) || 0; } catch (e) { }
   if (Date.now() - no < 7 * 864e5) return '';
   return `<div class="card row" id="tarjInst" style="border:2px solid var(--pri);gap:10px"><span style="font-size:30px">📲</span>
-    <div class="grow"><b>Instala Pídele en tu teléfono</b><div class="muted small">Ábrela con un toque desde tu pantalla de inicio y recibe avisos de tus pedidos.</div>
+    <div class="grow"><b>Instala Pídele en tu ${esPC() ? 'computadora' : 'teléfono'}</b><div class="muted small">${esPC() ? 'Ábrela en su propia ventana, como un programa, y recibe avisos de tus pedidos.' : 'Ábrela con un toque desde tu pantalla de inicio y recibe avisos de tus pedidos.'}</div>
       <div class="btns" style="margin-top:6px"><button class="btn pri sm" onclick="instalarApp()">⬇ Instalar</button><button class="lnk small" onclick="try{localStorage.setItem('pe_instNo',Date.now())}catch(e){};$('#tarjInst').remove()">Ahora no</button></div></div></div>`;
 }
 function instalarApp() {
