@@ -62,6 +62,8 @@ svg.ic.s{width:17px;height:17px} svg.ic.l{width:28px;height:28px}
 header{position:sticky;top:0;z-index:50;background:var(--pri);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:none;align-items:center;gap:10px}
 header .logo{font-weight:900;font-size:21px;flex:1;letter-spacing:-.4px}
 header .yo{font-size:12px;opacity:.92;text-align:right;line-height:1.15;max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selNeg{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:10px;padding:3px 8px;font:inherit;font-weight:800;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F4C676;vertical-align:middle}
 header button{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:999px;padding:7px 13px;font-weight:700;cursor:pointer;display:flex;gap:6px;align-items:center}
 
 main{max-width:720px;margin:0 auto;padding:14px 16px 24px}
@@ -199,6 +201,10 @@ textarea.i{min-height:70px;resize:vertical}
 .cant{display:flex;align-items:center;gap:8px;border:1.5px solid var(--ln);border-radius:12px;padding:3px}
 .cant button{width:30px;height:30px;border-radius:9px;border:0;background:none;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx)}
 .cant b{min-width:18px;text-align:center}
+.opcCant{justify-content:space-between;gap:10px;cursor:default}
+.opcCant > span{flex:1;min-width:0}
+.cant.chica{gap:4px;padding:2px;flex-shrink:0}
+.cant.chica button{width:30px;height:28px}
 #visor{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px}
 #visor.on{display:flex}
 #visor img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
@@ -596,7 +602,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.13.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.15.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -614,7 +620,7 @@ const APP_VER = '2.13.1'; // versión de esta pantalla (index.html); el servidor
 
 /* ============ ESTADO ============ */
 const S = {
-  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
+  token: ls('token'), user: ls('user'), negocio: ls('negocio'), negocios: ls('negocios') || [], negActivo: ls('negActivo') || '', invEquipo: ls('invEquipo') || [], conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
   // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
   carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
@@ -731,7 +737,7 @@ async function apiDe(pb, accion, datos, token, propio, modo) {
   const URL1 = pb.api, ALT = pb.alt;
   // id de la operación: si se reenvía por la ruta alterna, el servidor no la repite
   const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}));
+  const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}, propio && S.negActivo && S.user && S.user.rol === 'negocio' ? { neg: S.negActivo } : {}));
   let alt = false;
   try { alt = Number(localStorage.getItem('pe_rutaAlt')) > Date.now(); } catch (e) { }
   const intento = async url => {
@@ -886,7 +892,13 @@ const NAV = {
   adminLocal: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminComisiones', 'ajustes', 'Municipio']]
 };
 function navRol() {
-  const r = rolActual(), l = NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || [];
+  const r = rolActual();
+  let l = NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || [];
+  // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
+  if (r === 'negocio') {
+    if (!S.negocio) l = [['perfil', 'user', 'Perfil']];
+    else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados']) : v === 'promos' ? puedo('promos') : v === 'miNegocio' ? puedo('ajustes') : true);
+  }
   // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
   return esAdminU() && r !== 'admin' ? l.filter(x => x[0] !== 'perfil').concat([['_panel', 'grafica', 'Mi panel']]) : l;
 }
@@ -894,7 +906,7 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
-  negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  negPedidos: vNegPedidos, equipo: vEquipo, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
@@ -940,6 +952,54 @@ function rolActual() {
   if (esAdminU()) return S.modoRep ? 'repartidor' : S.modoCliente ? 'comprador' : 'admin'; // el administrador también ve la app como cliente o repartidor
   return esStaff() && S.modoCliente ? 'comprador' : S.user.rol;
 }
+/* ---------- Varios negocios y equipo (2.15) ---------- */
+/** Guarda lo que manda el servidor: el negocio elegido (con permisos), la lista de negocios y las invitaciones a equipos. */
+function fijarSesionNeg(d) {
+  if (!d) return;
+  if ('negocios' in d) { S.negocios = d.negocios || []; ls('negocios', S.negocios); }
+  if ('invitaciones' in d) { S.invEquipo = d.invitaciones || []; ls('invEquipo', S.invEquipo); }
+  if ('negocio' in d) { S.negocio = d.negocio; ls('negocio', S.negocio); S.negActivo = d.negocio ? d.negocio.id : ''; ls('negActivo', S.negActivo || null); }
+}
+/** Respuestas que traen el negocio (guardar datos, abrir/cerrar): conserva dueño y permisos. */
+function fijarNeg(n) {
+  if (n && S.negocio && n.id === S.negocio.id) n = Object.assign({ dueno: S.negocio.dueno, permisos: S.negocio.permisos }, n);
+  S.negocio = n; ls('negocio', n);
+}
+/** ¿Puede hacer esto en el negocio elegido? (el dueño todo; sin datos de permisos = versión anterior = todo). */
+function puedo(p) { const n = S.negocio; if (!n || n.dueno !== false) return true; return [].concat(p).some(x => (n.permisos || []).includes(x)); }
+const esDueno = () => !!S.negocio && S.negocio.dueno !== false;
+/** Cambiar de negocio o sucursal. */
+async function elegirNegocio(id) {
+  if (id === S.negActivo) { cerrarModal(); return; }
+  S.negActivo = id; ls('negActivo', id);
+  const d = await api('yo');
+  fijarSesionNeg(d); cerrarModal();
+  S._prods = null; S._grupos = null; S._promosNeg = null; S.firma = '';
+  pintarNav(); ir(inicioRol());
+  toast('Ahora estás en ' + (S.negocio ? S.negocio.nombre : 'tu negocio'));
+}
+function menuNegocios() {
+  const l = S.negocios || [];
+  modal(`<div class="row between"><h2 style="margin:0">Tus negocios</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div style="margin-top:8px">${l.map(n => `<button class="opc" style="width:100%;background:none;border:0;border-bottom:1px solid var(--ln);text-align:left" onclick="act(this,()=>elegirNegocio('${n.id}'))">
+      ${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover">` : '<span style="font-size:26px">🏪</span>'}
+      <span class="grow"><b>${esc(n.nombre)}</b><div class="muted small">${n.estado === 'pendiente' ? '⏳ Por aprobar' : n.abierto ? '🟢 Recibiendo pedidos' : '⏸️ En pausa'} · ${n.dueno ? 'Dueño' : 'Colaborador'}</div></span>
+      ${S.porNeg && S.porNeg[n.id] ? `<i class="badge" style="position:static">${S.porNeg[n.id]}</i>` : ''}${n.id === S.negActivo ? '<span class="tag t-ok">Abierto aquí</span>' : ''}</button>`).join('')}</div>
+    ${l.some(n => n.dueno) ? `<div class="btns"><button class="btn pill" onclick="cerrarModal();ir('equipo')">⚙️ Mis negocios y equipo</button></div>` : ''}`);
+}
+/** Invitación a un equipo pendiente (aparece en Perfil y en Pedidos). */
+function avisoInvEquipo() {
+  return (S.invEquipo || []).map(i => `<div class="aviso info">👥 <b>${esc(i.negocio)}</b> te invita a su equipo${i.permisos.length ? ' para ' + i.permisos.map(k => PERM_TXT[k] || k).join(', ') : ''}.
+    <div class="btns" style="margin-top:6px"><button class="btn pri sm" onclick="act(this,()=>responderEquipo('${i.id}',true))">Aceptar</button><button class="btn sm" onclick="act(this,()=>responderEquipo('${i.id}',false))">Rechazar</button></div></div>`).join('');
+}
+async function responderEquipo(id, aceptar) {
+  const d = await api('responderEquipo', { id, aceptar });
+  if (d.usuario) { S.user = d.usuario; ls('user', S.user); }
+  fijarSesionNeg(d);
+  if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
+  else { toast('Invitación rechazada'); pintar(true); }
+}
+const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
 function modoCliente(on) {
@@ -969,7 +1029,9 @@ function pintarNav() {
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
   $('#top').style.display = esCliente() || S.vista === 'entrar' ? 'none' : 'flex';
   const u = S.user;
-  $('#yo').innerHTML = u ? `${esc(u.nombre.split(' ')[0])}<br><span style="opacity:.8">${esc(rolNombre(u.rol))}</span>` : '';
+  const varios = rol === 'negocio' && (S.negocios || []).length > 1 && S.negocio;
+  $('#yo').innerHTML = !u ? '' : varios ? `<button class="selNeg" onclick="menuNegocios()" aria-label="Cambiar de negocio">${esc(S.negocio.nombre)} ▾${S.porNeg && Object.keys(S.porNeg).some(k => k !== S.negActivo && S.porNeg[k]) ? ' <i class="punto"></i>' : ''}</button><br><span style="opacity:.8">${esc(u.nombre.split(' ')[0])}${S.negocio.dueno === false ? ' · colaborador' : ''}</span>`
+    : `${esc(u.nombre.split(' ')[0])}<br><span style="opacity:.8">${esc(rol === 'negocio' && S.negocio && S.negocio.dueno === false ? 'Colaborador · ' + S.negocio.nombre : rolNombre(u.rol))}</span>`;
   $('#btnSesion').innerHTML = ico('salir', 's') + ' Salir';
   const verNav = !SIN_NAV.includes(S.vista);
   $('#nav').style.display = verNav ? 'flex' : 'none';
@@ -1029,7 +1091,7 @@ async function refrescarArranque() {
     if (d.sesion === 'BLOQUEADO') { vBloqueado(); return; }
     if (d.sesion === 'SESION') { salir(true); toast('Tu sesión terminó, vuelve a entrar.'); }
     else if (d.usuario) {
-      S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio);
+      S.user = d.usuario; ls('user', S.user); fijarSesionNeg(d);
       if (S.user.cambiarPass && S.vista !== 'nuevaClave') ir('nuevaClave');
       else setTimeout(pedirAviso, 1200);
     }
@@ -1046,8 +1108,8 @@ async function refrescarArranque() {
 }
 
 function guardarSesion(d) {
-  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
-  ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
+  S.token = d.token; S.user = d.usuario; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
+  ls('token', S.token); ls('user', S.user); ls('conf', S.conf); fijarSesionNeg(d);
   history.replaceState(null, '');
   // entró con contraseña temporal: primero crea una nueva
   const destino = S.user.cambiarPass ? 'nuevaClave' : S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
@@ -1065,7 +1127,7 @@ function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
   ['token', 'user', 'negocio', 'entrega', 'modoCliente', 'modoRep', 'modoServicio'].forEach(k => ls(k, null));
-  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
+  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.negocios = []; S.negActivo = ''; S.invEquipo = []; ['negocios', 'negActivo', 'invEquipo'].forEach(k => ls(k, null)); S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -1159,6 +1221,22 @@ async function vInvitacion(codigo) {
     html(`<div class="entrar"><div class="vacio"><span class="big">✉️</span>${esc(e.message)}<br><br><button class="btn" onclick="vLogin()">Ir a entrar</button></div></div>`);
     return;
   }
+  if (d.tipo === 'colaborador') {
+    html(`<div class="entrar">
+    <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
+    <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:4px 0">${esc(d.dueno || 'Un negocio')} te invita a su equipo</h2>
+      <div class="muted">Vas a colaborar en <b>${d.negocios.map(esc).join(', ')}</b>${d.permisos.length ? ' para ' + d.permisos.map(esc).join(', ') : ''}.</div></div>
+    <div class="card">
+      <label class="f" style="margin-top:0">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name" value="${esc(d.nombre)}">
+      <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
+      <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      ${casillaAviso()}
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta y unirme</button></div>
+    </div>
+    <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta (acepto la invitación en mi perfil)</button></div>
+  </div>`);
+    return;
+  }
   if (d.tipo === 'repartidor') {
     html(`<div class="entrar">
     <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
@@ -1201,7 +1279,7 @@ async function registrarInv(codigo) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
   const d = await api('registrar', { aceptoAviso: avisoMarcado(), invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
   PUEBLO_INV = '';
-  toast('¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
+  toast(d.negocio && d.negocio.dueno === false ? '¡Bienvenido al equipo de ' + d.negocio.nombre + '!' : '¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
   guardarSesion(d);
 }
 
@@ -1304,7 +1382,7 @@ function abrirDesdeUrl(url) {
   }
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion') && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion') && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio'))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -1457,7 +1535,7 @@ async function sondear(forzar) {
       else if (rolActual() === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar(S.modoRep ? '🧪 Pedido de muestra para entregar' : '📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
-    S.firma = d.firma; S.nuevos = d.nuevos;
+    S.firma = d.firma; S.nuevos = d.nuevos; S.porNeg = d.porNeg || null;
     if (S.user.estado !== d.estado) { S.user.estado = d.estado; ls('user', S.user); }
     pintarNav();
     S.ticks++;
@@ -1828,7 +1906,7 @@ function etiqueta(e, p) {
 function detalleItem(it) {
   const p = [];
   if (it.variante) p.push('<b>' + esc(it.variante) + '</b>');
-  (it.mods || []).forEach(m => p.push(esc(m.grupo) + ': <b>' + (m.opciones || m.o || []).map(o => esc(o.nombre)).join(', ') + '</b>'));
+  (it.mods || []).forEach(m => p.push(esc(m.grupo) + ': <b>' + juntarOpc(m.opciones || m.o || []).map(esc).join(', ') + '</b>'));
   (it.extras || []).forEach(e => p.push('+ ' + esc(e.nombre)));
   (it.sin || []).forEach(s => p.push('Sin ' + esc(s)));
   if (it.nota) p.push('“' + esc(it.nota) + '”');
@@ -2235,6 +2313,29 @@ function promoProducto(negId, prodId, variante) {
   return null;
 }
 /** Precio de un producto (o de su variante) con la promoción vigente, si hay. */
+/** "Pollo, Pollo, Res" → ["Pollo ×2", "Res"] (en grupos que se pueden repetir, como las cucharadas). */
+function juntarOpc(l) { const c = {}, orden = []; l.forEach(o => { const n = o.nombre || o; if (!c[n]) { c[n] = 0; orden.push(n); } c[n]++; }); return orden.map(n => c[n] > 1 ? n + ' ×' + c[n] : n); }
+/** Cuántas opciones pide un grupo con la variante elegida (igual que el servidor): { exacto: N } o { max: N }. */
+function cuantasPide(g, variante) {
+  if (g.porVariante) { const m = String(variante || '').match(/(\d+)/); return { exacto: Math.max(1, Math.min(10, m ? Number(m[1]) : 1)) }; }
+  if (g.exacto) return { exacto: g.max };
+  return { max: g.max || 1 };
+}
+/** Texto corto de las reglas del grupo para el negocio. */
+function textoCuantas(g) { return g.porVariante ? 'según el tamaño' : g.exacto ? 'exactamente ' + g.max : g.max > 1 ? 'hasta ' + g.max : '1'; }
+/** Selector "El cliente elige": 1 · hasta N · exactamente N · según el tamaño, y la casilla "Puede repetir". */
+function campoCuantas(g, cls) {
+  const v = g.porVariante ? 'v' : (g.exacto ? 'e' : 'h') + ':' + (g.max || 1);
+  const ops = [['h:1', '1']].concat([2, 3, 4, 5, 6, 8, 10].map(n => ['h:' + n, 'hasta ' + n]), [2, 3, 4, 5, 6, 8, 10].map(n => ['e:' + n, 'exactamente ' + n]), [['v', 'según el tamaño']]);
+  return `<label class="row small" style="gap:6px;flex-wrap:wrap">El cliente elige <select class="i ${cls}M" style="width:auto;padding:6px">${ops.map(([k, t]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+    <label class="row small" style="gap:6px"><input type="checkbox" class="${cls}Rep" ${g.repetir ? 'checked' : ''}> Puede repetir la misma opción</label>`;
+}
+function leerCuantas(raiz, cls) {
+  const v = raiz.querySelector('.' + cls + 'M').value, rep = raiz.querySelector('.' + cls + 'Rep').checked;
+  if (v === 'v') return { max: 10, porVariante: true, repetir: rep };
+  const [t, n] = v.split(':');
+  return { max: Number(n), exacto: t === 'e', repetir: rep };
+}
 /** Grupos de opciones de un producto: los suyos ("p:0"…) y los de su sección (mismas reglas que el servidor). */
 function gruposDe(p, grupos) {
   const m = x => String(x || '').toLowerCase().trim(), cat = m(p.categoria || 'General'), sub = m(p.subcategoria);
@@ -2877,6 +2978,7 @@ function abrirProducto(pid) {
   let vi = vars.length ? Math.max(0, vars.findIndex(v => v.nombre === S._abrirVar)) : -1;
   S._abrirVar = '';
   S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(p, d.grupos) };
+  S._hoja.q = S._hoja.grupos.map(g => g.opciones.map(() => 0));
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
   const promoTxt = promosDe(n.id).filter(x => mecDe(x) && mecDe(x) !== 'primera' && (enPromo(x, p.id, mecDe(x) === 'precio' ? x.productos : null) || (x.regalos || []).some(y => y.productoId === p.id)))
     .map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${mecDe(x) !== 'precio' ? '<b>' + esc(x.etiqueta || etiquetaPromo(x)) + '</b> · ' : ''}${esc(x.titulo)}${mecDe(x) === 'regalo' && (x.regalos || []).some(y => y.productoId === p.id) && !enPromo(x, p.id) ? ' (este producto es el regalo)' : ''} · ${esc(x.vigencia)}</div>`).join('');
@@ -2885,10 +2987,12 @@ function abrirProducto(pid) {
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
     <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${precioTxt(p, n.id)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
     ${promoTxt}
-    ${vars.length ? `<div class="grupoT"><b>Elige una opción</b><span class="tag t-pri">Obligatorio</span></div>
-      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
-    ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span class="${g.obligatorio ? 'tag t-pri' : 'muted small'}">${g.obligatorio ? 'Obligatorio' : 'Opcional'}${g.max > 1 ? ' · hasta ' + g.max : ''}</span></div>
-      ${g.opciones.map((o, oi) => `<label class="opc"><input type="${g.max === 1 && g.obligatorio ? 'radio' : 'checkbox'}" name="hG${gi}" class="hGr" data-g="${gi}" data-o="${oi}" onchange="limiteGrupo(this);totalHoja()"><span>${esc(o.nombre)}</span><b>${o.precio ? '+' + money(o.precio) : ''}</b></label>`).join('')}`).join('')}
+    ${vars.length ? `<div class="grupoT"><b>${S._hoja.grupos.some(g => g.porVariante) ? '¿Cuántas quieres?' : 'Elige una opción'}</b><span class="tag t-pri">Obligatorio</span></div>
+      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
+    ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span id="hGc${gi}" class="${g.obligatorio ? 'tag t-pri' : 'muted small'}"></span></div>
+      ${g.repetir ? g.opciones.map((o, oi) => `<div class="opc opcCant"><span>${esc(o.nombre)}${o.precio ? ' <b class="muted small">+' + money(o.precio) + '</b>' : ''}</span>
+          <div class="cant chica"><button type="button" aria-label="Quitar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},-1)">${ico('menos', 's')}</button><b id="hQ${gi}_${oi}">0</b><button type="button" aria-label="Agregar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},1)">${ico('mas', 's')}</button></div></div>`).join('')
+        : g.opciones.map((o, oi) => `<label class="opc"><input type="${g.obligatorio && !g.porVariante && (cuantasPide(g, '').exacto || g.max) === 1 ? 'radio' : 'checkbox'}" name="hG${gi}" class="hGr" data-g="${gi}" data-o="${oi}" onchange="limiteGrupo(this);cuantasHoja();totalHoja()"><span>${esc(o.nombre)}</span><b>${o.precio ? '+' + money(o.precio) : ''}</b></label>`).join('')}`).join('')}
     ${p.extras.length ? `<div class="grupoT"><b>¿Agregar algo extra?</b><span class="muted small">Opcional</span></div>
       ${p.extras.map((e, i) => `<label class="opc"><input type="checkbox" class="hEx" data-i="${i}" onchange="totalHoja()"><span>${esc(e.nombre)}</span><b>${e.precio ? '+' + money(e.precio) : 'Gratis'}</b></label>`).join('')}` : ''}
     ${p.quitar.length ? `<div class="grupoT"><b>¿Prefieres sin…?</b><span class="muted small">Opcional</span></div>
@@ -2898,6 +3002,36 @@ function abrirProducto(pid) {
     <div class="row between" style="margin-top:16px">
       <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
       <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
+  cuantasHoja();
+}
+/** Cuántas opciones lleva marcadas cada grupo de la hoja (las repetibles cuentan cada vez). */
+function contadasHoja(gi) { const g = S._hoja.grupos[gi]; return g.repetir ? S._hoja.q[gi].reduce((a, b) => a + b, 0) : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).length; }
+function varHoja() { const p = S._hoja.p; return S._hoja.v >= 0 ? (p.variantes[S._hoja.v] || {}).nombre : ''; }
+/** Etiquetas "Elige 2 · 1/2" y recorte si el cliente cambió a un tamaño menor. */
+function cuantasHoja() {
+  if (!S._hoja) return;
+  S._hoja.grupos.forEach((g, gi) => {
+    const c = cuantasPide(g, varHoja()), lim = c.exacto || c.max;
+    // si bajó de 3 a 2 cucharadas, se quitan las últimas elegidas
+    let sobran = contadasHoja(gi) - lim;
+    if (sobran > 0) {
+      if (g.repetir) for (let oi = g.opciones.length - 1; oi >= 0 && sobran > 0; oi--) { const k = Math.min(sobran, S._hoja.q[gi][oi]); S._hoja.q[gi][oi] -= k; sobran -= k; }
+      else [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).reverse().slice(0, sobran).forEach(x => { x.checked = false; });
+    }
+    if (g.repetir) g.opciones.forEach((o, oi) => { const e = $('#hQ' + gi + '_' + oi); if (e) e.textContent = S._hoja.q[gi][oi]; });
+    const n = contadasHoja(gi), e = $('#hGc' + gi);
+    if (e) {
+      e.textContent = c.exacto ? 'Elige ' + c.exacto + (c.exacto > 1 ? ' · ' + n + '/' + c.exacto : '') : (g.obligatorio ? 'Obligatorio' : 'Opcional') + (c.max > 1 ? ' · hasta ' + c.max : '');
+      e.className = (c.exacto && n === c.exacto) ? 'tag t-ok' : g.obligatorio || c.exacto ? 'tag t-pri' : 'muted small';
+    }
+  });
+}
+/** ＋/− de una opción repetible (ej. 2 cucharadas de pollo agridulce). */
+function cantOpc(gi, oi, k) {
+  const g = S._hoja.grupos[gi], c = cuantasPide(g, varHoja()), lim = c.exacto || c.max;
+  if (k > 0 && contadasHoja(gi) >= lim) { toast(lim === 1 ? 'Solo puedes elegir 1' : 'Ya elegiste ' + lim + '; quita una para cambiar', 'err'); return; }
+  S._hoja.q[gi][oi] = Math.max(0, S._hoja.q[gi][oi] + k);
+  cuantasHoja(); totalHoja();
 }
 
 function selHoja() {
@@ -2907,23 +3041,29 @@ function selHoja() {
   const nota = ($('#hNota').value || '').trim();
   const variante = S._hoja.v >= 0 ? p.variantes[S._hoja.v] : null;
   const b = precioBase(negId, p, variante ? variante.nombre : '');
-  const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
+  const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: g.repetir ? g.opciones.flatMap((o, oi) => Array(S._hoja.q[gi][oi]).fill(o))
+    : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
   const extra = extras.reduce((s, e) => s + e.precio, 0) + mods.reduce((s, m) => s + m.o.reduce((a, o) => a + (Number(o.precio) || 0), 0), 0);
   return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: b.precio + extra, antes: b.antes ? b.antes + extra : 0, promo: b.promo, base: b.antes || b.precio };
 }
 /** No deja marcar más opciones de las permitidas en un grupo (desmarca la más antigua). */
 function limiteGrupo(el) {
   if (el.type !== 'checkbox' || !el.checked) return;
-  const g = S._hoja.grupos[+el.dataset.g], marcadas = [...document.querySelectorAll('.hGr[data-g="' + el.dataset.g + '"]')].filter(x => x.checked && x !== el);
-  if (marcadas.length >= g.max) marcadas.slice(0, marcadas.length - g.max + 1).forEach(x => { x.checked = false; });
+  const g = S._hoja.grupos[+el.dataset.g], c = cuantasPide(g, varHoja()), lim = c.exacto || c.max, marcadas = [...document.querySelectorAll('.hGr[data-g="' + el.dataset.g + '"]')].filter(x => x.checked && x !== el);
+  if (marcadas.length >= lim) marcadas.slice(0, marcadas.length - lim + 1).forEach(x => { x.checked = false; });
 }
 function totalHoja() { const t = $('#hTot'); if (t) t.textContent = money(selHoja().unit * S._hoja.cant); }
 function cantHoja(k) { S._hoja.cant = Math.max(1, Math.min(50, S._hoja.cant + k)); $('#hCant').textContent = S._hoja.cant; totalHoja(); }
 
 function agregarHoja() {
   const n = S._menu.negocio, p = S._hoja.p, s = selHoja();
-  const falta = S._hoja.grupos.find(g => g.obligatorio && !s.mods.some(m => m.g === g.id));
-  if (falta) { toast('Elige ' + falta.nombre.toLowerCase(), 'err'); const el = document.querySelector('.hGr[data-g="' + S._hoja.grupos.indexOf(falta) + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  if (p.variantes.length && S._hoja.v < 0) { toast('Elige una opción de ' + p.nombre, 'err'); return; }
+  const falta = S._hoja.grupos.find((g, gi) => { const c = cuantasPide(g, s.variante), n = contadasHoja(gi); return c.exacto ? n !== c.exacto : g.obligatorio && !n; });
+  if (falta) {
+    const gi = S._hoja.grupos.indexOf(falta), c = cuantasPide(falta, s.variante), n = contadasHoja(gi);
+    toast(c.exacto > 1 ? 'En ' + falta.nombre.toLowerCase() + ' elige ' + c.exacto + (n ? ' (llevas ' + n + ')' : '') : 'Elige ' + falta.nombre.toLowerCase(), 'err');
+    const el = $('#hGc' + gi); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
+  }
   // cada negocio tiene su propio carrito: agregar de otro negocio ya no vacía el anterior
   const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
   c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
@@ -3487,9 +3627,105 @@ function formAlta(tipo) {
 async function enviarAlta(tipo) {
   const v = id => ($('#' + id) || {}).value || '';
   const r = await api('solicitarAlta', { tipo, negocio: v('alNeg'), categoria: v('alCat'), vehiculo: v('alVeh'), plan: tipo === 'negocio' ? S._plan || 'plus' : '' });
-  S.user = r.usuario; S.negocio = r.negocio; ls('user', S.user); ls('negocio', S.negocio);
+  S.user = r.usuario; ls('user', S.user); fijarSesionNeg(r);
   S.modoCliente = false; ls('modoCliente', null);
   cerrarModal(); toast('Solicitud enviada ✓'); pintarNav(); ir(inicioRol());
+}
+/* ---------- Mis negocios y equipo (2.15) ---------- */
+const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados']], ['Cajero / mostrador', ['pedidos']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes']]];
+async function vEquipo() {
+  const d = S._eq = await api('miEquipo');
+  const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
+  const EST = { activo: ['t-ok', 'Activo'], pendiente: ['t-warn', 'Por aprobar'], bloqueado: ['t-err', 'Suspendido'], rechazado: ['t-gray', 'No aprobado'] };
+  const ESTE = { activo: ['t-ok', 'Activo'], invitado: ['t-warn', 'Invitado'], pausado: ['t-gray', 'Pausado'] };
+  html(`<div class="row between"><h2>Mis negocios y equipo</h2><button class="btn" onclick="volver('perfil')">‹ Volver</button></div>
+    <h3>🏪 Negocios y sucursales</h3>
+    ${d.negocios.map(n => `<div class="card row" style="gap:10px">${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:44px;height:44px;border-radius:12px;object-fit:cover">` : '<span style="font-size:30px">🏪</span>'}
+      <div class="grow" style="min-width:0"><b>${esc(n.nombre)}</b> <span class="tag ${(EST[n.estado] || EST.pendiente)[0]}">${(EST[n.estado] || [0, n.estado])[1]}</span>
+        <div class="muted small">${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}${n.vence ? ' · corte ' + fechaCorta(n.vence).split(' ').slice(0, 2).join(' ') : ''}${n.direccion ? ' · ' + esc(n.direccion) : ''}</div></div>
+      ${n.id === S.negActivo ? '<span class="tag t-info">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}</div>`).join('')}
+    <button class="btn pri pill" onclick="formSucursal()">${ico('mas', 's')} Agregar negocio o sucursal</button>
+    <div class="muted small" style="margin:6px 2px 0">Cada negocio o sucursal tiene su propio plan, horario, ubicación y menú. Los nuevos los aprueba Pídele.</div>
+    <h3 style="margin-top:20px">👥 Tu equipo</h3>
+    <div class="muted small" style="margin:-4px 2px 8px">Cada colaborador entra desde su teléfono y solo ve lo que le permites. Plan, suscripción, equipo y sucursales son solo tuyos.</div>
+    ${d.equipo.length ? d.equipo.map((x, i) => `<div class="card"><div class="row between"><div style="min-width:0"><b>${esc(x.nombre)}</b><div class="muted small">${esc(x.telefono)}</div></div>
+        <button class="btn sm" onclick="formColaborador(${i})">Editar</button></div>
+      ${x.negocios.map((e, ei) => `<div style="padding:8px 0 0;margin-top:8px;border-top:1px solid var(--ln)"><div class="row between" style="gap:6px"><span><b class="small">${esc((N[e.negocioId] || {}).nombre || '')}</b> <span class="tag ${(ESTE[e.estado] || ESTE.invitado)[0]}">${(ESTE[e.estado] || [0, e.estado])[1]}</span></span>
+          <span class="row" style="gap:4px">${e.estado === 'activo' ? `<button class="btn sm" onclick="act(this,()=>estadoColab('${e.equipoId}','pausado'))">Pausar</button>` : e.estado === 'pausado' ? `<button class="btn sm" onclick="act(this,()=>estadoColab('${e.equipoId}','activo'))">Reactivar</button>` : ''}
+            <button class="btn sm err" aria-label="Quitar" onclick="act(this,()=>estadoColab('${e.equipoId}','quitado'))">✕</button></span></div>
+        <div class="muted small" style="margin-top:2px">${e.permisos.map(k => PERM_TXT[k]).join(' · ')}</div>
+        ${e.codigo && x.negocios.findIndex(y => y.codigo) === ei ? `<div class="aviso info" style="margin:6px 0 0">Aún no crea su cuenta. Código: <b>${esc(e.codigo)}</b> <button class="btn sm" onclick="compartirInvEq('${esc(e.codigo)}','${esc(x.nombre)}')">${ico('chat', 's')} Mandar invitación</button></div>`
+          : e.codigo ? '' : e.estado === 'invitado' ? '<div class="muted small">Ya tiene cuenta: le llegó la invitación a su app para aceptarla.</div>' : ''}</div>`).join('')}</div>`).join('')
+      : '<div class="vacio" style="padding:18px"><span class="big">👥</span>Aún no tienes colaboradores.</div>'}
+    <button class="btn pri pill" onclick="formColaborador()">${ico('mas', 's')} Invitar colaborador</button>`);
+}
+function formColaborador(i) {
+  const d = S._eq, x = i === undefined ? null : d.equipo[i];
+  const perms = x ? (x.negocios[0] || {}).permisos || [] : ['pedidos'];
+  const mis = x ? x.negocios.map(e => e.negocioId) : [S.negActivo].filter(id => d.negocios.some(n => n.id === id));
+  modal(`<div class="row between"><h2 style="margin:0">${x ? 'Editar colaborador' : 'Invitar colaborador'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Nombre</label><input class="i" id="eqNom" maxlength="60" value="${esc(x ? x.nombre : '')}" placeholder="Ej. Ana López">
+    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="eqTel" inputmode="tel" maxlength="14" value="${esc(x ? x.telefono : '')}" ${x ? 'readonly style="opacity:.75"' : ''}>
+    <label class="f">¿En qué negocios?</label>
+    ${d.negocios.map(n => `<label class="opc"><input type="checkbox" class="eqNeg" value="${n.id}" ${mis.includes(n.id) ? 'checked' : ''}><span>${esc(n.nombre)}</span></label>`).join('')}
+    <label class="f">¿Qué puede hacer?</label>
+    <div class="row wrap" style="gap:6px;margin-bottom:4px">${PRESETS_EQ.map(([t, l]) => `<button class="btn sm" onclick='document.querySelectorAll(".eqPer").forEach(c=>c.checked=${JSON.stringify(l)}.includes(c.value))'>${t}</button>`).join('')}</div>
+    ${d.permisos.map(p => `<label class="opc"><input type="checkbox" class="eqPer" value="${p.id}" ${perms.includes(p.id) ? 'checked' : ''}><span>${esc(p.texto.charAt(0).toUpperCase() + p.texto.slice(1))}</span></label>`).join('')}
+    <div class="muted small" style="margin-top:6px">Los permisos aplican igual en todos los negocios que marques.</div>
+    <div class="btns"><button class="btn pri pill" onclick="act(this,()=>guardarColab(${x ? 'true' : 'false'}))">${x ? 'Guardar' : 'Invitar'}</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
+}
+async function guardarColab(editar) {
+  const r = await api('guardarColaborador', { nombre: $('#eqNom').value, telefono: $('#eqTel').value, negocios: [...document.querySelectorAll('.eqNeg')].filter(c => c.checked).map(c => c.value),
+    permisos: [...document.querySelectorAll('.eqPer')].filter(c => c.checked).map(c => c.value), reemplazar: editar });
+  S._eq = r; cerrarModal();
+  if (!editar && r.codigo) { toast('Invitación lista'); compartirInvEq(r.codigo, r.nombre); }
+  else toast(editar ? 'Cambios guardados ✓' : r.existe ? 'Le llegó la invitación a su app ✓' : 'Listo ✓');
+  pintar(true);
+}
+function compartirInvEq(codigo, nombre) {
+  const url = urlApp('inv=' + encodeURIComponent(codigo) + (PUEBLO.id === PUEBLOS[0].id ? '&pueblo=' + PUEBLO.id : ''));
+  const txt = 'Hola ' + nombre.split(' ')[0] + ', te invité a mi equipo en ' + APP + ' (' + (S.negocio ? S.negocio.nombre : '') + '). Crea tu cuenta aquí: ' + url;
+  const tel = (S._eq.equipo.find(x => x.nombre === nombre) || {}).telefono || '';
+  modal(`<div style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:4px 0">Manda la invitación</h2>
+    <div class="muted">Con este enlace ${esc(nombre)} crea su cuenta y entra directo a tu equipo. Código: <b>${esc(codigo)}</b></div>
+    <div class="btns" style="justify-content:center"><a class="btn pri pill" href="${waLink(tel, txt)}" target="_blank">${ico('chat', 's')} Enviar por WhatsApp</a>
+      <button class="btn pill" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(txt).replace(/"/g, '&quot;')});toast('Copiado')">Copiar enlace</button></div></div>`);
+}
+async function estadoColab(equipoId, estado) {
+  if (estado === 'quitado' && !confirm('¿Quitarle el acceso a este negocio?')) return;
+  S._eq = await api('estadoColaborador', { equipoId, estado });
+  toast(estado === 'quitado' ? 'Acceso quitado' : estado === 'pausado' ? 'Acceso en pausa' : 'Acceso reactivado'); pintar(true);
+}
+function formSucursal() {
+  const d = S._eq, P = planesCfg();
+  modal(`<div class="row between"><h2 style="margin:0">Nuevo negocio o sucursal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Nombre como lo verán los clientes</label><input class="i" id="suNom" maxlength="60" placeholder="Ej. ${esc((d.negocios[0] || {}).nombre || 'Hambas')} · Centro">
+    <label class="f">Categoría</label><select class="i" id="suCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
+    <label class="f">Copiar el menú de</label><select class="i" id="suCop"><option value="">No copiar (empiezo desde cero)</option>${d.negocios.map(n => `<option value="${n.id}" ${n.id === S.negActivo ? 'selected' : ''}>${esc(n.nombre)}</option>`).join('')}</select>
+    <div class="muted small" style="margin-top:4px">Copia secciones, productos, fotos, opciones, logo, portada, horario y datos de pago. Después cambia lo que sea distinto (ubicación, precios…).</div>
+    <label class="f">Plan de este negocio</label><select class="i" id="suPlan">${['basico', 'plus', 'pro'].filter(k => P[k]).map(k => `<option value="${k}" ${k === 'plus' ? 'selected' : ''}>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</option>`).join('')}</select>
+    <div class="aviso info" style="margin-top:12px">Queda <b>por aprobar</b> por Pídele. Mientras, entra a él para poner su ubicación y revisar el menú.</div>
+    <div class="btns"><button class="btn pri pill" onclick="act(this,crearSucursalForm)">Crear</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
+  const c = $('#suCat'), base = d.negocios.find(n => n.id === S.negActivo); if (base && S.negocio && S.negocio.categoria) c.value = S.negocio.categoria;
+}
+async function crearSucursalForm() {
+  const r = await api('crearSucursal', { nombre: $('#suNom').value, categoria: $('#suCat').value, copiarDe: $('#suCop').value, plan: $('#suPlan').value });
+  S._eq = r; cerrarModal();
+  const y = await api('yo'); fijarSesionNeg(y); pintarNav();
+  toast('Creado ✓' + (r.copiados ? ' con ' + r.copiados + ' productos' : '') + '. Queda por aprobar.'); pintar(true);
+}
+/** En Perfil: tablero del dueño o los negocios donde colabora. */
+function bloqueMisNegocios() {
+  const l = S.negocios || [], mios = l.filter(n => n.dueno), otros = l.filter(n => !n.dueno);
+  return `<div class="card"><div class="row between"><b>${mios.length ? '🏪 Mis negocios y equipo' : '👥 Negocios donde colaboras'}</b>${mios.length ? `<button class="btn sm pri" onclick="ir('equipo')">Abrir</button>` : ''}</div>
+    ${mios.length ? `<div class="muted small" style="margin-top:4px">${mios.length} negocio${mios.length > 1 ? 's' : ''}${otros.length ? ' · colaboras en ' + otros.length : ''}. Agrega sucursales y da acceso a tu equipo con los permisos que elijas.</div>` : ''}
+    ${otros.map(n => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln)"><span>${esc(n.nombre)}</span><span class="row" style="gap:6px">${n.id === S.negActivo ? '<span class="tag t-ok">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}<button class="btn sm err" onclick="act(this,()=>salirDeEquipo('${n.id}',${JSON.stringify(n.nombre).replace(/"/g, '&quot;')}))">Salir</button></span></div>`).join('')}
+    ${!l.length ? '<div class="muted small" style="margin-top:4px">Aún no estás en ningún negocio. Cuando un dueño te invite, la invitación aparecerá aquí.</div>' : ''}</div>`;
+}
+async function salirDeEquipo(id, nombre) {
+  if (!confirm('¿Dejar de colaborar en ' + nombre + '? Ya no verás sus pedidos.')) return;
+  const d = await api('salirEquipo', { negocioId: id });
+  fijarSesionNeg(d); toast('Saliste de ' + nombre); pintarNav(); pintar(true);
 }
 function vPerfil() {
   const u = S.user;
@@ -3500,10 +3736,12 @@ function vPerfil() {
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
     ${u.telVerificado ? '' : tarjetaVerificar()}
+    ${avisoInvEquipo()}
+    ${r === 'negocio' ? bloqueMisNegocios() : ''}
     ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
-    ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
+    ${r === 'negocio' && S.negocio && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
     ${esStaff() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
       : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
@@ -3793,7 +4031,7 @@ function vPedidoOperacion(p) {
 async function vNegPedidos() {
   const d = await api('panelNegocio'); // pedidos y datos del negocio en una sola llamada
   const l = d.pedidos, n = d.negocio;
-  S.negocio = n; ls('negocio', n);
+  fijarNeg(n);
   recordar(l);
   const grupos = {
     atender: l.filter(x => ['NUEVO', 'PAGO_ENVIADO'].includes(x.estado)),
@@ -3813,16 +4051,16 @@ async function vNegPedidos() {
     ${x.estado === 'EN_CAMINO' && x.repPropio ? `<div class="muted small">🛵 ${x.repPropio.nombre === 'Repartidor del negocio' ? 'En camino por tus propios medios' : 'En camino con ' + esc(x.repPropio.nombre)}</div>` : ''}
     ${x.califNegocio ? `<div class="small">Calificación: <span class="estrella">${'★'.repeat(x.califNegocio)}</span></div>` : ''}
     ${botonesPedido(x, true)}</div>`;
-  html(`${pendienteAviso()}${bannerPush()}${tarjetaInstalar()}
+  html(`${pendienteAviso()}${avisoInvEquipo()}${n.estado === 'pendiente' && S.user.estado === 'activo' ? `<div class="aviso warn">⏳ <b>${esc(n.nombre)}</b> está por aprobar. Mientras, completa sus datos y su menú.</div>` : ''}${bannerPush()}${tarjetaInstalar()}
     <div class="card row between"><div class="grow"><b>${esc(n.nombre)}</b> ${n.numCalif ? `<span class="small"><span class="estrella">★</span> ${n.calif} (${n.numCalif})</span>` : ''}
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
       <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
-      <label class="sw" title="Recibir pedidos"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
+      <label class="sw" title="${puedo('abrir') ? 'Recibir pedidos' : 'Solo el dueño o quien tenga permiso puede pausar'}"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' || !puedo('abrir') ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
     <div class="tabs">
       <button class="${t === 'atender' ? 'on' : ''}" onclick="S.tabNeg='atender';pintar(true)">Por atender (${grupos.atender.length})</button>
       <button class="${t === 'curso' ? 'on' : ''}" onclick="S.tabNeg='curso';pintar(true)">En curso (${grupos.curso.length})</button>
       <button class="${t === 'hoy' ? 'on' : ''}" onclick="S.tabNeg='hoy';pintar(true)">Hoy (${grupos.hoy.length})</button></div>
-    ${t === 'hoy' ? `<div class="muted" style="margin-bottom:8px">Vendido hoy (entregados): <b>${money(vendido)}</b></div>` : ''}
+    ${t === 'hoy' && puedo('ventas') ? `<div class="muted" style="margin-bottom:8px">Vendido hoy (entregados): <b>${money(vendido)}</b></div>` : ''}
     ${grupos[t].length ? grupos[t].map(card).join('') : `<div class="vacio"><span class="big">${t === 'atender' ? '✨' : '🧾'}</span>${t === 'atender' ? 'Nada pendiente por ahora' : 'Sin pedidos aquí'}</div>`}`);
 }
 
@@ -3833,7 +4071,7 @@ function pendienteAviso() {
 }
 
 async function abrirCerrar(chk) {
-  try { S.negocio = await api('abrirCerrar', { abierto: chk.checked }); ls('negocio', S.negocio); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintar(true); }
+  try { fijarNeg(await api('abrirCerrar', { abierto: chk.checked })); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintar(true); }
   catch (e) { chk.checked = !chk.checked; throw e; }
 }
 
@@ -3842,21 +4080,21 @@ async function vMenu() {
   S._prods = l; S._grupos = gr;
   const sinFoto = l.filter(p => !p.foto).length;
   const lista = S._soloSinFoto ? l.filter(p => !p.foto) : l;
-  const grupos = {};
+  const grupos = {}, ed = puedo('menu');
   lista.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
-  html(`${pendienteAviso()}<div class="row between"><h2>Mi menú</h2><button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button></div>
-    <div class="card"><b>📊 Menú en Excel</b><div class="muted small">Captura o edita todo tu menú en la computadora y súbelo aquí. Las fotos se agregan después, producto por producto.</div>
+  html(`${pendienteAviso()}<div class="row between"><h2>${ed ? 'Mi menú' : 'Disponibilidad'}</h2>${ed ? `<button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button>` : ''}</div>
+    ${!ed ? '<div class="aviso info">Marca con el interruptor lo que se acabó; vuelve a encenderlo cuando lo tengas otra vez.</div>' : `<div class="card"><b>📊 Menú en Excel</b><div class="muted small">Captura o edita todo tu menú en la computadora y súbelo aquí. Las fotos se agregan después, producto por producto.</div>
       <div class="btns"><button class="btn sm" onclick="descargarPlantilla()">⬇ Plantilla</button>
         <button class="btn sm" onclick="act(this,exportarMenu)" ${l.length ? '' : 'disabled'}>⬇ Exportar mi menú</button>
         <label class="btn sm pri">⬆ Importar Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="importarExcel(this)"></label></div></div>
     <div class="card"><div class="row between"><div><b>🧩 Opciones de sección</b><div class="muted small">Ej. <i>Tipo de leche</i> en todas las bebidas, <i>Salsa</i> en todo el pollo o <i>Huevo</i> en desayunos. Se aplican solas a los productos nuevos de esa sección.</div></div>
       <button class="btn sm pri" onclick="formGrupo()" ${l.length ? '' : 'disabled'}>${ico('mas', 's')} Grupo</button></div>
-      ${gr.map(g => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln);cursor:pointer" onclick="formGrupo('${g.id}')"><div><b>${esc(g.nombre)}</b> <span class="muted small">${g.obligatorio ? 'Obligatorio' : 'Opcional'}${g.max > 1 ? ' · hasta ' + g.max : ''} · ${g.opciones.length} opciones</span>
-        <div class="muted small">En: ${esc([...g.categorias, ...g.productos.map(id => (l.find(p => p.id === id) || {}).nombre).filter(Boolean)].join(', '))}${g.excluir.length ? ' · menos ' + g.excluir.length : ''} · ${l.filter(p => gruposDe(p, [g]).length).length} productos</div></div><span class="lnk small">Editar ›</span></div>`).join('')}</div>
+      ${gr.map(g => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln);cursor:pointer" onclick="formGrupo('${g.id}')"><div><b>${esc(g.nombre)}</b> <span class="muted small">${g.obligatorio ? 'Obligatorio' : 'Opcional'} · elige ${textoCuantas(g)}${g.repetir ? ' (se repite)' : ''} · ${g.opciones.length} opciones</span>
+        <div class="muted small">En: ${esc([...g.categorias, ...g.productos.map(id => (l.find(p => p.id === id) || {}).nombre).filter(Boolean)].join(', '))}${g.excluir.length ? ' · menos ' + g.excluir.length : ''} · ${l.filter(p => gruposDe(p, [g]).length).length} productos</div></div><span class="lnk small">Editar ›</span></div>`).join('')}</div>`}
     ${sinFoto ? `<div class="aviso ${S._soloSinFoto ? 'info' : 'warn'}" style="cursor:pointer" onclick="S._soloSinFoto=!S._soloSinFoto;pintar(true)">📷 ${sinFoto} producto${sinFoto > 1 ? 's' : ''} sin foto · ${S._soloSinFoto ? 'ver todos' : 'ver solo esos'}</div>` : ''}
-    ${Object.keys(grupos).map(g => `<div class="row between"><h3>${esc(g)}</h3><button class="btn sm" onclick='formSubcats(${JSON.stringify(g).replace(/'/g, '&#39;')})'>🗂️ Subsecciones</button></div><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
-      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
-      <div class="grow" onclick="formProducto('${p.id}')" style="cursor:pointer"><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
+    ${Object.keys(grupos).map(g => `<div class="row between"><h3>${esc(g)}</h3>${ed ? `<button class="btn sm" onclick='formSubcats(${JSON.stringify(g).replace(/'/g, '&#39;')})'>🗂️ Subsecciones</button>` : ''}</div><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
+      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : !ed ? '<span class="fotoP"></span>' : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
+      <div class="grow" ${ed ? `onclick="formProducto('${p.id}')" style="cursor:pointer"` : ''}><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
         <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? gruposDe(p, S._grupos).length + ' grupo' + (gruposDe(p, S._grupos).length > 1 ? 's' : '') + ' de opciones' : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
       <label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="act(null,()=>dispProducto('${p.id}',this))"><i></i></label></div>`).join('')}</div>`).join('')}
     ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos uno por uno o sube tu menú completo con la plantilla de Excel.</div>` : ''}`);
@@ -3897,7 +4135,8 @@ function formGrupo(id) {
   modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nuevo'} grupo de opciones</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <label class="f">Nombre</label><input class="i" id="grNom" maxlength="40" value="${esc(g.nombre)}" placeholder="Ej. Tipo de leche, Salsa, Huevo">
     <div class="row wrap" style="gap:14px;margin-top:8px"><label class="row" style="gap:6px"><input type="checkbox" id="grObl" ${g.obligatorio ? 'checked' : ''}> Obligatorio</label>
-      <label class="row" style="gap:6px">El cliente elige <select class="i" id="grMax" style="width:auto;padding:6px">${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${n === g.max ? 'selected' : ''}>${n === 1 ? '1' : 'hasta ' + n}</option>`).join('')}</select></label></div>
+      ${campoCuantas(g, 'gr')}</div>
+    <div class="muted small" style="margin-top:4px">"Según el tamaño" toma el número del nombre de cada variante: "2 cucharadas" pide 2. "Puede repetir" deja elegir la misma opción varias veces.</div>
     <label class="f">Opciones · sin precio = sin costo extra</label>
     <div id="grOps"></div><button class="btn sm" onclick="filaExtra('','','#grOps','Ej. Almendra')">${ico('mas', 's')} Agregar opción</button>
     <label class="f">¿A qué secciones aplica?</label>
@@ -3921,7 +4160,7 @@ function pintarExcluir() {
 async function guardarGrupoForm(id) {
   pintarExcluir();
   S._grupos = await api('guardarGrupo', {
-    id: id || undefined, nombre: $('#grNom').value, obligatorio: $('#grObl').checked, max: Number($('#grMax').value),
+    id: id || undefined, nombre: $('#grNom').value, obligatorio: $('#grObl').checked, ...leerCuantas($('#modal'), 'gr'),
     opciones: extrasForm('#grOps'), categorias: [...document.querySelectorAll('.grCat')].filter(x => x.checked).map(x => x.value),
     productos: [...document.querySelectorAll('.grProd')].filter(x => x.checked).map(x => x.value), excluir: S._grExcl
   });
@@ -4018,7 +4257,8 @@ function nombreArchivo(base) {
 }
 
 const listaTxt = l => (l || []).map(x => x.nombre + (x.precio !== undefined && x.precio !== '' ? ':' + x.precio : '')).join('; ');
-const gruposTxt = gs => (gs || []).map(g => g.nombre + (!g.obligatorio || g.max > 1 ? ' (' + [!g.obligatorio ? 'opcional' : '', g.max > 1 ? 'hasta ' + g.max : ''].filter(Boolean).join(', ') + ')' : '') + ': ' + g.opciones.map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ')).join(' | ');
+const reglasTxt = g => [!g.obligatorio ? 'opcional' : '', g.porVariante ? 'según tamaño' : g.exacto ? 'exacto ' + g.max : g.max > 1 ? 'hasta ' + g.max : '', g.repetir ? 'repetir' : ''].filter(Boolean).join(', ');
+const gruposTxt = gs => (gs || []).map(g => g.nombre + (reglasTxt(g) ? ' (' + reglasTxt(g) + ')' : '') + ': ' + g.opciones.map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ')).join(' | ');
 
 /** Asistente: tres preguntas y una plantilla a la medida del negocio. */
 function descargarPlantilla() {
@@ -4064,7 +4304,7 @@ async function exportarMenu() {
     opciones: gruposTxt(p.opciones), extras: listaTxt(p.extras.filter(e => e.precio)), extrasGratis: p.extras.filter(e => !e.precio).map(e => e.nombre).join('; '),
     quitar: (p.quitar || []).join(', '), tiempo: p.tiempoPrep || '', disponible: p.disponible === 'si' ? 'Sí' : 'No', id: p.id });
   const nom = id => (l.find(p => p.id === id) || {}).nombre;
-  const opc = gr.map(g => [g.nombre, g.categorias.join('; '), g.obligatorio ? 'Sí' : 'No', g.max, listaTxt(g.opciones), g.excluir.map(nom).filter(Boolean).join('; '), g.id]);
+  const opc = gr.map(g => [g.nombre, g.categorias.join('; '), g.obligatorio ? 'Sí' : 'No', (g.porVariante ? 'según tamaño' : g.exacto ? 'exacto ' + g.max : g.max) + (g.repetir ? ', repetir' : ''), listaTxt(g.opciones), g.excluir.map(nom).filter(Boolean).join('; '), g.id]);
   XLSX.writeFile(libroMenu(XLSX, cols, l.map(p => { const v = val(p); return cols.map(k => v[k]); }), opc), nombreArchivo('Menu'));
   toast('Menú exportado ✓');
 }
@@ -4178,7 +4418,7 @@ function formProducto(id) {
     <div class="muted small" style="margin:-2px 0 6px">Cada variante tiene su propio precio y reemplaza el precio normal.</div>
     <div id="varRows"></div><button class="btn sm" onclick="filaExtra('','','#varRows','Ej. Grande')">${ico('mas', 's')} Agregar variante</button>
     <label class="f">Opciones de preparación · el cliente elige (término, salsa, tipo de huevo…)</label>
-    <div class="muted small" style="margin:-2px 0 6px">Escribe las opciones separadas por coma; si alguna cuesta más, ponle :precio (ej. Verde, Roja, Divorciados:5).${S._grupos && S._grupos.length ? ' Las <b>opciones de sección</b> se agregan solas.' : ''}</div>
+    <div class="muted small" style="margin:-2px 0 6px">Escribe las opciones separadas por coma; si alguna cuesta más, ponle :precio (ej. Verde, Roja, Divorciados:5). Para platos por cucharadas o combos: pon variantes "1 cucharada", "2 cucharadas"… y en el grupo elige <b>según el tamaño</b> y <b>puede repetir</b>.${S._grupos && S._grupos.length ? ' Las <b>opciones de sección</b> se agregan solas.' : ''}</div>
     <div id="opRows"></div><button class="btn sm" onclick="filaOpcion()">${ico('mas', 's')} Agregar grupo de opciones</button>
     <label class="f">Extras (el cliente puede agregarlos · sin precio = gratis)</label>
     <div id="exRows"></div><button class="btn sm" onclick="filaExtra('','')">${ico('mas', 's')} Agregar extra</button>
@@ -4198,15 +4438,14 @@ function filaOpcion(g) {
   d.innerHTML = `<div class="row" style="gap:6px"><input class="i opN" placeholder="Nombre (ej. Término)" maxlength="40"><button class="btn sm err" onclick="this.closest('.opRow').remove()">✕</button></div>
     <input class="i opO" placeholder="Opciones: Medio, Tres cuartos, Bien cocido" style="margin-top:6px">
     <div class="row wrap" style="gap:10px;margin-top:6px"><label class="row small" style="gap:6px"><input type="checkbox" class="opR"> Obligatorio</label>
-      <label class="row small" style="gap:6px">Puede elegir <select class="i opM" style="width:auto;padding:6px">${[1, 2, 3, 4, 5].map(n => `<option value="${n}">${n === 1 ? '1' : 'hasta ' + n}</option>`).join('')}</select></label></div>`;
+      ${campoCuantas(g, 'op')}</div>`;
   d.querySelector('.opN').value = g.nombre || '';
   d.querySelector('.opO').value = (g.opciones || []).map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ');
   d.querySelector('.opR').checked = g.obligatorio !== false;
-  d.querySelector('.opM').value = String(g.max || 1);
   $('#opRows').appendChild(d);
 }
 function opcionesForm() {
-  return [...document.querySelectorAll('#opRows .opRow')].map(r => ({ nombre: r.querySelector('.opN').value.trim(), opciones: r.querySelector('.opO').value, obligatorio: r.querySelector('.opR').checked, max: Number(r.querySelector('.opM').value) }))
+  return [...document.querySelectorAll('#opRows .opRow')].map(r => Object.assign({ nombre: r.querySelector('.opN').value.trim(), opciones: r.querySelector('.opO').value, obligatorio: r.querySelector('.opR').checked }, leerCuantas(r, 'op')))
     .filter(g => g.nombre || g.opciones.trim()).map(g => Object.assign(g, { nombre: g.nombre || 'Preparación' }));
 }
 function filaExtra(nombre, precio, donde, ejemplo) {
@@ -4252,13 +4491,13 @@ function estadoPromoTag(p) {
 
 async function vPromos() {
   const [l, prods, n] = await Promise.all([api('misPromos'), api('misProductos'), api('miNegocio')]);
-  S._promosNeg = l; S._prods = prods; S.negocio = n; ls('negocio', n);
+  S._promosNeg = l; S._prods = prods; fijarNeg(n);
   const su = n.suscripcion || {}, incl = su.bannersIncluidos === undefined ? 1 : Math.max(1, su.bannersIncluidos), ext = su.bannersExtra || 0;
   html(`${pendienteAviso()}<div class="row between"><h2>Banners</h2>
       <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nuevo</button></div>
     <div class="card"><div class="row between"><div><b>Tu plan: ${incl + ext} banner${incl + ext > 1 ? 's' : ''} por día</b>
       <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
-      <button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button></div>
+      ${esDueno() ? `<button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button>` : ''}</div>
       ${n.planCfg ? `<div class="aviso info" style="margin:8px 0 0">${PLAN_ICO[n.plan] || ''} <b>Plan ${esc(n.planCfg.nombre)}:</b> ${esc(textoPlan(n.planCfg))} ${n.plan !== 'pro' && n.plan !== 'donado' ? `<button class="lnk small" onclick="ir('suscripcion')">Subir de plan ›</button>` : ''}</div>` : ''}
       <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando con los demás negocios (los segundos y la visibilidad dependen de tu plan).
         Una <b>🏷️ Promoción</b> (precio especial, 2x1, 3x2, % o $ de descuento, regalo o descuento de primera compra) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
@@ -4471,6 +4710,7 @@ function avisoSuscripcion() {
   if (!S.user || !['negocio', 'repartidor'].includes(S.user.rol)) return '';
   const s = S.user.rol === 'negocio' ? (S.negocio && S.negocio.suscripcion) : S.user.suscripcion;
   if (!s || !s.vence) return '';
+  if (S.user.rol === 'negocio' && !esDueno()) return s.estado === 'suspendido' ? '<div class="aviso err">⛔ Este negocio no se muestra a los clientes por su suscripción. Avísale al dueño.</div>' : '';
   const que = S.user.rol === 'negocio' ? 'suscripción' : 'mensualidad';
   const fuera = S.user.rol === 'negocio' ? 'Tu negocio no se muestra a los clientes' : 'No estás recibiendo pedidos';
   if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu ${que} vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
@@ -4774,11 +5014,11 @@ async function guardarPagoManual() {
 
 async function vMiNegocio() {
   const n = await api('miNegocio');
-  S.negocio = n; ls('negocio', n);
+  fijarNeg(n);
   S._negPos = { lat: n.lat, lng: n.lng }; S._logo = null; S._qr = null; S._portada = null;
   const su = n.suscripcion, esu = su ? (EST_SUSC[su.estado] || EST_SUSC.sin) : null;
   html(`${pendienteAviso()}<h2>Mi negocio</h2>
-    ${su && su.vence ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
+    ${su && su.vence && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
       <div class="muted small">${su.estado === 'suspendido' || su.estado === 'gracia' ? 'Venció el ' : 'Activa hasta el '}${fechaLarga(su.vence)}</div></div>
       <div style="text-align:right"><span class="tag ${esu[0]}">${esu[1]}</span><div class="lnk small" style="margin-top:4px">Pagar / ver plan ›</div></div></div>` : ''}
     <div class="card">
@@ -4885,7 +5125,7 @@ async function guardarNegocio() {
     efectivo: $('#nEfe').checked, envioEnTransfer: $('#nEnvTr').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined,
     ...datosEnvios()
   });
-  S.negocio = n; ls('negocio', n); toast('Datos guardados ✓'); pintar(true);
+  fijarNeg(n); toast('Datos guardados ✓'); pintar(true);
 }
 function datosEnvios() {
   leerEnvios();
@@ -5102,6 +5342,12 @@ async function rutaPorCalles(pts, m, recta) {
 }
 
 /* ============ ADMINISTRADOR ============ */
+async function estadoSucursal(id, estado) {
+  const nota = estado === 'rechazado' ? prompt('Motivo (opcional, se le avisa al dueño):') : '';
+  if (nota === null) return;
+  await api('adminEstadoNegocio', { negocioId: id, estado, nota });
+  toast(estado === 'activo' ? 'Aprobado ✓ · empieza su periodo de prueba' : 'Rechazado'); pintar(true);
+}
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
@@ -5118,6 +5364,10 @@ async function vAdmin() {
       <div class="kpi" style="cursor:pointer" onclick="${d.local ? '' : 'act(null,verPromosAdmin)'}"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas${d.local ? '' : ' · revisar'}</span></div>
       <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
       <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
+    ${(d.sucursales || []).length ? `<div class="card" style="border:2px solid var(--warn)"><b>🏪 Negocios nuevos por aprobar (${d.sucursales.length})</b>
+      ${d.sucursales.map(n => `<div style="padding:8px 0;border-top:1px solid var(--ln);margin-top:8px"><b>${esc(n.nombre)}</b> <span class="muted small">${esc(n.categoria)} · ${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}</span>
+        <div class="muted small">De ${esc(n.dueno)} · ${esc(n.telefono)}${n.otros.length ? ' · ya tiene: ' + n.otros.map(esc).join(', ') : ''}</div>
+        <div class="btns" style="margin-top:6px"><button class="btn sm pri" onclick="act(this,()=>estadoSucursal('${n.id}','activo'))">Aprobar</button><button class="btn sm err" onclick="act(this,()=>estadoSucursal('${n.id}','rechazado'))">Rechazar</button></div></div>`).join('')}</div>` : ''}
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
