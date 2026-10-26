@@ -635,7 +635,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.21.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.22.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -4046,7 +4046,7 @@ async function cargarPuntaje(idBox) {
     const d = await api('miPuntaje');
     const box = $('#' + idBox); if (!box || !box.tagName) return;
     const rep = S.user.rol === 'repartidor';
-    const nivel = rep && d.prioridad ? (d.esperaMin ? `Ves los pedidos nuevos <b>${d.esperaMin} min</b> después de los repartidores con ${d.esperaMin > 1 ? d.nivelMedio : d.nivelAlto} puntos o más.` : '⭐ Ves los pedidos nuevos <b>sin espera</b>.') : '';
+    const nivel = rep && d.prioridad ? '⭐ Los pedidos nuevos se avisan primero a los 3 repartidores mejor calificados que están libres; cada 30 s se suma el siguiente grupo. Entre más alto tu puntaje, antes te llegan.' : '';
     const barra = (t, v, max, det) => `<div class="tot"><span>${t}<div class="muted small">${det}</div></span><b>${v}/${max}</b></div>`;
     box.innerHTML = `<h3>📈 Mi puntaje</h3><div class="card"><div class="row between"><div><div style="font-size:34px;font-weight:900;line-height:1">${d.total}<span class="muted" style="font-size:16px">/100</span></div>
         ${nivel ? `<div class="small" style="margin-top:4px">${nivel}</div>` : ''}</div><span style="font-size:36px">${d.total >= 80 ? '🏆' : d.total >= 60 ? '👍' : '💪'}</span></div><hr class="hr">
@@ -5459,8 +5459,41 @@ function copiarLunes() {
 }
 
 /* ============ REPARTIDOR ============ */
+/* ---------- Concurso semanal y resumen del día (2.22) ---------- */
+function textoTop3(k) {
+  if (!k) return '';
+  return k.top3 ? '🏆 <b>¡Estás en el Top 3 de la semana!</b> Sigue así para conservarlo.'
+    : `Aún no estás en el Top 3. Te ${k.faltan === 1 ? 'falta <b>1 entrega</b>' : 'faltan <b>' + k.faltan + ' entregas</b>'} para entrar.`;
+}
+function tarjetaConcurso(k) {
+  if (!k || !k.activo) return '';
+  return `<div class="card" style="border:2px solid ${k.top3 ? 'var(--ok)' : 'var(--warn)'}"><div class="row between"><b>🏆 Concurso de la semana</b><span class="muted small">hasta el ${fechaCorta(k.hasta).split(' ').slice(0, 2).join(' ')}</span></div>
+    ${k.premio ? `<div style="margin-top:4px">🎁 Premio: <b>${esc(k.premio)}</b></div>` : ''}
+    <div class="row wrap" style="gap:16px;margin-top:8px"><div><div class="muted small">Tus entregas esta semana</div><b style="font-size:22px">${k.entregas}</b></div><div><div class="muted small">Tu puntaje</div><b style="font-size:22px">${k.puntaje}</b></div></div>
+    <div class="small" style="margin-top:6px">${textoTop3(k)}</div>
+    <div class="muted small" style="margin-top:4px">Cuentan todas tus entregas en la app, también los servicios que capturas para tus clientes.</div></div>`;
+}
+/** Al iniciar el día: su puntaje, sus entregas totales y cómo va en el concurso (una vez al día). */
+function resumenDelDia(k) {
+  if (!k || !S.user) return;
+  const hoy = new Date().toDateString();
+  if (lsG('resumenDia') === hoy) return;
+  lsG('resumenDia', hoy);
+  setTimeout(() => {
+    if ($('#modal').classList.contains('on')) return;
+    modal(`<div style="text-align:center"><div style="font-size:42px">☀️</div><h2 style="margin:4px 0">¡Buen día, ${esc(S.user.nombre.split(' ')[0])}!</h2>
+      <div class="row" style="gap:10px;margin:14px 0">
+        <div class="kpi" style="flex:1"><b>${k.puntaje}</b><span>Tu puntaje</span></div>
+        <div class="kpi" style="flex:1"><b>${k.totalEntregas}</b><span>Entregas en total</span></div>
+        <div class="kpi" style="flex:1"><b>${k.entregas}</b><span>Esta semana</span></div></div>
+      ${k.activo ? `<div class="aviso ${k.top3 ? 'ok' : 'info'}" style="text-align:left">${textoTop3(k)}${k.premio ? '<div style="margin-top:4px">🎁 Premio de la semana: <b>' + esc(k.premio) + '</b></div>' : ''}</div>` : ''}
+      <div class="muted small">Entre mejor te califiquen, antes te llegan los pedidos nuevos.</div>
+      <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">¡A repartir! 🛵</button></div></div>`);
+  }, 900);
+}
 async function vDisponibles() {
   const d = await api('disponibles', S.pos || {});
+  if (d.concurso && !d.muestra) resumenDelDia(d.concurso);
   if (d.t) S._dt = d.t - Date.now(); // diferencia con el reloj del servidor
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
@@ -5493,7 +5526,8 @@ async function vDisponibles() {
     ${d.activos ? `<div class="aviso info row between" style="align-items:center"><span>🛵 Tienes <b>${d.activos}</b> pedido${d.activos > 1 ? 's' : ''} en curso.</span><button class="btn pri sm" onclick="ir('entregas')">Ver mis entregas</button></div>` : ''}
     ${avisoGPS()}
     ${motivo ? `<div class="aviso err">🚫 <b>Por ahora no puedes tomar pedidos:</b> ${motivo}</div>` : ''}
-    <div class="muted small" style="margin-bottom:8px">Puedes tomar 1 pedido cada ${d.minutosEntreTomas} min, para que el trabajo se reparta entre todos.</div>
+    ${tarjetaConcurso(d.concurso)}
+    <div class="muted small" style="margin-bottom:8px">Si traes un pedido en curso, puedes tomar otro cada ${d.minutosEntreTomas} min; en cuanto lo entregas, puedes tomar el siguiente. Los pedidos nuevos te llegan por grupos, primero a los mejor calificados.</div>
     ${d.lista.length ? d.lista.map(x => `<div class="card">
       <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div><div style="text-align:right">${x.practica ? '<span class="tag t-warn">🎓 PRÁCTICA</span> ' : ''}${x.foraneo ? `<span class="tag t-info">📍 ${esc(x.zona && x.zona !== 'Foráneo' ? x.zona : 'Foráneo')}</span> ` : ''}${x.estado === 'LISTO' ? '<span class="tag t-ok">Ya está listo</span>' : `<span class="tag t-pri">Sale ${hora(x.horaSalida)}</span>`}</div></div>
       <div class="row wrap" style="margin-top:8px;gap:16px">
@@ -5721,6 +5755,17 @@ async function estadoSucursal(id, estado) {
   await api('adminEstadoNegocio', { negocioId: id, estado, nota });
   toast(estado === 'activo' ? 'Aprobado ✓ · empieza su periodo de prueba' : 'Rechazado'); pintar(true);
 }
+/** Concurso semanal: ranking completo con lugares (para entregar premios) y el premio que ven los repartidores. */
+async function verConcurso(semana) {
+  const d = await api('adminConcurso', { semana: semana ? 1 : 0 });
+  modal(`<div class="row between"><h2 style="margin:0">🏆 Concurso semanal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="tabs" style="margin:10px 0"><button class="${semana ? '' : 'on'}" onclick="act(null,()=>verConcurso(0))">Esta semana</button><button class="${semana ? 'on' : ''}" onclick="act(null,()=>verConcurso(1))">Semana pasada</button></div>
+    <div class="muted small">Del ${fechaCorta(d.desde).split(' ').slice(0, 2).join(' ')} al ${fechaCorta(d.hasta).split(' ').slice(0, 2).join(' ')} · entregas en la app (incluye servicios propios, sin muestras). Los repartidores solo ven si están en el Top 3.</div>
+    ${d.lista.length ? d.lista.map((x, i) => `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--ln)"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '<span class="muted">' + (i + 1) + '.</span>'} <b>${esc(x.nombre)}</b> <span class="muted small">${esc(x.telefono)}</span></span><span><b>${x.entregas}</b> <span class="muted small">entregas · ${x.puntaje} pts</span></span></div>`).join('')
+      : '<div class="vacio" style="padding:18px">Aún no hay entregas esta semana.</div>'}
+    ${semana ? '' : `<label class="f">Premio de esta semana (lo ven los repartidores)</label><input class="i" id="cPremio" maxlength="120" value="${esc(d.premio)}" placeholder="Ej. $300 en gasolina para el Top 3">
+      <div class="btns"><button class="btn pri" onclick="act(this,async()=>{await api('adminGuardarConfig',{valores:{premioSemana:$('#cPremio').value}});toast('Premio guardado ✓')})">Guardar premio</button></div>`}`);
+}
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
@@ -5737,6 +5782,7 @@ async function vAdmin() {
       <div class="kpi" style="cursor:pointer" onclick="${d.local ? '' : 'act(null,verPromosAdmin)'}"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas${d.local ? '' : ' · revisar'}</span></div>
       <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
       <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
+    <div class="card row between" style="cursor:pointer" onclick="act(null,()=>verConcurso(0))"><div><b>🏆 Concurso semanal de repartidores</b><div class="muted small">Ranking de entregas de la semana y el premio que ven los repartidores.</div></div><span class="lnk small">Ver ›</span></div>
     ${(d.sucursales || []).length ? `<div class="card" style="border:2px solid var(--warn)"><b>🏪 Negocios nuevos por aprobar (${d.sucursales.length})</b>
       ${d.sucursales.map(n => `<div style="padding:8px 0;border-top:1px solid var(--ln);margin-top:8px"><b>${esc(n.nombre)}</b> <span class="muted small">${esc(n.categoria)} · ${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}</span>
         <div class="muted small">De ${esc(n.dueno)} · ${esc(n.telefono)}${n.otros.length ? ' · ya tiene: ' + n.otros.map(esc).join(', ') : ''}</div>
