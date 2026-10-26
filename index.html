@@ -635,7 +635,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.20.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.20.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1001,6 +1001,18 @@ function fijarNeg(n) {
 /** ¿Puede hacer esto en el negocio elegido? (el dueño todo; sin datos de permisos = versión anterior = todo). */
 function puedo(p) { const n = S.negocio; if (!n || n.dueno !== false) return true; return [].concat(p).some(x => (n.permisos || []).includes(x)); }
 const esDueno = () => !!S.negocio && S.negocio.dueno !== false;
+async function refrescarSesionNeg(cambioRol) {
+  if (S._refNeg) return; S._refNeg = true;
+  try {
+    const y = await api('yo');
+    if (y.usuario) { S.user = y.usuario; ls('user', S.user); }
+    const antes = (S.negocios || []).length;
+    fijarSesionNeg(y); pintarNav();
+    if (cambioRol) { S.modoCliente = false; ls('modoCliente', null); ir(inicioRol()); }
+    else if ((S.negocios || []).length > antes) toast('🏪 Tienes un negocio nuevo en tu panel');
+    else if (S.vista === 'perfil' || S.vista === 'equipo') pintar(true);
+  } catch (e) { } finally { S._refNeg = false; }
+}
 /** Cambiar de negocio o sucursal. */
 async function elegirNegocio(id) {
   if (id === S.negActivo) { cerrarModal(); return; }
@@ -1575,6 +1587,9 @@ async function sondear(forzar) {
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
     S.firma = d.firma; S.nuevos = d.nuevos; S.porNeg = d.porNeg || null;
+    // le pasaron un negocio, lo agregaron a un equipo o cambió su tipo de cuenta: se recarga su sesión sin cerrar la app
+    const miFirma = S.user.rol === 'negocio' ? (S.negocios || []).map(n => n.id + (n.dueno ? '' : '*')).sort().join(',') + '|' + (S.invEquipo || []).length : '|' + (S.invEquipo || []).length;
+    if (d.rol && (d.rol !== S.user.rol || (d.negs !== undefined && d.negs !== '' && d.negs !== miFirma))) refrescarSesionNeg(d.rol !== S.user.rol);
     if (S.user.estado !== d.estado) { S.user.estado = d.estado; ls('user', S.user); }
     pintarNav();
     S.ticks++;
