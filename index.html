@@ -2,17 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pídele</title>
 <meta name="description" content="Tu comida favorita, a un click · La Cruz de Elota">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Pídele · Comida a domicilio en La Cruz de Elota">
 <meta property="og:description" content="Pide a tus negocios favoritos y paga directo, sin comisiones. Tu comida favorita, a un click.">
-<meta property="og:image" content="https://pidele.app/icons/og-lacruz.jpg">
+<meta property="og:image" content="https://pideleadomicilio.github.io/Pidele/icons/og-lacruz.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:url" content="https://pidele.app/">
+<meta property="og:url" content="https://pideleadomicilio.github.io/Pidele/">
 <meta name="theme-color" content="#3B5A2C">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -40,11 +40,6 @@
 html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.42 Nunito,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 body.sinNav{padding-bottom:0}
-/* pantalla fija como app: sin acercar con doble toque, sin rebote al llegar arriba/abajo y sin desplazarse de lado */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;overflow-x:hidden;max-width:100%}
-body{overscroll-behavior:none;overflow-x:clip}
-/* listas con desplazamiento propio: al llegar a su fin no arrastran la pantalla */
-#modal .caja,.msgs,.secs,.catFila,.promoFila{overscroll-behavior:contain}
 button,input,select,textarea{font:inherit;color:inherit}
 svg.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;vertical-align:middle}
 svg.ic.s{width:17px;height:17px} svg.ic.l{width:28px;height:28px}
@@ -62,8 +57,6 @@ svg.ic.s{width:17px;height:17px} svg.ic.l{width:28px;height:28px}
 header{position:sticky;top:0;z-index:50;background:var(--pri);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:none;align-items:center;gap:10px}
 header .logo{font-weight:900;font-size:21px;flex:1;letter-spacing:-.4px}
 header .yo{font-size:12px;opacity:.92;text-align:right;line-height:1.15;max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.selNeg{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:10px;padding:3px 8px;font:inherit;font-weight:800;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-.punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F4C676;vertical-align:middle}
 header button{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:999px;padding:7px 13px;font-weight:700;cursor:pointer;display:flex;gap:6px;align-items:center}
 
 main{max-width:720px;margin:0 auto;padding:14px 16px 24px}
@@ -163,7 +156,7 @@ textarea.i{min-height:70px;resize:vertical}
 .tabs button{flex:1;border:0;background:none;border-radius:999px;padding:9px 4px;font-weight:800;font-size:14px;cursor:pointer;color:var(--tx2)}
 .tabs button.on{background:var(--pri);color:#fff}
 .menuWrap{display:flex;gap:10px;align-items:flex-start}
-.secs{flex:0 0 86px;position:sticky;top:calc(10px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto}
+.secs{flex:0 0 86px;position:sticky;top:calc(10px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 120px);overflow-y:auto}
 .sec{background:var(--card);border:1.5px solid var(--ln);border-radius:14px;padding:10px 6px;font-size:12.5px;font-weight:800;color:var(--tx2);cursor:pointer;text-align:center;line-height:1.2}
 .sec.on{background:var(--pri);border-color:var(--pri);color:#fff}
 .prods{flex:1;min-width:0}
@@ -201,10 +194,6 @@ textarea.i{min-height:70px;resize:vertical}
 .cant{display:flex;align-items:center;gap:8px;border:1.5px solid var(--ln);border-radius:12px;padding:3px}
 .cant button{width:30px;height:30px;border-radius:9px;border:0;background:none;font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx)}
 .cant b{min-width:18px;text-align:center}
-.opcCant{justify-content:space-between;gap:10px;cursor:default}
-.opcCant > span{flex:1;min-width:0}
-.cant.chica{gap:4px;padding:2px;flex-shrink:0}
-.cant.chica button{width:30px;height:28px}
 #visor{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px}
 #visor.on{display:flex}
 #visor img{max-width:100%;max-height:80vh;border-radius:10px;background:#fff}
@@ -217,9 +206,6 @@ textarea.i{min-height:70px;resize:vertical}
 .basura{background:none;border:0;color:var(--tx2);cursor:pointer;padding:2px}
 .tot{display:flex;justify-content:space-between;padding:5px 0;gap:10px}
 .tot.g{font-size:18px;font-weight:900;border-top:1px solid var(--ln);margin-top:6px;padding-top:10px}
-#codEnt::placeholder{letter-spacing:6px;opacity:.35}
-body.sinNav .barra{bottom:calc(14px + env(safe-area-inset-bottom))}
-body.sinNav main{padding-bottom:96px}
 .barra{transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0);position:fixed;left:14px;right:14px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:55;max-width:692px;margin:0 auto;background:var(--pri);color:#fff;border-radius:999px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-weight:800;cursor:pointer;box-shadow:0 8px 20px rgba(44,69,33,.35)}
 
 /* opciones (entrega / pago) */
@@ -298,14 +284,11 @@ body.sinNav main{padding-bottom:96px}
 .num{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0}
 .num.r{background:var(--moto)} .num.e{background:var(--pri)}
 .espera{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums}
-/* horario: día a la izquierda y "abre a cierra" a la derecha; si no cabe, las horas bajan debajo del día */
-.hRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--ln)}
+.hRow{display:grid;grid-template-columns:100px 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--ln)}
 .hRow:last-child{border-bottom:0}
-.hRow label{flex:1 0 104px;display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px;min-width:0}
-.hRow .hHoras{flex:1 1 230px;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center}
-.hRow .hHoras span{color:var(--tx2);font-size:13px;font-weight:700}
-.hRow select{padding:9px 4px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;max-width:100%;background:var(--card);text-align:center;text-align-last:center;text-overflow:ellipsis;color:inherit}
-.hRow.off .hHoras{opacity:.35}
+.hRow label{display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px}
+.hRow input[type=time]{padding:8px;border:1.5px solid var(--ln);border-radius:10px;width:100%;background:var(--card)}
+.hRow.off input[type=time]{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
 .entregaBox{background:var(--pri-xs);border-radius:16px;padding:12px;margin-top:10px}
 .qrCaja{background:#fff;border-radius:18px;padding:14px;display:inline-block;margin:6px auto 10px;box-shadow:var(--sh)}
@@ -344,8 +327,14 @@ body.sinNav main{padding-bottom:96px}
 .promoCard .pie{padding:10px 13px 12px}
 .tachado{text-decoration:line-through;color:var(--tx2);font-weight:700;font-size:.82em;margin-right:4px}
 .precioPromo{color:var(--err)}
-#bloqueoUbic{position:fixed;inset:0;z-index:900;background:rgba(34,40,29,.6);display:flex;align-items:center;justify-content:center;padding:20px}
-#bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center}
+#bloqueoUbic{position:fixed;inset:0;z-index:990;background:rgba(34,40,29,.6);display:flex;padding:20px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center;margin:auto}
+#bloqueoUbic .pasos{text-align:left;background:var(--bg);border-radius:16px;padding:4px 14px;margin:12px 0;font-size:14.5px}
+#bloqueoUbic .pasos ol{padding-left:20px;margin:8px 0}
+#bloqueoUbic .pasos li{margin:6px 0}
+@keyframes girar{to{transform:rotate(360deg)}}
+.girando{display:inline-block;animation:girar 1.2s linear infinite}
+html.sinScroll,html.sinScroll body{overflow:hidden;overscroll-behavior:none}
 /* recorrido guiado */
 #tour{position:fixed;inset:0;z-index:950}
 #tour .hueco{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(20,26,16,.66);transition:all .3s ease;pointer-events:none;outline:3px solid #F3C27A;outline-offset:2px}
@@ -363,40 +352,6 @@ body.sinNav main{padding-bottom:96px}
 .chips label:has(input:checked){background:var(--pri);border-color:var(--pri);color:#fff}
 .esqueleto{background:linear-gradient(90deg,#EEE8DD 25%,#F6F1E8 50%,#EEE8DD 75%);background-size:200% 100%;animation:brillo 1.2s infinite;border-radius:18px}
 @keyframes brillo{to{background-position:-200% 0}}
-/* campos de 16px: así el iPhone no acerca la pantalla al escribir (al final para que tenga prioridad) */
-input,select,textarea,input.i,select.i,textarea.i,.buscar input{font-size:16px}
-input.i,select.i,textarea.i{min-width:0;max-width:100%}
-.row > input.i,.row > select.i{flex:1 1 0}
-
-/* ===== Computadora (2.18): menú a la izquierda, contenido más ancho, más columnas y ventanas centradas ===== */
-@media (min-width:1024px){
-  body{padding-bottom:0}
-  body:not(.sinNav){padding-left:104px}
-  body:not(.sinNav) header{margin-left:-104px}
-  nav{top:0;bottom:0;right:auto;width:104px;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:6px;border-top:0;border-right:1px solid var(--ln);padding:20px 8px;z-index:45;box-shadow:none}
-  body.conTop nav{top:61px}
-  nav button{flex:0 0 auto;max-width:none;width:100%;padding:12px 4px;border-radius:14px;font-size:12.5px}
-  nav button:hover{background:var(--pri-xs)}
-  nav button.on{background:var(--pri-xs)}
-  nav .badge{top:4px;right:calc(50% - 26px)}
-  main{max-width:1180px;padding:22px 32px 48px}
-  body[data-rol="negocio"] main,body[data-rol="repartidor"] main,body[data-rol="moderador"] main{max-width:980px}
-  .grid2{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-  .prods .grid2{grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px}
-  .pCard .img{aspect-ratio:4/3}
-  .catFila{margin:0 0 6px;padding:2px 0 10px;flex-wrap:wrap}
-  .slide{flex-basis:calc(50% - 8px)}
-  .secs{flex-basis:160px}
-  .sec{font-size:13.5px;padding:11px 8px}
-  .mapa{height:300px}.mapa.alto{height:460px}
-  #modal{align-items:center;padding:24px}
-  #modal .caja{border-radius:24px;max-width:620px;max-height:88vh;padding:20px}
-  .hojaImg{width:calc(100% + 40px);margin:-20px -20px 14px}
-  .barra{left:128px;right:24px;bottom:24px;max-width:760px}
-  body.sinNav .barra{left:24px}
-  .kpis{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-}
-@media (min-width:1440px){ .grid2{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
 </style>
 </head>
 <body class="sinNav">
@@ -463,8 +418,8 @@ const PUEBLO = (() => {
     const guardado = localStorage.getItem('pe_pueblo') || '';
     id = guardado || param;
     // invitación del administrador: el municipio es el del enlace y no se cambia por ubicación
-    if ((qs.get('inv') || qs.get('seguir')) && PUEBLOS.some(x => x.id === (param || PUEBLOS[0].id))) {
-      PUEBLO_INV = qs.get('inv') || ''; id = param || PUEBLOS[0].id;
+    if (qs.get('inv') && PUEBLOS.some(x => x.id === (param || PUEBLOS[0].id))) {
+      PUEBLO_INV = qs.get('inv'); id = param || PUEBLOS[0].id;
       localStorage.setItem('pe_casa', id); localStorage.removeItem('pe_fuera');
     } else if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
       let u = null; try { u = JSON.parse(localStorage.getItem('pe_' + (guardado && guardado !== PUEBLOS[0].id ? guardado + '_' : '') + 'user')); } catch (e) { }
@@ -513,20 +468,6 @@ function cambiarPueblo(id, query) {
  * - Los administradores se cambian libres desde su panel.
  */
 const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('pe_' + k); if (v === null) localStorage.removeItem('pe_' + k); else localStorage.setItem('pe_' + k, String(v)); } catch (e) { return null; } };
-/**
- * ¿Se abrió desde la app de Android de Google Play? Ahí la suscripción se paga con Google Play y no se muestran transferencias.
- * Se recuerda en el teléfono. Para probar en el navegador: pidele.app/?modo=play (y ?modo=web para volver).
- */
-(function () {
-  try {
-    const q = new URLSearchParams(location.search);
-    if (document.referrer.indexOf('android-app://') === 0 || q.get('modo') === 'play') localStorage.setItem('pe_enPlay', '1');
-    if (q.get('modo') === 'web') localStorage.removeItem('pe_enPlay');
-  } catch (e) { }
-})();
-const enPlay = () => lsG('enPlay') === '1';
-/** El cobro de Google Play está disponible (app de Play con el cobro activado). */
-const playCobro = () => enPlay() && 'getDigitalGoodsService' in window;
 /** Centro y radio de un municipio (la ubicación registrada en su servidor). */
 async function centroDe(pb) {
   S._centros = S._centros || {};
@@ -540,7 +481,7 @@ function gpsAhora(motivo) {
   return new Promise((ok, mal) => {
     if (!navigator.geolocation) { mal(new Error('Tu teléfono no permite ubicación.')); return; }
     navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy || 0) }),
-      () => mal(new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      er => { const x = new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.'); x.code = er && er.code; mal(x); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
   });
 }
 /** ¿En qué ciudad estás? La más cercana dentro de su radio, o null. */
@@ -568,11 +509,19 @@ async function ubicarAlAbrir() {
   S._ubicando = true;
   try {
     const primera = !ciudadDefinida();
-    if (!primera && (await permisoUbicacion()) !== 'granted') return; // sin preguntar de más a quien ya tiene su ciudad
+    const perm = await permisoUbicacion();
+    // sin preguntar de más a quien ya tiene su ciudad (salvo quien entró sin ubicación y aún no la ha negado)
+    if (!primera && perm !== 'granted' && !(lsG('sinUbic') && perm === 'prompt' && !navegadorDeApp())) return;
+    if (primera) {
+      if (!navigator.geolocation) { bloqueoUbicacion('', 'sin'); return; }
+      if (navegadorDeApp() && !S._ubicTocado) { bloqueoUbicacion('', 'app'); return; }
+      if (perm === 'denied') { bloqueoUbicacion('', navegadorDeApp() ? 'app' : 'bloqueada'); return; }
+      if (S._ubicTocado) bloqueoUbicacion('', 'buscando');
+    }
     let g;
     try { g = await gpsAhora('para mostrarte los negocios de tu ciudad'); }
-    catch (e) { if (primera) bloqueoUbicacion(e.message); return; }
-    quitarBloqueoUbicacion();
+    catch (e) { if (primera) bloqueoUbicacion(e.message, e.code === 1 ? 'bloqueada' : navegadorDeApp() ? 'app' : e.code ? 'apagada' : 'inicio'); return; }
+    quitarBloqueoUbicacion(); lsG('sinUbic', null);
     const pb = await puebloDeUbicacion(g);
     lsG('fuera', pb ? null : '1'); S.fueraZona = !pb;
     if (primera) {
@@ -593,17 +542,60 @@ async function ubicarAlAbrir() {
     setTimeout(() => { if (lsG('casa') && S.vista === inicioRol() && !$('#bloqueoUbic')) iniciarTour(); }, 900);
   }
 }
-/** Pantalla que no deja avanzar sin ubicación (solo la primera vez). */
-function bloqueoUbicacion(msg) {
+/** ¿Se abrió dentro de WhatsApp, Facebook, Instagram, etc.? Esos navegadores suelen bloquear la ubicación. */
+function navegadorDeApp() { return /FBAN|FBAV|FB_IAB|FBIOS|Instagram|WhatsApp|Messenger|Line\/|TikTok|musical_ly|Snapchat/i.test(navigator.userAgent || ''); }
+/** Pantalla de ubicación la primera vez: activarla o continuar sin ella. tipo: inicio | buscando | bloqueada | apagada | app | sin */
+function bloqueoUbicacion(msg, tipo) {
+  tipo = tipo || 'inicio';
   let d = $('#bloqueoUbic');
   if (!d) { d = document.createElement('div'); d.id = 'bloqueoUbic'; document.body.appendChild(d); }
-  d.innerHTML = `<div class="caja"><div style="font-size:52px">📍</div><h2>Activa tu ubicación</h2>
-    <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
-    <button class="btn pri pill full" onclick="act(this,async()=>{S._ubicando=false;await ubicarAlAbrir()})">Activar ubicación</button>
-    <button class="lnk small" style="margin-top:12px" onclick="ayudaUbicacion()">¿Cómo la activo?</button>
-    ${msg ? `<div class="muted small" style="margin-top:10px">${esc(msg)}</div>` : ''}</div>`;
+  document.documentElement.classList.add('sinScroll');
+  const tour = $('#tour'); if (tour) tour.remove();
+  const sinUbic = `<button class="btn full" style="margin-top:10px" onclick="continuarSinUbicacion()">Continuar sin ubicación por ahora</button>`;
+  const reintentar = `<button class="btn pri pill full" onclick="reintentarUbicacion()">Intentar de nuevo</button>`;
+  let cuerpo;
+  if (tipo === 'buscando') {
+    cuerpo = `<h2>Buscando tu ubicación…</h2><p class="muted">Si tu teléfono te pregunta, elige <b>Permitir</b>.</p>
+      <div style="font-size:30px;margin:8px 0" class="girando">⏳</div>${sinUbic}`;
+  } else if (tipo === 'app') {
+    cuerpo = `<h2>Abre Pídele en tu navegador</h2>
+      <p class="muted">Abriste el enlace dentro de otra app (WhatsApp, Facebook o Instagram) y esa app no deja usar la ubicación.</p>
+      <div class="pasos"><ol><li>Toca <b>Copiar enlace</b>.</li><li>Abre <b>${/iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Safari' : 'Chrome'}</b> y pégalo en la barra de direcciones.</li>
+      <li>O toca los <b>⋮</b> / <b>⋯</b> de arriba y elige <b>Abrir en el navegador</b>.</li></ol></div>
+      <button class="btn pri pill full" onclick="copiarEnlaceApp(this)">📋 Copiar enlace</button>
+      <button class="btn full" style="margin-top:10px" onclick="reintentarUbicacion()">Intentar aquí de todos modos</button>${sinUbic}`;
+  } else if (tipo === 'inicio') {
+    cuerpo = `<h2>Activa tu ubicación</h2>
+      <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
+      <button class="btn pri pill full" onclick="reintentarUbicacion()">Activar ubicación</button>${sinUbic}`;
+  } else {
+    cuerpo = `<h2>${tipo === 'apagada' ? 'No encontramos tu ubicación' : tipo === 'sin' ? 'Ubicación no disponible' : 'La ubicación está bloqueada'}</h2>
+      <div class="pasos">${pasosUbicacion(tipo)}</div>${tipo === 'sin' ? '' : reintentar}${sinUbic}`;
+  }
+  d.innerHTML = `<div class="caja"><div style="font-size:52px">📍</div>${cuerpo}
+    ${msg && tipo === 'inicio' ? `<div class="muted small" style="margin-top:10px">${esc(msg)}</div>` : ''}</div>`;
 }
-function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); }
+function reintentarUbicacion() { S._ubicTocado = true; S._ubicando = false; ubicarAlAbrir(); }
+async function copiarEnlaceApp(btn) {
+  const url = location.href.split('#')[0];
+  try { await navigator.clipboard.writeText(url); }
+  catch (e) { const t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) { } t.remove(); }
+  btn.innerHTML = '✅ Enlace copiado'; toast('Enlace copiado: pégalo en tu navegador');
+}
+/** Sin ubicación: elige su ciudad y entra; el efectivo queda apagado hasta que la active. */
+function continuarSinUbicacion() {
+  bloqueoUbicacion('');
+  $('#bloqueoUbic').innerHTML = `<div class="caja" style="text-align:left"><h2 style="margin-top:0">¿En qué ciudad quieres pedir?</h2>
+    <div class="muted" style="margin:6px 0 12px">Puedes entrar sin ubicación. Mientras no la actives, tus pedidos se pagan por <b>transferencia</b>; al activarla se habilita el efectivo.</div>
+    ${PUEBLOS.map(x => `<div class="opcion" onclick="entrarSinUbicacion('${x.id}')"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}
+    <button class="lnk small" style="margin-top:12px" onclick="bloqueoUbicacion('')">← Mejor activar mi ubicación</button></div>`;
+}
+function entrarSinUbicacion(id) {
+  lsG('casa', id); lsG('sinUbic', '1'); lsG('fuera', '1'); S.fueraZona = true;
+  if (id === PUEBLO.id) { quitarBloqueoUbicacion(); setTimeout(() => iniciarTour(), 500); }
+  else cambiarPueblo(id);
+}
+function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); document.documentElement.classList.remove('sinScroll'); }
 /** Fuera de las dos ciudades: elige dónde quiere pedir (solo con transferencia). */
 function elegirCiudadFuera() {
   bloqueoUbicacion('');
@@ -635,7 +627,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.22.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.12.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -653,7 +645,7 @@ const APP_VER = '2.22.0'; // versión de esta pantalla (index.html); el servidor
 
 /* ============ ESTADO ============ */
 const S = {
-  token: ls('token'), user: ls('user'), modoTel: ls('modoTel'), negocio: ls('negocio'), negocios: ls('negocios') || [], negActivo: ls('negActivo') || '', invEquipo: ls('invEquipo') || [], conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
+  token: ls('token'), user: ls('user'), negocio: ls('negocio'), conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
   // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
   carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
@@ -770,7 +762,7 @@ async function apiDe(pb, accion, datos, token, propio, modo) {
   const URL1 = pb.api, ALT = pb.alt;
   // id de la operación: si se reenvía por la ruta alterna, el servidor no la repite
   const rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}, propio && S.negActivo && S.user && S.user.rol === 'negocio' ? { neg: S.negActivo } : {}));
+  const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}));
   let alt = false;
   try { alt = Number(localStorage.getItem('pe_rutaAlt')) > Date.now(); } catch (e) { }
   const intento = async url => {
@@ -925,13 +917,7 @@ const NAV = {
   adminLocal: [['admin', 'grafica', 'Resumen'], ['adminUsuarios', 'usuarios', 'Usuarios'], ['adminPedidos', 'recibo', 'Pedidos'], ['adminCobros', 'efectivo', 'Cobros'], ['adminComisiones', 'ajustes', 'Municipio']]
 };
 function navRol() {
-  const r = rolActual();
-  let l = NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || [];
-  // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
-  if (r === 'negocio') {
-    if (!S.negocio) l = [['perfil', 'user', 'Perfil']];
-    else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados']) : v === 'promos' ? puedo('promos') : v === 'miNegocio' ? puedo('ajustes') : true);
-  }
+  const r = rolActual(), l = NAV[r === 'admin' && S.user && S.user.local ? 'adminLocal' : r] || [];
   // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
   return esAdminU() && r !== 'admin' ? l.filter(x => x[0] !== 'perfil').concat([['_panel', 'grafica', 'Mi panel']]) : l;
 }
@@ -939,13 +925,13 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
-  negPedidos: vNegPedidos, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  negPedidos: vNegPedidos, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
 const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
 // pantallas a pantalla completa (sin barra inferior)
-const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'capturaTel'];
+const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo'];
 
 async function ir(v, p, sinHistoria) {
   if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
@@ -985,71 +971,9 @@ function rolActual() {
   if (esAdminU()) return S.modoRep ? 'repartidor' : S.modoCliente ? 'comprador' : 'admin'; // el administrador también ve la app como cliente o repartidor
   return esStaff() && S.modoCliente ? 'comprador' : S.user.rol;
 }
-/* ---------- Varios negocios y equipo (2.15) ---------- */
-/** Guarda lo que manda el servidor: el negocio elegido (con permisos), la lista de negocios y las invitaciones a equipos. */
-function fijarSesionNeg(d) {
-  if (!d) return;
-  if ('negocios' in d) { S.negocios = d.negocios || []; ls('negocios', S.negocios); }
-  if ('invitaciones' in d) { S.invEquipo = d.invitaciones || []; ls('invEquipo', S.invEquipo); }
-  if ('negocio' in d) { S.negocio = d.negocio; ls('negocio', S.negocio); S.negActivo = d.negocio ? d.negocio.id : ''; ls('negActivo', S.negActivo || null); }
-}
-/** Respuestas que traen el negocio (guardar datos, abrir/cerrar): conserva dueño y permisos. */
-function fijarNeg(n) {
-  if (n && S.negocio && n.id === S.negocio.id) n = Object.assign({ dueno: S.negocio.dueno, permisos: S.negocio.permisos }, n);
-  S.negocio = n; ls('negocio', n);
-}
-/** ¿Puede hacer esto en el negocio elegido? (el dueño todo; sin datos de permisos = versión anterior = todo). */
-function puedo(p) { const n = S.negocio; if (!n || n.dueno !== false) return true; return [].concat(p).some(x => (n.permisos || []).includes(x)); }
-const esDueno = () => !!S.negocio && S.negocio.dueno !== false;
-async function refrescarSesionNeg(cambioRol) {
-  if (S._refNeg) return; S._refNeg = true;
-  try {
-    const y = await api('yo');
-    if (y.usuario) { S.user = y.usuario; ls('user', S.user); }
-    const antes = (S.negocios || []).length;
-    fijarSesionNeg(y); pintarNav();
-    if (cambioRol) { S.modoCliente = false; ls('modoCliente', null); ir(inicioRol()); }
-    else if ((S.negocios || []).length > antes) toast('🏪 Tienes un negocio nuevo en tu panel');
-    else if (S.vista === 'perfil' || S.vista === 'equipo') pintar(true);
-  } catch (e) { } finally { S._refNeg = false; }
-}
-/** Cambiar de negocio o sucursal. */
-async function elegirNegocio(id) {
-  if (id === S.negActivo) { cerrarModal(); return; }
-  S.negActivo = id; ls('negActivo', id);
-  const d = await api('yo');
-  fijarSesionNeg(d); cerrarModal();
-  S._prods = null; S._grupos = null; S._promosNeg = null; S.firma = '';
-  pintarNav(); ir(inicioRol());
-  toast('Ahora estás en ' + (S.negocio ? S.negocio.nombre : 'tu negocio'));
-}
-function menuNegocios() {
-  const l = S.negocios || [];
-  modal(`<div class="row between"><h2 style="margin:0">Tus negocios</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div style="margin-top:8px">${l.map(n => `<button class="opc" style="width:100%;background:none;border:0;border-bottom:1px solid var(--ln);text-align:left" onclick="act(this,()=>elegirNegocio('${n.id}'))">
-      ${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover">` : '<span style="font-size:26px">🏪</span>'}
-      <span class="grow"><b>${esc(n.nombre)}</b><div class="muted small">${n.estado === 'pendiente' ? '⏳ Por aprobar' : n.abierto ? '🟢 Recibiendo pedidos' : '⏸️ En pausa'} · ${n.dueno ? 'Dueño' : 'Colaborador'}</div></span>
-      ${S.porNeg && S.porNeg[n.id] ? `<i class="badge" style="position:static">${S.porNeg[n.id]}</i>` : ''}${n.id === S.negActivo ? '<span class="tag t-ok">Abierto aquí</span>' : ''}</button>`).join('')}</div>
-    ${l.some(n => n.dueno) ? `<div class="btns"><button class="btn pill" onclick="cerrarModal();ir('equipo')">⚙️ Mis negocios y equipo</button></div>` : ''}`);
-}
-/** Invitación a un equipo pendiente (aparece en Perfil y en Pedidos). */
-function avisoInvEquipo() {
-  return (S.invEquipo || []).map(i => `<div class="aviso info">👥 <b>${esc(i.negocio)}</b> te invita a su equipo${i.permisos.length ? ' para ' + i.permisos.map(k => PERM_TXT[k] || k).join(', ') : ''}.
-    <div class="btns" style="margin-top:6px"><button class="btn pri sm" onclick="act(this,()=>responderEquipo('${i.id}',true))">Aceptar</button><button class="btn sm" onclick="act(this,()=>responderEquipo('${i.id}',false))">Rechazar</button></div></div>`).join('');
-}
-async function responderEquipo(id, aceptar) {
-  const d = await api('responderEquipo', { id, aceptar });
-  if (d.usuario) { S.user = d.usuario; ls('user', S.user); }
-  fijarSesionNeg(d);
-  if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
-  else { toast('Invitación rechazada'); pintar(true); }
-}
-const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
-const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
 function modoCliente(on) {
-  if ($('#modal').classList.contains('on')) cerrarModal(); // el recorrido simulado sigue aunque se cierre su panel
   S.modoCliente = !!on; ls('modoCliente', S.modoCliente ? 1 : null);
   S.modoRep = false; ls('modoRep', null); S.modoServicio = false; ls('modoServicio', null);
   S.firma = ''; pintarNav();
@@ -1057,15 +981,13 @@ function modoCliente(on) {
 }
 /** El administrador como repartidor: solo ve y entrega pedidos de muestra. */
 function modoRepartidor(on) {
-  if ($('#modal').classList.contains('on')) cerrarModal();
   S.modoRep = !!on && esAdminU(); ls('modoRep', S.modoRep ? 1 : null);
   S.modoCliente = false; ls('modoCliente', null);
   S.firma = ''; S._yaAbrioEntregas = false;
   if (S.modoRep) iniciarGPS();
   pintarNav(); ir(inicioRol());
 }
-function botonPanel() { if (S.modoTel && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="salirModoTel()">📞 ${esc(S.modoTel.nombre.split(' ')[0])} · Cancelar</button>`;
-  if (S.modoServicio && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoServicio(false)">🛵 Servicio · Cancelar</button>`;
+function botonPanel() { if (S.modoServicio && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoServicio(false)">🛵 Servicio · Cancelar</button>`;
   return esAdminU() && (S.modoCliente || S.modoRep) ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi panel</button>` : esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
 function inicioRol() { return (navRol()[0] || ['inicio'])[0]; }
@@ -1077,12 +999,8 @@ function pintarNav() {
   const rol = rolActual();
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
   $('#top').style.display = esCliente() || S.vista === 'entrar' ? 'none' : 'flex';
-  document.body.classList.toggle('conTop', !(esCliente() || S.vista === 'entrar'));
-  document.body.dataset.rol = rol;
   const u = S.user;
-  const varios = rol === 'negocio' && (S.negocios || []).length > 1 && S.negocio;
-  $('#yo').innerHTML = !u ? '' : varios ? `<button class="selNeg" onclick="menuNegocios()" aria-label="Cambiar de negocio">${esc(S.negocio.nombre)} ▾${S.porNeg && Object.keys(S.porNeg).some(k => k !== S.negActivo && S.porNeg[k]) ? ' <i class="punto"></i>' : ''}</button><br><span style="opacity:.8">${esc(u.nombre.split(' ')[0])}${S.negocio.dueno === false ? ' · colaborador' : ''}</span>`
-    : `${esc(u.nombre.split(' ')[0])}<br><span style="opacity:.8">${esc(rol === 'negocio' && S.negocio && S.negocio.dueno === false ? 'Colaborador · ' + S.negocio.nombre : rolNombre(u.rol))}</span>`;
+  $('#yo').innerHTML = u ? `${esc(u.nombre.split(' ')[0])}<br><span style="opacity:.8">${esc(rolNombre(u.rol))}</span>` : '';
   $('#btnSesion').innerHTML = ico('salir', 's') + ' Salir';
   const verNav = !SIN_NAV.includes(S.vista);
   $('#nav').style.display = verNav ? 'flex' : 'none';
@@ -1142,7 +1060,7 @@ async function refrescarArranque() {
     if (d.sesion === 'BLOQUEADO') { vBloqueado(); return; }
     if (d.sesion === 'SESION') { salir(true); toast('Tu sesión terminó, vuelve a entrar.'); }
     else if (d.usuario) {
-      S.user = d.usuario; ls('user', S.user); fijarSesionNeg(d);
+      S.user = d.usuario; S.negocio = d.negocio; ls('user', S.user); ls('negocio', S.negocio);
       if (S.user.cambiarPass && S.vista !== 'nuevaClave') ir('nuevaClave');
       else setTimeout(pedirAviso, 1200);
     }
@@ -1159,8 +1077,8 @@ async function refrescarArranque() {
 }
 
 function guardarSesion(d) {
-  S.token = d.token; S.user = d.usuario; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
-  ls('token', S.token); ls('user', S.user); ls('conf', S.conf); fijarSesionNeg(d);
+  S.token = d.token; S.user = d.usuario; S.negocio = d.negocio; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
+  ls('token', S.token); ls('user', S.user); ls('negocio', S.negocio); ls('conf', S.conf);
   history.replaceState(null, '');
   // entró con contraseña temporal: primero crea una nueva
   const destino = S.user.cambiarPass ? 'nuevaClave' : S.despues && S.user.rol === 'comprador' ? S.despues : inicioRol();
@@ -1178,7 +1096,7 @@ function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
   ['token', 'user', 'negocio', 'entrega', 'modoCliente', 'modoRep', 'modoServicio'].forEach(k => ls(k, null));
-  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.negocios = []; S.negActivo = ''; S.invEquipo = []; ['negocios', 'negActivo', 'invEquipo'].forEach(k => ls(k, null)); S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
+  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -1272,29 +1190,13 @@ async function vInvitacion(codigo) {
     html(`<div class="entrar"><div class="vacio"><span class="big">✉️</span>${esc(e.message)}<br><br><button class="btn" onclick="vLogin()">Ir a entrar</button></div></div>`);
     return;
   }
-  if (d.tipo === 'colaborador') {
-    html(`<div class="entrar">
-    <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
-    <div class="card" style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:4px 0">${esc(d.dueno || 'Un negocio')} te invita a su equipo</h2>
-      <div class="muted">Vas a colaborar en <b>${d.negocios.map(esc).join(', ')}</b>${d.permisos.length ? ' para ' + d.permisos.map(esc).join(', ') : ''}.</div></div>
-    <div class="card">
-      <label class="f" style="margin-top:0">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name" value="${esc(d.nombre)}">
-      <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
-      <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
-      ${casillaAviso()}
-      <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrarInv('${esc(codigo)}'))">Crear mi cuenta y unirme</button></div>
-    </div>
-    <div style="text-align:center"><button class="lnk" onclick="vLogin()">Ya tengo cuenta (acepto la invitación en mi perfil)</button></div>
-  </div>`);
-    return;
-  }
   if (d.tipo === 'repartidor') {
     html(`<div class="entrar">
     <div class="marca"><div class="marcaTxt" style="font-size:42px">Pídele</div>${marcaPueblo()}</div>
     <div class="card" style="text-align:center"><div style="font-size:40px">🛵</div><h2 style="margin:4px 0">¡Te invitamos a repartir con Pídele ${esc(PUEBLO.nombre)}!</h2>
       <div class="muted">Crea tu cuenta: queda aprobada al instante y <b>sin pagar inscripción</b>.</div>
       <div class="tot" style="margin-top:10px"><span>Mensualidad (después de tu prueba)</span><b>${money(d.cuota)} al mes</b></div>
-      <div class="muted small">${textoPrueba(0, true, true) ? textoPrueba(0, true, true).replace('Al aprobar tu cuenta, tu', 'Tu') : 'Tus primeros ' + d.diasPrueba + ' días son gratis.'} Lo que cobras de envío es tuyo: Pídele no te cobra comisión.</div></div>
+      <div class="muted small">${textoPrueba(0, true) ? textoPrueba(0, true).replace('Al aprobar tu cuenta, tu', 'Tu') : 'Tus primeros ' + d.diasPrueba + ' días son gratis.'} Lo que cobras de envío es tuyo: Pídele no te cobra comisión.</div></div>
     <div class="card">
       <label class="f" style="margin-top:0">Tu nombre completo</label><input class="i" id="rNom" autocomplete="name" value="${esc(d.nombre)}">
       <label class="f">Teléfono</label><input class="i" id="rTel" value="${esc(d.telefono)}" readonly style="opacity:.75">
@@ -1330,7 +1232,7 @@ async function registrarInv(codigo) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
   const d = await api('registrar', { aceptoAviso: avisoMarcado(), invitacion: codigo, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), aparato: aparatoId() });
   PUEBLO_INV = '';
-  toast(d.negocio && d.negocio.dueno === false ? '¡Bienvenido al equipo de ' + d.negocio.nombre + '!' : '¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
+  toast('¡Bienvenido a ' + APP + '! Tu cuenta ya está aprobada');
   guardarSesion(d);
 }
 
@@ -1421,7 +1323,6 @@ function abrirDesdeUrl(url) {
   const ped = q.get('pedido'), v = q.get('v'), neg = q.get('negocio');
   if (PUEBLO_PEND && q.get('pueblo') === PUEBLO_PEND) return false; // enlace de otro municipio: primero se comprueba la ubicación
   if (neg) { ir('negocio', neg); return true; }
-  if (q.get('seguir')) { ir('seguir', q.get('seguir')); return true; }
   if (q.get('inv')) {
     if (S.token) { ir(inicioRol(), null); setTimeout(() => toast('Esa invitación es para crear una cuenta nueva: cierra tu sesión para usarla'), 500); }
     else vInvitacion(q.get('inv'));
@@ -1434,7 +1335,7 @@ function abrirDesdeUrl(url) {
   }
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion') && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio'))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion') && rolActual() === 'admin') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -1558,10 +1459,9 @@ async function descargarQR() {
  */
 const SONDEO_MS = { comprador: 60000, negocio: 30000, repartidor: 20000, admin: 30000 };
 function intervaloSondeo() {
-  const r = S.user ? rolActual() : '';
-  // siguiendo un pedido que ya va en camino: más seguido para mover al repartidor en el mapa (los de muestra, casi en vivo)
-  if (r === 'comprador' && S.vista === 'pedido' && S._trk && ['EN_CAMINO', 'LISTO', 'PREPARANDO'].includes(S._trk.estado)) return S._trk.muestra ? 4000 : 15000;
-  if (S._sim) return 4000;
+  const r = S.user ? S.user.rol : '';
+  // siguiendo un pedido que ya va en camino: más seguido para mover al repartidor en el mapa
+  if (r === 'comprador' && S.vista === 'pedido' && S._trk && ['EN_CAMINO', 'LISTO', 'PREPARANDO'].includes(S._trk.estado)) return 20000;
   return SONDEO_MS[r] || 60000;
 }
 function iniciarSondeo() {
@@ -1588,10 +1488,7 @@ async function sondear(forzar) {
       else if (rolActual() === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar(S.modoRep ? '🧪 Pedido de muestra para entregar' : '📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
-    S.firma = d.firma; S.nuevos = d.nuevos; S.porNeg = d.porNeg || null;
-    // le pasaron un negocio, lo agregaron a un equipo o cambió su tipo de cuenta: se recarga su sesión sin cerrar la app
-    const miFirma = S.user.rol === 'negocio' ? (S.negocios || []).map(n => n.id + (n.dueno ? '' : '*')).sort().join(',') + '|' + (S.invEquipo || []).length : '|' + (S.invEquipo || []).length;
-    if (d.rol && (d.rol !== S.user.rol || (d.negs !== undefined && d.negs !== '' && d.negs !== miFirma))) refrescarSesionNeg(d.rol !== S.user.rol);
+    S.firma = d.firma; S.nuevos = d.nuevos;
     if (S.user.estado !== d.estado) { S.user.estado = d.estado; ls('user', S.user); }
     pintarNav();
     S.ticks++;
@@ -1607,7 +1504,6 @@ function iniciarGPS() {
   if (!navigator.geolocation || S._gps) return;
   S._gps = navigator.geolocation.watchPosition(
     p => {
-      if (S._sim) return; // recorrido simulado de un pedido de muestra
       const antes = S.pos;
       S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gpsErr = 0;
       if (!antes && $('#avisoGPS')) pintar(true); // se acaba de activar: quitar el aviso
@@ -1674,9 +1570,9 @@ async function activarUbicacion() {
     e => { ayudaUbicacion(e.code === 1 ? 'bloqueada' : 'apagada'); listo(); },
     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }));
 }
-function ayudaUbicacion(tipo) {
+function pasosUbicacion(tipo) {
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const pasos = tipo === 'apagada'
+  return tipo === 'apagada'
     ? `<p>Parece que el <b>GPS del teléfono está apagado</b> o no encuentra señal.</p>
        <ol><li>Desliza desde arriba de la pantalla y activa <b>Ubicación</b> (${ios ? 'en iPhone: Ajustes → Privacidad y seguridad → Localización' : 'el ícono 📍'}).</li><li>Sal a un lugar abierto si estás bajo techo.</li><li>Regresa y toca <b>Intentar de nuevo</b>.</li></ol>`
     : tipo === 'sin' ? '<p>Este navegador no permite usar la ubicación. Abre Pídele en Chrome (Android) o Safari (iPhone).</p>'
@@ -1689,6 +1585,9 @@ function ayudaUbicacion(tipo) {
          <ol><li>Toca el ícono a la izquierda de la dirección (🔒 o ⓘ) y entra a <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
          <li>Si instalaste Pídele como app: mantén presionado su ícono → <b>Información de la app</b> (ⓘ) → <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
          <li>Revisa que la <b>Ubicación</b> del teléfono esté encendida (desliza desde arriba de la pantalla).</li></ol>`;
+}
+function ayudaUbicacion(tipo) {
+  const pasos = pasosUbicacion(tipo);
   modal(`<div class="row between"><h2 style="margin:0">Activar ubicación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${pasos}<div class="btns"><button class="btn pri pill full" onclick="cerrarModal();act(this,activarUbicacion)">Intentar de nuevo</button></div>`);
 }
@@ -1762,7 +1661,7 @@ function campoEspecial(c) {
       <label class="f">Tarifa base del envío por horario (3 tabuladores)</label>
       <div class="muted small">Cada tarifa empieza a la hora indicada y sigue hasta la siguiente; la última sigue después de medianoche hasta la primera.</div>
       ${l.slice(0, 3).map((x, i) => `<div class="row" style="gap:8px;margin-top:6px"><span class="muted small" style="width:70px">${['☀️ Día', '🌆 Tarde', '🌙 Noche'][i]}</span>
-        ${selHora('class="i tabH" onchange="leerTabuladores()"', x.desde || '00:00')}<span class="muted">$</span><input class="i tabB" type="number" min="0" value="${esc(x.base)}" oninput="leerTabuladores()"></div>`).join('')}
+        <input class="i tabH" type="time" value="${esc(x.desde)}" oninput="leerTabuladores()"><span class="muted">$</span><input class="i tabB" type="number" min="0" value="${esc(x.base)}" oninput="leerTabuladores()"></div>`).join('')}
       <input type="hidden" class="cfg" data-k="tarifasHorario" value="${esc(c.valor)}"></div>`;
   }
   if (c.clave === 'zonasEnvio') {
@@ -1831,156 +1730,19 @@ function modoServicio(on) {
   pintarNav(); ir(on ? 'inicio' : inicioRol());
   if (on) toast('Elige el negocio y lo que pidió tu cliente');
 }
-/** Antes de enviar el servicio: datos del cliente (opcional) para mandarle el seguimiento por WhatsApp. */
-function pedirClienteServicio() {
-  modal(`<div class="row between"><h2 style="margin:0">📞 ¿Para quién es?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted" style="margin:4px 0 8px">Opcional: con su teléfono le mandas por WhatsApp un enlace para que siga su pedido y conozca Pídele.</div>
-    <label class="f">Nombre del cliente</label><input class="i" id="svNom" maxlength="60" placeholder="Ej. Doña Rosa">
-    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="svTel" inputmode="tel" maxlength="14">
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,enviarServicio)">Enviar servicio al negocio</button></div>`);
-}
 async function enviarServicio() {
   const cs = carritosSel();
   if (!cs.length) throw new Error('Elige al menos un negocio');
-  const telC = (($('#svTel') || {}).value || '').replace(/\D/g, ''), nomC = (($('#svNom') || {}).value || '').trim();
-  if (telC && telC.length !== 10) throw new Error('El teléfono debe tener 10 dígitos (o déjalo vacío)');
   const hechos = [];
   for (const c of cs) {
-    const r = await api('crearServicio', { negocioId: c.negocioId, subtotalEsperado: subtotalCarrito(c), telCliente: telC, nombreCliente: nomC,
+    const r = await api('crearServicio', { negocioId: c.negocioId, subtotalEsperado: subtotalCarrito(c),
       items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) })) });
     hechos.push(r); delete S.carritos[c.negocioId];
   }
   guardarCarritos();
   S.modoServicio = false; ls('modoServicio', null); S.modoCliente = false; ls('modoCliente', null);
-  cerrarModal(); pintarNav(); ir('entregas');
+  pintarNav(); ir('entregas');
   toast('Servicio enviado a ' + hechos.map(h => h.negocio).join(', ') + ': te avisamos la hora en que estará listo');
-  const h = hechos.find(x => x.seguir);
-  if (h) setTimeout(() => mandarSeguimiento({ seguir: h.seguir, telCliente: h.telCliente, nombreCliente: h.nombreCliente, folio: h.folio, negocio: h.negocio }), 600);
-}
-
-/* ============ PEDIDOS POR TELÉFONO (2.21) ============ */
-/** El negocio registra lo que un cliente le pidió por teléfono: primero quién es, luego arma el pedido con su menú. */
-function formPedidoTel() {
-  modal(`<div class="row between"><h2 style="margin:0">📞 Pedido por teléfono</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted" style="margin:4px 0 8px">Registra lo que te pidió un cliente por teléfono. Le mandas por WhatsApp un enlace para que vea cómo va su pedido, y de paso conoce Pídele.</div>
-    <label class="f">Nombre del cliente</label><input class="i" id="ptNom" maxlength="60" placeholder="Ej. Doña Rosa">
-    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="ptTel" inputmode="tel" maxlength="14">
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,iniciarModoTel)">Elegir productos</button></div>`);
-}
-function iniciarModoTel() {
-  const tel = ($('#ptTel').value || '').replace(/\D/g, ''), nombre = $('#ptNom').value.trim();
-  if (nombre.length < 2) throw new Error('Escribe el nombre del cliente');
-  if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
-  S.modoTel = { tel, nombre }; ls('modoTel', S.modoTel);
-  Object.keys(S.carritos || {}).forEach(k => { if (k === S.negocio.id) delete S.carritos[k]; }); guardarCarritos();
-  S.modoCliente = true; ls('modoCliente', 1);
-  cerrarModal(); pintarNav(); ir('negocio', S.negocio.id);
-  toast('Agrega lo que pidió ' + nombre.split(' ')[0]);
-}
-function salirModoTel(callado) {
-  S.modoTel = null; ls('modoTel', null); S.modoCliente = false; ls('modoCliente', null);
-  if (S.negocio && S.carritos) { delete S.carritos[S.negocio.id]; guardarCarritos(); }
-  pintarNav(); ir(inicioRol());
-  if (!callado) toast('Pedido por teléfono cancelado');
-}
-/** Último paso: cómo se entrega, en cuánto tiempo y cómo paga. */
-async function vCapturaTel() {
-  if (!S.modoTel || !S.negocio) { ir(inicioRol()); return; }
-  const c = (S.carritos || {})[S.negocio.id];
-  if (!c || !Object.keys(c.items || {}).length) { ir('negocio', S.negocio.id); return; }
-  const n = S.negocio, t = S.modoTel, f = S._capT = S._capT || { tipo: 'domicilio', metodo: 'efectivo' };
-  html(`<div class="titBar"><button class="redondo" onclick="ir('carrito')">${ico('atras')}</button><h2>Pedido de ${esc(t.nombre.split(' ')[0])}</h2><span class="esp"></span></div>
-    <div class="card"><b>📞 ${esc(t.nombre)}</b> · ${esc(t.tel)}<div class="muted small">${Object.values(c.items).reduce((a, x) => a + x.cant, 0)} productos · ${money(subtotalCarrito(c))}</div></div>
-    <div class="card"><b>¿Cómo se entrega?</b>
-      <div class="row" style="gap:8px;margin-top:8px">${[['domicilio', '🛵 A domicilio'], ['recoger', '🏪 Pasa a recoger']].map(([k, tx]) => `<button class="btn ${f.tipo === k ? 'pri' : ''}" style="flex:1" onclick="S._capT.tipo='${k}';pintar(true)">${tx}</button>`).join('')}</div>
-      ${f.tipo === 'domicilio' ? `<label class="f">Dirección</label><input class="i" id="ctDir" maxlength="150" value="${esc(f.direccion || '')}" placeholder="Calle, número, colonia">
-        <label class="f">Referencia</label><input class="i" id="ctRef" maxlength="150" value="${esc(f.referencia || '')}" placeholder="Ej. casa azul, frente a la tienda">
-        <label class="f">Toca el mapa donde se entrega</label><div id="mapaCap" class="mapa alto"></div>
-        <div class="muted small" id="ctPin" style="margin-top:4px">${f.lat ? '📍 Punto marcado' : 'Aún no marcas el punto'}</div>` : ''}</div>
-    <div class="card"><b>¿En cuánto tiempo estará listo?</b>
-      <select class="i" id="ctMin" style="margin-top:8px">${[10, 15, 20, 25, 30, 40, 50, 60].map(m => `<option value="${m}" ${(f.minutos || n.tiempoPrep || 20) == m ? 'selected' : ''}>${m} minutos</option>`).join('')}</select></div>
-    <div class="card"><b>¿Cómo paga?</b>
-      ${[['efectivo', f.tipo === 'domicilio' ? '💵 Paga en efectivo al recibir' : '💵 Paga en efectivo al recoger'], ['transferencia', '🏦 Ya me pagó por transferencia']].map(([k, tx]) => `<label class="opc"><input type="radio" name="ctMet" value="${k}" ${f.metodo === k ? 'checked' : ''} onchange="S._capT.metodo='${k}'"><span>${tx}</span></label>`).join('')}
-      <label class="f">Notas (opcional)</label><input class="i" id="ctNot" maxlength="200" value="${esc(f.notas || '')}" placeholder="Ej. sin cebolla, tocar el timbre"></div>
-    <button class="btn pri pill full" onclick="act(this,confirmarPedidoTel)">Registrar pedido</button><div style="height:20px"></div>`);
-  if (f.tipo === 'domicilio') {
-    await cargarLeaflet();
-    const lat = f.lat || n.lat || (S.conf && S.conf.centroLat) || 23.92, lng = f.lng || n.lng || (S.conf && S.conf.centroLng) || -106.89;
-    const m = nuevoMapa('mapaCap', lat, lng, 16);
-    if (n.lat) L.marker([n.lat, n.lng], { icon: pinIcono('🏪', '#D9822B') }).addTo(m);
-    let mk = f.lat ? L.marker([f.lat, f.lng], { icon: pinIcono('🏠', '#3B5A2C'), draggable: true }).addTo(m) : null;
-    const poner = ll => { guardarCapT(); f.lat = ll.lat; f.lng = ll.lng; const e = $('#ctPin'); if (e) e.textContent = '📍 Punto marcado'; };
-    m.on('click', e => { if (mk) mk.setLatLng(e.latlng); else { mk = L.marker(e.latlng, { icon: pinIcono('🏠', '#3B5A2C'), draggable: true }).addTo(m); mk.on('dragend', () => poner(mk.getLatLng())); } poner(e.latlng); });
-    if (mk) mk.on('dragend', () => poner(mk.getLatLng()));
-  }
-}
-function guardarCapT() { const f = S._capT; if (!f) return; const v = id => ($('#' + id) || {}).value; if ($('#ctDir')) { f.direccion = v('ctDir'); f.referencia = v('ctRef'); } f.minutos = Number(v('ctMin')) || f.minutos; f.notas = v('ctNot') || ''; }
-async function confirmarPedidoTel() {
-  guardarCapT();
-  const f = S._capT, t = S.modoTel, c = S.carritos[S.negocio.id];
-  if (f.tipo === 'domicilio' && !f.lat) throw new Error('Toca el mapa donde se entrega');
-  const r = await apiDe(PUEBLO, 'crearPedidoTel', {
-    telCliente: t.tel, nombreCliente: t.nombre, tipoEntrega: f.tipo, direccion: f.direccion, referencia: f.referencia, lat: f.lat, lng: f.lng,
-    minutos: f.minutos, metodoPago: f.metodo, notas: f.notas, subtotalEsperado: subtotalCarrito(c),
-    items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
-  }, S.token, true, '');
-  S._capT = null; S.tabNeg = 'curso'; salirModoTel(true); // ya está aceptado: se ve en "En curso"
-  toast('Pedido ' + r.folio + ' registrado ✓');
-  setTimeout(() => mandarSeguimiento(Object.assign({ negocio: S.negocio.nombre }, r)), 500);
-}
-/** Enlace de seguimiento por WhatsApp (sirve de invitación a usar Pídele). */
-function enlaceSeguir(tk) { return urlApp('seguir=' + encodeURIComponent(tk) + (PUEBLO.id === PUEBLOS[0].id ? '&pueblo=' + PUEBLO.id : '')); }
-function mandarSeguimiento(r) {
-  const url = enlaceSeguir(r.seguir), nom = String(r.nombreCliente || '').split(' ')[0];
-  const txt = `Hola${nom ? ' ' + nom : ''} 👋, registramos tu pedido ${r.folio || ''} de ${r.negocio || 'tu negocio'}. Aquí ves cómo va y dónde viene tu repartidor 🛵:\n${url}\n\nLa próxima vez pide tú mismo desde ${APP}: ves el menú y las promociones de los negocios de ${PUEBLO.nombre} y sigues tu pedido en vivo. Crea tu cuenta con este mismo número y tus pedidos aparecerán ahí.`;
-  modal(`<div style="text-align:center"><div style="font-size:42px">📲</div><h2 style="margin:4px 0">Mándale su seguimiento</h2>
-    <div class="muted">${esc(r.nombreCliente || 'Tu cliente')} verá cómo va su pedido sin instalar nada${r.tieneCuenta ? ' (ya tiene cuenta: también le aparece en su app)' : ', y lo invitamos a usar Pídele'}.</div>
-    <div class="btns" style="justify-content:center"><a class="btn pri pill" href="${waLink(r.telCliente, txt)}" target="_blank" onclick="setTimeout(cerrarModal,800)">${ico('chat', 's')} Enviar por WhatsApp</a>
-      <button class="btn pill" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(url).replace(/"/g, '&quot;')});toast('Enlace copiado')">Copiar enlace</button></div>
-    <button class="lnk" onclick="cerrarModal()">Después</button></div>`);
-}
-
-/* ---------- Seguimiento público (sin cuenta) ---------- */
-const SEG_TXT = { NUEVO: ['📝', 'Pedido recibido'], POR_PAGAR: ['💳', 'Esperando tu pago'], PAGO_ENVIADO: ['🔎', 'Revisando tu pago'], PREPARANDO: ['👩‍🍳', 'Se está preparando'], LISTO: ['📦', 'Listo'], EN_CAMINO: ['🛵', 'Va en camino'], ENTREGADO: ['✅', 'Entregado'], CANCELADO: ['✖️', 'Cancelado'] };
-async function vSeguir(token) {
-  clearInterval(S._segT);
-  const d = await api('seguirPedido', { token });
-  if (S.vista !== 'seguir') return;
-  const [icn, tit] = SEG_TXT[d.estado] || ['📦', d.estado], dom = !!d.destino, act = !['ENTREGADO', 'CANCELADO'].includes(d.estado);
-  const sub = d.estado === 'PREPARANDO' && d.horaSalida ? (dom ? 'Sale aprox. a las ' : 'Listo aprox. a las ') + hora(d.horaSalida) : d.estado === 'LISTO' ? (dom ? 'Esperando a tu repartidor' : 'Ya puedes pasar por él') : d.estado === 'EN_CAMINO' && d.repartidor ? d.repartidor.nombre + ' va hacia ti' : d.estado === 'CANCELADO' ? d.motivo : '';
-  const pasos = dom ? ['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'] : ['PREPARANDO', 'LISTO', 'ENTREGADO'], idx = pasos.indexOf(d.estado);
-  const tel = d.cliente.telefono;
-  html(`<div class="entrar" style="padding-top:8px">
-    <div class="row" style="gap:10px;margin-bottom:10px">${d.negocio.logo ? `<img src="${esc(d.negocio.logo)}" alt="" style="width:48px;height:48px;border-radius:14px;object-fit:cover">` : '<span style="font-size:34px">🏪</span>'}
-      <div class="grow"><b style="font-size:17px">${esc(d.negocio.nombre)}</b><div class="muted small">Pedido ${esc(d.folio)}${d.cliente.nombre ? ' · ' + esc(d.cliente.nombre) : ''}</div></div>
-      <span class="marcaPueblo" style="margin:0">Pídele</span></div>
-    <div class="card" style="text-align:center"><div style="font-size:44px">${icn}</div><h2 style="margin:4px 0">${esc(tit)}</h2>${sub ? `<div class="muted">${esc(sub)}</div>` : ''}
-      ${idx >= 0 ? `<div class="row" style="gap:6px;margin-top:12px">${pasos.map((x, i) => `<div style="flex:1;height:6px;border-radius:9px;background:${i <= idx ? 'var(--pri)' : 'var(--ln)'}"></div>`).join('')}</div>` : ''}</div>
-    ${d.codigoEntrega && dom ? `<div class="aviso info" style="display:flex;gap:12px;align-items:center"><span style="font-size:26px">🔑</span><div>Tu código de entrega: <b style="font-size:22px;letter-spacing:4px">${esc(d.codigoEntrega)}</b><div class="small">Dáselo al repartidor cuando tengas tu pedido.</div></div></div>` : ''}
-    ${dom && act ? '<div class="card" style="padding:8px"><div id="mapaSeg2" class="mapa alto"></div></div>' : ''}
-    <div class="card"><b>Tu pedido</b>${d.items.map(i => `<div class="row between small" style="padding:4px 0"><span>${i.cant}× ${esc(i.nombre)}${i.variante ? ' (' + esc(i.variante) + ')' : ''}</span></div>`).join('')}
-      <div class="tot" style="margin-top:6px"><span>Productos</span><span>${money(d.subtotal)}</span></div>${d.envio ? `<div class="tot"><span>Envío</span><span>${money(d.envio)}</span></div>` : ''}
-      <div class="tot g"><span>Total</span><span>${money(d.total)}</span></div><div class="muted small">${d.metodoPago === 'efectivo' ? '💵 Pagas en efectivo' : '🏦 Pagado por transferencia'}</div></div>
-    <div class="btns">${d.negocio.telefono ? telLink(d.negocio.telefono, 'Llamar al negocio') : ''}${d.repartidor && act && d.repartidor.telefono ? telLink(d.repartidor.telefono, 'Llamar al repartidor') : ''}</div>
-    ${S.token ? (d.cliente.tieneCuenta ? `<div class="btns"><button class="btn pri pill full" onclick="ir('pedidos')">Ver mis pedidos</button></div>` : '') : `<div class="card" style="border:2px solid var(--pri);margin-top:12px"><div style="font-size:30px">📲</div>
-      <b style="font-size:17px">La próxima vez, pide tú mismo desde Pídele</b>
-      <ul class="small" style="margin:8px 0;padding-left:18px;line-height:1.6"><li>Ve el menú con fotos y precios de los negocios de ${esc(PUEBLO.nombre)}</li><li>Promociones y descuentos del día</li><li>Sigue tu pedido en vivo y chatea con el negocio</li><li>Paga directo al negocio, sin comisiones</li></ul>
-      <div class="btns"><button class="btn pri pill full" onclick="registroDesdeSeguir('${esc(tel)}','${esc(d.cliente.nombre)}')">Crear mi cuenta${tel ? ' con el ' + esc(tel.slice(0, 3) + ' ' + tel.slice(3, 6) + ' ' + tel.slice(6)) : ''}</button></div>
-      <div class="muted small" style="text-align:center">Tus pedidos por teléfono aparecerán en tu cuenta.</div></div>`}
-    <div style="height:24px"></div></div>`);
-  if (dom && act) {
-    await cargarLeaflet();
-    const m = nuevoMapa('mapaSeg2', d.destino.lat, d.destino.lng, 15), pts = [[d.destino.lat, d.destino.lng]];
-    L.marker([d.destino.lat, d.destino.lng], { icon: pinIcono('🏠', '#3B5A2C') }).addTo(m);
-    if (d.negocio.lat) { L.marker([d.negocio.lat, d.negocio.lng], { icon: pinIcono('🏪', '#D9822B') }).addTo(m); pts.push([d.negocio.lat, d.negocio.lng]); }
-    const u = d.repartidor && d.repartidor.ubicacion; if (u) { L.marker([u.lat, u.lng], { icon: pinIcono('🛵', '#D9822B') }).addTo(m); pts.push([u.lat, u.lng]); }
-    try { m.fitBounds(pts, { padding: [30, 30], maxZoom: 16 }); } catch (e) { }
-  }
-  if (act) S._segT = setInterval(() => { if (S.vista === 'seguir' && !document.hidden) pintar(true); else if (S.vista !== 'seguir') clearInterval(S._segT); }, 15000);
-}
-function registroDesdeSeguir(tel, nombre) {
-  clearInterval(S._segT); S.vista = 'entrar'; vRegistro('comprador');
-  setTimeout(() => { const t = $('#rTel'), n = $('#rNom'); if (t && tel) t.value = tel; if (n && nombre) n.value = nombre; }, 50);
 }
 
 /* ============ MODERADOR (2.11) ============ */
@@ -2087,7 +1849,7 @@ async function eliminarCuentaAdmin(id, nombre, tel) {
 
 /* ============ COMPONENTES DE PEDIDO ============ */
 function etiqueta(e, p) {
-  if (p && p.muestra) return '<span style="display:inline-flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:100%"><span class="tag t-warn">' + (p.practica ? '🎓 PRÁCTICA' : '🧪 MUESTRA') + '</span>' + etiqueta(e, Object.assign({}, p, { muestra: false })) + '</span>';
+  if (p && p.muestra) return '<span class="tag t-warn" style="margin-right:4px">🧪 MUESTRA</span>' + etiqueta(e, Object.assign({}, p, { muestra: false }));
   if (p && p.servicio) return '<span class="tag t-pri" style="margin-right:4px">🛵 Servicio</span>' + etiqueta(e, Object.assign({}, p, { servicio: false }));
   if (p && p.foraneo) return `<span class="tag t-info" style="margin-right:4px">📍 ${esc(p.zona && p.zona !== 'Foráneo' ? p.zona : 'Foráneo')}</span>` + etiqueta(e, Object.assign({}, p, { foraneo: false }));
   const cls = { NUEVO: 't-info', POR_PAGAR: 't-warn', PAGO_ENVIADO: 't-warn', PREPARANDO: 't-pri', LISTO: 't-pri', EN_CAMINO: 't-info', ENTREGADO: 't-ok', CANCELADO: 't-err' }[e] || 't-gray';
@@ -2100,7 +1862,7 @@ function etiqueta(e, p) {
 function detalleItem(it) {
   const p = [];
   if (it.variante) p.push('<b>' + esc(it.variante) + '</b>');
-  (it.mods || []).forEach(m => p.push(esc(m.grupo) + ': <b>' + juntarOpc(m.opciones || m.o || []).map(esc).join(', ') + '</b>'));
+  (it.mods || []).forEach(m => p.push(esc(m.grupo) + ': <b>' + (m.opciones || m.o || []).map(o => esc(o.nombre)).join(', ') + '</b>'));
   (it.extras || []).forEach(e => p.push('+ ' + esc(e.nombre)));
   (it.sin || []).forEach(s => p.push('Sin ' + esc(s)));
   if (it.nota) p.push('“' + esc(it.nota) + '”');
@@ -2303,34 +2065,25 @@ async function entregarCli(id, cobro) {
 }
 async function recogido(id) {
   if (!confirm('¿Ya tienes el pedido contigo?')) return;
-  const pos = S.pos || await ubicacionRapida();
-  await accion('marcarRecogido', Object.assign({ id }, pos || {}), '¡En camino!');
-}
-/** Ubicación en máximo 4 s (si no hay, se sigue sin ella: nunca bloquea). */
-function ubicacionRapida() {
-  return new Promise(ok => { if (!navigator.geolocation) return ok(null); let listo = false; const fin = v => { if (!listo) { listo = true; ok(v); } };
-    setTimeout(() => fin(null), 4000);
-    navigator.geolocation.getCurrentPosition(p => fin({ lat: p.coords.latitude, lng: p.coords.longitude }), () => fin(null), { enableHighAccuracy: true, timeout: 3800, maximumAge: 60000 }); });
+  await accion('marcarRecogido', { id }, '¡En camino!');
 }
 async function entregado(id, cobro) {
   const p = (S._pedidosVistos || {})[id] || {};
   const preguntar = p.envio > 0 && p.envioEn !== 'negocio';
+  if (!preguntar) {
+    if (!confirm('¿Entregaste el pedido' + (cobro ? ' y cobraste ' + money(cobro) : '') + '?\nLos datos de quien recibe se borrarán.')) return;
+    await terminarEntrega(id, '');
+    return;
+  }
   const efe = p.metodoPago === 'efectivo';
-  const conCodigo = !p.servicio && p.tipoEntrega !== 'recoger';
   modal(`<div style="text-align:center"><span style="font-size:42px">✅</span><h2>¿Entregaste el pedido?</h2>
-    ${conCodigo ? `<label class="f" style="text-align:left">🔑 Código de entrega del cliente</label>
-      <input class="i" id="codEnt" inputmode="numeric" maxlength="4" placeholder="0000" style="text-align:center;font-size:22px;letter-spacing:6px">
-      <div class="muted small" style="margin-top:4px">¿No tiene datos o no lo encuentra? Déjalo vacío: validamos con tu ubicación.</div>` : ''}
-    ${preguntar ? `<div class="muted" style="margin-top:12px">${efe ? 'Cobras ' + money(p.total) + ' (comida y envío).' : 'Cobras el envío: ' + money(p.envio) + '.'} ¿Cómo te pagaron el envío?</div>
-      <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>terminarEntrega('${id}','efectivo'))">💵 En efectivo</button></div>
-      <div class="btns"><button class="btn pill full" onclick="act(this,()=>terminarEntrega('${id}','transferencia'))">🏦 Por transferencia a mi cuenta</button></div>`
-    : `${cobro ? `<div class="muted" style="margin-top:12px">Cobra ${money(cobro)}.</div>` : ''}<div class="btns"><button class="btn ok pill full" onclick="act(this,()=>terminarEntrega('${id}',''))">Confirmar entrega</button></div>`}
+    <div class="muted">${efe ? 'Cobras ' + money(p.total) + ' (comida y envío).' : 'Cobras el envío: ' + money(p.envio) + '.'} ¿Cómo te pagaron el envío?</div>
+    <div class="btns"><button class="btn ok pill full" onclick="act(this,()=>terminarEntrega('${id}','efectivo'))">💵 En efectivo</button></div>
+    <div class="btns"><button class="btn pill full" onclick="act(this,()=>terminarEntrega('${id}','transferencia'))">🏦 Por transferencia a mi cuenta</button></div>
     <div class="muted small">Los datos de quien recibe se borrarán.</div><button class="lnk" onclick="cerrarModal()">Aún no</button></div>`);
 }
 async function terminarEntrega(id, envioPago) {
-  const codigo = ($('#codEnt') || {}).value || '';
-  const pos = S.pos || await ubicacionRapida();
-  const r = await api('marcarEntregado', Object.assign({ id, envioPago, codigo }, pos || {}));
+  await api('marcarEntregado', { id, envioPago });
   cerrarModal(); toast('¡Entrega completada!');
   const p = (S._pedidosVistos || {})[id] || {};
   calificarCruzado(id, 'repartidor', p.negocio ? p.negocio.nombre : '', p.comprador ? p.comprador.nombre : '');
@@ -2516,29 +2269,6 @@ function promoProducto(negId, prodId, variante) {
   return null;
 }
 /** Precio de un producto (o de su variante) con la promoción vigente, si hay. */
-/** "Pollo, Pollo, Res" → ["Pollo ×2", "Res"] (en grupos que se pueden repetir, como las cucharadas). */
-function juntarOpc(l) { const c = {}, orden = []; l.forEach(o => { const n = o.nombre || o; if (!c[n]) { c[n] = 0; orden.push(n); } c[n]++; }); return orden.map(n => c[n] > 1 ? n + ' ×' + c[n] : n); }
-/** Cuántas opciones pide un grupo con la variante elegida (igual que el servidor): { exacto: N } o { max: N }. */
-function cuantasPide(g, variante) {
-  if (g.porVariante) { const m = String(variante || '').match(/(\d+)/); return { exacto: Math.max(1, Math.min(10, m ? Number(m[1]) : 1)) }; }
-  if (g.exacto) return { exacto: g.max };
-  return { max: g.max || 1 };
-}
-/** Texto corto de las reglas del grupo para el negocio. */
-function textoCuantas(g) { return g.porVariante ? 'según el tamaño' : g.exacto ? 'exactamente ' + g.max : g.max > 1 ? 'hasta ' + g.max : '1'; }
-/** Selector "El cliente elige": 1 · hasta N · exactamente N · según el tamaño, y la casilla "Puede repetir". */
-function campoCuantas(g, cls) {
-  const v = g.porVariante ? 'v' : (g.exacto ? 'e' : 'h') + ':' + (g.max || 1);
-  const ops = [['h:1', '1']].concat([2, 3, 4, 5, 6, 8, 10].map(n => ['h:' + n, 'hasta ' + n]), [2, 3, 4, 5, 6, 8, 10].map(n => ['e:' + n, 'exactamente ' + n]), [['v', 'según el tamaño']]);
-  return `<label class="row small" style="gap:6px;flex-wrap:wrap">El cliente elige <select class="i ${cls}M" style="width:auto;padding:6px">${ops.map(([k, t]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-    <label class="row small" style="gap:6px"><input type="checkbox" class="${cls}Rep" ${g.repetir ? 'checked' : ''}> Puede repetir la misma opción</label>`;
-}
-function leerCuantas(raiz, cls) {
-  const v = raiz.querySelector('.' + cls + 'M').value, rep = raiz.querySelector('.' + cls + 'Rep').checked;
-  if (v === 'v') return { max: 10, porVariante: true, repetir: rep };
-  const [t, n] = v.split(':');
-  return { max: Number(n), exacto: t === 'e', repetir: rep };
-}
 /** Grupos de opciones de un producto: los suyos ("p:0"…) y los de su sección (mismas reglas que el servidor). */
 function gruposDe(p, grupos) {
   const m = x => String(x || '').toLowerCase().trim(), cat = m(p.categoria || 'General'), sub = m(p.subcategoria);
@@ -3181,7 +2911,6 @@ function abrirProducto(pid) {
   let vi = vars.length ? Math.max(0, vars.findIndex(v => v.nombre === S._abrirVar)) : -1;
   S._abrirVar = '';
   S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(p, d.grupos) };
-  S._hoja.q = S._hoja.grupos.map(g => g.opciones.map(() => 0));
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
   const promoTxt = promosDe(n.id).filter(x => mecDe(x) && mecDe(x) !== 'primera' && (enPromo(x, p.id, mecDe(x) === 'precio' ? x.productos : null) || (x.regalos || []).some(y => y.productoId === p.id)))
     .map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${mecDe(x) !== 'precio' ? '<b>' + esc(x.etiqueta || etiquetaPromo(x)) + '</b> · ' : ''}${esc(x.titulo)}${mecDe(x) === 'regalo' && (x.regalos || []).some(y => y.productoId === p.id) && !enPromo(x, p.id) ? ' (este producto es el regalo)' : ''} · ${esc(x.vigencia)}</div>`).join('');
@@ -3190,12 +2919,10 @@ function abrirProducto(pid) {
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
     <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${precioTxt(p, n.id)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
     ${promoTxt}
-    ${vars.length ? `<div class="grupoT"><b>${S._hoja.grupos.some(g => g.porVariante) ? '¿Cuántas quieres?' : 'Elige una opción'}</b><span class="tag t-pri">Obligatorio</span></div>
-      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
-    ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span id="hGc${gi}" class="${g.obligatorio ? 'tag t-pri' : 'muted small'}"></span></div>
-      ${g.repetir ? g.opciones.map((o, oi) => `<div class="opc opcCant"><span>${esc(o.nombre)}${o.precio ? ' <b class="muted small">+' + money(o.precio) + '</b>' : ''}</span>
-          <div class="cant chica"><button type="button" aria-label="Quitar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},-1)">${ico('menos', 's')}</button><b id="hQ${gi}_${oi}">0</b><button type="button" aria-label="Agregar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},1)">${ico('mas', 's')}</button></div></div>`).join('')
-        : g.opciones.map((o, oi) => `<label class="opc"><input type="${g.obligatorio && !g.porVariante && (cuantasPide(g, '').exacto || g.max) === 1 ? 'radio' : 'checkbox'}" name="hG${gi}" class="hGr" data-g="${gi}" data-o="${oi}" onchange="limiteGrupo(this);cuantasHoja();totalHoja()"><span>${esc(o.nombre)}</span><b>${o.precio ? '+' + money(o.precio) : ''}</b></label>`).join('')}`).join('')}
+    ${vars.length ? `<div class="grupoT"><b>Elige una opción</b><span class="tag t-pri">Obligatorio</span></div>
+      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
+    ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span class="${g.obligatorio ? 'tag t-pri' : 'muted small'}">${g.obligatorio ? 'Obligatorio' : 'Opcional'}${g.max > 1 ? ' · hasta ' + g.max : ''}</span></div>
+      ${g.opciones.map((o, oi) => `<label class="opc"><input type="${g.max === 1 && g.obligatorio ? 'radio' : 'checkbox'}" name="hG${gi}" class="hGr" data-g="${gi}" data-o="${oi}" onchange="limiteGrupo(this);totalHoja()"><span>${esc(o.nombre)}</span><b>${o.precio ? '+' + money(o.precio) : ''}</b></label>`).join('')}`).join('')}
     ${p.extras.length ? `<div class="grupoT"><b>¿Agregar algo extra?</b><span class="muted small">Opcional</span></div>
       ${p.extras.map((e, i) => `<label class="opc"><input type="checkbox" class="hEx" data-i="${i}" onchange="totalHoja()"><span>${esc(e.nombre)}</span><b>${e.precio ? '+' + money(e.precio) : 'Gratis'}</b></label>`).join('')}` : ''}
     ${p.quitar.length ? `<div class="grupoT"><b>¿Prefieres sin…?</b><span class="muted small">Opcional</span></div>
@@ -3205,36 +2932,6 @@ function abrirProducto(pid) {
     <div class="row between" style="margin-top:16px">
       <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
       <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
-  cuantasHoja();
-}
-/** Cuántas opciones lleva marcadas cada grupo de la hoja (las repetibles cuentan cada vez). */
-function contadasHoja(gi) { const g = S._hoja.grupos[gi]; return g.repetir ? S._hoja.q[gi].reduce((a, b) => a + b, 0) : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).length; }
-function varHoja() { const p = S._hoja.p; return S._hoja.v >= 0 ? (p.variantes[S._hoja.v] || {}).nombre : ''; }
-/** Etiquetas "Elige 2 · 1/2" y recorte si el cliente cambió a un tamaño menor. */
-function cuantasHoja() {
-  if (!S._hoja) return;
-  S._hoja.grupos.forEach((g, gi) => {
-    const c = cuantasPide(g, varHoja()), lim = c.exacto || c.max;
-    // si bajó de 3 a 2 cucharadas, se quitan las últimas elegidas
-    let sobran = contadasHoja(gi) - lim;
-    if (sobran > 0) {
-      if (g.repetir) for (let oi = g.opciones.length - 1; oi >= 0 && sobran > 0; oi--) { const k = Math.min(sobran, S._hoja.q[gi][oi]); S._hoja.q[gi][oi] -= k; sobran -= k; }
-      else [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).reverse().slice(0, sobran).forEach(x => { x.checked = false; });
-    }
-    if (g.repetir) g.opciones.forEach((o, oi) => { const e = $('#hQ' + gi + '_' + oi); if (e) e.textContent = S._hoja.q[gi][oi]; });
-    const n = contadasHoja(gi), e = $('#hGc' + gi);
-    if (e) {
-      e.textContent = c.exacto ? 'Elige ' + c.exacto + (c.exacto > 1 ? ' · ' + n + '/' + c.exacto : '') : (g.obligatorio ? 'Obligatorio' : 'Opcional') + (c.max > 1 ? ' · hasta ' + c.max : '');
-      e.className = (c.exacto && n === c.exacto) ? 'tag t-ok' : g.obligatorio || c.exacto ? 'tag t-pri' : 'muted small';
-    }
-  });
-}
-/** ＋/− de una opción repetible (ej. 2 cucharadas de pollo agridulce). */
-function cantOpc(gi, oi, k) {
-  const g = S._hoja.grupos[gi], c = cuantasPide(g, varHoja()), lim = c.exacto || c.max;
-  if (k > 0 && contadasHoja(gi) >= lim) { toast(lim === 1 ? 'Solo puedes elegir 1' : 'Ya elegiste ' + lim + '; quita una para cambiar', 'err'); return; }
-  S._hoja.q[gi][oi] = Math.max(0, S._hoja.q[gi][oi] + k);
-  cuantasHoja(); totalHoja();
 }
 
 function selHoja() {
@@ -3244,29 +2941,23 @@ function selHoja() {
   const nota = ($('#hNota').value || '').trim();
   const variante = S._hoja.v >= 0 ? p.variantes[S._hoja.v] : null;
   const b = precioBase(negId, p, variante ? variante.nombre : '');
-  const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: g.repetir ? g.opciones.flatMap((o, oi) => Array(S._hoja.q[gi][oi]).fill(o))
-    : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
+  const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
   const extra = extras.reduce((s, e) => s + e.precio, 0) + mods.reduce((s, m) => s + m.o.reduce((a, o) => a + (Number(o.precio) || 0), 0), 0);
   return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: b.precio + extra, antes: b.antes ? b.antes + extra : 0, promo: b.promo, base: b.antes || b.precio };
 }
 /** No deja marcar más opciones de las permitidas en un grupo (desmarca la más antigua). */
 function limiteGrupo(el) {
   if (el.type !== 'checkbox' || !el.checked) return;
-  const g = S._hoja.grupos[+el.dataset.g], c = cuantasPide(g, varHoja()), lim = c.exacto || c.max, marcadas = [...document.querySelectorAll('.hGr[data-g="' + el.dataset.g + '"]')].filter(x => x.checked && x !== el);
-  if (marcadas.length >= lim) marcadas.slice(0, marcadas.length - lim + 1).forEach(x => { x.checked = false; });
+  const g = S._hoja.grupos[+el.dataset.g], marcadas = [...document.querySelectorAll('.hGr[data-g="' + el.dataset.g + '"]')].filter(x => x.checked && x !== el);
+  if (marcadas.length >= g.max) marcadas.slice(0, marcadas.length - g.max + 1).forEach(x => { x.checked = false; });
 }
 function totalHoja() { const t = $('#hTot'); if (t) t.textContent = money(selHoja().unit * S._hoja.cant); }
 function cantHoja(k) { S._hoja.cant = Math.max(1, Math.min(50, S._hoja.cant + k)); $('#hCant').textContent = S._hoja.cant; totalHoja(); }
 
 function agregarHoja() {
   const n = S._menu.negocio, p = S._hoja.p, s = selHoja();
-  if (p.variantes.length && S._hoja.v < 0) { toast('Elige una opción de ' + p.nombre, 'err'); return; }
-  const falta = S._hoja.grupos.find((g, gi) => { const c = cuantasPide(g, s.variante), n = contadasHoja(gi); return c.exacto ? n !== c.exacto : g.obligatorio && !n; });
-  if (falta) {
-    const gi = S._hoja.grupos.indexOf(falta), c = cuantasPide(falta, s.variante), n = contadasHoja(gi);
-    toast(c.exacto > 1 ? 'En ' + falta.nombre.toLowerCase() + ' elige ' + c.exacto + (n ? ' (llevas ' + n + ')' : '') : 'Elige ' + falta.nombre.toLowerCase(), 'err');
-    const el = $('#hGc' + gi); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
-  }
+  const falta = S._hoja.grupos.find(g => g.obligatorio && !s.mods.some(m => m.g === g.id));
+  if (falta) { toast('Elige ' + falta.nombre.toLowerCase(), 'err'); const el = document.querySelector('.hGr[data-g="' + S._hoja.grupos.indexOf(falta) + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   // cada negocio tiene su propio carrito: agregar de otro negocio ya no vacía el anterior
   const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
   c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
@@ -3347,7 +3038,6 @@ function vCarrito() {
       <div class="tot" style="margin-top:8px"><span>Subtotal</span><span>${money(sub)}</span></div>
       <div class="tot"><span>Envío${nSel > 1 ? 's (' + nSel + ')' : ''}</span><span>${envSin && !env ? '<span class="muted small">Se calcula con tu dirección</span>' : money(env) + (envSin ? '*' : '')}</span></div>
       <div class="tot g"><span>Total</span><span>${money(sub + env)}</span></div></div>
-    ${S.modoTel ? `<div class="aviso info">📞 <b>Pedido por teléfono de ${esc(S.modoTel.nombre)}</b> (${esc(S.modoTel.tel)}). En el siguiente paso pones cómo se entrega y cómo paga.</div>` : ''}
     ${S.modoServicio ? `<div class="aviso info">🛵 <b>Servicio para tu cliente:</b> el negocio te dirá a qué hora pasar. Pagas en efectivo al recogerlo; el envío lo arreglas tú con tu cliente.</div>` : ''}
     <button class="btn pri pill full" ${nSel ? '' : 'disabled'} onclick="continuarCarrito()">${S.modoServicio ? 'Enviar servicio al negocio' : 'Continuar' + (nSel > 1 ? ' con ' + nSel + ' pedidos' : '')}</button><div style="height:20px"></div>`);
 }
@@ -3369,8 +3059,7 @@ function carritosSel() { return carritosLista().filter(c => S.sel && S.sel[c.neg
 
 function continuarCarrito() {
   if (!carritosSel().length) { toast('Elige al menos un negocio', 'err'); return; }
-  if (S.modoTel && esStaff()) { ir('capturaTel'); return; } // pedido por teléfono del negocio: datos del cliente y entrega
-  if (S.modoServicio && esStaff()) { act(document.activeElement, pedirClienteServicio); return; } // servicio del repartidor: va directo al negocio
+  if (S.modoServicio && esStaff()) { act(document.activeElement, enviarServicio); return; } // servicio del repartidor: va directo al negocio
   if (!S.token) { S.despues = 'entrega'; toast('Entra o crea tu cuenta para continuar'); ir('entrar'); return; }
   if (esAdminU() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); S.modoRep = false; ls('modoRep', null); pintarNav(); }
   if (esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
@@ -3511,7 +3200,7 @@ async function vPago() {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
       const rg = reglaEfectivo(sub + envio, e.tipo);
       if (rg.verificar) S._pedirVerif = true;
-      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
+      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', lsG('sinUbic') ? 'Activa tu ubicación para pagar en efectivo' : 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
       else ops.push(['efectivo', 'efectivo', 'Efectivo', rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir') + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
     }
     const disp = ops.filter(o => !o[4]);
@@ -3536,23 +3225,10 @@ async function vPago() {
       <div class="tot"><span>${e.tipo === 'recoger' ? 'Recoges en el restaurante' : 'Envío' + (cs.length > 1 ? 's (' + cs.length + ')' : '')}</span><span>${money(envT)}</span></div>
       <div class="tot g"><span>Total</span><span>${money(subT + envT)}</span></div></div>
     <div class="seguro">${ico('candado', 's')} Pagas directo a cada negocio, sin comisiones</div>
-    ${esAdminU() ? `<label class="opcion" style="border-color:var(--warn)"><input type="checkbox" id="pMuestra" ${cerrado ? 'checked disabled' : S._muestra ? 'checked' : ''} onchange="S._muestra=this.checked;$('#pPractica').style.display=this.checked?'':'none';opcionesPractica()">
-      <div class="grow"><b>🧪 Pedido de muestra</b><small>Para enseñar la app: el negocio lo recibe en vivo y tú lo entregas en “Ver como repartidor”. No cuenta en ventas ni ranking y se borra a las 24 h.${cerrado ? ' Un negocio de tu pedido está cerrado: solo puede ser de muestra.' : ''}</small></div></label>
-      <div id="pPractica" style="${S._muestra || cerrado ? '' : 'display:none'}"></div>` : ''}
+    ${esAdminU() ? `<label class="opcion" style="border-color:var(--warn)"><input type="checkbox" id="pMuestra" ${cerrado ? 'checked disabled' : S._muestra ? 'checked' : ''} onchange="S._muestra=this.checked">
+      <div class="grow"><b>🧪 Pedido de muestra</b><small>Para enseñar la app: el negocio lo recibe en vivo y tú lo entregas en “Ver como repartidor”. No cuenta en ventas ni ranking y se borra a las 24 h.${cerrado ? ' Un negocio de tu pedido está cerrado: solo puede ser de muestra.' : ''}</small></div></label>` : ''}
     <button class="btn pri pill full" ${(cerrado && !esAdminU()) || S._sinPago ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
   cs.forEach(c => notaPago(c.negocioId));
-  if (esAdminU()) opcionesPractica();
-}
-/** Pedido de muestra: ¿quién lo entrega? (tú o un repartidor en capacitación) y si el negocio participa. */
-async function opcionesPractica() {
-  const box = $('#pPractica'); if (!box || box.style.display === 'none') return;
-  if (!S._repsPractica) { box.innerHTML = '<div class="muted small" style="padding:8px">Cargando repartidores…</div>'; try { S._repsPractica = (await apiDe(PUEBLO, 'adminUsuarios', { rol: 'repartidor' }, S.token, true, '')).filter(x => x.estado !== 'bloqueado'); } catch (e) { S._repsPractica = []; } }
-  const e = S.entrega || {}, dom = e.tipo !== 'recoger';
-  box.innerHTML = `<div class="card" style="border:1.5px dashed var(--warn);margin-top:-4px">
-    <label class="f" style="margin-top:0">¿Quién lo entrega?</label>
-    <select class="i" id="pPracRep" onchange="S._pracRep=this.value"><option value="">Yo, en “Ver como repartidor”</option>${S._repsPractica.map(x => `<option value="${x.id}" ${S._pracRep === x.id ? 'selected' : ''}>🎓 Práctica para ${esc(x.nombre)}${x.estado !== 'activo' ? ' (aún sin aprobar)' : ''}</option>`).join('')}</select>
-    <div class="muted small" style="margin-top:4px">Con práctica, solo ese repartidor lo ve en Disponibles (aunque no esté aprobado) y no cuenta en sus ganancias, historial ni calificación.</div>
-    ${dom ? `<label class="row" style="gap:8px;margin-top:10px;align-items:flex-start"><input type="checkbox" id="pSinNeg" ${S._sinNeg ? 'checked' : ''} onchange="S._sinNeg=this.checked" style="margin-top:3px"><span><b>Sin molestar al negocio</b><div class="muted small">No le llega: el pedido queda aceptado y pagado, listo para que el repartidor pase en 3 min. Ideal para capacitar a cualquier hora.</div></span></label>` : ''}</div>`;
 }
 
 function elegirMetodo(el) {
@@ -3582,7 +3258,6 @@ async function confirmarPedido() {
     r = await api('crearPedidos', {
       tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
       recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps, muestra: muestra ? 1 : '',
-      practicaRep: muestra && $('#pPracRep') ? $('#pPracRep').value : '', sinNegocio: muestra && $('#pSinNeg') && $('#pSinNeg').checked ? 1 : '',
       pedidos: cs.map(c => ({
         negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
         items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
@@ -3667,11 +3342,9 @@ async function vPedido(id, silencioso) {
       ${p.alerta ? `<div class="aviso warn">⏰ ${esc(p.alerta)}</div>` : ''}
       ${tarjetaContacto(p)}
       ${p.estado !== 'CANCELADO' ? pasos4(p) : ''}
-      ${bloqueCodigo(p)}
     </div>
     ${bloquePago(p)}
     ${bloquePagoEnvio(p)}
-    ${bloqueNoRecibido(p)}
     ${bloqueRecibido(p)}
     <div class="card"><div class="row between"><b>Pedido ${p.folio}</b><span class="muted small">${fechaCorta(p.creado)}</span></div>
       <div class="muted small" style="margin:2px 0 8px">${esc(p.negocio.nombre)} · ${recoger ? 'Recoger en restaurante' : esc(p.direccion)}</div>
@@ -3730,7 +3403,7 @@ function dibujarTrk(p) {
   const n = p.negocio, rec = p.tipoEntrega === 'recoger';
   const m = nuevoMapa('mapaTrk', n.lat, n.lng, 15);
   const pts = [[n.lat, n.lng]];
-  S._trk = { id: p.id, estado: p.estado, muestra: !!p.muestra };
+  S._trk = { id: p.id, estado: p.estado };
   L.marker([n.lat, n.lng], { icon: pinIcono('🍴', '#22281D') }).addTo(m).bindPopup(esc(n.nombre));
   if (!rec && p.lat) { L.marker([p.lat, p.lng], { icon: pinIcono('🏠', '#3B5A2C') }).addTo(m).bindPopup('Tu entrega'); pts.push([p.lat, p.lng]); }
   const u = p.repartidor && p.repartidor.ubicacion;
@@ -3798,40 +3471,6 @@ async function subirComprobante(id, inp) {
 }
 
 /** Confirmar que lo recibió y calificar al restaurante y al repartidor. */
-/* ---------- Validación de recogido y entregado (2.19) ---------- */
-const VERIF_REC = { negocio: '✅ Recogido: lo confirmó el negocio', gps: '✅ Recogido: verificado por ubicación', sin: '⚠️ Recogido sin verificar' };
-const VERIF_ENT = { codigo: '✅ Entregado con el código del cliente', gps: '✅ Entregado: verificado por ubicación', cliente: '✅ El cliente confirmó que lo recibió', sin: '⚠️ Entregado sin verificar' };
-/** Cliente: su código de entrega mientras el pedido va a domicilio. */
-function bloqueCodigo(p) {
-  if (!p.codigoEntrega || p.tipoEntrega === 'recoger' || !['POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO', 'EN_CAMINO'].includes(p.estado)) return '';
-  return `<div class="aviso info" style="margin:10px 0 0;display:flex;align-items:center;gap:12px"><span style="font-size:26px">🔑</span><div class="grow">Tu código de entrega: <b style="font-size:22px;letter-spacing:4px">${esc(p.codigoEntrega)}</b>
-    <div class="small">Dáselo al repartidor cuando tengas tu pedido en tus manos.</div></div></div>`;
-}
-/** Cliente: si se marcó entregado sin código ni ubicación, puede avisar que no lo recibió. */
-function bloqueNoRecibido(p) {
-  if (p.alertaEntrega) return `<div class="aviso warn">⚠️ ${esc(p.alertaEntrega)}. Soporte lo está revisando.</div>`;
-  if (p.estado !== 'ENTREGADO' || p.entregaVerif !== 'sin' || Date.now() - (p.entregado || 0) > 6 * 3600e3) return '';
-  return `<div class="card" style="border:1.5px solid var(--warn)"><b>¿Ya tienes tu pedido?</b><div class="muted small">El repartidor lo marcó como entregado sin tu código. Si no lo recibiste, avísanos.</div>
-    <div class="btns"><button class="btn err sm" onclick="act(this,()=>noRecibido('${p.id}'))">No lo recibí</button></div></div>`;
-}
-async function noRecibido(id) {
-  if (!confirm('¿Seguro que no recibiste tu pedido? Le avisaremos a soporte, al negocio y al repartidor.')) return;
-  await api('clienteNoRecibido', { id }); toast('Avisamos a soporte'); pintar(true);
-}
-/** Negocio / repartidor / soporte: cómo se verificó y, si el repartidor marcó recogido sin verificar, el negocio puede corregirlo. */
-function bloqueVerif(p, r) {
-  const l = [p.recogidoVerif && VERIF_REC[p.recogidoVerif], p.entregaVerif && VERIF_ENT[p.entregaVerif]].filter(Boolean);
-  let h = l.length ? `<div class="row wrap" style="gap:6px;margin-bottom:8px">${l.map(t => `<span class="tag ${t[0] === '⚠' ? 't-warn' : 't-ok'}">${t}</span>`).join('')}</div>` : '';
-  if (p.alertaEntrega) h += `<div class="aviso err">⚠️ ${esc(p.alertaEntrega)}</div>`;
-  if (r === 'negocio' && p.estado === 'EN_CAMINO' && p.recogidoVerif === 'sin' && !p.propio)
-    h += `<div class="card" style="border:1.5px solid var(--warn)"><b>¿Ya le entregaste el pedido al repartidor?</b><div class="muted small">Lo marcó como recogido lejos de tu negocio o sin ubicación.</div>
-      <div class="btns"><button class="btn err sm" onclick="act(this,()=>noRecogido('${p.id}'))">No lo ha recogido</button></div></div>`;
-  return h;
-}
-async function noRecogido(id) {
-  if (!confirm('¿El repartidor todavía no tiene el pedido? Regresará a "Listo" y avisaremos a soporte.')) return;
-  await api('negocioNoRecogido', { id }); toast('Corregido: el pedido sigue en tu negocio'); pintar(true);
-}
 function bloqueRecibido(p) {
   const puede = ['EN_CAMINO', 'ENTREGADO'].includes(p.estado) || (p.tipoEntrega === 'recoger' && p.estado === 'LISTO');
   if (p.califNegocio || p.califRepartidor) return `<div class="card row"><span class="avatar">${ico('estrella')}</span><div class="grow"><b>¡Gracias por calificar!</b>
@@ -3882,113 +3521,9 @@ function formAlta(tipo) {
 async function enviarAlta(tipo) {
   const v = id => ($('#' + id) || {}).value || '';
   const r = await api('solicitarAlta', { tipo, negocio: v('alNeg'), categoria: v('alCat'), vehiculo: v('alVeh'), plan: tipo === 'negocio' ? S._plan || 'plus' : '' });
-  S.user = r.usuario; ls('user', S.user); fijarSesionNeg(r);
+  S.user = r.usuario; S.negocio = r.negocio; ls('user', S.user); ls('negocio', S.negocio);
   S.modoCliente = false; ls('modoCliente', null);
   cerrarModal(); toast('Solicitud enviada ✓'); pintarNav(); ir(inicioRol());
-}
-/** Sucursal con descuento: si se conserva y por qué. */
-function avisoSucursal(si) {
-  if (!si) return '';
-  return si.aplica ? `<div class="aviso ok">🏪 <b>Sucursal de ${esc(si.base)}: ${si.descuento}% de descuento</b> en tu plan. Lo conservas mientras tu menú sea el mismo: puedes cambiar precios, fotos y disponibilidad, y agregar hasta ${si.max}% de productos nuevos (llevas ${si.nuevos} de ${si.total}, ${si.pctNuevos}%).</div>`
-    : `<div class="aviso warn">🏪 <b>Sin descuento de sucursal:</b> ${esc(si.motivo || '')}. ${si.listaNuevos && si.listaNuevos.length ? 'Productos que no están en ' + esc(si.base) + ': ' + si.listaNuevos.slice(0, 8).map(esc).join(', ') + (si.listaNuevos.length > 8 ? '…' : '') + '.' : ''} Si vuelves a tener máximo ${si.max}% de productos nuevos, recuperas el ${si.descuento}%.</div>`;
-}
-/* ---------- Mis negocios y equipo (2.15) ---------- */
-const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados']], ['Cajero / mostrador', ['pedidos']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes']]];
-async function vEquipo() {
-  const d = S._eq = await api('miEquipo');
-  const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
-  const EST = { activo: ['t-ok', 'Activo'], pendiente: ['t-warn', 'Por aprobar'], bloqueado: ['t-err', 'Suspendido'], rechazado: ['t-gray', 'No aprobado'] };
-  const ESTE = { activo: ['t-ok', 'Activo'], invitado: ['t-warn', 'Invitado'], pausado: ['t-gray', 'Pausado'] };
-  html(`<div class="row between"><h2>Mis negocios y equipo</h2><button class="btn" onclick="volver('perfil')">‹ Volver</button></div>
-    <h3>🏪 Negocios y sucursales</h3>
-    ${d.negocios.map(n => `<div class="card row" style="gap:10px">${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:44px;height:44px;border-radius:12px;object-fit:cover">` : '<span style="font-size:30px">🏪</span>'}
-      <div class="grow" style="min-width:0"><b>${esc(n.nombre)}</b> <span class="tag ${(EST[n.estado] || EST.pendiente)[0]}">${(EST[n.estado] || [0, n.estado])[1]}</span>
-        <div class="muted small">${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}${n.plan !== 'donado' && n.precio ? ' · ' + money(n.precio) + '/mes' : ''}${n.vence ? ' · corte ' + fechaCorta(n.vence).split(' ').slice(0, 2).join(' ') : ''}${n.direccion ? ' · ' + esc(n.direccion) : ''}</div>
-        ${n.sucursal ? `<div class="small" style="margin-top:2px;color:${n.sucursal.aplica ? 'var(--ok)' : 'var(--warn)'};font-weight:700">${n.sucursal.aplica ? '🏪 Sucursal de ' + esc(n.sucursal.base) + ' · −' + n.sucursal.descuento + '% (' + n.sucursal.pctNuevos + '% de productos nuevos)' : '⚠️ Sin descuento: ' + esc(n.sucursal.motivo)}</div>` : ''}</div>
-      ${n.id === S.negActivo ? '<span class="tag t-info">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}</div>`).join('')}
-    <button class="btn pri pill" onclick="formSucursal()">${ico('mas', 's')} Agregar negocio o sucursal</button>
-    <div class="muted small" style="margin:6px 2px 0">Cada negocio o sucursal tiene su propio plan, horario, ubicación y menú. Los nuevos los aprueba Pídele.</div>
-    <h3 style="margin-top:20px">👥 Tu equipo</h3>
-    <div class="muted small" style="margin:-4px 2px 8px">Cada colaborador entra desde su teléfono y solo ve lo que le permites. Plan, suscripción, equipo y sucursales son solo tuyos.</div>
-    ${d.equipo.length ? d.equipo.map((x, i) => `<div class="card"><div class="row between"><div style="min-width:0"><b>${esc(x.nombre)}</b><div class="muted small">${esc(x.telefono)}</div></div>
-        <button class="btn sm" onclick="formColaborador(${i})">Editar</button></div>
-      ${x.negocios.map((e, ei) => `<div style="padding:8px 0 0;margin-top:8px;border-top:1px solid var(--ln)"><div class="row between" style="gap:6px"><span><b class="small">${esc((N[e.negocioId] || {}).nombre || '')}</b> <span class="tag ${(ESTE[e.estado] || ESTE.invitado)[0]}">${(ESTE[e.estado] || [0, e.estado])[1]}</span></span>
-          <span class="row" style="gap:4px">${e.estado === 'activo' ? `<button class="btn sm" onclick="act(this,()=>estadoColab('${e.equipoId}','pausado'))">Pausar</button>` : e.estado === 'pausado' ? `<button class="btn sm" onclick="act(this,()=>estadoColab('${e.equipoId}','activo'))">Reactivar</button>` : ''}
-            <button class="btn sm err" aria-label="Quitar" onclick="act(this,()=>estadoColab('${e.equipoId}','quitado'))">✕</button></span></div>
-        <div class="muted small" style="margin-top:2px">${e.permisos.map(k => PERM_TXT[k]).join(' · ')}</div>
-        ${e.codigo && x.negocios.findIndex(y => y.codigo) === ei ? `<div class="aviso info" style="margin:6px 0 0">Aún no crea su cuenta. Código: <b>${esc(e.codigo)}</b> <button class="btn sm" onclick="compartirInvEq('${esc(e.codigo)}','${esc(x.nombre)}')">${ico('chat', 's')} Mandar invitación</button></div>`
-          : e.codigo ? '' : e.estado === 'invitado' ? '<div class="muted small">Ya tiene cuenta: le llegó la invitación a su app para aceptarla.</div>' : ''}</div>`).join('')}</div>`).join('')
-      : '<div class="vacio" style="padding:18px"><span class="big">👥</span>Aún no tienes colaboradores.</div>'}
-    <button class="btn pri pill" onclick="formColaborador()">${ico('mas', 's')} Invitar colaborador</button>`);
-}
-function formColaborador(i) {
-  const d = S._eq, x = i === undefined ? null : d.equipo[i];
-  const perms = x ? (x.negocios[0] || {}).permisos || [] : ['pedidos'];
-  const mis = x ? x.negocios.map(e => e.negocioId) : [S.negActivo].filter(id => d.negocios.some(n => n.id === id));
-  modal(`<div class="row between"><h2 style="margin:0">${x ? 'Editar colaborador' : 'Invitar colaborador'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <label class="f">Nombre</label><input class="i" id="eqNom" maxlength="60" value="${esc(x ? x.nombre : '')}" placeholder="Ej. Ana López">
-    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="eqTel" inputmode="tel" maxlength="14" value="${esc(x ? x.telefono : '')}" ${x ? 'readonly style="opacity:.75"' : ''}>
-    <label class="f">¿En qué negocios?</label>
-    ${d.negocios.map(n => `<label class="opc"><input type="checkbox" class="eqNeg" value="${n.id}" ${mis.includes(n.id) ? 'checked' : ''}><span>${esc(n.nombre)}</span></label>`).join('')}
-    <label class="f">¿Qué puede hacer?</label>
-    <div class="row wrap" style="gap:6px;margin-bottom:4px">${PRESETS_EQ.map(([t, l]) => `<button class="btn sm" onclick='document.querySelectorAll(".eqPer").forEach(c=>c.checked=${JSON.stringify(l)}.includes(c.value))'>${t}</button>`).join('')}</div>
-    ${d.permisos.map(p => `<label class="opc"><input type="checkbox" class="eqPer" value="${p.id}" ${perms.includes(p.id) ? 'checked' : ''}><span>${esc(p.texto.charAt(0).toUpperCase() + p.texto.slice(1))}</span></label>`).join('')}
-    <div class="muted small" style="margin-top:6px">Los permisos aplican igual en todos los negocios que marques.</div>
-    <div class="btns"><button class="btn pri pill" onclick="act(this,()=>guardarColab(${x ? 'true' : 'false'}))">${x ? 'Guardar' : 'Invitar'}</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
-}
-async function guardarColab(editar) {
-  const r = await api('guardarColaborador', { nombre: $('#eqNom').value, telefono: $('#eqTel').value, negocios: [...document.querySelectorAll('.eqNeg')].filter(c => c.checked).map(c => c.value),
-    permisos: [...document.querySelectorAll('.eqPer')].filter(c => c.checked).map(c => c.value), reemplazar: editar });
-  S._eq = r; cerrarModal();
-  if (!editar && r.codigo) { toast('Invitación lista'); compartirInvEq(r.codigo, r.nombre); }
-  else toast(editar ? 'Cambios guardados ✓' : r.existe ? 'Le llegó la invitación a su app ✓' : 'Listo ✓');
-  pintar(true);
-}
-function compartirInvEq(codigo, nombre) {
-  const url = urlApp('inv=' + encodeURIComponent(codigo) + (PUEBLO.id === PUEBLOS[0].id ? '&pueblo=' + PUEBLO.id : ''));
-  const txt = 'Hola ' + nombre.split(' ')[0] + ', te invité a mi equipo en ' + APP + ' (' + (S.negocio ? S.negocio.nombre : '') + '). Crea tu cuenta aquí: ' + url;
-  const tel = (S._eq.equipo.find(x => x.nombre === nombre) || {}).telefono || '';
-  modal(`<div style="text-align:center"><div style="font-size:40px">👥</div><h2 style="margin:4px 0">Manda la invitación</h2>
-    <div class="muted">Con este enlace ${esc(nombre)} crea su cuenta y entra directo a tu equipo. Código: <b>${esc(codigo)}</b></div>
-    <div class="btns" style="justify-content:center"><a class="btn pri pill" href="${waLink(tel, txt)}" target="_blank">${ico('chat', 's')} Enviar por WhatsApp</a>
-      <button class="btn pill" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(txt).replace(/"/g, '&quot;')});toast('Copiado')">Copiar enlace</button></div></div>`);
-}
-async function estadoColab(equipoId, estado) {
-  if (estado === 'quitado' && !confirm('¿Quitarle el acceso a este negocio?')) return;
-  S._eq = await api('estadoColaborador', { equipoId, estado });
-  toast(estado === 'quitado' ? 'Acceso quitado' : estado === 'pausado' ? 'Acceso en pausa' : 'Acceso reactivado'); pintar(true);
-}
-function formSucursal() {
-  const d = S._eq, P = planesCfg();
-  modal(`<div class="row between"><h2 style="margin:0">Nuevo negocio o sucursal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <label class="f">Nombre como lo verán los clientes</label><input class="i" id="suNom" maxlength="60" placeholder="Ej. ${esc((d.negocios[0] || {}).nombre || 'Hambas')} · Centro">
-    <label class="f">Categoría</label><select class="i" id="suCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
-    <label class="f">Copiar el menú de</label><select class="i" id="suCop"><option value="">No copiar (empiezo desde cero)</option>${d.negocios.map(n => `<option value="${n.id}" ${n.id === S.negActivo ? 'selected' : ''}>${esc(n.nombre)}</option>`).join('')}</select>
-    <div class="muted small" style="margin-top:4px">Copia secciones, productos, fotos, opciones, logo, portada, horario y datos de pago. Después cambia lo que sea distinto (ubicación, precios…).</div>
-    ${S.conf && S.conf.descuentoSucursal ? `<div class="aviso ok" style="margin-top:8px">🏪 Si copias el menú, esta sucursal paga <b>${S.conf.descuentoSucursal}% menos</b> en su plan mientras siga siendo el mismo negocio: puedes cambiar precios, fotos y disponibilidad y agregar hasta ${S.conf.sucursalNuevosMax}% de productos nuevos.</div>` : ''}
-    <label class="f">Plan de este negocio</label><select class="i" id="suPlan">${['basico', 'plus', 'pro'].filter(k => P[k]).map(k => `<option value="${k}" ${k === 'plus' ? 'selected' : ''}>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</option>`).join('')}</select>
-    <div class="aviso info" style="margin-top:12px">Queda <b>por aprobar</b> por Pídele. Mientras, entra a él para poner su ubicación y revisar el menú.</div>
-    <div class="btns"><button class="btn pri pill" onclick="act(this,crearSucursalForm)">Crear</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
-  const c = $('#suCat'), base = d.negocios.find(n => n.id === S.negActivo); if (base && S.negocio && S.negocio.categoria) c.value = S.negocio.categoria;
-}
-async function crearSucursalForm() {
-  const r = await api('crearSucursal', { nombre: $('#suNom').value, categoria: $('#suCat').value, copiarDe: $('#suCop').value, plan: $('#suPlan').value });
-  S._eq = r; cerrarModal();
-  const y = await api('yo'); fijarSesionNeg(y); pintarNav();
-  toast('Creado ✓' + (r.copiados ? ' con ' + r.copiados + ' productos' : '') + '. Queda por aprobar.'); pintar(true);
-}
-/** En Perfil: tablero del dueño o los negocios donde colabora. */
-function bloqueMisNegocios() {
-  const l = S.negocios || [], mios = l.filter(n => n.dueno), otros = l.filter(n => !n.dueno);
-  return `<div class="card"><div class="row between"><b>${mios.length ? '🏪 Mis negocios y equipo' : '👥 Negocios donde colaboras'}</b>${mios.length ? `<button class="btn sm pri" onclick="ir('equipo')">Abrir</button>` : ''}</div>
-    ${mios.length ? `<div class="muted small" style="margin-top:4px">${mios.length} negocio${mios.length > 1 ? 's' : ''}${otros.length ? ' · colaboras en ' + otros.length : ''}. Agrega sucursales y da acceso a tu equipo con los permisos que elijas.</div>` : ''}
-    ${otros.map(n => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln)"><span>${esc(n.nombre)}</span><span class="row" style="gap:6px">${n.id === S.negActivo ? '<span class="tag t-ok">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}<button class="btn sm err" onclick="act(this,()=>salirDeEquipo('${n.id}',${JSON.stringify(n.nombre).replace(/"/g, '&quot;')}))">Salir</button></span></div>`).join('')}
-    ${!l.length ? '<div class="muted small" style="margin-top:4px">Aún no estás en ningún negocio. Cuando un dueño te invite, la invitación aparecerá aquí.</div>' : ''}</div>`;
-}
-async function salirDeEquipo(id, nombre) {
-  if (!confirm('¿Dejar de colaborar en ' + nombre + '? Ya no verás sus pedidos.')) return;
-  const d = await api('salirEquipo', { negocioId: id });
-  fijarSesionNeg(d); toast('Saliste de ' + nombre); pintarNav(); pintar(true);
 }
 function vPerfil() {
   const u = S.user;
@@ -3999,12 +3534,10 @@ function vPerfil() {
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
       ${u.estado === 'activo' ? '<span class="tag t-ok">Activa</span>' : '<span class="tag t-warn">En revisión</span>'}</div>
     ${u.telVerificado ? '' : tarjetaVerificar()}
-    ${avisoInvEquipo()}
-    ${r === 'negocio' ? bloqueMisNegocios() : ''}
     ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
-    ${r === 'negocio' && S.negocio && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
+    ${r === 'negocio' ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
     ${esStaff() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
       : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
@@ -4046,7 +3579,7 @@ async function cargarPuntaje(idBox) {
     const d = await api('miPuntaje');
     const box = $('#' + idBox); if (!box || !box.tagName) return;
     const rep = S.user.rol === 'repartidor';
-    const nivel = rep && d.prioridad ? '⭐ Los pedidos nuevos se avisan primero a los 3 repartidores mejor calificados que están libres; cada 30 s se suma el siguiente grupo. Entre más alto tu puntaje, antes te llegan.' : '';
+    const nivel = rep && d.prioridad ? (d.esperaMin ? `Ves los pedidos nuevos <b>${d.esperaMin} min</b> después de los repartidores con ${d.esperaMin > 1 ? d.nivelMedio : d.nivelAlto} puntos o más.` : '⭐ Ves los pedidos nuevos <b>sin espera</b>.') : '';
     const barra = (t, v, max, det) => `<div class="tot"><span>${t}<div class="muted small">${det}</div></span><b>${v}/${max}</b></div>`;
     box.innerHTML = `<h3>📈 Mi puntaje</h3><div class="card"><div class="row between"><div><div style="font-size:34px;font-weight:900;line-height:1">${d.total}<span class="muted" style="font-size:16px">/100</span></div>
         ${nivel ? `<div class="small" style="margin-top:4px">${nivel}</div>` : ''}</div><span style="font-size:36px">${d.total >= 80 ? '🏆' : d.total >= 60 ? '👍' : '💪'}</span></div><hr class="hr">
@@ -4266,9 +3799,6 @@ function vPedidoOperacion(p) {
     ${p.asignadoPor && r !== 'comprador' ? `<div class="muted small" style="margin-bottom:8px">🎧 Repartidor asignado por ${esc(p.asignadoPor)}</div>` : ''}
     ${p.estado === 'CANCELADO' ? `<div class="aviso err">✖️ Cancelado${p.motivo ? ': ' + esc(p.motivo) : ''}</div>` : ''}
     ${p.alerta ? `<div class="aviso warn">⏰ ${esc(p.alerta)}</div>` : ''}
-    ${bloqueVerif(p, r)}
-    ${p.seguir && p.telCliente ? `<div class="card row between"><div><b>📞 Pedido por teléfono</b><div class="muted small">${esc(p.comprador.nombre)} · ${esc(p.telCliente)}</div></div>
-      <button class="btn sm" onclick='mandarSeguimiento(${JSON.stringify({ seguir: p.seguir, telCliente: p.telCliente, nombreCliente: p.comprador.nombre, folio: p.folio, negocio: p.negocio.nombre }).replace(/'/g, '&#39;')})'>${ico('chat', 's')} Mandar seguimiento</button></div>` : ''}
     ${r === 'repartidor' && !rec && p.lat ? `<div class="card" style="padding:10px"><div id="mapaOp" class="mapa alto"></div></div>` : ''}
     <div class="card">
       ${p.estado === 'PREPARANDO' && p.horaSalida ? `<div class="muted">Hora de salida: <b>${hora(p.horaSalida)}</b> (${enMin(p.horaSalida)})</div>` : ''}
@@ -4297,7 +3827,7 @@ function vPedidoOperacion(p) {
 async function vNegPedidos() {
   const d = await api('panelNegocio'); // pedidos y datos del negocio en una sola llamada
   const l = d.pedidos, n = d.negocio;
-  fijarNeg(n);
+  S.negocio = n; ls('negocio', n);
   recordar(l);
   const grupos = {
     atender: l.filter(x => ['NUEVO', 'PAGO_ENVIADO'].includes(x.estado)),
@@ -4307,7 +3837,7 @@ async function vNegPedidos() {
   const vendido = grupos.hoy.filter(x => x.estado === 'ENTREGADO').reduce((s, x) => s + x.subtotal, 0);
   const t = S.tabNeg;
   const card = x => `<div class="card">
-    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${x.porTelefono ? '<span class="tag t-info">📞 Por teléfono</span>' : ''} ${ACTIVOS.includes(x.estado) && !x.servicio && !x.porTelefono ? chipCliente(x.comprador) : ''}
+    <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${ACTIVOS.includes(x.estado) && !x.servicio ? chipCliente(x.comprador) : ''}
       <div class="muted small">${hora(x.creado)} · ${money(x.subtotal)} · ${x.servicio ? '🛵 Lo recoge el repartidor' : x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${PAGO_TXT[x.metodoPago]}</div></div>${etiqueta(x.estado, x)}</div>
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div style="margin-top:6px">${x.items.map(i => { const d = detalleItem(i); return `<div class="small"><b>${i.cant}×</b> ${esc(i.nombre)}${d ? ` <span class="detalle">· ${d}</span>` : ''}</div>`; }).join('')}</div>
@@ -4316,19 +3846,17 @@ async function vNegPedidos() {
     ${x.estado === 'LISTO' && x.tipoEntrega !== 'recoger' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : x.propio ? '🛵 Listo para salir con tu repartidor' : 'Esperando repartidor'}</div>` : ''}
     ${x.estado === 'EN_CAMINO' && x.repPropio ? `<div class="muted small">🛵 ${x.repPropio.nombre === 'Repartidor del negocio' ? 'En camino por tus propios medios' : 'En camino con ' + esc(x.repPropio.nombre)}</div>` : ''}
     ${x.califNegocio ? `<div class="small">Calificación: <span class="estrella">${'★'.repeat(x.califNegocio)}</span></div>` : ''}
-    ${x.estado === 'EN_CAMINO' && x.recogidoVerif === 'sin' && !x.propio ? `<div class="aviso warn" style="margin:8px 0 0">⚠️ El repartidor lo marcó recogido sin verificar. <button class="lnk" onclick="act(this,()=>noRecogido('${x.id}'))">No lo ha recogido</button></div>` : ''}
     ${botonesPedido(x, true)}</div>`;
-  html(`${pendienteAviso()}${avisoInvEquipo()}${n.estado === 'pendiente' && S.user.estado === 'activo' ? `<div class="aviso warn">⏳ <b>${esc(n.nombre)}</b> está por aprobar. Mientras, completa sus datos y su menú.</div>` : ''}${bannerPush()}${tarjetaInstalar()}
+  html(`${pendienteAviso()}${bannerPush()}${tarjetaInstalar()}
     <div class="card row between"><div class="grow"><b>${esc(n.nombre)}</b> ${n.numCalif ? `<span class="small"><span class="estrella">★</span> ${n.calif} (${n.numCalif})</span>` : ''}
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
       <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
-      <label class="sw" title="${puedo('abrir') ? 'Recibir pedidos' : 'Solo el dueño o quien tenga permiso puede pausar'}"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' || !puedo('abrir') ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
-    ${n.estado === 'activo' ? `<button class="btn pill full" style="margin-bottom:4px" onclick="formPedidoTel()">📞 Registrar pedido por teléfono</button>` : ''}
+      <label class="sw" title="Recibir pedidos"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
     <div class="tabs">
       <button class="${t === 'atender' ? 'on' : ''}" onclick="S.tabNeg='atender';pintar(true)">Por atender (${grupos.atender.length})</button>
       <button class="${t === 'curso' ? 'on' : ''}" onclick="S.tabNeg='curso';pintar(true)">En curso (${grupos.curso.length})</button>
       <button class="${t === 'hoy' ? 'on' : ''}" onclick="S.tabNeg='hoy';pintar(true)">Hoy (${grupos.hoy.length})</button></div>
-    ${t === 'hoy' && puedo('ventas') ? `<div class="muted" style="margin-bottom:8px">Vendido hoy (entregados): <b>${money(vendido)}</b></div>` : ''}
+    ${t === 'hoy' ? `<div class="muted" style="margin-bottom:8px">Vendido hoy (entregados): <b>${money(vendido)}</b></div>` : ''}
     ${grupos[t].length ? grupos[t].map(card).join('') : `<div class="vacio"><span class="big">${t === 'atender' ? '✨' : '🧾'}</span>${t === 'atender' ? 'Nada pendiente por ahora' : 'Sin pedidos aquí'}</div>`}`);
 }
 
@@ -4339,7 +3867,7 @@ function pendienteAviso() {
 }
 
 async function abrirCerrar(chk) {
-  try { fijarNeg(await api('abrirCerrar', { abierto: chk.checked })); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintar(true); }
+  try { S.negocio = await api('abrirCerrar', { abierto: chk.checked }); ls('negocio', S.negocio); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintar(true); }
   catch (e) { chk.checked = !chk.checked; throw e; }
 }
 
@@ -4348,21 +3876,21 @@ async function vMenu() {
   S._prods = l; S._grupos = gr;
   const sinFoto = l.filter(p => !p.foto).length;
   const lista = S._soloSinFoto ? l.filter(p => !p.foto) : l;
-  const grupos = {}, ed = puedo('menu');
+  const grupos = {};
   lista.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
-  html(`${pendienteAviso()}<div class="row between"><h2>${ed ? 'Mi menú' : 'Disponibilidad'}</h2>${ed ? `<button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button>` : ''}</div>
-    ${!ed ? '<div class="aviso info">Marca con el interruptor lo que se acabó; vuelve a encenderlo cuando lo tengas otra vez.</div>' : `<div class="card"><b>📊 Menú en Excel</b><div class="muted small">Captura o edita todo tu menú en la computadora y súbelo aquí. Las fotos se agregan después, producto por producto.</div>
+  html(`${pendienteAviso()}<div class="row between"><h2>Mi menú</h2><button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button></div>
+    <div class="card"><b>📊 Menú en Excel</b><div class="muted small">Captura o edita todo tu menú en la computadora y súbelo aquí. Las fotos se agregan después, producto por producto.</div>
       <div class="btns"><button class="btn sm" onclick="descargarPlantilla()">⬇ Plantilla</button>
         <button class="btn sm" onclick="act(this,exportarMenu)" ${l.length ? '' : 'disabled'}>⬇ Exportar mi menú</button>
         <label class="btn sm pri">⬆ Importar Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="importarExcel(this)"></label></div></div>
     <div class="card"><div class="row between"><div><b>🧩 Opciones de sección</b><div class="muted small">Ej. <i>Tipo de leche</i> en todas las bebidas, <i>Salsa</i> en todo el pollo o <i>Huevo</i> en desayunos. Se aplican solas a los productos nuevos de esa sección.</div></div>
       <button class="btn sm pri" onclick="formGrupo()" ${l.length ? '' : 'disabled'}>${ico('mas', 's')} Grupo</button></div>
-      ${gr.map(g => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln);cursor:pointer" onclick="formGrupo('${g.id}')"><div><b>${esc(g.nombre)}</b> <span class="muted small">${g.obligatorio ? 'Obligatorio' : 'Opcional'} · elige ${textoCuantas(g)}${g.repetir ? ' (se repite)' : ''} · ${g.opciones.length} opciones</span>
-        <div class="muted small">En: ${esc([...g.categorias, ...g.productos.map(id => (l.find(p => p.id === id) || {}).nombre).filter(Boolean)].join(', '))}${g.excluir.length ? ' · menos ' + g.excluir.length : ''} · ${l.filter(p => gruposDe(p, [g]).length).length} productos</div></div><span class="lnk small">Editar ›</span></div>`).join('')}</div>`}
+      ${gr.map(g => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln);cursor:pointer" onclick="formGrupo('${g.id}')"><div><b>${esc(g.nombre)}</b> <span class="muted small">${g.obligatorio ? 'Obligatorio' : 'Opcional'}${g.max > 1 ? ' · hasta ' + g.max : ''} · ${g.opciones.length} opciones</span>
+        <div class="muted small">En: ${esc([...g.categorias, ...g.productos.map(id => (l.find(p => p.id === id) || {}).nombre).filter(Boolean)].join(', '))}${g.excluir.length ? ' · menos ' + g.excluir.length : ''} · ${l.filter(p => gruposDe(p, [g]).length).length} productos</div></div><span class="lnk small">Editar ›</span></div>`).join('')}</div>
     ${sinFoto ? `<div class="aviso ${S._soloSinFoto ? 'info' : 'warn'}" style="cursor:pointer" onclick="S._soloSinFoto=!S._soloSinFoto;pintar(true)">📷 ${sinFoto} producto${sinFoto > 1 ? 's' : ''} sin foto · ${S._soloSinFoto ? 'ver todos' : 'ver solo esos'}</div>` : ''}
-    ${Object.keys(grupos).map(g => `<div class="row between"><h3>${esc(g)}</h3>${ed ? `<button class="btn sm" onclick='formSubcats(${JSON.stringify(g).replace(/'/g, '&#39;')})'>🗂️ Subsecciones</button>` : ''}</div><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
-      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : !ed ? '<span class="fotoP"></span>' : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
-      <div class="grow" ${ed ? `onclick="formProducto('${p.id}')" style="cursor:pointer"` : ''}><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
+    ${Object.keys(grupos).map(g => `<div class="row between"><h3>${esc(g)}</h3><button class="btn sm" onclick='formSubcats(${JSON.stringify(g).replace(/'/g, '&#39;')})'>🗂️ Subsecciones</button></div><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
+      ${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
+      <div class="grow" onclick="formProducto('${p.id}')" style="cursor:pointer"><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
         <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? gruposDe(p, S._grupos).length + ' grupo' + (gruposDe(p, S._grupos).length > 1 ? 's' : '') + ' de opciones' : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
       <label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="act(null,()=>dispProducto('${p.id}',this))"><i></i></label></div>`).join('')}</div>`).join('')}
     ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos uno por uno o sube tu menú completo con la plantilla de Excel.</div>` : ''}`);
@@ -4403,8 +3931,7 @@ function formGrupo(id) {
   modal(`<div class="row between"><h2 style="margin:0">${id ? 'Editar' : 'Nuevo'} grupo de opciones</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <label class="f">Nombre</label><input class="i" id="grNom" maxlength="40" value="${esc(g.nombre)}" placeholder="Ej. Tipo de leche, Salsa, Huevo">
     <div class="row wrap" style="gap:14px;margin-top:8px"><label class="row" style="gap:6px"><input type="checkbox" id="grObl" ${g.obligatorio ? 'checked' : ''}> Obligatorio</label>
-      ${campoCuantas(g, 'gr')}</div>
-    <div class="muted small" style="margin-top:4px">"Según el tamaño" toma el número del nombre de cada variante: "2 cucharadas" pide 2. "Puede repetir" deja elegir la misma opción varias veces.</div>
+      <label class="row" style="gap:6px">El cliente elige <select class="i" id="grMax" style="width:auto;padding:6px">${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${n === g.max ? 'selected' : ''}>${n === 1 ? '1' : 'hasta ' + n}</option>`).join('')}</select></label></div>
     <label class="f">Opciones · sin precio = sin costo extra</label>
     <div id="grOps"></div><button class="btn sm" onclick="filaExtra('','','#grOps','Ej. Almendra')">${ico('mas', 's')} Agregar opción</button>
     <label class="f">¿A qué secciones aplica?</label>
@@ -4428,7 +3955,7 @@ function pintarExcluir() {
 async function guardarGrupoForm(id) {
   pintarExcluir();
   S._grupos = await api('guardarGrupo', {
-    id: id || undefined, nombre: $('#grNom').value, obligatorio: $('#grObl').checked, ...leerCuantas($('#modal'), 'gr'),
+    id: id || undefined, nombre: $('#grNom').value, obligatorio: $('#grObl').checked, max: Number($('#grMax').value),
     opciones: extrasForm('#grOps'), categorias: [...document.querySelectorAll('.grCat')].filter(x => x.checked).map(x => x.value),
     productos: [...document.querySelectorAll('.grProd')].filter(x => x.checked).map(x => x.value), excluir: S._grExcl
   });
@@ -4525,8 +4052,7 @@ function nombreArchivo(base) {
 }
 
 const listaTxt = l => (l || []).map(x => x.nombre + (x.precio !== undefined && x.precio !== '' ? ':' + x.precio : '')).join('; ');
-const reglasTxt = g => [!g.obligatorio ? 'opcional' : '', g.porVariante ? 'según tamaño' : g.exacto ? 'exacto ' + g.max : g.max > 1 ? 'hasta ' + g.max : '', g.repetir ? 'repetir' : ''].filter(Boolean).join(', ');
-const gruposTxt = gs => (gs || []).map(g => g.nombre + (reglasTxt(g) ? ' (' + reglasTxt(g) + ')' : '') + ': ' + g.opciones.map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ')).join(' | ');
+const gruposTxt = gs => (gs || []).map(g => g.nombre + (!g.obligatorio || g.max > 1 ? ' (' + [!g.obligatorio ? 'opcional' : '', g.max > 1 ? 'hasta ' + g.max : ''].filter(Boolean).join(', ') + ')' : '') + ': ' + g.opciones.map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ')).join(' | ');
 
 /** Asistente: tres preguntas y una plantilla a la medida del negocio. */
 function descargarPlantilla() {
@@ -4572,7 +4098,7 @@ async function exportarMenu() {
     opciones: gruposTxt(p.opciones), extras: listaTxt(p.extras.filter(e => e.precio)), extrasGratis: p.extras.filter(e => !e.precio).map(e => e.nombre).join('; '),
     quitar: (p.quitar || []).join(', '), tiempo: p.tiempoPrep || '', disponible: p.disponible === 'si' ? 'Sí' : 'No', id: p.id });
   const nom = id => (l.find(p => p.id === id) || {}).nombre;
-  const opc = gr.map(g => [g.nombre, g.categorias.join('; '), g.obligatorio ? 'Sí' : 'No', (g.porVariante ? 'según tamaño' : g.exacto ? 'exacto ' + g.max : g.max) + (g.repetir ? ', repetir' : ''), listaTxt(g.opciones), g.excluir.map(nom).filter(Boolean).join('; '), g.id]);
+  const opc = gr.map(g => [g.nombre, g.categorias.join('; '), g.obligatorio ? 'Sí' : 'No', g.max, listaTxt(g.opciones), g.excluir.map(nom).filter(Boolean).join('; '), g.id]);
   XLSX.writeFile(libroMenu(XLSX, cols, l.map(p => { const v = val(p); return cols.map(k => v[k]); }), opc), nombreArchivo('Menu'));
   toast('Menú exportado ✓');
 }
@@ -4686,7 +4212,7 @@ function formProducto(id) {
     <div class="muted small" style="margin:-2px 0 6px">Cada variante tiene su propio precio y reemplaza el precio normal.</div>
     <div id="varRows"></div><button class="btn sm" onclick="filaExtra('','','#varRows','Ej. Grande')">${ico('mas', 's')} Agregar variante</button>
     <label class="f">Opciones de preparación · el cliente elige (término, salsa, tipo de huevo…)</label>
-    <div class="muted small" style="margin:-2px 0 6px">Escribe las opciones separadas por coma; si alguna cuesta más, ponle :precio (ej. Verde, Roja, Divorciados:5). Para platos por cucharadas o combos: pon variantes "1 cucharada", "2 cucharadas"… y en el grupo elige <b>según el tamaño</b> y <b>puede repetir</b>.${S._grupos && S._grupos.length ? ' Las <b>opciones de sección</b> se agregan solas.' : ''}</div>
+    <div class="muted small" style="margin:-2px 0 6px">Escribe las opciones separadas por coma; si alguna cuesta más, ponle :precio (ej. Verde, Roja, Divorciados:5).${S._grupos && S._grupos.length ? ' Las <b>opciones de sección</b> se agregan solas.' : ''}</div>
     <div id="opRows"></div><button class="btn sm" onclick="filaOpcion()">${ico('mas', 's')} Agregar grupo de opciones</button>
     <label class="f">Extras (el cliente puede agregarlos · sin precio = gratis)</label>
     <div id="exRows"></div><button class="btn sm" onclick="filaExtra('','')">${ico('mas', 's')} Agregar extra</button>
@@ -4706,14 +4232,15 @@ function filaOpcion(g) {
   d.innerHTML = `<div class="row" style="gap:6px"><input class="i opN" placeholder="Nombre (ej. Término)" maxlength="40"><button class="btn sm err" onclick="this.closest('.opRow').remove()">✕</button></div>
     <input class="i opO" placeholder="Opciones: Medio, Tres cuartos, Bien cocido" style="margin-top:6px">
     <div class="row wrap" style="gap:10px;margin-top:6px"><label class="row small" style="gap:6px"><input type="checkbox" class="opR"> Obligatorio</label>
-      ${campoCuantas(g, 'op')}</div>`;
+      <label class="row small" style="gap:6px">Puede elegir <select class="i opM" style="width:auto;padding:6px">${[1, 2, 3, 4, 5].map(n => `<option value="${n}">${n === 1 ? '1' : 'hasta ' + n}</option>`).join('')}</select></label></div>`;
   d.querySelector('.opN').value = g.nombre || '';
   d.querySelector('.opO').value = (g.opciones || []).map(o => o.nombre + (o.precio ? ':' + o.precio : '')).join(', ');
   d.querySelector('.opR').checked = g.obligatorio !== false;
+  d.querySelector('.opM').value = String(g.max || 1);
   $('#opRows').appendChild(d);
 }
 function opcionesForm() {
-  return [...document.querySelectorAll('#opRows .opRow')].map(r => Object.assign({ nombre: r.querySelector('.opN').value.trim(), opciones: r.querySelector('.opO').value, obligatorio: r.querySelector('.opR').checked }, leerCuantas(r, 'op')))
+  return [...document.querySelectorAll('#opRows .opRow')].map(r => ({ nombre: r.querySelector('.opN').value.trim(), opciones: r.querySelector('.opO').value, obligatorio: r.querySelector('.opR').checked, max: Number(r.querySelector('.opM').value) }))
     .filter(g => g.nombre || g.opciones.trim()).map(g => Object.assign(g, { nombre: g.nombre || 'Preparación' }));
 }
 function filaExtra(nombre, precio, donde, ejemplo) {
@@ -4759,13 +4286,13 @@ function estadoPromoTag(p) {
 
 async function vPromos() {
   const [l, prods, n] = await Promise.all([api('misPromos'), api('misProductos'), api('miNegocio')]);
-  S._promosNeg = l; S._prods = prods; fijarNeg(n);
+  S._promosNeg = l; S._prods = prods; S.negocio = n; ls('negocio', n);
   const su = n.suscripcion || {}, incl = su.bannersIncluidos === undefined ? 1 : Math.max(1, su.bannersIncluidos), ext = su.bannersExtra || 0;
   html(`${pendienteAviso()}<div class="row between"><h2>Banners</h2>
       <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nuevo</button></div>
     <div class="card"><div class="row between"><div><b>Tu plan: ${incl + ext} banner${incl + ext > 1 ? 's' : ''} por día</b>
       <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
-      ${esDueno() ? `<button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button>` : ''}</div>
+      <button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button></div>
       ${n.planCfg ? `<div class="aviso info" style="margin:8px 0 0">${PLAN_ICO[n.plan] || ''} <b>Plan ${esc(n.planCfg.nombre)}:</b> ${esc(textoPlan(n.planCfg))} ${n.plan !== 'pro' && n.plan !== 'donado' ? `<button class="lnk small" onclick="ir('suscripcion')">Subir de plan ›</button>` : ''}</div>` : ''}
       <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando con los demás negocios (los segundos y la visibilidad dependen de tu plan).
         Una <b>🏷️ Promoción</b> (precio especial, 2x1, 3x2, % o $ de descuento, regalo o descuento de primera compra) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
@@ -4832,8 +4359,8 @@ function formPromo(id) {
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" class="prDia" value="${d}" ${dias.includes(d) ? 'checked' : ''}>${DIAS[d].slice(0, 3)}</label>`).join('')}</div>
     <div class="muted small" style="margin-top:6px">Cada día puedes tener los banners de tu plan (1 incluido + los extra que compres). Si alguno de estos días ya está lleno, te avisamos.</div>
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="prConHora" ${conHora ? 'checked' : ''} onchange="$('#prHoras').style.display=this.checked?'':'none'"><span>Solo en un horario (ej. happy hour)</span></label>
-    <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label>${selHora('class="i" id="prHI"', p.horaIni || '13:00')}</div>
-      <div class="grow"><label class="f">A</label>${selHora('class="i" id="prHF"', p.horaFin || '17:00')}</div></div>
+    <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label><input class="i" id="prHI" type="time" value="${esc(p.horaIni || '13:00')}"></div>
+      <div class="grow"><label class="f">A</label><input class="i" id="prHF" type="time" value="${esc(p.horaFin || '17:00')}"></div></div>
     <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarPromoForm)">Guardar promoción</button></div>`);
   (p.productos || []).forEach(x => filaProdPromo(x));
   if (!(p.productos || []).length) filaProdPromo();
@@ -4978,7 +4505,6 @@ function avisoSuscripcion() {
   if (!S.user || !['negocio', 'repartidor'].includes(S.user.rol)) return '';
   const s = S.user.rol === 'negocio' ? (S.negocio && S.negocio.suscripcion) : S.user.suscripcion;
   if (!s || !s.vence) return '';
-  if (S.user.rol === 'negocio' && !esDueno()) return s.estado === 'suspendido' ? '<div class="aviso err">⛔ Este negocio no se muestra a los clientes por su suscripción. Avísale al dueño.</div>' : '';
   const que = S.user.rol === 'negocio' ? 'suscripción' : 'mensualidad';
   const fuera = S.user.rol === 'negocio' ? 'Tu negocio no se muestra a los clientes' : 'No estás recibiendo pedidos';
   if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu ${que} vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
@@ -4993,20 +4519,15 @@ function conceptoPago(p) {
 function tagPago(e) { return { pendiente: '<span class="tag t-warn">En revisión</span>', confirmado: '<span class="tag t-ok">Confirmado</span>', rechazado: '<span class="tag t-err">Rechazado</span>' }[e] || ''; }
 
 /** "Tu primer mes es de prueba…": desde cuándo corre y antes de cuándo es el primer pago. */
-function textoPrueba(vence, sinPagos, rep) {
+function textoPrueba(vence, sinPagos) {
   const dpp = (S.conf && S.conf.diasPorPago) || 30, f = ms => fechaLarga(ms).replace(/ de \d{4}$/, '');
-  const fc = S.conf && (rep && S.conf.primerCobroRepartidor || S.conf.primerCobro), pc = fc && Date.parse(fc + 'T12:00:00');
-  // solo es "prueba" si la fecha de corte cae en el mes de prueba o en el primer cobro general; con meses regalados o plan Donado no
-  const esPrueba = vence && sinPagos && !(S.negocio && S.negocio.plan === 'donado' && !rep) && vence <= Math.max(pc || 0, Date.now() + (dpp + 2) * 864e5) + 2 * 864e5;
-  if (esPrueba) return `🎁 Tu primer mes es de prueba: empieza a correr el <b>${f(vence - dpp * 864e5)}</b> y tu primer pago es antes del <b>${f(vence)}</b>.`;
-  if (vence && sinPagos) return '';
+  if (vence && sinPagos) return `🎁 Tu primer mes es de prueba: empieza a correr el <b>${f(vence - dpp * 864e5)}</b> y tu primer pago es antes del <b>${f(vence)}</b>.`;
+  const pc = S.conf && S.conf.primerCobro && Date.parse(S.conf.primerCobro + 'T12:00:00');
   if (!vence && pc && pc > Date.now()) return `🎁 Al aprobar tu cuenta, tu primer mes de prueba empieza a correr el <b>${f(pc - dpp * 864e5)}</b> y tu primer pago es antes del <b>${f(pc)}</b>.`;
   return '';
 }
 async function vSuscripcion() {
   const d = await api('miSuscripcion');
-  // sucursal con el mismo menú: los planes se muestran (y se cobran) con su descuento
-  if (d.sucursal && d.sucursal.aplica && d.planes) d.planes = Object.fromEntries(Object.entries(d.planes).map(([k, v]) => [k, Object.assign({}, v, { precio: Math.round(v.precio * (100 - d.sucursal.descuento) / 100), precioLista: v.precio })]));
   S._susc = d; S._compPago = null;
   const rep = d.tipo === 'repartidor';
   if (!rep && S.negocio) { S.negocio.suscripcion = d.suscripcion; ls('negocio', S.negocio); }
@@ -5023,7 +4544,6 @@ async function vSuscripcion() {
   const masCaros = rep || d.cambioLibre ? [] : ['basico', 'plus', 'pro'].filter(k => P[k] && P[k].precio > (P[cobro] || {}).precio);
   html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
     ${prueba ? `<div class="aviso ok" id="avisoPrueba">${prueba}</div>` : ''}
-    ${d.sucursal ? avisoSucursal(d.sucursal) : ''}
     ${s.vence ? `<div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
       <div class="muted" style="margin-top:10px">${s.estado === 'suspendido' || s.estado === 'gracia' ? 'Tu fecha de corte fue el' : 'Activo hasta el'}</div>
       <div style="font-size:26px;font-weight:900;line-height:1.15">${fechaLarga(s.vence)}</div>
@@ -5035,7 +4555,7 @@ async function vSuscripcion() {
         <div class="tot"><span>Mensualidad</span><b>${money(d.cuota)}</b></div>
         <div class="muted small" style="margin-top:8px">Pídele no te cobra comisión por tus envíos: lo que cobras de envío es tuyo. La mensualidad mantiene tu cuenta activa para recibir pedidos.</div>`
       : planesSusc(d, s)}</div>
-    ${enPlay() ? seccionPlay(d) : donado ? `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar mensualidad.</div>` : d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
+    ${donado ? `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar mensualidad.</div>` : d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
     : esperaValidacion ? '' : `
     <h3>Pagar</h3>
     <div class="card">
@@ -5060,119 +4580,7 @@ async function vSuscripcion() {
         ${p.estado === 'rechazado' && p.nota ? `<br><span class="small" style="color:var(--err)">${esc(p.nota)}</span>` : ''}</span>
       <span style="text-align:right">${tagPago(p.estado)}${p.comprobanteId ? `<br><button class="lnk small" onclick="act(this,async()=>visor(await api('imagen',{fileId:'${p.comprobanteId}'})))">Comprobante</button>` : ''}</span></div>`).join('')}</div>` : ''}
     <div style="height:20px"></div>`);
-  if (enPlay()) { preciosPlay(d); restaurarPlay(d); return; }
   if (!d.pendiente && !esperaValidacion) calcSusc();
-}
-
-/* ---------- Suscripción con Google Play (solo en la app de Android) ---------- */
-function urlPlaySubs(p) { return 'https://play.google.com/store/account/subscriptions' + (p.producto ? '?sku=' + encodeURIComponent(p.producto) + '&package=' + encodeURIComponent(p.paquete) : ''); }
-
-function seccionPlay(d) {
-  const p = d.play || {}, rep = d.tipo === 'repartidor', s = d.suscripcion || {}, P = d.planes || {};
-  const wa = (S.conf && S.conf.soporteWhatsApp) || numPidele();
-  if (!rep && d.plan === 'donado') return `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar.</div>`;
-  if (rep && !d.inscrito && p.inscripcion && p.inscripcion.producto && playCobro()) return `<div class="card"><b>1 · Paga tu inscripción</b>
-    <div class="muted small">Pago único de <b><span class="precioPlay" data-sku="${esc(p.inscripcion.producto)}">${money(p.inscripcion.monto)}</span></b> con Google Play. Después muestras tu INE al administrador y, al aprobarte, empiezan tus ${d.diasPrueba} días gratis.</div>
-    <div class="btns"><button class="btn pri" onclick="act(this,inscripcionPlay)">Pagar inscripción</button></div></div>`;
-  if (rep && !d.inscrito || rep && !d.aprobado) return `<div class="card"><b>${d.inscrito ? '✅ Inscripción pagada' : 'Tu registro'}</b><div class="muted small">${d.inscrito ? 'Falta tu validación en persona: muestra tu INE al administrador.' : 'Pídele te contactará para completar tu inscripción y validar tu cuenta en persona.'}</div>
-    ${wa ? `<div class="btns"><a class="btn" href="${waLink(wa, 'Hola, quiero completar mi registro como repartidor de Pídele')}" target="_blank">${ico('chat', 's')} Escribir a Pídele</a></div>` : ''}</div>`;
-  if (p.vigente) {
-    const nom = rep ? 'Repartidor' : esc(nombrePlan(p.plan || d.plan, P));
-    return `<h3>Tu suscripción</h3><div class="card"><div class="row between"><b>✅ Activa con Google Play</b><span class="tag t-ok">${nom}</span></div>
-      <div class="muted small" style="margin-top:6px">${p.estado === 'SUBSCRIPTION_STATE_CANCELED' ? 'Cancelaste la renovación: sigues activo hasta el <b>' + fechaLarga(p.vence) + '</b>.' : 'Se renueva sola el <b>' + fechaLarga(p.vence) + '</b>.'}</div>
-      ${p.sucProducto && !p.sucursal ? '<div class="aviso warn" style="margin:8px 0 0">Tu suscripción tiene precio de sucursal, pero tu menú ya no cumple. Cancélala en Google Play y suscríbete al precio normal antes de tu siguiente cobro.</div>' : ''}
-      <div class="btns"><a class="btn" href="${urlPlaySubs(p)}" target="_blank">Administrar o cancelar en Google Play</a></div></div>`;
-  }
-  if (!p.disponible) return `<div class="card"><b>Pago de tu ${rep ? 'mensualidad' : 'suscripción'}</b><div class="muted small">Comunícate con Pídele para mantener tu cuenta activa.</div>
-    ${wa ? `<div class="btns"><a class="btn pri" href="${waLink(wa, 'Hola, quiero mantener activa mi cuenta de ' + (rep ? 'repartidor' : 'negocio') + ' en Pídele')}" target="_blank">${ico('chat', 's')} Escribir a Pídele</a></div>` : ''}</div>`;
-  if (!playCobro()) return `<div class="aviso warn">Para suscribirte, actualiza la app de Pídele desde Google Play.</div>`;
-  const lista = rep ? ['repartidor'] : ['basico', 'plus', 'pro'].filter(k => P[k] && p.productos[k]);
-  const cur = rep ? 'repartidor' : (d.planSig || d.plan);
-  const pagadoHasta = s.vence && s.vence > Date.now() ? s.vence : 0;
-  const antes = p.desde && Date.now() < p.desde;
-  return `<h3>Suscríbete con Google Play</h3><div class="card">
-    <div class="muted small">${pagadoHasta ? 'Tu servicio está activo hasta el <b>' + fechaLarga(pagadoHasta) + '</b>. ' : ''}Google cobra desde el día en que te suscribes y se renueva cada mes. Cancelas cuando quieras desde Google Play.${antes ? ' A partir del <b>' + fechaLarga(p.desde) + '</b> te pediremos suscribirte para seguir después de tu fecha de corte.' : ''}</div>
-    ${lista.map(k => `<div class="opcion ${k === cur ? 'on' : ''}" data-plan-play="${k}" style="margin:10px 0 0;cursor:default"><div class="grow">
-        <b>${rep ? '🛵 Mensualidad de repartidor' : (PLAN_ICO[k] || '') + ' ' + esc(P[k].nombre)} · <span class="precioPlay" data-sku="${esc(p.productos[k])}">${money(rep ? d.cuota : P[k].precio)}</span> al mes</b>
-        <small>${k === cur ? 'Tu plan actual' : rep ? '' : esc(textoPlan(P[k]))}</small></div>
-      <button class="btn pri sm" onclick="act(this,()=>suscribirPlay('${k}'))">Suscribirme</button></div>`).join('')}</div>`;
-}
-
-async function servicioPlay() {
-  if (!playCobro()) throw new Error('Google Play no está disponible. Abre Pídele desde la app instalada de Google Play.');
-  const svc = await window.getDigitalGoodsService('https://play.google.com/billing');
-  if (!svc) throw new Error('Google Play no está disponible en este teléfono');
-  return svc;
-}
-
-/** Muestra el precio real de Google Play (con impuestos y en la moneda del teléfono). */
-async function preciosPlay(d) {
-  if (!playCobro() || !d.play || d.play.vigente) return;
-  const els = [...document.querySelectorAll('.precioPlay')]; if (!els.length) return;
-  try {
-    const det = await (await servicioPlay()).getDetails(els.map(e => e.dataset.sku));
-    det.forEach(x => { const e = els.find(y => y.dataset.sku === x.itemId); if (e && x.price) e.textContent = new Intl.NumberFormat('es-MX', { style: 'currency', currency: x.price.currency }).format(+x.price.value); });
-  } catch (e) { }
-}
-
-/** Si ya tiene una suscripción en su cuenta de Google (por ejemplo, reinstaló la app), se liga sola. */
-async function restaurarPlay(d) {
-  if (!playCobro() || !d.play || (d.play.vigente && (d.tipo !== 'repartidor' || d.inscrito)) || d.play.donado || S._playRest) return;
-  S._playRest = true;
-  try {
-    const mios = Object.values(d.play.productos || {}).filter(Boolean);
-    if (d.tipo === 'repartidor' && !d.inscrito && d.play.inscripcion && d.play.inscripcion.producto) {
-      const ins = (await (await servicioPlay()).listPurchases()).find(x => x.itemId === d.play.inscripcion.producto);
-      if (ins) { S._susc = await api('playInscripcion', { token: ins.purchaseToken }); toast('Tu inscripción de Google Play quedó ligada ✓'); pintar(true); return; }
-    }
-    const l = (await (await servicioPlay()).listPurchases()).filter(x => mios.includes(x.itemId));
-    if (!l.length) return;
-    S._susc = await api('playVerificar', { token: l[0].purchaseToken });
-    toast('Tu suscripción de Google Play quedó ligada ✓');
-    pintar(true);
-  } catch (e) { }
-}
-
-/** Inscripción del repartidor: pago único con Google Play. */
-async function inscripcionPlay() {
-  const d = S._susc, p = d.play || {}, sku = p.inscripcion && p.inscripcion.producto;
-  if (!sku) throw new Error('La inscripción con Google Play no está disponible');
-  const svc = await servicioPlay();
-  const det = await svc.getDetails([sku]);
-  if (!det || !det.length) throw new Error('No encontramos la inscripción en Google Play. Intenta más tarde.');
-  const pr = det[0].price || { currency: 'MXN', value: '0' };
-  const req = new PaymentRequest([{ supportedMethods: 'https://play.google.com/billing', data: { sku } }], { total: { label: 'Total', amount: { currency: pr.currency, value: pr.value } } });
-  let resp;
-  try { resp = await req.show(); } catch (e) { if (e && e.name === 'AbortError') return; throw new Error('No se completó el pago' + (e && e.message ? ': ' + e.message : '')); }
-  const token = resp.details && (resp.details.purchaseToken || resp.details.token);
-  try {
-    if (!token) throw new Error('Google no devolvió la compra. Si se te cobró, escríbenos.');
-    S._susc = await api('playInscripcion', { token });
-    await resp.complete('success');
-  } catch (e) { try { await resp.complete('fail'); } catch (x) { } throw e; }
-  if (S.user) { S.user.inscrito = true; ls('user', S.user); }
-  toast('¡Inscripción pagada! Ahora muestra tu INE al administrador ✓');
-  pintar(true);
-}
-async function suscribirPlay(k) {
-  const d = S._susc, p = d.play || {}, sku = (p.productos || {})[k];
-  if (!sku) throw new Error('Este plan aún no está disponible en Google Play');
-  const svc = await servicioPlay();
-  const det = await svc.getDetails([sku]);
-  if (!det || !det.length) throw new Error('No encontramos este plan en Google Play. Intenta más tarde.');
-  const pr = det[0].price || { currency: 'MXN', value: '0' };
-  const req = new PaymentRequest([{ supportedMethods: 'https://play.google.com/billing', data: { sku } }], { total: { label: 'Total', amount: { currency: pr.currency, value: pr.value } } });
-  let resp;
-  try { resp = await req.show(); }
-  catch (e) { if (e && e.name === 'AbortError') return; throw new Error('No se completó la compra' + (e && e.message ? ': ' + e.message : '')); }
-  const token = resp.details && (resp.details.purchaseToken || resp.details.token);
-  try {
-    if (!token) throw new Error('Google no devolvió la compra. Si se te cobró, abre de nuevo Mi suscripción y se ligará sola.');
-    S._susc = await api('playVerificar', { token });
-    await resp.complete('success');
-  } catch (e) { try { await resp.complete('fail'); } catch (x) { } throw e; }
-  toast('¡Listo! Tu suscripción quedó activa ✓');
-  pintar(true);
 }
 
 /** Planes del negocio en Mi suscripción: elige entre Básico, Plus y Pro (Donado lo asigna el administrador). */
@@ -5187,14 +4595,12 @@ function planesSusc(d, s) {
     ${d.cambioLibre ? `<div class="muted small" style="margin-top:8px">${conPagos ? 'Elige tu plan antes de pagar.' : 'Estás en tu mes de prueba: cambia de plan cuando quieras, sin costo.'}</div>`
       : d.planSig ? `<div class="aviso warn" style="margin:8px 0 0">Pasas al plan ${esc(nombrePlan(d.planSig, P))} el <b>${fechaLarga(d.planDesde)}</b>; hasta entonces conservas tu plan ${esc(nombrePlan(cur, P))}. Tus próximos pagos ya son de ${money(P[d.planSig].precio)}. <button class="lnk small" onclick="act(this,()=>elegirPlanSusc('${cur}'))">Quedarme en ${esc(nombrePlan(cur, P))}</button></div>`
       : `<div class="muted small" style="margin-top:8px">Para subir de plan elígelo en “Plan con este pago”. Si bajas, conservas tu plan hasta tu fecha de corte.</div>`}`}
-    ${!enPlay() && (P[d.planSig || cur] || {}).anuncios > 0 ? `<div class="tot" style="margin-top:8px"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>` : ''}
+    ${(P[d.planSig || cur] || {}).anuncios > 0 ? `<div class="tot" style="margin-top:8px"><span>Banner extra (por banner, al mes)</span><b>${money(d.precioBannerExtra)}</b></div>` : ''}
     ${s.bannersExtra ? `<div class="aviso ok" style="margin:8px 0 0">Tienes ${s.bannersExtra} banner${s.bannersExtra > 1 ? 's' : ''} extra hasta el ${fechaLarga(s.extrasVence)}.</div>` : ''}
-    <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. ${enPlay() ? 'Tu suscripción se renueva sola cada mes con Google Play y la cancelas cuando quieras.' : 'Cada mes que pagas suma ' + d.diasPorPago + ' días a tu fecha de corte, sin importar el día en que pagues.'}</div>`;
+    <div class="muted small" style="margin-top:8px">Pídele no cobra comisiones por tus ventas. Cada mes que pagas suma ${d.diasPorPago} días a tu fecha de corte, sin importar el día en que pagues.</div>`;
 }
 async function elegirPlanSusc(plan) {
   const d = S._susc, P = d.planes;
-  if (enPlay() && d.play && d.play.vigente && plan !== d.plan) { toast('Para cambiar de plan, cancela tu suscripción en Google Play y suscríbete al nuevo cuando termine tu periodo.'); return; }
-  if (enPlay() && !d.cambioLibre && plan !== d.plan) { const b = document.querySelector('[data-plan-play="' + plan + '"]'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   if (plan === d.plan && !d.planSig) return;
   if (plan !== d.plan && !d.cambioLibre && P[plan].precio > P[d.plan].precio) {
     const c = $('#sPlan'); if (c) { c.value = plan; cambioPlanPago(); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -5241,7 +4647,7 @@ async function enviarPagoSusc() {
   if (d.tipo !== 'repartidor' && !m && !e) throw new Error('Elige cuántos banners extra quieres');
   if (!S._compPago) throw new Error('Adjunta la foto de tu comprobante');
   if (!confirm('¿Ya transferiste ' + money(montoSusc()) + '?')) return;
-  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago, plan: $('#sPlan') ? $('#sPlan').value : '', enPlay: enPlay() });
+  await api('reportarPago', { meses: m, bannersExtra: e, comprobante: S._compPago, plan: $('#sPlan') ? $('#sPlan').value : '' });
   toast('Comprobante enviado ✓ Te avisamos al confirmarlo');
   pintar();
 }
@@ -5255,7 +4661,7 @@ async function vAdminCobros() {
   const porVencer = todos.filter(n => n.estado === 'por_vencer').length, vencidos = todos.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
   const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; const rep = n.tipo === 'repartidor';
     return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
-      <div class="muted small">${n.play ? '<span class="tag t-ok" style="margin-right:4px">▶ Google Play</span>' : ''}${n.donado ? '<span class="tag t-gray" style="margin-right:4px">🎁 Donado</span>' : ''}${n.sucursal ? `<span class="tag ${n.sucursal.aplica ? 't-info' : 't-warn'}" style="margin-right:4px">🏪 ${n.sucursal.aplica ? 'Sucursal −' + n.sucursal.descuento + '%' : 'Sucursal sin descuento'}</span>` : ''}${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
+      <div class="muted small">${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
       ${n.vence ? `<span class="tag ${e[0]}">${e[1]}</span>` : '<span class="tag t-gray">Pendiente</span>'}</div>
       <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.tipo}','${n.id}')">Registrar pago</button>
         ${n.telefono && n.vence ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu ' + (rep ? 'mensualidad' : 'suscripción') + ' de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
@@ -5317,11 +4723,11 @@ async function guardarPagoManual() {
 
 async function vMiNegocio() {
   const n = await api('miNegocio');
-  fijarNeg(n);
+  S.negocio = n; ls('negocio', n);
   S._negPos = { lat: n.lat, lng: n.lng }; S._logo = null; S._qr = null; S._portada = null;
   const su = n.suscripcion, esu = su ? (EST_SUSC[su.estado] || EST_SUSC.sin) : null;
   html(`${pendienteAviso()}<h2>Mi negocio</h2>
-    ${su && su.vence && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
+    ${su && su.vence ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
       <div class="muted small">${su.estado === 'suspendido' || su.estado === 'gracia' ? 'Venció el ' : 'Activa hasta el '}${fechaLarga(su.vence)}</div></div>
       <div style="text-align:right"><span class="tag ${esu[0]}">${esu[1]}</span><div class="lnk small" style="margin-top:4px">Pagar / ver plan ›</div></div></div>` : ''}
     <div class="card">
@@ -5428,7 +4834,7 @@ async function guardarNegocio() {
     efectivo: $('#nEfe').checked, envioEnTransfer: $('#nEnvTr').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined,
     ...datosEnvios()
   });
-  fijarNeg(n); toast('Datos guardados ✓'); pintar(true);
+  S.negocio = n; ls('negocio', n); toast('Datos guardados ✓'); pintar(true);
 }
 function datosEnvios() {
   leerEnvios();
@@ -5439,61 +4845,18 @@ function filasHorario(hs, a0, c0) {
   hs = hs && hs.length === 7 ? hs : DIAS.map(() => ({ on: true, a: a0 || '09:00', c: c0 || '21:00' }));
   return [1, 2, 3, 4, 5, 6, 0].map(d => { const h = hs[d]; return `<div class="hRow ${h.on ? '' : 'off'}">
     <label><input type="checkbox" id="hOn${d}" ${h.on ? 'checked' : ''} onchange="this.closest('.hRow').classList.toggle('off',!this.checked)">${DIAS[d]}</label>
-    <div class="hHoras">${selHora(`id="hA${d}" aria-label="Abre el ${DIAS[d]}"`, h.a || a0 || '09:00')}<span>a</span>${selHora(`id="hC${d}" aria-label="Cierra el ${DIAS[d]}"`, h.c || c0 || '21:00')}</div></div>`; }).join('');
+    <input type="time" id="hA${d}" value="${esc(h.a || a0 || '09:00')}"><input type="time" id="hC${d}" value="${esc(h.c || c0 || '21:00')}"></div>`; }).join('');
 }
-/* Horas como lista (cada 15 min + 11:59 p. m.): el selector de hora nativo de Android es más ancho que la pantalla en algunos teléfonos. */
-const HORAS_OPC = (() => { const l = []; for (let m = 0; m < 1440; m += 15) l.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); l.push('23:59'); return l; })();
-const normHora = v => { const m = String(v || '').match(/^(\d{1,2}):(\d{2})/); return m ? m[1].padStart(2, '0') + ':' + m[2] : ''; };
-function hora12(v) { const [h, m] = v.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' a. m.' : ' p. m.'); }
-function selHora(attrs, v) {
-  v = normHora(v);
-  const l = !v || HORAS_OPC.includes(v) ? HORAS_OPC : [...HORAS_OPC, v].sort();
-  return `<select ${attrs}>${l.map(x => `<option value="${x}"${x === v ? ' selected' : ''}>${hora12(x)}</option>`).join('')}</select>`;
-}
-function ponHora(el, v) { v = normHora(v); if (!v) return; if (![...el.options].some(o => o.value === v)) el.add(new Option(hora12(v), v)); el.value = v; }
 function leerHorario() { return DIAS.map((x, d) => ({ on: $('#hOn' + d).checked, a: $('#hA' + d).value, c: $('#hC' + d).value })); }
 function copiarLunes() {
   const on = $('#hOn1').checked, a = $('#hA1').value, c = $('#hC1').value;
-  [0, 2, 3, 4, 5, 6].forEach(d => { $('#hOn' + d).checked = on; ponHora($('#hA' + d), a); ponHora($('#hC' + d), c); $('#hOn' + d).closest('.hRow').classList.toggle('off', !on); });
+  [0, 2, 3, 4, 5, 6].forEach(d => { $('#hOn' + d).checked = on; $('#hA' + d).value = a; $('#hC' + d).value = c; $('#hOn' + d).closest('.hRow').classList.toggle('off', !on); });
   toast('Horario copiado; recuerda guardar');
 }
 
 /* ============ REPARTIDOR ============ */
-/* ---------- Concurso semanal y resumen del día (2.22) ---------- */
-function textoTop3(k) {
-  if (!k) return '';
-  return k.top3 ? '🏆 <b>¡Estás en el Top 3 de la semana!</b> Sigue así para conservarlo.'
-    : `Aún no estás en el Top 3. Te ${k.faltan === 1 ? 'falta <b>1 entrega</b>' : 'faltan <b>' + k.faltan + ' entregas</b>'} para entrar.`;
-}
-function tarjetaConcurso(k) {
-  if (!k || !k.activo) return '';
-  return `<div class="card" style="border:2px solid ${k.top3 ? 'var(--ok)' : 'var(--warn)'}"><div class="row between"><b>🏆 Concurso de la semana</b><span class="muted small">hasta el ${fechaCorta(k.hasta).split(' ').slice(0, 2).join(' ')}</span></div>
-    ${k.premio ? `<div style="margin-top:4px">🎁 Premio: <b>${esc(k.premio)}</b></div>` : ''}
-    <div class="row wrap" style="gap:16px;margin-top:8px"><div><div class="muted small">Tus entregas esta semana</div><b style="font-size:22px">${k.entregas}</b></div><div><div class="muted small">Tu puntaje</div><b style="font-size:22px">${k.puntaje}</b></div></div>
-    <div class="small" style="margin-top:6px">${textoTop3(k)}</div>
-    <div class="muted small" style="margin-top:4px">Cuentan todas tus entregas en la app, también los servicios que capturas para tus clientes.</div></div>`;
-}
-/** Al iniciar el día: su puntaje, sus entregas totales y cómo va en el concurso (una vez al día). */
-function resumenDelDia(k) {
-  if (!k || !S.user) return;
-  const hoy = new Date().toDateString();
-  if (lsG('resumenDia') === hoy) return;
-  lsG('resumenDia', hoy);
-  setTimeout(() => {
-    if ($('#modal').classList.contains('on')) return;
-    modal(`<div style="text-align:center"><div style="font-size:42px">☀️</div><h2 style="margin:4px 0">¡Buen día, ${esc(S.user.nombre.split(' ')[0])}!</h2>
-      <div class="row" style="gap:10px;margin:14px 0">
-        <div class="kpi" style="flex:1"><b>${k.puntaje}</b><span>Tu puntaje</span></div>
-        <div class="kpi" style="flex:1"><b>${k.totalEntregas}</b><span>Entregas en total</span></div>
-        <div class="kpi" style="flex:1"><b>${k.entregas}</b><span>Esta semana</span></div></div>
-      ${k.activo ? `<div class="aviso ${k.top3 ? 'ok' : 'info'}" style="text-align:left">${textoTop3(k)}${k.premio ? '<div style="margin-top:4px">🎁 Premio de la semana: <b>' + esc(k.premio) + '</b></div>' : ''}</div>` : ''}
-      <div class="muted small">Entre mejor te califiquen, antes te llegan los pedidos nuevos.</div>
-      <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">¡A repartir! 🛵</button></div></div>`);
-  }, 900);
-}
 async function vDisponibles() {
   const d = await api('disponibles', S.pos || {});
-  if (d.concurso && !d.muestra) resumenDelDia(d.concurso);
   if (d.t) S._dt = d.t - Date.now(); // diferencia con el reloj del servidor
   S.esperaHasta = Date.now() + d.esperaMs;
   const lleno = d.activos >= d.maxActivos;
@@ -5526,18 +4889,17 @@ async function vDisponibles() {
     ${d.activos ? `<div class="aviso info row between" style="align-items:center"><span>🛵 Tienes <b>${d.activos}</b> pedido${d.activos > 1 ? 's' : ''} en curso.</span><button class="btn pri sm" onclick="ir('entregas')">Ver mis entregas</button></div>` : ''}
     ${avisoGPS()}
     ${motivo ? `<div class="aviso err">🚫 <b>Por ahora no puedes tomar pedidos:</b> ${motivo}</div>` : ''}
-    ${tarjetaConcurso(d.concurso)}
-    <div class="muted small" style="margin-bottom:8px">Si traes un pedido en curso, puedes tomar otro cada ${d.minutosEntreTomas} min; en cuanto lo entregas, puedes tomar el siguiente. Los pedidos nuevos te llegan por grupos, primero a los mejor calificados.</div>
+    <div class="muted small" style="margin-bottom:8px">Puedes tomar 1 pedido cada ${d.minutosEntreTomas} min, para que el trabajo se reparta entre todos.</div>
     ${d.lista.length ? d.lista.map(x => `<div class="card">
-      <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div><div style="text-align:right">${x.practica ? '<span class="tag t-warn">🎓 PRÁCTICA</span> ' : ''}${x.foraneo ? `<span class="tag t-info">📍 ${esc(x.zona && x.zona !== 'Foráneo' ? x.zona : 'Foráneo')}</span> ` : ''}${x.estado === 'LISTO' ? '<span class="tag t-ok">Ya está listo</span>' : `<span class="tag t-pri">Sale ${hora(x.horaSalida)}</span>`}</div></div>
+      <div class="row between"><div><b>${esc(x.negocio)}</b><div class="muted small">${x.folio} · ${x.piezas} productos</div></div><div style="text-align:right">${x.foraneo ? `<span class="tag t-info">📍 ${esc(x.zona && x.zona !== 'Foráneo' ? x.zona : 'Foráneo')}</span> ` : ''}${x.estado === 'LISTO' ? '<span class="tag t-ok">Ya está listo</span>' : `<span class="tag t-pri">Sale ${hora(x.horaSalida)}</span>`}</div></div>
       <div class="row wrap" style="margin-top:8px;gap:16px">
         <div><div class="muted small">Sale</div><b>${x.estado === 'LISTO' ? 'Ya' : enMin(x.horaSalida)}</b></div>
         <div><div class="muted small">Entrega</div><b>${x.distanciaKm} km</b></div>
         <div><div class="muted small">Tu envío</div><b>${money(x.envio)}</b></div></div>
       <div class="small" style="margin-top:8px">${x.metodoPago === 'efectivo' ? `${ico('efectivo', 's')} <b>Efectivo:</b> necesitas ${money(x.subtotal)} para pagar al negocio` : `${ico('banco', 's')} Comida pagada por ${PAGO_TXT[x.metodoPago]}`}</div>
-      ${x.practica ? '<div class="aviso warn" style="margin:10px 0 0">🎓 <b>Pedido de práctica</b> para capacitarte: tómalo, recógelo, entrégalo y cobra como si fuera real. No cuenta en tus ganancias ni calificación, y puedes tomarlo aunque tu cuenta aún no esté aprobada.</div>' : `<div class="aviso ${x.viabilidad.viable ? 'ok' : 'warn'}" style="margin:10px 0 0">${x.viabilidad.viable ? '✅' : '⚠️'} ${esc(x.viabilidad.motivo)}</div>`}
+      <div class="aviso ${x.viabilidad.viable ? 'ok' : 'warn'}" style="margin:10px 0 0">${x.viabilidad.viable ? '✅' : '⚠️'} ${esc(x.viabilidad.motivo)}</div>
       <div class="btns"><a class="btn" href="${gmaps(x.negLat, x.negLng)}" target="_blank">${ico('mapa', 's')} Ver negocio</a>
-        <button class="btn pri tomar" data-desde="${x.practica ? 0 : x.desde || 0}" ${x.practica ? 'data-prac="1"' : ''} ${!x.practica && (S.user.estado !== 'activo' || lleno || d.puedeTomar === false || (x.desde && x.desde > ahoraSrv())) ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">${x.desde && x.desde > ahoraSrv() ? '⏳ Disponible en ' + mmss(x.desde - ahoraSrv()) : 'Tomar pedido'}</button></div>
+        <button class="btn pri tomar" data-desde="${x.desde || 0}" ${S.user.estado !== 'activo' || lleno || d.puedeTomar === false || (x.desde && x.desde > ahoraSrv()) ? 'disabled' : ''} onclick="act(this,()=>tomar('${x.id}'))">${x.desde && x.desde > ahoraSrv() ? '⏳ Disponible en ' + mmss(x.desde - ahoraSrv()) : 'Tomar pedido'}</button></div>
       ${x.desde && x.desde > ahoraSrv() ? `<div class="muted small" style="margin-top:6px">${x.foraneo ? 'Los foráneos se ofrecen primero a quienes más los aceptan y entregan.' : 'Los repartidores con mejor calificación lo ven primero. Sube tu puntaje en Perfil.'}</div>` : ''}</div>`).join('')
     : `<div class="vacio"><span class="big">🛵</span>No hay pedidos disponibles ahorita.<br>Te avisamos cuando haya uno.</div>`}`);
   relojEspera();
@@ -5556,7 +4918,6 @@ function relojEspera() {
     e.innerHTML = textoEspera();
     const espera = S.esperaHasta > Date.now();
     document.querySelectorAll('.tomar').forEach(b => {
-      if (b.dataset.prac) return; // las prácticas se toman sin espera
       const desde = Number(b.dataset.desde) || 0, falta = desde - ahoraSrv();
       if (falta > 0) { b.disabled = true; b.textContent = '⏳ Disponible en ' + mmss(falta); b.dataset.p = 1; return; }
       if (b.dataset.p) { b.textContent = 'Tomar pedido'; delete b.dataset.p; b.dataset.w = 1; }
@@ -5573,7 +4934,7 @@ async function tomar(id) {
 
 async function vEntregas(p, silencioso) {
   const d = await api('misEntregas', S.pos || {});
-  recordar(d.pedidos); S._ruta = d.ruta;
+  recordar(d.pedidos);
   const firma = JSON.stringify(d.ruta.map(s => s.tipo + s.pedidoId));
   if (silencioso && S.map && $('#mapaRuta') && d.pedidos.length && S._rutaFirma === firma) { $('#listaEnt').innerHTML = tarjetasEntrega(d); return; }
   S._rutaFirma = firma;
@@ -5628,7 +4989,6 @@ function tarjetasEntrega(d) {
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div class="small" style="margin-top:8px">${cobroRepartidor(x)}</div>
     ${x.estado === 'EN_CAMINO' ? bloqueRecibe(x) : `<div class="muted small" style="margin-top:6px">${x.estado === 'LISTO' ? '📦 Listo en el negocio' : '👩‍🍳 Sale ' + hora(x.horaSalida) + ' (' + enMin(x.horaSalida) + ')'} · ${telLink(x.negocio.telefono, 'Negocio')}</div>`}
-    ${x.muestra && esAdminU() ? `<div class="btns"><button class="btn sm" style="border-color:var(--warn)" onclick="act(this,()=>simularRecorrido('${x.id}'))">${S._sim && S._sim.id === x.id ? '🧪 Recorrido en curso · ver mapa' : '🧪 Simular recorrido en el mapa'}</button></div>` : ''}
     ${botonesPedido(x, true)}</div>`).join('');
 }
 function urlRuta(ruta) {
@@ -5640,74 +5000,6 @@ function urlRuta(ruta) {
   if (pts.length) u += '&waypoints=' + encodeURIComponent(pts.slice(0, 9).join('|'));
   return u;
 }
-/**
- * Pedido de muestra: panel con mapa para enseñar el seguimiento. Arrastra la 🛵 (dónde va el repartidor) o la 🏠
- * (dónde está el cliente: cambia el domicilio del pedido de muestra). "Iniciar" la mueve sola hasta el domicilio
- * (si aún no lo recoge, pasa primero por el negocio). El cliente la ve moverse en su seguimiento.
- */
-async function simularRecorrido(id) {
-  const st = (S._ruta || []).filter(x => x.pedidoId === id), rec = st.find(x => x.tipo === 'recoger'), ent = st.find(x => x.tipo === 'entregar');
-  if (!ent) { toast('Este pedido no tiene domicilio para simular', 'err'); return; }
-  await cargarLeaflet();
-  const p = (S._pedidosVistos || {})[id] || {};
-  const S2 = S._simP = { id, rec, ent, moto: S._sim && S._sim.id === id && S.pos ? Object.assign({}, S.pos) : (S.pos && S._simUlt === id ? Object.assign({}, S.pos) : (rec && p.estado !== 'EN_CAMINO' ? { lat: rec.lat + 0.004, lng: rec.lng - 0.004 } : Object.assign({}, rec || ent))), vel: S2v() };
-  modal(`<div class="row between"><h2 style="margin:0">🧪 Simular recorrido</h2><button class="redondo" onclick="cerrarSim()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:4px 0 8px">Arrastra la 🛵 para poner al repartidor donde quieras y la 🏠 para cambiar dónde está el cliente. El cliente ve todo en su seguimiento.</div>
-    <div id="mapaSim" class="mapa alto"></div>
-    <div class="row wrap" style="gap:8px;margin-top:10px;align-items:center">
-      <button class="btn pri" id="simBtn" onclick="${S._sim && S._sim.id === id ? 'detenerSim()' : 'iniciarSim()'}">${S._sim && S._sim.id === id ? '⏸ Pausar' : '▶ Iniciar recorrido'}</button>
-      <label class="row small" style="gap:6px">Velocidad <select class="i" id="simVel" style="width:auto;padding:6px" onchange="S._simVel=this.value">${[['lenta', 'Lenta'], ['normal', 'Normal'], ['rapida', 'Rápida']].map(([k, t]) => `<option value="${k}" ${S2.vel === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
-    <div class="muted small" id="simInfo" style="margin-top:6px"></div>`);
-  const m = L.map('mapaSim', { zoomControl: true }).setView([S2.ent.lat, S2.ent.lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
-  S2.map = m;
-  if (rec) L.marker([rec.lat, rec.lng], { icon: pinIcono('🏪', '#D9822B') }).addTo(m).bindPopup('Negocio');
-  S2.mCasa = L.marker([ent.lat, ent.lng], { icon: pinIcono('🏠', '#3B5A2C'), draggable: true }).addTo(m);
-  S2.mMoto = L.marker([S2.moto.lat, S2.moto.lng], { icon: pinIcono('🛵', '#D9822B'), draggable: true }).addTo(m);
-  S2.mCasa.on('dragend', async () => { const ll = S2.mCasa.getLatLng(); S2.ent = Object.assign({}, S2.ent, { lat: ll.lat, lng: ll.lng });
-    (S._ruta || []).forEach(x => { if (x.pedidoId === id && x.tipo === 'entregar') { x.lat = ll.lat; x.lng = ll.lng; } });
-    try { await api('adminSimularPos', { pedidoId: id, destino: { lat: ll.lat, lng: ll.lng } }); toast('🏠 Domicilio del cliente movido'); } catch (e) { toast(e.message, 'err'); } });
-  S2.mMoto.on('dragstart', () => { if (S._sim) detenerSim(true); pintarBtnSim(); });
-  S2.mMoto.on('dragend', () => { const ll = S2.mMoto.getLatLng(); ponerMoto({ lat: ll.lat, lng: ll.lng }); });
-  try { m.fitBounds([[S2.moto.lat, S2.moto.lng], [ent.lat, ent.lng]].concat(rec ? [[rec.lat, rec.lng]] : []), { padding: [30, 30] }); } catch (e) { }
-  setTimeout(() => { try { m.invalidateSize(); } catch (e) { } }, 250);
-  ponerMoto(S2.moto);
-}
-function S2v() { return S._simVel || 'normal'; }
-/** Pone la moto en un punto (en el mapa del panel y en el servidor). */
-async function ponerMoto(pt) {
-  const S2 = S._simP; if (!S2) return;
-  S2.moto = pt; S.pos = pt; S._simUlt = S2.id;
-  if (S2.mMoto) { try { S2.mMoto.setLatLng([pt.lat, pt.lng]); } catch (e) { } }
-  const i = $('#simInfo'); if (i) i.textContent = '📍 Repartidor a ' + Math.round(distKm(pt, S2.ent) * 1000) + ' m del cliente';
-  try { await api('adminSimularPos', { pedidoId: S2.id, lat: pt.lat, lng: pt.lng }); } catch (e) { toast(e.message, 'err'); detenerSim(true); }
-}
-function distKm(a, b) { const R = 6371, r = x => x * Math.PI / 180, dl = r(b.lat - a.lat), dg = r(b.lng - a.lng); const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dg / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
-function iniciarSim() {
-  const S2 = S._simP; if (!S2) return;
-  const p = (S._pedidosVistos || {})[S2.id] || {};
-  const tramos = [];
-  if (S2.rec && p.estado !== 'EN_CAMINO' && distKm(S2.moto, S2.rec) > 0.03) tramos.push([S2.moto, S2.rec]);
-  tramos.push([tramos.length ? S2.rec : S2.moto, S2.ent]);
-  // pasos de ~40 m (lenta), ~70 m (normal) o ~120 m (rápida), uno cada 2 s
-  const paso = { lenta: 0.04, normal: 0.07, rapida: 0.12 }[S2v()] || 0.07;
-  const pts = []; tramos.forEach(([a, b]) => { const n = Math.max(3, Math.ceil(distKm(a, b) / paso)); for (let k = 1; k <= n; k++) pts.push({ lat: a.lat + (b.lat - a.lat) * k / n, lng: a.lng + (b.lng - a.lng) * k / n }); });
-  detenerSim(true);
-  S._sim = { id: S2.id, i: 0 };
-  pintarBtnSim();
-  toast('▶ La moto va en camino. El cliente la ve avanzar en su seguimiento.');
-  const avanza = async () => {
-    if (!S._sim || S._sim.id !== S2.id) return;
-    await ponerMoto(pts[S._sim.i++]);
-    if (!S._sim) return;
-    if (S._sim.i >= pts.length) { S._sim = null; pintarBtnSim(); toast('🏁 Llegó al domicilio: márcalo como entregado'); return; }
-    S._sim.t = setTimeout(avanza, 2000);
-  };
-  avanza();
-}
-function pintarBtnSim() { const b = $('#simBtn'); if (!b) return; const on = !!S._sim; b.textContent = on ? '⏸ Pausar' : '▶ ' + (S._simUlt ? 'Seguir recorrido' : 'Iniciar recorrido'); b.setAttribute('onclick', on ? 'detenerSim()' : 'iniciarSim()'); }
-function detenerSim(callado) { if (S._sim) { clearTimeout(S._sim.t); S._sim = null; if (!callado) toast('Recorrido en pausa'); } pintarBtnSim(); }
-function cerrarSim() { const S2 = S._simP; if (S2 && S2.map) { try { S2.map.remove(); } catch (e) { } } cerrarModal(); if (S.vista === 'entregas') pintar(true); }
 function dibujarRuta(ruta) {
   const ini = S.pos || ruta[0];
   const m = nuevoMapa('mapaRuta', ini.lat, ini.lng, 15);
@@ -5749,23 +5041,6 @@ async function rutaPorCalles(pts, m, recta) {
 }
 
 /* ============ ADMINISTRADOR ============ */
-async function estadoSucursal(id, estado) {
-  const nota = estado === 'rechazado' ? prompt('Motivo (opcional, se le avisa al dueño):') : '';
-  if (nota === null) return;
-  await api('adminEstadoNegocio', { negocioId: id, estado, nota });
-  toast(estado === 'activo' ? 'Aprobado ✓ · empieza su periodo de prueba' : 'Rechazado'); pintar(true);
-}
-/** Concurso semanal: ranking completo con lugares (para entregar premios) y el premio que ven los repartidores. */
-async function verConcurso(semana) {
-  const d = await api('adminConcurso', { semana: semana ? 1 : 0 });
-  modal(`<div class="row between"><h2 style="margin:0">🏆 Concurso semanal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="tabs" style="margin:10px 0"><button class="${semana ? '' : 'on'}" onclick="act(null,()=>verConcurso(0))">Esta semana</button><button class="${semana ? 'on' : ''}" onclick="act(null,()=>verConcurso(1))">Semana pasada</button></div>
-    <div class="muted small">Del ${fechaCorta(d.desde).split(' ').slice(0, 2).join(' ')} al ${fechaCorta(d.hasta).split(' ').slice(0, 2).join(' ')} · entregas en la app (incluye servicios propios, sin muestras). Los repartidores solo ven si están en el Top 3.</div>
-    ${d.lista.length ? d.lista.map((x, i) => `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--ln)"><span>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '<span class="muted">' + (i + 1) + '.</span>'} <b>${esc(x.nombre)}</b> <span class="muted small">${esc(x.telefono)}</span></span><span><b>${x.entregas}</b> <span class="muted small">entregas · ${x.puntaje} pts</span></span></div>`).join('')
-      : '<div class="vacio" style="padding:18px">Aún no hay entregas esta semana.</div>'}
-    ${semana ? '' : `<label class="f">Premio de esta semana (lo ven los repartidores)</label><input class="i" id="cPremio" maxlength="120" value="${esc(d.premio)}" placeholder="Ej. $300 en gasolina para el Top 3">
-      <div class="btns"><button class="btn pri" onclick="act(this,async()=>{await api('adminGuardarConfig',{valores:{premioSemana:$('#cPremio').value}});toast('Premio guardado ✓')})">Guardar premio</button></div>`}`);
-}
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
@@ -5782,11 +5057,6 @@ async function vAdmin() {
       <div class="kpi" style="cursor:pointer" onclick="${d.local ? '' : 'act(null,verPromosAdmin)'}"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas${d.local ? '' : ' · revisar'}</span></div>
       <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
       <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
-    <div class="card row between" style="cursor:pointer" onclick="act(null,()=>verConcurso(0))"><div><b>🏆 Concurso semanal de repartidores</b><div class="muted small">Ranking de entregas de la semana y el premio que ven los repartidores.</div></div><span class="lnk small">Ver ›</span></div>
-    ${(d.sucursales || []).length ? `<div class="card" style="border:2px solid var(--warn)"><b>🏪 Negocios nuevos por aprobar (${d.sucursales.length})</b>
-      ${d.sucursales.map(n => `<div style="padding:8px 0;border-top:1px solid var(--ln);margin-top:8px"><b>${esc(n.nombre)}</b> <span class="muted small">${esc(n.categoria)} · ${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}</span>
-        <div class="muted small">De ${esc(n.dueno)} · ${esc(n.telefono)}${n.otros.length ? ' · ya tiene: ' + n.otros.map(esc).join(', ') : ''}</div>
-        <div class="btns" style="margin-top:6px"><button class="btn sm pri" onclick="act(this,()=>estadoSucursal('${n.id}','activo'))">Aprobar</button><button class="btn sm err" onclick="act(this,()=>estadoSucursal('${n.id}','rechazado'))">Rechazar</button></div></div>`).join('')}</div>` : ''}
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>💰 Administrador local y comisiones</b><div class="muted small">Nombra al administrador de ${esc(d.pueblo || PUEBLO.nombre)} y liquida su ${'%'} cada mes</div></div><span class="lnk small">Abrir ›</span></div>`}
@@ -5905,7 +5175,6 @@ function tarjetaUsuario(x) {
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() ? `<button class="btn sm" onclick="formBonus('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')},${x.bonus || 0})">🎯 Bonus</button>` : ''}
       ${(x.rol === 'repartidor' || x.negocioId) && !esLocal() && x.estado === 'activo' ? `<button class="btn sm" onclick="formDonar('${x.rol === 'repartidor' ? x.id : ''}','${x.negocioId || ''}',${JSON.stringify(x.negocio || x.nombre).replace(/"/g, '&quot;')})">🎁 Donar meses</button>` : ''}
       ${x.negocioId && !esLocal() ? `<button class="btn sm" onclick="formPlanAdmin('${x.negocioId}','${x.plan}',${JSON.stringify(x.negocio).replace(/"/g, '&quot;')})">📋 Plan</button>` : ''}
-      ${(x.negocios || []).length && !esLocal() ? `<button class="btn sm" onclick='formTransferir(${JSON.stringify({ nombre: x.nombre, negocios: x.negocios }).replace(/'/g, '&#39;')})'>🔀 Pasar a otra cuenta</button>` : ''}
       ${x.estado === 'pendiente' && (x.rol === 'negocio' || x.rol === 'repartidor') ? `<button class="btn sm" onclick="act(this,()=>rechazarSolicitud('${x.id}'))">Rechazar solicitud</button>` : ''}
       ${x.estado !== 'bloqueado' && x.rol !== 'admin' ? `<button class="btn err sm" onclick="act(this,()=>estadoUsuario('${x.id}','bloqueado'))">Bloquear</button>` : ''}
       ${x.rol !== 'admin' && !esLocal() ? `<button class="btn err sm" onclick="act(this,()=>eliminarCuentaAdmin('${x.id}',${JSON.stringify(x.nombre).replace(/"/g, '&quot;')},'${esc(x.telefono)}'))">🗑️ Eliminar cuenta</button>` : ''}
@@ -5951,22 +5220,6 @@ function mandarInvitacion(x) {
     <div class="btns"><a class="btn pri" target="_blank" href="${waLink(x.telefono, msg)}">${ico('chat', 's')} Enviar por WhatsApp</a><button class="btn" onclick="act(this,()=>formInvitar(null,'${x.tipo === 'repartidor' ? 'repartidor' : 'negocio'}'))">Listo</button></div>`);
 }
 /** Meses donados (solo el general): recorre su fecha de pago sin cobrarle. */
-/** 2.20: pasar un negocio que ya existe al panel de otra cuenta (ej. Café El Punto a la cuenta de Hambas). */
-function formTransferir(x) {
-  modal(`<div class="row between"><h2 style="margin:0">🔀 Pasar a otra cuenta</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted" style="margin:4px 0 10px">De la cuenta de ${esc(x.nombre)}</div>
-    <label class="f">Negocio</label><select class="i" id="trNeg">${x.negocios.map(n => `<option value="${n.id}">${esc(n.nombre)}${n.estado !== 'activo' ? ' (' + esc(n.estado) + ')' : ''}</option>`).join('')}</select>
-    <label class="f">Teléfono del nuevo dueño (su cuenta de Pídele)</label><input class="i" id="trTel" inputmode="tel" maxlength="14" placeholder="10 dígitos">
-    <label class="row" style="gap:8px;margin-top:12px;align-items:flex-start"><input type="checkbox" id="trGer" checked style="margin-top:3px"><span><b>${esc(x.nombre)} se queda como gerente</b><div class="muted small">Sigue entrando con todos los permisos (pedidos, menú, promociones, ventas, datos), pero el plan, el pago y el equipo pasan al nuevo dueño. Él puede quitarle el acceso cuando quiera.</div></span></label>
-    <div class="aviso info" style="margin-top:12px">El negocio conserva su plan, fecha de corte, menú, pedidos, calificaciones e historial. Aparece en el selector de negocios del nuevo dueño y en "Mis negocios y equipo".</div>
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,transferirNegocio)">Pasar negocio</button></div>`);
-}
-async function transferirNegocio() {
-  const neg = $('#trNeg'), nombre = neg.options[neg.selectedIndex].text;
-  if (!confirm('¿Pasar ' + nombre + ' a la cuenta del ' + $('#trTel').value + '?')) return;
-  await api('adminTransferirNegocio', { negocioId: neg.value, telefono: $('#trTel').value, gerente: $('#trGer').checked });
-  cerrarModal(); toast(nombre + ' ya está en el panel del nuevo dueño ✓'); pintar(true);
-}
 function formDonar(repartidorId, negocioId, nombre) {
   modal(`<div class="row between"><h2 style="margin:0">🎁 Donar meses</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:4px 0 10px">${esc(nombre)}</div>
@@ -6300,7 +5553,7 @@ function repetirTour() { const k = tourKey(); lsG('tour_' + k, null); iniciarTou
 const navBtn = n => '#nav button:nth-child(' + n + ')';
 const pruebaTxt = () => {
   const u = S.user || {}, sus = u.rol === 'repartidor' ? u.suscripcion : (S.negocio || {}).suscripcion;
-  return textoPrueba(sus && sus.vence, true, u.rol === 'repartidor') || (sus && sus.vence ? 'Tu servicio está activo hasta el <b>' + fechaLarga(sus.vence) + '</b>. Aquí ves tus pagos y cómo renovar.' : 'Aquí ves tu fecha de pago y cómo pagar tu mensualidad.');
+  return textoPrueba(sus && sus.vence, true) || 'Aquí ves tu fecha de pago y cómo pagar tu mensualidad.';
 };
 const TOURS = {
   invitado: () => [
@@ -6349,7 +5602,7 @@ function tarjetaInstalar() {
   let no = 0; try { no = Number(localStorage.getItem('pe_instNo')) || 0; } catch (e) { }
   if (Date.now() - no < 7 * 864e5) return '';
   return `<div class="card row" id="tarjInst" style="border:2px solid var(--pri);gap:10px"><span style="font-size:30px">📲</span>
-    <div class="grow"><b>Instala Pídele en tu ${esPC() ? 'computadora' : 'teléfono'}</b><div class="muted small">${esPC() ? 'Ábrela en su propia ventana, como un programa, y recibe avisos de tus pedidos.' : 'Ábrela con un toque desde tu pantalla de inicio y recibe avisos de tus pedidos.'}</div>
+    <div class="grow"><b>Instala Pídele en tu teléfono</b><div class="muted small">Ábrela con un toque desde tu pantalla de inicio y recibe avisos de tus pedidos.</div>
       <div class="btns" style="margin-top:6px"><button class="btn pri sm" onclick="instalarApp()">⬇ Instalar</button><button class="lnk small" onclick="try{localStorage.setItem('pe_instNo',Date.now())}catch(e){};$('#tarjInst').remove()">Ahora no</button></div></div></div>`;
 }
 function instalarApp() {
