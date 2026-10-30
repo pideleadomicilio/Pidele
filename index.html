@@ -370,7 +370,7 @@ body.enCaja{padding-bottom:0}
 .pdvBar .pdvTurno{font-size:13px;font-weight:800;opacity:.9;white-space:nowrap}
 .pdvBar button{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:12px;padding:8px 11px;font-weight:800;font-size:14px;cursor:pointer}
 .pdvTabs{margin-bottom:12px;overflow-x:auto;scrollbar-width:none}.pdvTabs button{min-width:0}
-@media(max-width:599px){.pdvTabs button{font-size:11.5px;padding:7px 2px;line-height:1.15}.pdvBar .pdvTurno{display:none}.pdvBar h1{font-size:17px}}
+@media(max-width:599px){.pdvTabs{display:flex;gap:4px}.pdvTabs button{flex:none;min-width:74px;font-size:12px;padding:8px 6px;line-height:1.15}.pdvBar .pdvTurno{display:none}.pdvBar h1{font-size:17px}}
 .pdvVender{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .pdvMenu{min-width:0}
 @media(min-width:900px){.pdvVender{grid-template-columns:minmax(0,1fr) clamp(300px,30vw,400px);align-items:start}.pdvCarrito{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow:auto}.pdvBarraTel{display:none !important}}
@@ -416,6 +416,28 @@ body.enCaja{padding-bottom:0}
 .pdvRonda.nueva{color:var(--pri)}
 .pdvLinea.tachada{opacity:.55}.pdvLinea.tachada b{text-decoration:line-through}
 .pdvGrande{font-size:30px;font-weight:900;margin:4px 0 6px}
+.pdvRepFiltros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.pdvRepFiltros .i{flex:1 1 180px;width:auto}
+.pdvTiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.pdvTile{background:var(--card);border-radius:16px;padding:12px 14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:2px;min-width:0}
+.pdvTile span{font-size:13px;color:var(--tx2);font-weight:700}.pdvTile b{font-size:24px;font-weight:900;font-variant-numeric:tabular-nums}.pdvTile small{font-size:12px;color:var(--tx2)}
+.pdvTile.fuerte{background:var(--pri);color:#fff}.pdvTile.fuerte span,.pdvTile.fuerte small{color:rgba(255,255,255,.85)}
+.pdvRepGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:0 12px}
+.pdvBarras{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.pdvBarra{display:grid;grid-template-columns:minmax(0,40%) 1fr auto;gap:8px;align-items:center;font-size:14px}
+.pdvBarra .et{overflow-wrap:anywhere;color:var(--tx)}.pdvBarra .bar{background:var(--bg);border-radius:4px;height:14px;overflow:hidden}
+.pdvBarra .bar i{display:block;height:100%;background:var(--pri);border-radius:0 4px 4px 0}.pdvBarra b{font-variant-numeric:tabular-nums;font-size:13.5px;min-width:64px;text-align:right}
+.pdvCols{display:flex;align-items:flex-end;gap:2px;height:170px;margin-top:12px;padding-top:18px}
+.pdvCol{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:pointer;position:relative;outline:none}
+.pdvCol i{display:block;width:100%;max-width:38px;background:var(--pri);border-radius:4px 4px 0 0;min-height:0}
+.pdvCol .k{font-size:11px;color:var(--tx2);margin-top:4px;white-space:nowrap}
+.pdvCol .v{font-size:10.5px;color:var(--tx2);white-space:nowrap;margin-bottom:2px;opacity:0;transition:opacity .15s}
+.pdvCol:hover .v,.pdvCol:focus .v{opacity:1}.pdvCol:hover i,.pdvCol:focus i{background:var(--pri2)}
+@media(min-width:900px){.pdvCols .v{opacity:1}.pdvCols:has(.pdvCol:nth-child(15)) .v{opacity:0}}
+.pdvTabla{margin-top:8px}
+.pdvFila{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--ln);font-size:14px}
+.pdvFila > span:not(:first-child),.pdvFila > b{text-align:right;font-variant-numeric:tabular-nums;min-width:56px}
+.pdvFila.cab{font-size:12px;color:var(--tx2);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.pdvFila.g{grid-template-columns:minmax(0,1fr) auto auto}.pdvFila small{display:block;color:var(--tx2);font-size:12px;overflow-wrap:anywhere}
 .pdvDen{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
 .pdvDen label{font-size:13px;font-weight:800}.pdvDen .i{padding:8px;margin-top:2px}
 /* promociones */
@@ -792,7 +814,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.27.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.28.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -884,7 +906,7 @@ function ls(k, v) {
   try { v === null ? localStorage.removeItem(LSP + k) : localStorage.setItem(LSP + k, JSON.stringify(v)); } catch (e) { }
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function money(n) { n = Number(n) || 0; return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function money(n) { n = Number(n) || 0; if (n < 0) return '−' + money(-n); return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
 function hora(ms) { return ms ? new Date(ms).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : ''; }
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + hora(ms) : ''; }
 function enMin(ms) { const m = Math.round((ms - Date.now()) / 60000); return m > 0 ? 'en ' + m + ' min' : m === 0 ? 'ahora' : 'hace ' + (-m) + ' min'; }
@@ -2072,7 +2094,7 @@ async function pdvConectar() {
   const au = firebase.auth();
   await new Promise(ok => { const off = au.onAuthStateChanged(() => { off(); ok(); }); });
   let letras = '';
-  const leer = async () => { try { const r = await au.currentUser.getIdTokenResult(); return ((r.claims || {}).negs || {})[nid] || ''; } catch (e) { return PDV.letras || ''; } };
+  const leer = async () => { try { const r = await au.currentUser.getIdTokenResult(); PDV.negs = (r.claims || {}).negs || {}; return PDV.negs[nid] || ''; } catch (e) { return PDV.letras || ''; } };
   if (au.currentUser && au.currentUser.uid === S.user.id) letras = await leer();
   const vieja = Date.now() - (Number(ls('pdvLlaveT')) || 0) > 6 * 3600e3;
   if (!letras || (vieja && navigator.onLine)) {
@@ -2224,7 +2246,7 @@ function pintarCaja() {
   PDV._sucio = false;
   const c = PDV.caja, cajero = pdvPuede('dc');
   const tabs = [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
-    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy']] : []);
+    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy'], ['reportes', '📈 Reportes']] : []);
   if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = cajero ? 'vender' : tabs[0][0];
   const t = PDV.tab;
   const sinRed = !navigator.onLine;
@@ -2236,9 +2258,11 @@ function pintarCaja() {
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código personal para abrir y cerrar caja. <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
     <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' && pdvVentasTurno().length ? ' (' + pdvVentasTurno().filter(v => v.estado !== 'cancelada').length + ')' : ''}</button>`).join('')}</div>
-    ${PDV.cuentaId ? pdvVistaCuenta() : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : pdvVistaCaja()}
+    ${PDV.cuentaId ? pdvVistaCuenta() : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : t === 'reportes' ? pdvVistaReportes() : pdvVistaCaja()}
   </div>`);
   window.scrollTo(0, y);
+  const tb = $('.pdvTabs'), on = tb && tb.querySelector('button.on');
+  if (on && tb.scrollWidth > tb.clientWidth) tb.scrollLeft = on.offsetLeft - (tb.clientWidth - on.offsetWidth) / 2;
   setTimeout(pdvRevisarViejas, 400);
 }
 function pdvSinCaja(msg) {
@@ -3168,6 +3192,208 @@ function pdvGuardarMesas() {
   PDV.mesas = { zonas: z };
   pdvGuardar(pdvCol('estado').doc('mesas').set({ zonas: z, ts: Date.now() }));
   toast('Mesas guardadas ✓'); pdvAjustes();
+}
+
+/* ---------- reportes (2.28) ---------- */
+/*
+ * Ventas, gastos, cortes y cancelaciones de uno o de todos los negocios del dueño por periodo.
+ * La caja se lee de Firestore (ventas, pagos de cuentas, gastos, cajas) y los pedidos de la app del servidor.
+ * Las cuentas cuentan el día en que se abrieron (igual que en los turnos); las abiertas no suman hasta que se cobran.
+ */
+const PDV_PER = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada'], ['mes', 'Este mes'], ['mesAnt', 'Mes pasado'], ['otro', 'Otras fechas']];
+function pdvRango(per, desde, hasta) {
+  const h = new Date(); h.setHours(0, 0, 0, 0);
+  const d = (y, m, dd) => new Date(y, m, dd), Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
+  const lunes = new Date(h); lunes.setDate(D - (h.getDay() + 6) % 7);
+  let a, b;
+  if (per === 'hoy') { a = h; b = h; }
+  else if (per === 'ayer') { a = d(Y, M, D - 1); b = a; }
+  else if (per === 'semana') { a = lunes; b = h; }
+  else if (per === 'semanaAnt') { a = new Date(lunes); a.setDate(a.getDate() - 7); b = new Date(lunes); b.setDate(b.getDate() - 1); }
+  else if (per === 'quincena') { a = d(Y, M, D <= 15 ? 1 : 16); b = h; }
+  else if (per === 'quincenaAnt') { if (D <= 15) { a = d(Y, M - 1, 16); b = d(Y, M, 0); } else { a = d(Y, M, 1); b = d(Y, M, 15); } }
+  else if (per === 'mes') { a = d(Y, M, 1); b = h; }
+  else if (per === 'mesAnt') { a = d(Y, M - 1, 1); b = d(Y, M, 0); }
+  else { a = desde ? new Date(desde + 'T00:00') : h; b = hasta ? new Date(hasta + 'T00:00') : h; if (b < a) [a, b] = [b, a]; }
+  return { desde: pdvHoy(a.getTime()), hasta: pdvHoy(b.getTime()), msDesde: a.getTime(), msHasta: b.getTime() + 864e5 - 1 };
+}
+function pdvNegsReporte() {
+  const l = Object.entries(PDV.negs || {}).filter(([, le]) => /[dgv]/.test(le)).map(([id]) => ({ id, nombre: ((S.negocios || []).find(n => n.id === id) || (S.negocio && S.negocio.id === id ? S.negocio : {}) || {}).nombre || 'Negocio' }));
+  return l.length ? l : [{ id: PDV.nid, nombre: S.negocio.nombre }];
+}
+function pdvVistaReportes() {
+  const R = PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid };
+  const negs = pdvNegsReporte();
+  const sel = `<div class="pdvRepFiltros">
+      <select class="i" onchange="PDV.rep.per=this.value;PDV.rep.datos=null;pintarCaja()">${PDV_PER.map(([k, t]) => `<option value="${k}" ${R.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      ${R.per === 'otro' ? `<input class="i" type="date" value="${esc(R.desde || '')}" onchange="PDV.rep.desde=this.value;PDV.rep.datos=null;pintarCaja()"><input class="i" type="date" value="${esc(R.hasta || '')}" onchange="PDV.rep.hasta=this.value;PDV.rep.datos=null;pintarCaja()">` : ''}
+      ${negs.length > 1 ? `<select class="i" onchange="PDV.rep.neg=this.value;PDV.rep.datos=null;pintarCaja()"><option value="todos" ${R.neg === 'todos' ? 'selected' : ''}>Todos mis negocios</option>${negs.map(n => `<option value="${n.id}" ${R.neg === n.id ? 'selected' : ''}>${esc(n.nombre)}</option>`).join('')}</select>` : ''}
+    </div>`;
+  const rg = pdvRango(R.per, R.desde, R.hasta), clave = R.per + R.neg + rg.desde + rg.hasta;
+  if (!R.datos || R.clave !== clave) {
+    if (R.cargando !== clave) { R.cargando = clave; pdvCargarReporte(rg, R.neg === 'todos' ? negs : negs.filter(n => n.id === R.neg).concat(negs.some(n => n.id === R.neg) ? [] : [{ id: PDV.nid, nombre: S.negocio.nombre }]), clave); }
+    return sel + '<div class="cargando">Armando el reporte…</div>';
+  }
+  return sel + pdvHtmlReporte(R.datos, rg);
+}
+async function pdvCargarReporte(rg, negs, clave) {
+  const col = (nid, c) => PDV.db.collection('negocios').doc(nid).collection(c);
+  const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
+  const rango = (nid, c, campo) => col(nid, c).where(campo, '>=', rg.desde).where(campo, '<=', rg.hasta).get().then(docs).catch(() => []);
+  const por = await Promise.all(negs.map(async n => {
+    const [ventas, pagos, gastos, cajas, provs] = await Promise.all([rango(n.id, 'ventas', 'dia'), rango(n.id, 'pagos', 'diaVenta'), rango(n.id, 'gastos', 'dia'), rango(n.id, 'cajas', 'dia'), col(n.id, 'proveedores').get().then(docs).catch(() => [])]);
+    return { n, ventas, pagos, gastos, cajas, provs };
+  }));
+  let app = null;
+  if (navigator.onLine) { try { app = await api('pdvReporteApp', { negocioIds: negs.map(n => n.id), desde: rg.msDesde, hasta: rg.msHasta }); } catch (e) { app = { _error: e.message }; } }
+  const R = PDV.rep; if (!R) return;
+  R.datos = { por, app, negs }; R.clave = clave; R.cargando = '';
+  if (S.vista === 'caja' && PDV.tab === 'reportes') pintarCaja();
+}
+/** Junta los números de uno o varios negocios. */
+function pdvCalcReporte(D) {
+  const r = { ventasCaja: 0, ventasApp: 0, tickets: 0, propinas: 0, gastos: 0, gastosSinProp: 0, porMet: {}, porTipo: {}, porDia: {}, porHora: {}, prods: {}, gente: {}, porNeg: [], cortes: [], cancel: [], quitados: [], gastosL: [], porCat: {}, porPago: { caja: 0, fuera: 0, credito: 0 }, deuda: 0, app: { pedidos: 0, envio: 0, cancelados: 0 }, abiertas: 0 };
+  const sum = (o, k, v) => { o[k] = pdvR((o[k] || 0) + v); };
+  const MET = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', codi: 'CoDi', otro: 'Otro' };
+  D.por.forEach(({ n, ventas, pagos, gastos, cajas, provs }) => {
+    let vNeg = 0;
+    const directas = ventas.filter(v => v.origen !== 'cuenta' && v.estado === 'pagada');
+    directas.forEach(v => {
+      vNeg += v.total; r.tickets++; r.propinas += v.propina || 0;
+      v.pagos.forEach(p => sum(r.porMet, MET[p.metodo], p.monto));
+      sum(r.porTipo, v.tipo === 'llevar' ? '🥡 Para llevar (mostrador)' : '🧾 Mostrador', v.total);
+      sum(r.porDia, v.dia, v.total); sum(r.porHora, new Date(v.ts).getHours(), v.total);
+      sum(r.gente, v.por.nombre, v.total);
+      v.items.forEach(i => { const x = r.prods[i.nombre] = r.prods[i.nombre] || { cant: 0, importe: 0 }; x.cant += i.cant; x.importe = pdvR(x.importe + (i.importe != null ? i.importe : i.cant * i.precio)); });
+    });
+    const pv = pagos.filter(p => !p.anulado), cuentas = ventas.filter(v => v.origen === 'cuenta');
+    pv.forEach(p => {
+      vNeg += p.monto; r.propinas += p.propina || 0;
+      sum(r.porMet, MET[p.metodo], p.monto);
+      const c = cuentas.find(x => x.id === p.ventaId) || {};
+      sum(r.porTipo, c.tipo === 'llevar' ? '🥡 Para llevar (cuentas)' : '🍽️ Mesas', p.monto);
+      sum(r.porDia, p.diaVenta, p.monto); sum(r.porHora, new Date(p.ts).getHours(), p.monto);
+      sum(r.gente, (p.mesero || p.por).nombre, p.monto);
+    });
+    cuentas.filter(c => c.estado === 'pagada').forEach(c => {
+      r.tickets++;
+      (c.items || []).filter(i => !i.cancelado).forEach(i => { const x = r.prods[i.nombre] = r.prods[i.nombre] || { cant: 0, importe: 0 }; x.cant += i.cant; x.importe = pdvR(x.importe + i.cant * i.precio); });
+    });
+    cuentas.filter(c => c.estado === 'abierta').forEach(c => { r.abiertas = pdvR(r.abiertas + pdvSaldo(c)); });
+    ventas.filter(v => v.estado === 'cancelada').forEach(v => r.cancel.push(Object.assign({ neg: n.nombre }, v)));
+    cuentas.forEach(c => (c.items || []).filter(i => i.cancelado).forEach(i => r.quitados.push({ neg: n.nombre, folio: c.folio, etiqueta: pdvEtiqueta(c), i })));
+    gastos.forEach(g => {
+      r.gastos += g.monto; if (g.auto !== 'propinas') r.gastosSinProp += g.monto;
+      sum(r.porCat, g.categoria, g.monto); r.porPago[g.pago] = pdvR((r.porPago[g.pago] || 0) + g.monto);
+      r.gastosL.push(Object.assign({ neg: n.nombre, nid: n.id }, g));
+    });
+    r.deuda += provs.reduce((s, p) => s + (p.saldo || 0), 0);
+    cajas.filter(c => c.cierre).forEach(c => r.cortes.push(Object.assign({ neg: n.nombre }, c)));
+    // pedidos de la app
+    const a = D.app && D.app[n.id];
+    let vApp = 0;
+    if (a) {
+      vApp = a.ventas; r.app.pedidos += a.pedidos; r.app.envio += a.envio; r.app.cancelados += a.cancelados; r.tickets += a.pedidos;
+      Object.entries(a.porMetodo).forEach(([m, v]) => sum(r.porMet, MET[m] || m, v));
+      Object.entries(a.porTipo).forEach(([t, v]) => sum(r.porTipo, { domicilio: '🛵 Domicilio (app)', recoger: '🏪 Recoge (app)', telefono: '📞 Por teléfono', servicio: '🛵 Servicio de repartidor' }[t] || t, v));
+      Object.entries(a.porDia).forEach(([dd, v]) => sum(r.porDia, dd, v));
+      Object.entries(a.porHora).forEach(([h, v]) => sum(r.porHora, Number(h), v));
+      Object.entries(a.productos).forEach(([k, x]) => { const y = r.prods[k] = r.prods[k] || { cant: 0, importe: 0 }; y.cant += x.cant; y.importe = pdvR(y.importe + x.importe); });
+      sum(r.gente, '🛵 Pedidos de la app', a.ventas);
+    }
+    r.ventasCaja = pdvR(r.ventasCaja + vNeg); r.ventasApp = pdvR(r.ventasApp + vApp);
+    r.porNeg.push({ nombre: n.nombre, caja: pdvR(vNeg), app: pdvR(vApp), gastos: pdvR(gastos.reduce((s, g) => s + (g.auto !== 'propinas' ? g.monto : 0), 0)) });
+  });
+  r.ventas = pdvR(r.ventasCaja + r.ventasApp); r.gastos = pdvR(r.gastos); r.gastosSinProp = pdvR(r.gastosSinProp); r.propinas = pdvR(r.propinas); r.deuda = pdvR(r.deuda);
+  r.resultado = pdvR(r.ventas - r.gastosSinProp);
+  return r;
+}
+/** Barras horizontales (etiqueta · barra · valor): un solo color, el valor siempre escrito. */
+function pdvBarras(o, orden, max) {
+  let l = Object.entries(o).filter(([, v]) => v);
+  l = orden === 'clave' ? l.sort((a, b) => String(a[0]).localeCompare(String(b[0]))) : l.sort((a, b) => b[1] - a[1]);
+  if (max) l = l.slice(0, max);
+  const tope = Math.max(...l.map(x => x[1]), 1);
+  return l.length ? `<div class="pdvBarras">${l.map(([k, v]) => `<div class="pdvBarra" title="${esc(k)}: ${money(v)}"><span class="et">${esc(k)}</span><span class="bar"><i style="width:${Math.max(2, v / tope * 100)}%"></i></span><b>${money(v)}</b></div>`).join('')}</div>` : '<div class="muted small">Sin datos</div>';
+}
+/** Columnas por día u hora (una sola serie): el valor aparece al tocar o pasar el mouse. */
+function pdvColumnas(claves, o, etq) {
+  const tope = Math.max(...claves.map(k => o[k] || 0), 1);
+  return `<div class="pdvCols">${claves.map(k => { const v = o[k] || 0; return `<div class="pdvCol" tabindex="0" title="${esc(etq(k))}: ${money(v)}" onclick="toast(this.title)"><span class="v">${v ? money(Math.round(v)) : ''}</span><i style="height:${v ? Math.max(3, v / tope * 100) : 0}%"></i><span class="k">${esc(etq(k, true))}</span></div>`; }).join('')}</div>`;
+}
+function pdvHtmlReporte(D, rg) {
+  const r = pdvCalcReporte(D);
+  const dias = []; for (let t = rg.msDesde; t <= rg.msHasta && dias.length < 62; t += 864e5) dias.push(pdvHoy(t + 3600e3));
+  const nomDia = (k, corto) => { const d = new Date(k + 'T12:00'); return corto ? (dias.length > 10 ? String(d.getDate()) : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })) : d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' }); };
+  const horas = Object.keys(r.porHora).map(Number).filter(h => h >= 0 && h <= 23); const h0 = horas.length ? Math.min(...horas) : 8, h1 = horas.length ? Math.max(...horas) : 22;
+  const hs = []; for (let h = h0; h <= h1; h++) hs.push(h);
+  const tile = (t, v, sub, fuerte) => `<div class="pdvTile ${fuerte ? 'fuerte' : ''}"><span>${t}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const prods = Object.entries(r.prods).sort((a, b) => b[1].importe - a[1].importe);
+  const periodo = rg.desde === rg.hasta ? nomDia(rg.desde) : nomDia(rg.desde) + ' al ' + nomDia(rg.hasta);
+  const appErr = D.app && D.app._error ? `<div class="aviso warn">No se pudieron traer los pedidos de la app: ${esc(D.app._error)}</div>` : !D.app ? '<div class="aviso warn">Sin internet: el reporte no incluye los pedidos de la app.</div>' : '';
+  return `<div class="muted small" style="margin:0 2px 8px">${esc(periodo)}${D.negs.length > 1 && PDV.rep.neg === 'todos' ? ' · ' + D.negs.length + ' negocios' : ''}</div>${appErr}
+    <div class="pdvTiles">
+      ${tile('Ventas', money(r.ventas), 'Caja ' + money(r.ventasCaja) + ' · App ' + money(r.ventasApp), 1)}
+      ${tile('Tickets', r.tickets, 'Promedio ' + money(r.tickets ? r.ventas / r.tickets : 0))}
+      ${tile('Gastos', money(r.gastosSinProp), r.porPago.credito ? 'A crédito ' + money(r.porPago.credito) : '')}
+      ${tile('Ventas − gastos', money(r.resultado), 'Sin contar propinas', 1)}
+      ${tile('Propinas con tarjeta', money(r.propinas), 'Se entregaron al equipo')}
+      ${tile('Por cobrar', money(r.abiertas), 'Cuentas abiertas')}
+    </div>
+    ${r.porNeg.length > 1 ? `<div class="card"><b>Por negocio</b><div class="pdvTabla"><div class="pdvFila cab"><span>Negocio</span><span>Caja</span><span>App</span><span>Gastos</span></div>${r.porNeg.map(x => `<div class="pdvFila"><span>${esc(x.nombre)}</span><span>${money(x.caja)}</span><span>${money(x.app)}</span><span>${money(x.gastos)}</span></div>`).join('')}</div></div>` : ''}
+    ${dias.length > 1 ? `<div class="card"><b>Ventas por día</b>${pdvColumnas(dias, r.porDia, nomDia)}</div>` : ''}
+    <div class="pdvRepGrid">
+      <div class="card"><b>Por forma de pago</b>${pdvBarras(r.porMet)}</div>
+      <div class="card"><b>Por tipo de venta</b>${pdvBarras(r.porTipo)}</div>
+      <div class="card"><b>Por colaborador</b><div class="small muted">Ventas que atendió cada quien (cuentas: el mesero)</div>${pdvBarras(r.gente)}</div>
+      <div class="card"><b>Por hora</b>${pdvColumnas(hs, r.porHora, (h, c) => c ? String(h) : h + ':00 a ' + h + ':59')}</div>
+    </div>
+    <div class="card"><div class="row between"><b>Productos</b><span class="small muted">${prods.length} ${prods.length === 1 ? 'producto' : 'productos'}</span></div>
+      <div class="pdvTabla"><div class="pdvFila cab"><span>Producto</span><span>Cant.</span><span>Importe</span></div>${prods.slice(0, PDV.rep.todosProd ? 500 : 15).map(([k, x]) => `<div class="pdvFila"><span>${esc(k)}</span><span>${x.cant}</span><span>${money(x.importe)}</span></div>`).join('')}</div>
+      ${prods.length > 15 && !PDV.rep.todosProd ? `<button class="lnk small" onclick="PDV.rep.todosProd=1;pintarCaja()">Ver los ${prods.length}</button>` : ''}</div>
+    <div class="pdvRepGrid">
+      <div class="card"><b>Gastos por categoría</b>${pdvBarras(r.porCat)}
+        <div class="small" style="margin-top:6px">De caja ${money(r.porPago.caja || 0)} · Fuera de caja ${money(r.porPago.fuera || 0)} · A crédito ${money(r.porPago.credito || 0)}</div>
+        ${r.deuda ? `<div class="small" style="margin-top:4px">📒 Debes a proveedores hoy: <b>${money(r.deuda)}</b></div>` : ''}</div>
+      <div class="card"><b>Cortes de caja</b>${r.cortes.length ? `<div class="pdvTabla"><div class="pdvFila cab"><span>Turno</span><span>Retiro</span><span>Dif.</span></div>${r.cortes.sort((a, b) => (a.dia + a.turno).localeCompare(b.dia + b.turno)).map(c => `<div class="pdvFila"><span>${esc(c.dia.slice(5))} T${c.turno} · ${esc(c.cierre.nombre.split(' ')[0])}${D.negs.length > 1 ? ' · ' + esc(c.neg) : ''}</span><span>${money(c.cierre.retiro)}</span><span style="color:${Math.abs(c.cierre.diferencia) < 0.5 ? 'inherit' : c.cierre.diferencia < 0 ? 'var(--err)' : 'var(--ok)'}">${Math.abs(c.cierre.diferencia) < 0.5 ? '✓' : money(c.cierre.diferencia)}</span></div>`).join('')}</div>
+        <div class="small" style="margin-top:6px">Faltantes ${money(-r.cortes.reduce((s, c) => s + Math.min(0, c.cierre.diferencia), 0))} · Sobrantes ${money(r.cortes.reduce((s, c) => s + Math.max(0, c.cierre.diferencia), 0))}</div>` : '<div class="muted small">Sin cortes en el periodo</div>'}</div>
+    </div>
+    <div class="card"><div class="row between"><b>Gastos</b><button class="lnk small" onclick="pdvCsvGastos()">⬇️ Descargar Excel</button></div>
+      ${r.gastosL.sort((a, b) => b.ts - a.ts).slice(0, PDV.rep.todosG ? 1000 : 12).map(g => `<div class="pdvFila g"><span>${esc(g.dia.slice(5))} · ${esc(g.concepto)}<small>${esc(g.categoria)} · ${g.pago === 'caja' ? 'de caja' : g.pago === 'credito' ? 'crédito ' + esc(g.proveedor) : 'fuera de caja'} · ${esc(g.por.nombre.split(' ')[0])}${D.negs.length > 1 ? ' · ' + esc(g.neg) : ''}</small></span><span>${g.comprobante.fotoId ? `<button class="lnk small" onclick="pdvFotoGasto('${g.comprobante.fotoId}')">📎 ${esc(g.comprobante.tipo)}</button>` : g.comprobante.tipo === 'sin' ? '<span class="small" style="color:var(--err)">sin comprobante</span>' : ''}</span><b>${money(g.monto)}</b></div>`).join('') || '<div class="muted small">Sin gastos</div>'}
+      ${r.gastosL.length > 12 && !PDV.rep.todosG ? `<button class="lnk small" onclick="PDV.rep.todosG=1;pintarCaja()">Ver los ${r.gastosL.length}</button>` : ''}</div>
+    <div class="card"><b>Cancelaciones</b>
+      ${r.cancel.length || r.quitados.length ? r.cancel.map(v => `<div class="pdvFila g"><span>${esc(v.dia.slice(5))} · ${esc(v.folio)} ${v.origen === 'cuenta' ? esc(pdvEtiqueta(v)) : ''}<small>${esc(v.cancelacion.motivo)} · pidió ${esc(v.cancelacion.pide.nombre.split(' ')[0])}, autorizó ${esc(v.cancelacion.autoriza.nombre.split(' ')[0])}</small></span><span></span><b>${money(v.total)}</b></div>`).join('')
+        + r.quitados.map(x => `<div class="pdvFila g"><span>${esc(x.folio)} · ${x.i.cant}× ${esc(x.i.nombre)} (quitado)<small>${esc(x.i.cancelado.motivo)} · autorizó ${esc(x.i.cancelado.autoriza.nombre.split(' ')[0])}</small></span><span></span><b>${money(x.i.cant * x.i.precio)}</b></div>`).join('') : '<div class="muted small">Sin cancelaciones 👍</div>'}
+      ${r.app.cancelados ? `<div class="small muted" style="margin-top:6px">Pedidos de la app cancelados: ${r.app.cancelados}</div>` : ''}</div>
+    <div class="btns"><button class="btn pill" onclick="pdvCsvVentas()">⬇️ Descargar ventas en Excel</button></div>`;
+}
+async function pdvFotoGasto(fid) {
+  modal('<div class="cargando">Cargando foto…</div>');
+  try { const img = await api('pdvVerComprobante', { fileId: fid }); modal(`<div class="row between"><h2 style="margin:0">Comprobante</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div><img src="${img}" alt="" style="width:100%;border-radius:12px;margin-top:8px">`); }
+  catch (e) { modal(`<div>${esc(e.message)}</div>`); }
+}
+function pdvDescargar(nombre, filas) {
+  const csv = '﻿' + filas.map(f => f.map(x => { const s = String(x == null ? '' : x); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = nombre; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Descargando ' + nombre);
+}
+function pdvCsvVentas() {
+  const D = PDV.rep && PDV.rep.datos; if (!D) return;
+  const f = [['Negocio', 'Día', 'Hora', 'Folio', 'Tipo', 'Mesa / cuenta', 'Atendió', 'Productos', 'Total', 'Efectivo', 'Transferencia', 'Tarjeta', 'Propina', 'Estado']];
+  D.por.forEach(({ n, ventas, pagos }) => {
+    ventas.filter(v => v.origen !== 'cuenta').forEach(v => { const m = k => pdvR(v.pagos.filter(p => p.metodo === k).reduce((s, p) => s + p.monto, 0)); f.push([n.nombre, v.dia, hora(v.ts), v.folio, v.tipo === 'llevar' ? 'Para llevar' : 'Mostrador', '', v.por.nombre, v.items.map(i => i.cant + ' ' + i.nombre).join(' | '), v.total, m('efectivo'), m('transferencia'), m('tarjeta'), v.propina || 0, v.estado]); });
+    pagos.forEach(p => { f.push([n.nombre, p.diaVenta, hora(p.ts), p.folio, 'Cuenta', p.etiqueta, (p.mesero || p.por).nombre, '', p.monto, p.metodo === 'efectivo' ? p.monto : 0, p.metodo === 'transferencia' ? p.monto : 0, p.metodo === 'tarjeta' ? p.monto : 0, p.propina || 0, p.anulado ? 'cancelada' : 'pagada']); });
+  });
+  const rg = pdvRango(PDV.rep.per, PDV.rep.desde, PDV.rep.hasta);
+  pdvDescargar('ventas-' + rg.desde + '-a-' + rg.hasta + '.csv', f);
+}
+function pdvCsvGastos() {
+  const D = PDV.rep && PDV.rep.datos; if (!D) return;
+  const f = [['Negocio', 'Día', 'Hora', 'Concepto', 'Categoría', 'Monto', 'Cómo se pagó', 'Proveedor', 'Saldo pendiente', 'Comprobante', 'Registró']];
+  D.por.forEach(({ n, gastos }) => gastos.forEach(g => f.push([n.nombre, g.dia, hora(g.ts), g.concepto, g.categoria, g.monto, { caja: 'Efectivo de caja', fuera: 'Fuera de caja', credito: 'A crédito' }[g.pago], g.proveedor || '', g.saldo || 0, g.comprobante.tipo === 'sin' ? 'Sin comprobante' : g.comprobante.tipo, g.por.nombre])));
+  const rg = pdvRango(PDV.rep.per, PDV.rep.desde, PDV.rep.hasta);
+  pdvDescargar('gastos-' + rg.desde + '-a-' + rg.hasta + '.csv', f);
 }
 
 /* ---------- cocina: ventas de mostrador ---------- */
