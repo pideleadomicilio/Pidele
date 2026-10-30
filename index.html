@@ -44,7 +44,9 @@ body.sinNav{padding-bottom:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;overflow-x:hidden;max-width:100%}
 body{overscroll-behavior:none;overflow-x:clip}
 /* listas con desplazamiento propio: al llegar a su fin no arrastran la pantalla */
-#modal .caja,.msgs,.secs,.catFila,.promoFila{overscroll-behavior:contain}
+#modal .caja,.msgs,.secs{overscroll-behavior:contain}
+/* filas que se deslizan de lado: solo frenan el rebote horizontal; deslizar hacia arriba o abajo mueve la página (2.24.3) */
+.catFila,.promoFila{overscroll-behavior-x:contain;overscroll-behavior-y:auto;touch-action:pan-x pan-y}
 button,input,select,textarea{font:inherit;color:inherit}
 svg.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;vertical-align:middle}
 svg.ic.s{width:17px;height:17px} svg.ic.l{width:28px;height:28px}
@@ -321,6 +323,83 @@ body.sinNav main{padding-bottom:96px}
 .bannerPush .btn{background:#F6F1E8;color:var(--pri);border:0;padding:9px 13px;font-size:13.5px}
 .bannerPush .x{background:none;border:0;color:#fff;opacity:.7;font-size:18px;cursor:pointer;padding:0 2px}
 
+/* modo cocina (2.25) */
+body.enCocina main,body[data-rol].enCocina main{max-width:none !important;padding:0 12px 24px !important}
+html.enCocina,body.enCocina{background:#1E2418;padding-bottom:0}
+.coc{color:#F6F1E8}
+.cocBar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 4px 10px;background:#1E2418}
+.cocBar h1{margin:0;font-size:20px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cocBar .reloj{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.cocBar button{background:#2F3A26;color:#F6F1E8;border:0;border-radius:12px;padding:9px 12px;font-weight:800;font-size:14px;cursor:pointer}
+.cocCols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}
+.cocCol h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:6px 4px 8px;opacity:.85}
+.cocCol h2 span{background:#F6F1E8;color:#1E2418;border-radius:999px;padding:1px 9px;margin-left:6px}
+.cocVacio{border:2px dashed #3C4832;border-radius:16px;padding:22px;text-align:center;opacity:.6}
+.cTarj{background:#FBF8F1;color:#1E2418;border-radius:16px;margin-bottom:12px;overflow:hidden;border-left:10px solid #8A9A7B;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.cTarj.verde{border-left-color:#3E9B4F}.cTarj.amarillo{border-left-color:#E0A21B}.cTarj.rojo{border-left-color:#D2452F}.cTarj.nuevo{border-left-color:#2F7BD9;animation:cocLate 1.4s ease-in-out infinite}
+@keyframes cocLate{50%{box-shadow:0 0 0 4px rgba(47,123,217,.55)}}
+.cTarj .cab{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:10px 12px;background:#EFE8D9}
+.cTarj .folio{font-size:22px;font-weight:900;white-space:nowrap}
+.cTarj .tipo{font-size:13px;font-weight:800;background:#fff;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.cTarj .tiempo{margin-left:auto;white-space:nowrap;font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
+.cTarj.rojo .tiempo{color:#D2452F}.cTarj.amarillo .tiempo{color:#B47D05}
+.cTarj .cuerpo{padding:10px 14px}
+.cTarj .it{font-size:20px;line-height:1.3;padding:5px 0;border-bottom:1px solid #EAE3D3}
+.cTarj .it:last-child{border-bottom:0}
+.cTarj .it b.cant{display:inline-block;min-width:38px;font-size:22px;background:none;border:0;padding:0}
+.cTarj .it .det{display:block;font-size:15.5px;color:#5B4A1E;margin-left:34px}
+.cTarj .nota{background:#FFF1C9;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:16px;font-weight:700}
+.cTarj .pie{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 12px}
+.cTarj .pie button{flex:1;min-height:50px;border:0;border-radius:12px;font-size:17px;font-weight:900;cursor:pointer}
+.cTarj .bListo{background:#3E9B4F;color:#fff}
+.cTarj .bImp{flex:0 0 56px !important;background:#EFE8D9}
+.cTarj .bRech{flex:0 0 auto !important;background:#F3DCD6;color:#9B2C1C;padding:0 14px}
+.cTarj .mins{display:flex;gap:6px;padding:0 12px 8px}
+.cTarj .mins button{flex:1 1 0;min-width:0;min-height:52px;border:0;border-radius:12px;background:#2F7BD9;color:#fff;font-size:18px;font-weight:900;cursor:pointer}
+.cTarj .mins button.sug{background:#1D5FB0;outline:3px solid #9CC3F2}
+.cTarj .info{padding:0 12px 12px;font-size:14px;font-weight:700;color:#5B5B4E}
+body.enCocina #toast{background:#F6F1E8;color:#1E2418}
+.cListo{background:#2F3A26;border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;font-weight:800}
+
+/* punto de venta · caja (2.26) */
+body.enCaja main,body[data-rol].enCaja main{max-width:1280px !important;padding:0 12px 24px !important}
+body.enCaja{padding-bottom:0}
+.pdvBar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;margin:0 -12px 10px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:var(--pri);color:#fff}
+.pdvBar h1{margin:0;font-size:18px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdvBar .pdvTurno{font-size:13px;font-weight:800;opacity:.9;white-space:nowrap}
+.pdvBar button{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:12px;padding:8px 11px;font-weight:800;font-size:14px;cursor:pointer}
+.pdvTabs{margin-bottom:12px}
+.pdvVender{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.pdvVender{grid-template-columns:1fr 380px;align-items:start}.pdvCarrito{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow:auto}.pdvBarraTel{display:none !important}}
+@media(max-width:899px){.pdvCarrito{display:none}}
+.pdvSecs{display:flex;gap:6px;overflow-x:auto;margin:8px 0;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x pan-y}
+.pdvSecs button{flex:none;border:1.5px solid var(--ln);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:800;font-size:14px;cursor:pointer;color:var(--tx)}
+.pdvSecs button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.pdvGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding-bottom:80px}
+.pdvProd{position:relative;min-height:84px;border:1.5px solid var(--ln);background:var(--card);border-radius:14px;padding:10px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px;cursor:pointer;color:var(--tx);font:inherit}
+.pdvProd b{font-size:15px;line-height:1.2}.pdvProd span{font-weight:800;color:var(--pri)}
+.pdvProd:active{transform:scale(.97)}
+.pdvProd .enC{position:absolute;top:-6px;right:-6px;background:var(--pri);color:#fff;border-radius:999px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.pdvCarrito{background:var(--card);border-radius:18px;padding:14px;box-shadow:var(--sh)}
+.pdvVacio{text-align:center;color:var(--tx2);padding:40px 10px;font-size:15px;line-height:1.8}
+.pdvLinea{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--ln)}
+.pdvCant{display:flex;align-items:center;gap:8px}.pdvCant button{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--ln);background:var(--bg);font-size:18px;font-weight:900;cursor:pointer;color:var(--tx)}
+.pdvTipo,.pdvMets{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+.pdvTipo button,.pdvMets button,.pdvBilletes button{flex:1;min-height:46px;border:1.5px solid var(--ln);background:var(--bg);border-radius:12px;font-weight:800;font-size:14.5px;cursor:pointer;color:var(--tx);padding:6px 8px}
+.pdvTipo button.on,.pdvMets button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.pdvMets button:disabled{opacity:.4}
+.pdvBilletes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.pdvCli summary{cursor:pointer;font-weight:800;margin:8px 0 6px}
+.pdvChk{display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:700}
+.pdvChk input{width:20px;height:20px}
+.pdvSaldo{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:17px}
+.pdvSaldo b{font-size:22px}
+.pdvNum{font-size:22px;font-weight:800}
+.pdvCambio{font-size:18px;margin-top:6px}
+.pdvCambioG{font-size:28px;font-weight:900;margin:10px 0}
+.pdvVentaFila{cursor:pointer}.pdvVentaFila.cancelada{opacity:.6}
+.pdvDen{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.pdvDen label{font-size:13px;font-weight:800}.pdvDen .i{padding:8px;margin-top:2px}
 /* promociones */
 .promoWrap{margin:0 -16px 14px;position:relative}
 .promoFila{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px;scrollbar-width:none;scroll-behavior:smooth}
@@ -695,7 +774,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.24.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.26.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -999,17 +1078,19 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil,
-  negPedidos: vNegPedidos, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
-const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
+const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'cocina', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
 // pantallas a pantalla completa (sin barra inferior)
-const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'capturaTel'];
+const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'capturaTel', 'cocina', 'caja'];
 
 /** Pantallas del pedido por teléfono; ir a cualquier otra cancela la captura (2.24.2). */
 const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
 async function ir(v, p, sinHistoria) {
+  if (S.vista === 'cocina' && v !== 'cocina') salirCocina_();
+  if (S.vista === 'caja' && v !== 'caja') pdvSalir();
   if (S.modoTel && !VISTAS_TEL.includes(v)) {
     terminarModoTel();
     // a su panel: solo pantallas del negocio que puede ver; lo demás (inicio de cliente, buscar…) lo regresa a Pedidos
@@ -1111,7 +1192,7 @@ async function responderEquipo(id, aceptar) {
   if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
   else { toast('Invitación rechazada'); pintar(true); }
 }
-const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos' };
+const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'tomar órdenes de mesa y cobrar', gerente: 'autorizar cancelaciones con su código' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
@@ -1143,8 +1224,11 @@ function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
 function pintarNav() {
   const rol = rolActual();
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
-  $('#top').style.display = esCliente() || S.vista === 'entrar' ? 'none' : 'flex';
-  document.body.classList.toggle('conTop', !(esCliente() || S.vista === 'entrar'));
+  const pantallaPropia = S.vista === 'cocina' || S.vista === 'caja';
+  $('#top').style.display = esCliente() || S.vista === 'entrar' || pantallaPropia ? 'none' : 'flex';
+  document.body.classList.toggle('conTop', !(esCliente() || S.vista === 'entrar' || pantallaPropia));
+  document.body.classList.toggle('enCaja', S.vista === 'caja');
+  document.body.classList.toggle('enCocina', S.vista === 'cocina'); document.documentElement.classList.toggle('enCocina', S.vista === 'cocina');
   document.body.dataset.rol = rol;
   const u = S.user;
   const varios = rol === 'negocio' && (S.negocios || []).length > 1 && S.negocio;
@@ -1629,6 +1713,7 @@ function intervaloSondeo() {
   // siguiendo un pedido que ya va en camino: más seguido para mover al repartidor en el mapa (los de muestra, casi en vivo)
   if (r === 'comprador' && S.vista === 'pedido' && S._trk && ['EN_CAMINO', 'LISTO', 'PREPARANDO'].includes(S._trk.estado)) return S._trk.muestra ? 4000 : 15000;
   if (S._sim) return 4000;
+  if (S.vista === 'cocina') return 10000; // la cocina ve los pedidos nuevos más rápido
   return SONDEO_MS[r] || 60000;
 }
 function iniciarSondeo() {
@@ -1926,6 +2011,871 @@ async function enviarServicio() {
   toast('Servicio enviado a ' + hechos.map(h => h.negocio).join(', ') + ': te avisamos la hora en que estará listo');
   const h = hechos.find(x => x.seguir);
   if (h) setTimeout(() => mandarSeguimiento({ seguir: h.seguir, telCliente: h.telCliente, nombreCliente: h.nombreCliente, folio: h.folio, negocio: h.negocio }), 600);
+}
+
+/* ============ PUNTO DE VENTA · CAJA (2.26) ============ */
+/*
+ * Ventas, cajas, gastos, proveedores y clientes del mostrador viven en Firestore (no en el servidor de Apps Script):
+ * se guardan primero en este equipo y se suben solas, así la caja funciona sin internet y no frena a la app.
+ * El servidor solo da la llave de acceso (pdvLlave) y guarda las fotos de los comprobantes de gastos.
+ */
+const PDV = { db: null, nid: '', letras: '', subs: [], caja: null, cajasHoy: [], ventas: [], gastos: [], pagosProv: [], provs: [], personal: {}, tab: 'vender', sec: '', buscar: '', venta: { tipo: 'mostrador', cocina: true, tel: '', nombre: '', recoge: '' }, pendientes: 0 };
+const pdvTieneAcceso = () => cocTieneAcceso() && !!S.negocio && (puedo('caja') || puedo('mesero') || esDueno());
+const pdvEsTelefono = () => /Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent || '') && !/iPad|Tablet/i.test(navigator.userAgent || '');
+const pdvHoy = (ms) => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const pdvCol = c => PDV.db.collection('negocios').doc(PDV.nid).collection(c);
+const pdvYo = () => ({ uid: S.user.id, nombre: S.user.nombre });
+const pdvR = n => Math.round((Number(n) || 0) * 100) / 100;
+const PDV_MET = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', tarjeta: '💳 Tarjeta' };
+const PDV_CATS = ['Insumos', 'Gas', 'Hielo', 'Limpieza', 'Desechables', 'Servicios', 'Mantenimiento', 'Sueldos', 'Propinas', 'Otro'];
+/** Guarda en Firestore sin esperar al servidor (sin internet se sube después). */
+function pdvGuardar(prom) { PDV.pendientes++; Promise.resolve(prom).catch(e => toast('No se pudo guardar: ' + (e.message || e), 'err')).finally(() => { PDV.pendientes = Math.max(0, PDV.pendientes - 1); }); }
+function pdvInc(n) { return firebase.firestore.FieldValue.increment(pdvR(n)); }
+
+async function pdvCargarSdk() {
+  if (window.firebase && firebase.firestore && firebase.auth) return;
+  const v = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  if (!window.firebase) await cargarScript(v + 'firebase-app-compat.js');
+  await cargarScript(v + 'firebase-auth-compat.js');
+  await cargarScript(v + 'firebase-firestore-compat.js');
+}
+/** Conecta con Firestore usando la sesión de Pídele (la primera vez necesita internet). */
+async function pdvConectar() {
+  const nid = S.negocio && S.negocio.id;
+  if (!nid) throw new Error('Elige tu negocio');
+  await pdvCargarSdk();
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  if (!PDV.db) {
+    PDV.db = firebase.firestore();
+    try { await PDV.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* otra pestaña ya la tiene o el navegador no la permite */ }
+  }
+  const au = firebase.auth();
+  await new Promise(ok => { const off = au.onAuthStateChanged(() => { off(); ok(); }); });
+  let letras = '';
+  const leer = async () => { try { const r = await au.currentUser.getIdTokenResult(); return ((r.claims || {}).negs || {})[nid] || ''; } catch (e) { return PDV.letras || ''; } };
+  if (au.currentUser && au.currentUser.uid === S.user.id) letras = await leer();
+  const vieja = Date.now() - (Number(ls('pdvLlaveT')) || 0) > 6 * 3600e3;
+  if (!letras || (vieja && navigator.onLine)) {
+    try {
+      const k = await api('pdvLlave');
+      await au.signInWithCustomToken(k.token);
+      ls('pdvLlaveT', Date.now());
+      letras = await leer();
+    } catch (e) {
+      if (!letras) throw new Error(/plan Pro/.test(e.message) ? e.message : 'Para usar la caja la primera vez en este equipo necesitas internet. (' + e.message + ')');
+    }
+  }
+  if (!letras) throw new Error('Tu cuenta no tiene acceso a la caja de ' + S.negocio.nombre);
+  PDV.nid = nid; PDV.letras = letras;
+  pdvSubirFotos();
+}
+const pdvPuede = l => [...l].some(x => PDV.letras.includes(x));
+
+/* ---------- códigos personales (PIN) ---------- */
+async function pdvHash(pin, sal) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const b = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(sal), iterations: 60000, hash: 'SHA-256' }, k, 256);
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function pdvPinOk(uid, pin) {
+  const p = PDV.personal[uid];
+  if (!p || !p.pin) return false;
+  return (await pdvHash(pin, p.pin.s)) === p.pin.h;
+}
+function pdvGente(rol) { return Object.entries(PDV.personal).filter(([, p]) => p.pin && p[rol]).map(([uid, p]) => ({ uid, nombre: p.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)); }
+function pdvFormPin() {
+  const tiene = PDV.personal[S.user.id] && PDV.personal[S.user.id].pin;
+  modal(`<div class="row between"><h2 style="margin:0">🔑 Mi código</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:6px 0 10px">Tu código personal de ${esc(S.negocio.nombre)} (4 a 6 números). Lo usas para abrir y cerrar caja${pdvPuede('dg') ? ' y para autorizar cancelaciones como gerente' : ''}. No se lo compartas a nadie.</div>
+    <label class="f">${tiene ? 'Nuevo código' : 'Código'}</label><input class="i" id="pin1" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <label class="f">Repítelo</label><input class="i" id="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvGuardarPin)">Guardar mi código</button></div>`);
+}
+async function pdvGuardarPin() {
+  const a = $('#pin1').value.trim(), b = $('#pin2').value.trim();
+  if (!/^\d{4,6}$/.test(a)) throw new Error('El código debe tener de 4 a 6 números');
+  if (a !== b) throw new Error('Los dos códigos no coinciden');
+  if (/^(\d)\1+$/.test(a) || '0123456789'.includes(a) || '9876543210'.includes(a)) throw new Error('Elige un código menos fácil de adivinar');
+  const s = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const h = await pdvHash(a, s);
+  const doc = { nombre: S.user.nombre, caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), pin: { s, h }, ts: Date.now() };
+  PDV.personal[S.user.id] = doc;
+  pdvGuardar(pdvCol('personal').doc(S.user.id).set(doc));
+  cerrarModal(); toast('Código guardado 🔑'); pintarCaja();
+}
+/** Pide quién es y su código. rol: caja | gerente. Devuelve {uid, nombre}. */
+function pdvPedirPin(titulo, rol, extra) {
+  return new Promise((ok, mal) => {
+    const g = pdvGente(rol);
+    if (!g.length) { mal(new Error(rol === 'gerente' ? 'Ningún gerente tiene código todavía. El dueño o un gerente lo crea en Caja → 🔑 Mi código.' : 'Nadie tiene código de caja todavía. Créalo en 🔑 Mi código.')); return; }
+    S._pinCb = { ok, mal };
+    modal(`<div class="row between"><h2 style="margin:0">${titulo}</h2><button class="redondo" onclick="S._pinCb.mal(new Error('Cancelado'));cerrarModal()" aria-label="Cerrar">✕</button></div>
+      ${extra || ''}
+      <label class="f">${rol === 'gerente' ? 'Gerente que autoriza' : '¿Quién eres?'}</label>
+      <select class="i" id="pinQuien">${g.map(x => `<option value="${esc(x.uid)}" ${x.uid === S.user.id ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select>
+      <label class="f">Código</label><input class="i" id="pinVal" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+      <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvValidarPin)">Continuar</button></div>`);
+    setTimeout(() => { const i = $('#pinVal'); if (i) i.focus(); }, 200);
+  });
+}
+async function pdvValidarPin() {
+  const uid = $('#pinQuien').value, pin = $('#pinVal').value.trim();
+  if (S._pinAntes && S._pinAntes() === false) return;
+  if (!(await pdvPinOk(uid, pin))) { $('#pinVal').value = ''; throw new Error('Código incorrecto'); }
+  const cb = S._pinCb; S._pinCb = null;
+  const datos = S._pinDatos ? S._pinDatos() : null;
+  cb.ok(Object.assign({ uid, nombre: PDV.personal[uid].nombre }, datos ? { datos } : {}));
+}
+
+/* ---------- suscripciones ---------- */
+function pdvQuitarSubs() { PDV.subs.forEach(f => { try { f(); } catch (e) { } }); PDV.subs = []; PDV._cajaSubId = ''; }
+function pdvSuscribir() {
+  pdvQuitarSubs();
+  const vivo = () => S.vista === 'caja';
+  const sub = (q, f) => PDV.subs.push(q.onSnapshot({ includeMetadataChanges: false }, s => { f(s); if (vivo()) pdvRepintar(); }, e => console.warn(e)));
+  const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
+  sub(pdvCol('personal'), s => { PDV.personal = {}; s.docs.forEach(d => { PDV.personal[d.id] = d.data(); }); });
+  sub(pdvCol('proveedores'), s => { PDV.provs = docs(s).sort((a, b) => a.nombre.localeCompare(b.nombre)); });
+  sub(pdvCol('cajas').where('dia', '==', pdvHoy()), s => { PDV.cajasHoy = docs(s).sort((a, b) => a.turno - b.turno); });
+  sub(pdvCol('cajas').where('estado', '==', 'abierta'), s => {
+    const l = docs(s).sort((a, b) => (b.abre && b.abre.ts || 0) - (a.abre && a.abre.ts || 0));
+    PDV.caja = l[0] || null;
+    pdvSuscribirCaja();
+  });
+}
+/** Ventas, gastos y pagos a proveedores del turno abierto. */
+function pdvSuscribirCaja() {
+  const id = PDV.caja ? PDV.caja.id : '';
+  if (id === PDV._cajaSubId) return;
+  (PDV._subsCaja || []).forEach(f => { try { f(); } catch (e) { } });
+  PDV._subsCaja = []; PDV._cajaSubId = id; PDV.ventas = []; PDV.gastos = []; PDV.pagosProv = [];
+  if (!id) return;
+  const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
+  const sub = (c, f) => PDV._subsCaja.push(pdvCol(c).where('cajaId', '==', id).onSnapshot(s => { f(docs(s)); if (S.vista === 'caja') pdvRepintar(); }, e => console.warn(e)));
+  sub('ventas', l => { PDV.ventas = l.sort((a, b) => b.ts - a.ts); });
+  sub('gastos', l => { PDV.gastos = l.sort((a, b) => b.ts - a.ts); });
+  sub('pagosProv', l => { PDV.pagosProv = l.sort((a, b) => b.ts - a.ts); });
+  PDV.subs.push(() => { (PDV._subsCaja || []).forEach(f => { try { f(); } catch (e) { } }); PDV._subsCaja = []; });
+}
+function pdvRepintar() {
+  clearTimeout(PDV._rep);
+  PDV._rep = setTimeout(() => {
+    if (S.vista !== 'caja') return;
+    const foco = document.activeElement;
+    if ($('#modal').classList.contains('on') || (foco && /INPUT|TEXTAREA|SELECT/.test(foco.tagName) && $('#vista').contains(foco))) { PDV._sucio = true; return; }
+    pintarCaja();
+  }, 120);
+}
+
+/* ---------- pantalla ---------- */
+async function vCaja() {
+  if (!pdvTieneAcceso()) { ir(inicioRol()); return; }
+  html('<div class="cargando">Abriendo la caja…</div>');
+  await pdvConectar();
+  if (S.vista !== 'caja') return;
+  // el menú: el guardado en el equipo (sin internet) o el del servidor
+  let d = menuLocal(S.negocio.id);
+  if (!d) { d = await api('menu', { negocioId: S.negocio.id }); aplicarMenuFresco(d); }
+  else if (navigator.onLine) refrescarMenu(S.negocio.id);
+  S._menu = mezclarNegocio(d);
+  if (!PDV.subs.length || PDV._subsNid !== PDV.nid) { PDV._subsNid = PDV.nid; pdvSuscribir(); }
+  pintarCaja();
+}
+function pdvSalir() { pdvQuitarSubs(); PDV._subsNid = ''; }
+function pdvCarrito() { const n = S.negocio; return S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, items: {}, t: Date.now() }; }
+function pdvTotal() { return pdvR(subtotalCarrito(pdvCarrito())); }
+function pintarCaja() {
+  if (S.vista !== 'caja') return;
+  PDV._sucio = false;
+  const t = PDV.tab, c = PDV.caja;
+  const tabs = [['vender', '🛒 Vender'], ['ventas', '🧾 Ventas'], ['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']];
+  const sinRed = !navigator.onLine;
+  const y = window.scrollY;
+  html(`<div class="pdv">
+    <div class="pdvBar"><h1>🧾 ${esc(S.negocio.nombre)}</h1>
+      <span class="pdvTurno">${c ? 'Turno ' + c.turno + ' · ' + esc(c.abre.nombre.split(' ')[0]) : 'Caja cerrada'}</span>
+      <button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button><button onclick="ir('negPedidos')">Salir</button></div>
+    ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
+    ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código personal para abrir y cerrar caja. <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
+    <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';pintarCaja()">${txt}${k === 'ventas' && PDV.ventas.length ? ' (' + PDV.ventas.filter(v => v.estado !== 'cancelada').length + ')' : ''}</button>`).join('')}</div>
+    ${t === 'vender' ? pdvVistaVender() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : pdvVistaCaja()}
+  </div>`);
+  window.scrollTo(0, y);
+}
+function pdvSinCaja() {
+  return `<div class="card" style="text-align:center;padding:26px 16px"><div style="font-size:46px">🗄️</div><h2 style="margin:6px 0">La caja está cerrada</h2>
+    <div class="muted" style="margin-bottom:14px">Ábrela con tu código y el fondo de caja chica para empezar a vender.</div>
+    <button class="btn pri pill" onclick="act(this,pdvAbrirCaja)">Abrir caja</button></div>`;
+}
+
+/* ---------- vender ---------- */
+function pdvVistaVender() {
+  if (!PDV.caja) return pdvSinCaja();
+  const d = S._menu, secs = [...new Set(d.productos.map(p => p.categoria))];
+  if (!secs.includes(PDV.sec)) PDV.sec = '';
+  const q = PDV.buscar.trim().toLowerCase();
+  const prods = d.productos.filter(p => q ? (p.nombre + ' ' + (p.descripcion || '')).toLowerCase().includes(q) : !PDV.sec || p.categoria === PDV.sec);
+  const c = pdvCarrito(), its = Object.values(c.items), n = its.reduce((s, x) => s + x.cant, 0);
+  const enC = {}; its.forEach(x => enC[x.id] = (enC[x.id] || 0) + x.cant);
+  return `<div class="pdvVender"><div class="pdvMenu">
+      <input class="i" id="pdvQ" placeholder="🔎 Buscar producto" value="${esc(PDV.buscar)}" oninput="PDV.buscar=this.value;clearTimeout(PDV._qT);PDV._qT=setTimeout(()=>{pintarCaja();const i=$('#pdvQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)">
+      <div class="pdvSecs"><button class="${!PDV.sec && !q ? 'on' : ''}" onclick="PDV.sec='';PDV.buscar='';pintarCaja()">Todo</button>${secs.map(s => `<button class="${PDV.sec === s && !q ? 'on' : ''}" onclick="PDV.sec=${esc(JSON.stringify(s))};PDV.buscar='';pintarCaja()">${esc(s)}</button>`).join('')}</div>
+      <div class="pdvGrid">${prods.map(p => `<button class="pdvProd" onclick="abrirProducto('${p.id}')">${enC[p.id] ? `<span class="enC">${enC[p.id]}</span>` : ''}<b>${esc(p.nombre)}</b><span>${precioTxt(p)}</span></button>`).join('') || '<div class="muted">Sin productos</div>'}</div>
+    </div>
+    <div class="pdvCarrito" id="pdvCarrito">${pdvPanelCarrito()}</div>
+    ${n ? `<button class="barra pdvBarraTel" onclick="pdvVerCarrito()"><span>🛒 ${n} · Ver cuenta</span><span>${money(pdvTotal())}</span></button>` : ''}</div>`;
+}
+function pdvPanelCarrito() {
+  const c = pdvCarrito(), its = Object.values(c.items), v = PDV.venta;
+  if (!its.length) return '<div class="pdvVacio">🛒<br>Toca un producto para agregarlo</div>';
+  return `<h3 style="margin:0 0 8px">Cuenta</h3>
+    ${its.map(x => { const det = detalleItem(x); return `<div class="pdvLinea"><div class="grow"><b>${esc(x.nombre)}</b>${det ? `<div class="small muted">${det}</div>` : ''}<div class="small">${money(x.precio)} c/u</div></div>
+      <div class="pdvCant"><button onclick="pdvCant(${esc(JSON.stringify(x.key))},-1)">−</button><b>${x.cant}</b><button onclick="pdvCant(${esc(JSON.stringify(x.key))},1)">+</button></div>
+      <b style="min-width:64px;text-align:right">${money(x.cant * x.precio)}</b></div>`; }).join('')}
+    <div class="pdvTipo">${[['mostrador', '🍽️ Aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${v.tipo === k ? 'on' : ''}" onclick="PDV.venta.tipo='${k}';pdvPintarCarrito()">${t}</button>`).join('')}</div>
+    ${v.tipo === 'llevar' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" type="time" value="${esc(v.recoge)}" onchange="PDV.venta.recoge=this.value">` : ''}
+    <details class="pdvCli" ${v.tel ? 'open' : ''}><summary>👤 Cliente (opcional)</summary>
+      <input class="i" id="pdvTel" inputmode="tel" maxlength="14" placeholder="Teléfono a 10 dígitos" value="${esc(v.tel)}" oninput="PDV.venta.tel=this.value;pdvBuscarCliente()">
+      <input class="i" id="pdvNom" maxlength="60" placeholder="Nombre" value="${esc(v.nombre)}" oninput="PDV.venta.nombre=this.value" style="margin-top:6px">
+      <div class="small muted" id="pdvCliInfo"></div></details>
+    <label class="pdvChk"><input type="checkbox" ${v.cocina ? 'checked' : ''} onchange="PDV.venta.cocina=this.checked"> Mandar a cocina</label>
+    <div class="tot g" style="font-size:22px;margin:10px 0"><span>Total</span><span>${money(pdvTotal())}</span></div>
+    <div class="row" style="gap:8px"><button class="btn pill" onclick="pdvVaciar()">Vaciar</button><button class="btn pri pill" style="flex:1;font-size:18px" onclick="pdvCobrar()">Cobrar ${money(pdvTotal())}</button></div>`;
+}
+function pdvPintarCarrito() { const e = $('#pdvCarrito'); if (e) e.innerHTML = pdvPanelCarrito(); if ($('#modal').classList.contains('on') && $('#pdvCarritoM')) $('#pdvCarritoM').innerHTML = pdvPanelCarrito(); }
+function pdvVerCarrito() { modal(`<div class="row between"><h2 style="margin:0">Cuenta</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div><div id="pdvCarritoM" style="margin-top:8px">${pdvPanelCarrito()}</div>`); }
+function pdvTrasAgregar() { pintarCaja(); }
+function pdvCant(key, d) {
+  const c = pdvCarrito(), x = c.items[key]; if (!x) return;
+  x.cant += d; if (x.cant <= 0) delete c.items[key];
+  guardarCarritos(); pdvPintarCarrito();
+  if (!$('#modal').classList.contains('on')) pintarCaja();
+}
+function pdvVaciar() { const c = pdvCarrito(); c.items = {}; guardarCarritos(); PDV.venta = { tipo: 'mostrador', cocina: pdvCfg().cocina, tel: '', nombre: '', recoge: '' }; cerrarModal(); pintarCaja(); }
+async function pdvBuscarCliente() {
+  const tel = PDV.venta.tel.replace(/\D/g, ''), info = $('#pdvCliInfo');
+  if (tel.length !== 10) { if (info) info.textContent = ''; return; }
+  try {
+    const s = await pdvCol('clientes').doc(tel).get();
+    if (s.exists) {
+      const x = s.data();
+      if (!PDV.venta.nombre && $('#pdvNom')) { $('#pdvNom').value = x.nombre || ''; PDV.venta.nombre = x.nombre || ''; }
+      if (info) info.textContent = '⭐ Cliente frecuente: ' + (x.visitas || 0) + ' visitas · ' + money(x.total || 0);
+    } else if (info) info.textContent = 'Cliente nuevo: se guarda al cobrar';
+  } catch (e) { }
+}
+
+/* ---------- cobrar ---------- */
+function pdvCobrar() {
+  const total = pdvTotal();
+  if (!total) { toast('La cuenta está vacía', 'err'); return; }
+  const tel = PDV.venta.tel.replace(/\D/g, '');
+  if (tel && tel.length !== 10) { toast('El teléfono del cliente debe tener 10 dígitos', 'err'); return; }
+  PDV.cobro = { total, pagos: [], met: 'efectivo' };
+  pdvPintarCobro();
+}
+const pdvPagado = () => pdvR((PDV.cobro.pagos || []).reduce((s, p) => s + p.monto, 0));
+function pdvPintarCobro() {
+  const k = PDV.cobro, saldo = pdvR(k.total - pdvPagado());
+  modal(`<div class="row between"><h2 style="margin:0">Cobrar</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="pdvSaldo"><span>Total ${money(k.total)}</span><b>${saldo > 0 ? 'Falta ' + money(saldo) : '✓ Pagado'}</b></div>
+    ${k.pagos.map((p, i) => `<div class="pdvLinea"><div class="grow">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}${p.cambio ? ' · cambio ' + money(p.cambio) : ''}</div><b>${money(p.monto)}</b><button class="redondo" style="width:32px;height:32px" onclick="PDV.cobro.pagos.splice(${i},1);pdvPintarCobro()" aria-label="Quitar">✕</button></div>`).join('')}
+    ${saldo > 0 ? `<div class="pdvMets">${Object.entries(PDV_MET).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="PDV.cobro.met='${m}';pdvPintarCobro()">${t}</button>`).join('')}</div>
+      <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${saldo}" oninput="pdvCambio()">
+      ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[...new Set([saldo, ...[50, 100, 200, 500, 1000].filter(b => b > saldo)].slice(0, 5))].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
+        <input class="i pdvNum" id="cbRecibe" inputmode="decimal" placeholder="${saldo}" oninput="pdvCambio()"><div class="pdvCambio" id="cbCambio"></div>` : ''}
+      ${k.met === 'tarjeta' ? `<label class="f">Propina con tarjeta (opcional)</label><input class="i pdvNum" id="cbProp" inputmode="decimal" placeholder="0">
+        <div class="small muted">Cobra en la terminal el monto más la propina. La propina se entrega en efectivo al cerrar el turno.</div>` : ''}
+      ${k.met === 'transferencia' ? '<div class="small muted">Revisa en tu banco que el dinero ya llegó antes de registrar el pago.</div>' : ''}
+      <div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvAgregarPago)">Registrar pago</button></div>
+      ${k.pagos.length ? '' : '<div class="small muted" style="text-align:center">¿Pagan entre varios o con dos formas? Cambia el monto y registra cada parte.</div>'}`
+    : `<div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvTerminarVenta)">✅ Terminar venta</button></div>`}`);
+  pdvCambio();
+}
+function pdvCambio() {
+  const e = $('#cbCambio'); if (!e) return;
+  const m = Number(($('#cbMonto') || {}).value) || 0, r = Number(($('#cbRecibe') || {}).value) || 0;
+  e.innerHTML = r ? (r >= m ? 'Cambio: <b>' + money(pdvR(r - m)) + '</b>' : '<span style="color:var(--err)">Falta ' + money(pdvR(m - r)) + '</span>') : '';
+}
+async function pdvAgregarPago() {
+  const k = PDV.cobro, saldo = pdvR(k.total - pdvPagado());
+  let m = pdvR($('#cbMonto').value);
+  if (!(m > 0)) throw new Error('Escribe el monto');
+  if (m > saldo) m = saldo;
+  const p = { metodo: k.met, monto: m, ts: Date.now(), por: pdvYo() };
+  if (k.met === 'efectivo') {
+    const r = pdvR(($('#cbRecibe') || {}).value || m);
+    if (r < m) throw new Error('Lo recibido es menos que el monto');
+    p.recibe = r; p.cambio = pdvR(r - m);
+  }
+  if (k.met === 'tarjeta') { const pr = pdvR(($('#cbProp') || {}).value); if (pr < 0) throw new Error('Propina inválida'); if (pr) p.propina = pr; }
+  k.pagos.push(p);
+  if (pdvR(k.total - pdvPagado()) <= 0) await pdvTerminarVenta(); else pdvPintarCobro();
+}
+function pdvFolio() {
+  let disp = ls('pdvDisp');
+  if (!disp) { const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; disp = L[Math.floor(Math.random() * L.length)] + L[Math.floor(Math.random() * L.length)]; ls('pdvDisp', disp); }
+  const hoy = pdvHoy(); let c = ls('pdvCont') || {};
+  if (c.dia !== hoy) c = { dia: hoy, n: 0 };
+  c.n++; ls('pdvCont', c);
+  return disp + '-' + c.n;
+}
+async function pdvTerminarVenta() {
+  const k = PDV.cobro, c = pdvCarrito(), v0 = PDV.venta, caja = PDV.caja;
+  if (!caja) throw new Error('La caja está cerrada');
+  if (pdvR(k.total - pdvPagado()) > 0) throw new Error('Falta cobrar ' + money(k.total - pdvPagado()));
+  const ts = Date.now(), tel = v0.tel.replace(/\D/g, ''), n = S.negocio;
+  let salida = 0;
+  if (v0.tipo === 'llevar' && v0.recoge) { const [h, mi] = v0.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); salida = d.getTime(); }
+  if (!salida) salida = ts + (Number(n.tiempoPrep) || 15) * 60000;
+  const ref = pdvCol('ventas').doc();
+  const items = Object.values(c.items).map(x => ({ id: x.id, nombre: x.nombre, cant: x.cant, precio: pdvR(x.precio), importe: pdvR(x.cant * x.precio), variante: x.variante || '', extras: x.extras || [], sin: x.sin || [], nota: x.nota || '', mods: x.mods || [] }));
+  const v = {
+    folio: pdvFolio(), dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, por: pdvYo(), tipo: v0.tipo, origen: 'caja',
+    cliente: tel ? { tel, nombre: (v0.nombre || '').trim().slice(0, 60) } : null,
+    items, total: k.total, pagos: k.pagos, propina: pdvR(k.pagos.reduce((s, p) => s + (p.propina || 0), 0)), estado: 'pagada',
+    cocina: v0.cocina ? { estado: 'preparando', salida, recoge: v0.tipo === 'llevar' ? v0.recoge || '' : '' } : null
+  };
+  // JSON limpio (Firestore no acepta undefined)
+  const limpio = JSON.parse(JSON.stringify(v));
+  pdvGuardar(ref.set(limpio));
+  const inc = { ventas: pdvInc(v.total), n: pdvInc(1), propinas: pdvInc(v.propina), ts }, porMet = {};
+  v.pagos.forEach(p => { porMet[p.metodo] = (porMet[p.metodo] || 0) + p.monto; });
+  Object.keys(porMet).forEach(m => { inc['met_' + m] = pdvInc(porMet[m]); });
+  pdvGuardar(pdvCol('dias').doc(v.dia).set(inc, { merge: true }));
+  if (tel) pdvGuardar(pdvCol('clientes').doc(tel).set({ tel, nombre: v.cliente.nombre, visitas: pdvInc(1), total: pdvInc(v.total), ultima: ts }, { merge: true }));
+  PDV._ultimaVenta = Object.assign({ id: ref.id }, limpio);
+  if (!PDV.ventas.some(x => x.id === ref.id)) PDV.ventas.unshift(PDV._ultimaVenta);
+  c.items = {}; guardarCarritos();
+  PDV.venta = { tipo: 'mostrador', cocina: pdvCfg().cocina, tel: '', nombre: '', recoge: '' };
+  PDV.cobro = null;
+  pdvVentaHecha(Object.assign({ id: ref.id }, limpio));
+}
+function pdvVentaHecha(v) {
+  const cambio = pdvR(v.pagos.reduce((s, p) => s + (p.cambio || 0), 0));
+  modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Venta ${esc(v.folio)}</h2>
+    <div class="muted">${money(v.total)} · ${v.pagos.map(p => PDV_MET[p.metodo]).join(' + ')}</div>
+    ${cambio ? `<div class="pdvCambioG">Cambio: ${money(cambio)}</div>` : ''}
+    <div class="btns" style="justify-content:center"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
+      ${pdvEsTelefono() ? `<a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>` : ''}</div>
+    <div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="cerrarModal();pintarCaja()">Nueva venta</button></div></div>`);
+  if (pdvCfg().autoTicket) pdvImprimirVenta(v.id);
+  pintarCaja();
+}
+
+/* ---------- ventas del turno ---------- */
+function pdvVistaVentas() {
+  if (!PDV.caja) return pdvSinCaja();
+  const l = PDV.ventas;
+  if (!l.length) return '<div class="vacio"><span class="big">🧾</span>Aún no hay ventas en este turno</div>';
+  return l.map(v => `<div class="card pdvVentaFila ${v.estado === 'cancelada' ? 'cancelada' : ''}" onclick="pdvDetalleVenta('${v.id}')">
+      <div class="row between"><div><b>${esc(v.folio)}</b> · ${hora(v.ts)} · ${v.tipo === 'llevar' ? '🥡' : '🍽️'}${v.cliente ? ' · ' + esc(v.cliente.nombre || v.cliente.tel) : ''}</div><b>${money(v.total)}</b></div>
+      <div class="small muted">${v.items.map(i => i.cant + '× ' + esc(i.nombre)).join(', ')}</div>
+      <div class="small">${v.estado === 'cancelada' ? '<span class="tag t-err">Cancelada</span>' : v.pagos.map(p => PDV_MET[p.metodo] + ' ' + money(p.monto)).join(' · ')}${v.cocina && v.estado !== 'cancelada' ? ' · ' + (v.cocina.estado === 'listo' ? '📦 Listo' : '👩‍🍳 En cocina') : ''}</div></div>`).join('');
+}
+function pdvVenta(id) { return PDV.ventas.find(v => v.id === id); }
+function pdvDetalleVenta(id) {
+  const v = pdvVenta(id); if (!v) return;
+  modal(`<div class="row between"><h2 style="margin:0">Venta ${esc(v.folio)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small">${fechaCorta(v.ts)} · ${esc(v.por.nombre)} · ${v.tipo === 'llevar' ? '🥡 Para llevar' : '🍽️ Aquí'}${v.cliente ? ' · 👤 ' + esc(v.cliente.nombre || '') + ' ' + esc(v.cliente.tel) : ''}</div>
+    ${v.estado === 'cancelada' ? `<div class="aviso err">Cancelada: ${esc(v.cancelacion.motivo)}<br><span class="small">Pidió ${esc(v.cancelacion.pide.nombre)} · autorizó ${esc(v.cancelacion.autoriza.nombre)} · ${hora(v.cancelacion.ts)}</span></div>` : ''}
+    <div class="card" style="margin-top:8px">${v.items.map(i => `<div class="row between small" style="padding:3px 0"><span>${i.cant}× ${esc(i.nombre)}${detalleItem(i) ? ' <span class="muted">· ' + detalleItem(i) + '</span>' : ''}</span><b>${money(i.importe)}</b></div>`).join('')}
+      <div class="tot g"><span>Total</span><span>${money(v.total)}</span></div>
+      ${v.pagos.map(p => `<div class="small">${PDV_MET[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' · recibió ' + money(p.recibe) + ', cambio ' + money(p.cambio) : ''} · ${esc(p.por.nombre.split(' ')[0])}</div>`).join('')}</div>
+    <div class="btns"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
+      ${pdvEsTelefono() ? `<a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>` : ''}
+      ${v.estado !== 'cancelada' ? `<button class="btn err pill" onclick="act(this,()=>pdvCancelarVenta('${v.id}'))">Cancelar venta</button>` : ''}</div>`);
+}
+async function pdvCancelarVenta(id) {
+  const v = pdvVenta(id); if (!v || v.estado === 'cancelada') return;
+  S._pinAntes = () => { const m = ($('#cancMot') || {}).value || ''; if (m.trim().length < 5) { toast('Escribe la justificación (mínimo 5 letras)', 'err'); return false; } };
+  S._pinDatos = () => $('#cancMot').value.trim();
+  let g;
+  try {
+    g = await pdvPedirPin('Cancelar ' + v.folio, 'gerente', `<div class="aviso warn" style="margin:8px 0">Se cancela la venta de ${money(v.total)}. ${v.pagos.some(p => p.metodo === 'efectivo') ? 'Devuelve el efectivo al cliente.' : ''}</div>
+      <label class="f">Justificación</label><textarea class="i" id="cancMot" rows="2" maxlength="200" placeholder="Ej. El cliente se arrepintió, se cobró de más…"></textarea>`);
+  } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  const ts = Date.now();
+  const cambios = { estado: 'cancelada', cancelacion: { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts } };
+  if (v.cocina) cambios['cocina.estado'] = 'cancelada';
+  pdvGuardar(pdvCol('ventas').doc(id).update(cambios));
+  const inc = { ventas: pdvInc(-v.total), n: pdvInc(-1), canceladas: pdvInc(1), montoCancelado: pdvInc(v.total), propinas: pdvInc(-(v.propina || 0)) };
+  const por = {}; v.pagos.forEach(p => { por[p.metodo] = (por[p.metodo] || 0) + p.monto; });
+  Object.keys(por).forEach(m => { inc['met_' + m] = pdvInc(-por[m]); });
+  pdvGuardar(pdvCol('dias').doc(v.dia).set(inc, { merge: true }));
+  Object.assign(v, { estado: 'cancelada', cancelacion: cambios.cancelacion });
+  if (v.cocina) v.cocina.estado = 'cancelada';
+  cerrarModal(); toast('Venta ' + v.folio + ' cancelada'); pintarCaja();
+}
+
+/* ---------- gastos y proveedores ---------- */
+function pdvVistaGastos() {
+  const l = PDV.gastos, deuda = pdvR(PDV.provs.reduce((s, p) => s + (p.saldo || 0), 0));
+  const enCaja = pdvR(l.filter(g => g.pago === 'caja').reduce((s, g) => s + g.monto, 0));
+  return `<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pri pill" style="flex:1" onclick="pdvFormGasto()">➕ Nuevo gasto</button>
+      <button class="btn pill" style="flex:1" onclick="pdvProveedores()">🏷️ Proveedores${deuda ? ' · debes ' + money(deuda) : ''}</button></div>
+    ${PDV.caja ? `<div class="muted small" style="margin-bottom:8px">Gastos de este turno · salió de caja: <b>${money(enCaja)}</b></div>` : '<div class="aviso info">La caja está cerrada: los gastos pagados con efectivo de caja se registran con la caja abierta. Puedes registrar gastos a crédito o pagados fuera de caja.</div>'}
+    ${l.map(g => `<div class="card" onclick="pdvVerGasto('${g.id}')" style="cursor:pointer"><div class="row between"><div><b>${esc(g.concepto)}</b> <span class="tag">${esc(g.categoria)}</span></div><b>${money(g.monto)}</b></div>
+      <div class="small muted">${hora(g.ts)} · ${g.pago === 'caja' ? '🗄️ Salió de caja' : g.pago === 'credito' ? '📒 A crédito · ' + esc(g.proveedor || '') + (g.saldo > 0 ? ' · debe ' + money(g.saldo) : ' · pagado') : '🏦 Pagado fuera de caja'} · ${esc(g.por.nombre.split(' ')[0])}
+        · ${g.comprobante.tipo === 'sin' ? '⚠️ Sin comprobante' : (g.comprobante.fotoId ? '📎 ' : g.comprobante.pendiente ? '⏳ ' : '') + esc(g.comprobante.tipo)}</div></div>`).join('') || '<div class="vacio"><span class="big">💸</span>Sin gastos en este turno</div>'}
+    ${PDV.pagosProv.length ? `<h3>Pagos a proveedores en este turno</h3>${PDV.pagosProv.map(p => `<div class="card small row between"><span>${esc(p.proveedor)} · ${p.desde === 'caja' ? '🗄️ de caja' : '🏦 fuera de caja'} · ${hora(p.ts)}</span><b>${money(p.monto)}</b></div>`).join('')}` : ''}`;
+}
+function pdvFormGasto(pre) {
+  const f = S._gasto = Object.assign({ pago: PDV.caja ? 'caja' : 'fuera', tipo: 'ticket', categoria: 'Insumos', provId: '' }, S._gasto && S._gasto.abierto ? S._gasto : {}, pre || {}, { abierto: true });
+  modal(`<div class="row between"><h2 style="margin:0">💸 Nuevo gasto</h2><button class="redondo" onclick="S._gasto=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">¿Qué se compró o pagó?</label><input class="i" id="gConc" maxlength="80" placeholder="Ej. 2 bolsas de hielo" value="${esc(f.concepto || '')}">
+    <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Monto</label><input class="i pdvNum" id="gMonto" inputmode="decimal" value="${esc(f.monto || '')}"></div>
+      <div style="flex:1"><label class="f">Categoría</label><select class="i" id="gCat">${PDV_CATS.map(c => `<option ${c === f.categoria ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
+    <label class="f">¿Cómo se pagó?</label>
+    <div class="pdvMets">${[['caja', '🗄️ Efectivo de caja'], ['fuera', '🏦 Fuera de caja'], ['credito', '📒 A crédito']].map(([k, t]) => `<button class="${f.pago === k ? 'on' : ''}" ${k === 'caja' && !PDV.caja ? 'disabled' : ''} onclick="pdvGastoCampo();S._gasto.pago='${k}';pdvFormGasto()">${t}</button>`).join('')}</div>
+    ${f.pago === 'credito' ? `<label class="f">Proveedor</label><select class="i" id="gProv" onchange="if(this.value==='+'){pdvGastoCampo();pdvNuevoProveedor(true)}">
+        <option value="">Elige…</option>${PDV.provs.map(p => `<option value="${p.id}" ${p.id === f.provId ? 'selected' : ''}>${esc(p.nombre)}${p.saldo ? ' (debes ' + money(p.saldo) + ')' : ''}</option>`).join('')}<option value="+">➕ Nuevo proveedor…</option></select>`
+      : f.pago === 'caja' ? '<div class="small muted">Se descuenta del efectivo esperado al cerrar el turno.</div>' : '<div class="small muted">No toca la caja (lo pagaste con tu cuenta o efectivo propio), pero entra a tus gastos.</div>'}
+    <label class="f">Comprobante</label>
+    <div class="pdvMets">${[['nota', '📝 Nota'], ['ticket', '🧾 Ticket'], ['factura', '📄 Factura'], ['sin', '⚠️ Sin comprobante']].map(([k, t]) => `<button class="${f.tipo === k ? 'on' : ''}" onclick="pdvGastoCampo();S._gasto.tipo='${k}';pdvFormGasto()">${t}</button>`).join('')}</div>
+    ${f.tipo !== 'sin' ? `<label class="btn pill full" style="margin-top:8px;cursor:pointer">📷 ${f.foto ? 'Cambiar foto ✓' : 'Tomar foto del ' + f.tipo}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="pdvGastoCampo();pdvGastoFoto(this.files[0])"></label>
+      ${f.foto ? `<img src="${f.foto}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:12px;margin-top:6px">` : ''}` : '<div class="small" style="color:var(--err)">El gasto queda marcado sin comprobante.</div>'}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvGuardarGasto)">Guardar gasto</button></div>`);
+}
+function pdvGastoCampo() { const f = S._gasto; if (!f || !$('#gConc')) return; f.concepto = $('#gConc').value; f.monto = $('#gMonto').value; f.categoria = $('#gCat').value; if ($('#gProv') && $('#gProv').value !== '+') f.provId = $('#gProv').value; }
+async function pdvGastoFoto(file) { if (!file) return; try { S._gasto.foto = await comprimir(file, 1400); } catch (e) { toast(e.message, 'err'); } pdvFormGasto(); }
+async function pdvGuardarGasto() {
+  pdvGastoCampo();
+  const f = S._gasto, monto = pdvR(f.monto), concepto = (f.concepto || '').trim();
+  if (concepto.length < 2) throw new Error('Escribe qué se compró o pagó');
+  if (!(monto > 0)) throw new Error('Escribe el monto');
+  if (f.pago === 'caja' && !PDV.caja) throw new Error('La caja está cerrada');
+  const prov = f.pago === 'credito' ? PDV.provs.find(p => p.id === f.provId) : null;
+  if (f.pago === 'credito' && !prov) throw new Error('Elige el proveedor');
+  if (f.tipo !== 'sin' && !f.foto) throw new Error('Toma la foto del ' + f.tipo + ' (o marca "Sin comprobante")');
+  const ts = Date.now(), dia = PDV.caja ? PDV.caja.dia : pdvHoy(), ref = pdvCol('gastos').doc();
+  const g = { dia, ts, cajaId: PDV.caja ? PDV.caja.id : '', concepto: concepto.slice(0, 80), categoria: f.categoria, monto, pago: f.pago, por: pdvYo(),
+    proveedorId: prov ? prov.id : '', proveedor: prov ? prov.nombre : '', saldo: prov ? monto : 0, comprobante: { tipo: f.tipo, fotoId: '', pendiente: f.tipo !== 'sin' } };
+  pdvGuardar(ref.set(g));
+  pdvGuardar(pdvCol('dias').doc(dia).set({ gastos: pdvInc(monto), ['gasto_' + f.pago]: pdvInc(monto), ts }, { merge: true }));
+  if (prov) pdvGuardar(pdvCol('proveedores').doc(prov.id).update({ saldo: pdvInc(monto), ultima: ts }));
+  if (f.foto) { const q = ls('pdvFotos') || []; q.push({ nid: PDV.nid, gid: ref.id, img: f.foto }); try { ls('pdvFotos', q); } catch (e) { toast('No hay espacio para guardar la foto en este equipo', 'err'); } pdvSubirFotos(); }
+  S._gasto = null; cerrarModal(); toast('Gasto guardado ✓'); PDV.tab = 'gastos'; pintarCaja();
+}
+/** Sube las fotos de comprobantes pendientes (si no hubo internet al guardar el gasto). */
+async function pdvSubirFotos() {
+  if (PDV._subiendo || !navigator.onLine || !PDV.db) return;
+  const q = ls('pdvFotos') || []; if (!q.length) return;
+  PDV._subiendo = true;
+  try {
+    while (q.length) {
+      const x = q[0];
+      const r = await api('pdvComprobante', { negocioId: x.nid, imagen: x.img });
+      await PDV.db.collection('negocios').doc(x.nid).collection('gastos').doc(x.gid).update({ 'comprobante.fotoId': r.fileId, 'comprobante.pendiente': false });
+      q.shift(); ls('pdvFotos', q);
+    }
+  } catch (e) { } finally { PDV._subiendo = false; }
+}
+window.addEventListener('online', () => { pdvSubirFotos(); if (S.vista === 'caja') pintarCaja(); });
+window.addEventListener('offline', () => { if (S.vista === 'caja') pintarCaja(); });
+async function pdvVerGasto(id) {
+  const g = PDV.gastos.find(x => x.id === id); if (!g) return;
+  modal(`<div class="row between"><h2 style="margin:0">${esc(g.concepto)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small">${fechaCorta(g.ts)} · ${esc(g.categoria)} · ${esc(g.por.nombre)}</div><h2 style="margin:8px 0">${money(g.monto)}</h2>
+    <div>${g.pago === 'caja' ? '🗄️ Salió de caja' : g.pago === 'credito' ? '📒 A crédito con ' + esc(g.proveedor) + (g.saldo > 0 ? ' · pendiente ' + money(g.saldo) : ' · pagado ✓') : '🏦 Pagado fuera de caja'}</div>
+    <div id="gFoto" style="margin-top:10px">${g.comprobante.tipo === 'sin' ? '⚠️ Sin comprobante' : g.comprobante.fotoId ? '<div class="cargando">Cargando foto…</div>' : '⏳ La foto se sube cuando haya internet'}</div>`);
+  if (g.comprobante.fotoId) { try { const img = await api('pdvVerComprobante', { fileId: g.comprobante.fotoId }); const e = $('#gFoto'); if (e) e.innerHTML = `<img src="${img}" alt="" style="width:100%;border-radius:12px">`; } catch (e) { const el = $('#gFoto'); if (el) el.textContent = e.message; } }
+}
+function pdvProveedores() {
+  modal(`<div class="row between"><h2 style="margin:0">🏷️ Proveedores</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="btns"><button class="btn pill full" onclick="pdvNuevoProveedor()">➕ Nuevo proveedor</button></div>
+    ${PDV.provs.map(p => `<div class="card row between"><div><b>${esc(p.nombre)}</b>${p.tel ? `<div class="small muted">${esc(p.tel)}</div>` : ''}<div class="small">${p.saldo > 0 ? 'Le debes <b>' + money(p.saldo) + '</b>' : 'Sin saldo pendiente ✓'}</div></div>
+      ${p.saldo > 0 ? `<button class="btn sm pri" onclick="pdvPagarProveedor('${p.id}')">Pagar</button>` : ''}</div>`).join('') || '<div class="muted">Aún no tienes proveedores. Se agregan al registrar un gasto a crédito.</div>'}`);
+}
+function pdvNuevoProveedor(deGasto) {
+  modal(`<div class="row between"><h2 style="margin:0">Nuevo proveedor</h2><button class="redondo" onclick="${deGasto ? 'pdvFormGasto()' : 'pdvProveedores()'}" aria-label="Cerrar">✕</button></div>
+    <label class="f">Nombre</label><input class="i" id="pvNom" maxlength="60" placeholder="Ej. Hielo La Cruz">
+    <label class="f">Teléfono (opcional)</label><input class="i" id="pvTel" inputmode="tel" maxlength="14">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarProveedor(${deGasto ? 1 : 0}))">Guardar</button></div>`);
+}
+async function pdvGuardarProveedor(deGasto) {
+  const nombre = $('#pvNom').value.trim(); if (nombre.length < 2) throw new Error('Escribe el nombre');
+  if (PDV.provs.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) throw new Error('Ya existe ese proveedor');
+  const ref = pdvCol('proveedores').doc(), p = { nombre: nombre.slice(0, 60), tel: $('#pvTel').value.replace(/\D/g, '').slice(0, 10), saldo: 0, creado: Date.now() };
+  pdvGuardar(ref.set(p));
+  PDV.provs.push(Object.assign({ id: ref.id }, p)); PDV.provs.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  if (deGasto) { S._gasto.provId = ref.id; pdvFormGasto(); } else pdvProveedores();
+}
+function pdvPagarProveedor(id) {
+  const p = PDV.provs.find(x => x.id === id); if (!p) return;
+  S._pagoDesde = PDV.caja ? 'caja' : 'fuera';
+  modal(`<div class="row between"><h2 style="margin:0">Pagar a ${esc(p.nombre)}</h2><button class="redondo" onclick="pdvProveedores()" aria-label="Cerrar">✕</button></div>
+    <div class="muted">Le debes ${money(p.saldo)}</div>
+    <label class="f">Monto</label><input class="i pdvNum" id="ppMonto" inputmode="decimal" value="${p.saldo}">
+    <label class="f">¿De dónde sale?</label>
+    <div class="pdvMets" id="ppDesde">${[['caja', '🗄️ Efectivo de caja'], ['fuera', '🏦 Fuera de caja']].map(([k, t]) => `<button class="${S._pagoDesde === k ? 'on' : ''}" ${k === 'caja' && !PDV.caja ? 'disabled' : ''} onclick="S._pagoDesde='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this))">${t}</button>`).join('')}</div>
+    <div class="small muted">El gasto original queda en tus reportes; aquí solo se baja lo que debes.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarPagoProv('${id}'))">Registrar pago</button></div>`);
+}
+async function pdvGuardarPagoProv(id) {
+  const p = PDV.provs.find(x => x.id === id), m = pdvR($('#ppMonto').value), desde = S._pagoDesde;
+  if (!(m > 0)) throw new Error('Escribe el monto');
+  if (m > pdvR(p.saldo)) throw new Error('Es más de lo que le debes (' + money(p.saldo) + ')');
+  if (desde === 'caja' && !PDV.caja) throw new Error('La caja está cerrada');
+  const ts = Date.now();
+  pdvGuardar(pdvCol('pagosProv').doc().set({ proveedorId: id, proveedor: p.nombre, monto: m, desde, cajaId: PDV.caja ? PDV.caja.id : '', dia: PDV.caja ? PDV.caja.dia : pdvHoy(), ts, por: pdvYo() }));
+  pdvGuardar(pdvCol('proveedores').doc(id).update({ saldo: pdvInc(-m), ultimoPago: ts }));
+  // baja el saldo de sus gastos a crédito, del más viejo al más nuevo
+  try {
+    const s = await pdvCol('gastos').where('proveedorId', '==', id).get();
+    let resto = m;
+    s.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(g => g.saldo > 0).sort((a, b) => a.ts - b.ts).forEach(g => {
+      if (resto <= 0) return; const q = Math.min(resto, g.saldo); resto = pdvR(resto - q);
+      pdvGuardar(pdvCol('gastos').doc(g.id).update({ saldo: pdvR(g.saldo - q) }));
+    });
+  } catch (e) { }
+  p.saldo = pdvR(p.saldo - m);
+  pdvGuardar(pdvCol('dias').doc(PDV.caja ? PDV.caja.dia : pdvHoy()).set({ pagosProv: pdvInc(m), ['pagoProv_' + desde]: pdvInc(m), ts }, { merge: true }));
+  toast('Pago registrado ✓'); pdvProveedores();
+}
+
+/* ---------- abrir y cerrar caja (turnos) ---------- */
+async function pdvAbrirCaja() {
+  if (PDV.caja) { toast('La caja ya está abierta'); return; }
+  let ant = null;
+  try { const s = await pdvCol('estado').doc('caja').get(); ant = s.exists ? s.data() : null; } catch (e) { }
+  const fondoAnt = ant && ant.fondo != null ? ant.fondo : null;
+  S._pinAntes = () => { const v = ($('#abFondo') || {}).value; if (v === '' || !(Number(v) >= 0)) { toast('Escribe el fondo de caja chica con el que abres', 'err'); return false; } };
+  S._pinDatos = () => ({ fondo: pdvR($('#abFondo').value), nota: ($('#abNota') || {}).value || '' });
+  let r;
+  try {
+    r = await pdvPedirPin('Abrir caja', 'caja', `<div class="muted" style="margin:6px 0">Turno ${PDV.cajasHoy.length + 1} de hoy.</div>
+      <label class="f">Fondo de caja chica (cuenta el efectivo con el que abres)</label><input class="i pdvNum" id="abFondo" inputmode="decimal" value="${fondoAnt != null ? fondoAnt : ''}" oninput="const d=$('#abDif');if(d)d.style.display=(${fondoAnt != null} && Number(this.value)!==${fondoAnt != null ? fondoAnt : 0})?'':'none'">
+      ${fondoAnt != null ? `<div class="small muted">El turno anterior dejó ${money(fondoAnt)}.</div><div id="abDif" style="display:none"><label class="f">No coincide: ¿qué pasó?</label><input class="i" id="abNota" maxlength="120"></div>` : ''}`);
+  } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  const ts = Date.now(), dia = pdvHoy(), ref = pdvCol('cajas').doc();
+  const c = { dia, turno: PDV.cajasHoy.length + 1, estado: 'abierta', abre: { uid: r.uid, nombre: r.nombre, ts, por: pdvYo() }, fondo: r.datos.fondo,
+    fondoAnterior: fondoAnt, difApertura: fondoAnt != null ? pdvR(r.datos.fondo - fondoAnt) : 0, notaApertura: r.datos.nota || '' };
+  pdvGuardar(ref.set(c));
+  PDV.caja = Object.assign({ id: ref.id }, c); pdvSuscribirCaja();
+  cerrarModal(); toast('Caja abierta · turno ' + c.turno + ' 🗄️'); PDV.tab = 'vender'; pintarCaja();
+}
+/** Cuentas del turno abierto (lo que debe haber en efectivo). */
+function pdvCuentas() {
+  const c = PDV.caja, vs = PDV.ventas.filter(v => v.estado !== 'cancelada');
+  const met = { efectivo: 0, transferencia: 0, tarjeta: 0 };
+  vs.forEach(v => v.pagos.forEach(p => { met[p.metodo] = pdvR((met[p.metodo] || 0) + p.monto); }));
+  const propinas = pdvR(vs.reduce((s, v) => s + (v.propina || 0), 0));
+  const gastosCaja = pdvR(PDV.gastos.filter(g => g.pago === 'caja' && g.auto !== 'propinas').reduce((s, g) => s + g.monto, 0));
+  const gastosOtros = pdvR(PDV.gastos.filter(g => g.pago !== 'caja').reduce((s, g) => s + g.monto, 0));
+  const provCaja = pdvR(PDV.pagosProv.filter(p => p.desde === 'caja').reduce((s, p) => s + p.monto, 0));
+  const ventas = pdvR(vs.reduce((s, v) => s + v.total, 0));
+  const esperado = pdvR(c.fondo + met.efectivo - gastosCaja - provCaja - propinas);
+  const canceladas = PDV.ventas.filter(v => v.estado === 'cancelada');
+  return { met, propinas, gastosCaja, gastosOtros, provCaja, ventas, n: vs.length, esperado, canceladas: canceladas.length, montoCancelado: pdvR(canceladas.reduce((s, v) => s + v.total, 0)) };
+}
+function pdvVistaCaja() {
+  const hoy = PDV.cajasHoy.filter(c => c.estado === 'cerrada');
+  const previos = hoy.length ? `<h3>Turnos cerrados hoy</h3>${hoy.map(c => `<div class="card row between" onclick="pdvImprimirCorte('${c.id}')" style="cursor:pointer"><div><b>Turno ${c.turno}</b> · ${esc(c.abre.nombre.split(' ')[0])} ${hora(c.abre.ts)}–${hora(c.cierre.ts)}<div class="small muted">Ventas ${money(c.cierre.ventas)} · diferencia ${money(c.cierre.diferencia)}</div></div><span>🖨️</span></div>`).join('')}` : '';
+  if (!PDV.caja) return pdvSinCaja() + previos;
+  const c = PDV.caja, k = pdvCuentas();
+  const fila = (a, b, fuerte) => `<div class="tot${fuerte ? ' g' : ''}"><span>${a}</span><span>${b}</span></div>`;
+  return `<div class="card"><b>Turno ${c.turno}</b> · abrió ${esc(c.abre.nombre)} a las ${hora(c.abre.ts)}
+      ${fila('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => fila('&nbsp;&nbsp;' + PDV_MET[m], money(v))).join('')}
+      ${fila('Propinas con tarjeta', money(k.propinas))}${k.canceladas ? fila('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}</div>
+    <div class="card"><b>Efectivo en caja</b>
+      ${fila('Fondo de caja chica', money(c.fondo))}${fila('+ Ventas en efectivo', money(k.met.efectivo))}${fila('− Gastos pagados de caja', money(k.gastosCaja))}
+      ${k.provCaja ? fila('− Pagos a proveedores', money(k.provCaja)) : ''}${fila('− Propinas de tarjeta (se entregan al cerrar)', money(k.propinas))}
+      ${fila('Debe haber', money(k.esperado), 1)}</div>
+    <button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvCerrarCaja)">Cerrar turno ${c.turno}</button>${previos}`;
+}
+const PDV_DEN = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
+async function pdvCerrarCaja() {
+  const c = PDV.caja; if (!c) return;
+  const k = pdvCuentas();
+  S._pinAntes = () => { const v = ($('#ciCont') || {}).value; if (v === '' || !(Number(v) >= 0)) { toast('Escribe cuánto efectivo contaste', 'err'); return false; } };
+  S._pinDatos = () => ({ contado: pdvR($('#ciCont').value), desglose: PDV._desg || null });
+  PDV._desg = null;
+  let r;
+  try {
+    r = await pdvPedirPin('Cerrar turno ' + c.turno, 'caja', `<div class="muted" style="margin:6px 0">Cuenta todo el efectivo de la caja.</div>
+      <details><summary class="small">🧮 Contar por billetes y monedas</summary><div class="pdvDen">${PDV_DEN.map(d => `<label>${money(d)}<input class="i" inputmode="numeric" data-d="${d}" oninput="pdvSumarDen()"></label>`).join('')}</div></details>
+      <label class="f">Efectivo contado</label><input class="i pdvNum" id="ciCont" inputmode="decimal" oninput="pdvVistaDif(${k.esperado},${c.fondo})">
+      <div id="ciDif" class="small"></div>
+      ${k.propinas ? `<div class="aviso info" style="margin:8px 0">💳 Propinas cobradas con tarjeta: <b>${money(k.propinas)}</b>. Al cerrar se registran como gasto para que las entregues en efectivo.</div>` : ''}`);
+  } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  const ts = Date.now(), contado = r.datos.contado, fondoDeja = c.fondo;
+  if (k.propinas > 0) {
+    pdvGuardar(pdvCol('gastos').doc().set({ dia: c.dia, ts, cajaId: c.id, concepto: 'Propinas cobradas con tarjeta (turno ' + c.turno + ')', categoria: 'Propinas', monto: k.propinas, pago: 'caja', auto: 'propinas', por: pdvYo(), proveedorId: '', proveedor: '', saldo: 0, comprobante: { tipo: 'sin', fotoId: '', pendiente: false } }));
+    pdvGuardar(pdvCol('dias').doc(c.dia).set({ gastos: pdvInc(k.propinas), gasto_caja: pdvInc(k.propinas), propinasEntregadas: pdvInc(k.propinas), ts }, { merge: true }));
+  }
+  const cierre = { uid: r.uid, nombre: r.nombre, ts, por: pdvYo(), contado, desglose: r.datos.desglose, esperado: k.esperado, diferencia: pdvR(contado - k.esperado),
+    fondoDeja, retiro: pdvR(contado - fondoDeja), ventas: k.ventas, n: k.n, met: k.met, propinas: k.propinas, gastosCaja: k.gastosCaja, gastosOtros: k.gastosOtros, provCaja: k.provCaja,
+    canceladas: k.canceladas, montoCancelado: k.montoCancelado };
+  pdvGuardar(pdvCol('cajas').doc(c.id).update({ estado: 'cerrada', cierre }));
+  pdvGuardar(pdvCol('estado').doc('caja').set({ fondo: fondoDeja, ultima: c.id, ts }));
+  pdvGuardar(pdvCol('dias').doc(c.dia).set({ cortes: pdvInc(1), diferencia: pdvInc(cierre.diferencia), ts }, { merge: true }));
+  const cerrada = Object.assign({}, c, { estado: 'cerrada', cierre });
+  PDV._ultimoCorte = cerrada;
+  PDV.cajasHoy = PDV.cajasHoy.filter(x => x.id !== c.id).concat([cerrada]);
+  PDV.caja = null; pdvSuscribirCaja();
+  modal(`<div style="text-align:center"><div style="font-size:46px">🗄️</div><h2 style="margin:4px 0">Turno ${c.turno} cerrado</h2>
+    <div class="pdvCambioG" style="color:${Math.abs(cierre.diferencia) < 0.5 ? 'var(--ok)' : 'var(--err)'}">${Math.abs(cierre.diferencia) < 0.5 ? '✓ La caja cuadra' : (cierre.diferencia > 0 ? 'Sobran ' : 'Faltan ') + money(Math.abs(cierre.diferencia))}</div>
+    <div class="card" style="text-align:left">${[['Contado', contado], ['Deja en caja (fondo)', fondoDeja], cierre.retiro >= 0 ? ['Retira', cierre.retiro] : ['Falta para completar el fondo', -cierre.retiro], ...(k.propinas ? [['Propinas entregadas al equipo', k.propinas]] : [])].map(([a, b]) => `<div class="tot"><span>${a}</span><span>${money(b)}</span></div>`).join('')}</div>
+    <div class="btns"><button class="btn pill full" onclick="pdvImprimirCorte('${c.id}')">🖨️ Imprimir corte</button><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`);
+  if (pdvCfg().autoTicket) pdvImprimirCorte(c.id);
+  pintarCaja();
+}
+function pdvSumarDen() { let t = 0; const d = {}; document.querySelectorAll('.pdvDen input').forEach(i => { const n = Number(i.value) || 0; if (n) { d[i.dataset.d] = n; t += n * Number(i.dataset.d); } }); PDV._desg = d; $('#ciCont').value = pdvR(t); $('#ciCont').dispatchEvent(new Event('input')); }
+function pdvVistaDif(esp, fondo) {
+  const v = Number($('#ciCont').value), e = $('#ciDif'); if (!e) return;
+  if (!$('#ciCont').value) { e.innerHTML = ''; return; }
+  const d = pdvR(v - esp);
+  e.innerHTML = `Debe haber ${money(esp)} · ${Math.abs(d) < 0.5 ? '<b style="color:var(--ok)">✓ Cuadra</b>' : `<b style="color:var(--err)">${d > 0 ? 'Sobran' : 'Faltan'} ${money(Math.abs(d))}</b>`} · deja ${money(fondo)}${v - fondo >= 0 ? ' y retira ' + money(pdvR(v - fondo)) : ' (faltan ' + money(pdvR(fondo - v)) + ' para el fondo)'}`;
+}
+
+/* ---------- tickets ---------- */
+const pdvCfg = () => Object.assign({ cocina: true, autoTicket: false }, ls('pdvCfg') || {});
+function pdvAjustes() {
+  const c = pdvCfg(), p = cocCfg();
+  modal(`<div class="row between"><h2 style="margin:0">⚙️ Caja</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">Se guardan solo en este equipo.</div>
+    <label class="f">Papel de la impresora</label>
+    <div class="row" style="gap:8px">${[58, 80].map(w => `<div class="opcion ${p.papel === w ? 'on' : ''}" style="flex:1" onclick="cocGuardar({papel:${w}});pdvAjustes()"><span class="radio"></span><b>${w} mm</b></div>`).join('')}</div>
+    <div class="opcion ${c.autoTicket ? 'on' : ''}" style="margin-top:10px" onclick="ls('pdvCfg',Object.assign(pdvCfg(),{autoTicket:${!c.autoTicket}}));pdvAjustes()"><span class="radio"></span><div class="grow"><b>Imprimir ticket y corte solos</b><div class="muted small">Al terminar cada venta y al cerrar el turno.</div></div></div>
+    <div class="opcion ${c.cocina ? 'on' : ''}" onclick="ls('pdvCfg',Object.assign(pdvCfg(),{cocina:${!c.cocina}}));PDV.venta.cocina=${!c.cocina};pdvAjustes()"><span class="radio"></span><div class="grow"><b>Mandar las ventas a cocina</b><div class="muted small">Viene marcado en cada venta (puedes quitarlo en una venta).</div></div></div>
+    <div class="btns"><button class="btn pill full" onclick="imprimirPrueba()">🖨️ Imprimir prueba</button></div>`);
+}
+const pdvTxtDet = i => detalleItem(i).replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+function pdvHtmlTicket(cuerpo, titulo) {
+  const papel = cocCfg().papel, f = papel === 80 ? 13 : 11.5;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
+    @page{size:${papel}mm auto;margin:0}*{box-sizing:border-box}body{margin:0;padding:3mm;width:${papel}mm;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:${f}px}
+    .c{text-align:center}.g{font-size:${f + 6}px;font-weight:900}hr{border:0;border-top:1px dashed #000;margin:5px 0}
+    .r{display:flex;justify-content:space-between;gap:6px}.d{font-size:${f - 1.5}px;margin-left:3mm}.t{font-size:${f + 3}px;font-weight:900}.p{font-size:${f - 2}px}
+  </style></head><body>${cuerpo}</body></html>`;
+}
+function pdvImprimirVenta(id) {
+  const v = pdvVenta(id) || (PDV._ultimaVenta && PDV._ultimaVenta.id === id ? PDV._ultimaVenta : null); if (!v) return;
+  const n = S.negocio || {};
+  imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div>${n.direccion ? `<div class="p">${esc(n.direccion)}</div>` : ''}${n.telefono ? `<div class="p">Tel. ${esc(n.telefono)}</div>` : ''}</div><hr>
+    <div class="r"><b>Ticket ${esc(v.folio)}</b><span>${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}</span></div>
+    <div>${v.tipo === 'llevar' ? 'PARA LLEVAR' : 'CONSUMO AQUÍ'} · Atendió ${esc(v.por.nombre.split(' ')[0])}</div>${v.cliente ? `<div>Cliente: ${esc(v.cliente.nombre || v.cliente.tel)}</div>` : ''}
+    ${v.estado === 'cancelada' ? '<div class="c t">*** CANCELADA ***</div>' : ''}<hr>
+    ${v.items.map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.importe)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
+    <div class="r t"><span>TOTAL</span><span>${money(v.total)}</span></div>
+    ${v.pagos.map(p => `<div class="r"><span>${{ efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[p.metodo]}</span><span>${money(p.monto)}</span></div>${p.propina ? `<div class="r"><span>&nbsp;Propina tarjeta</span><span>${money(p.propina)}</span></div>` : ''}${p.cambio ? `<div class="r"><span>&nbsp;Recibido ${money(p.recibe)}</span><span>Cambio ${money(p.cambio)}</span></div>` : ''}`).join('')}<hr>
+    <div class="c">¡Gracias por tu compra!</div><div class="c p">Pide a domicilio en pidele.app</div>`, 'Ticket ' + v.folio));
+}
+function pdvWaVenta(v) {
+  const n = S.negocio || {};
+  const txt = `🧾 *${n.nombre || ''}* · Ticket ${v.folio}\n${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}\n\n` +
+    v.items.map(i => `${i.cant} x ${i.nombre} — ${money(i.importe)}${pdvTxtDet(i) ? '\n   ' + pdvTxtDet(i) : ''}`).join('\n') +
+    `\n\n*Total: ${money(v.total)}*\n` + v.pagos.map(p => `${{ efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' (cambio ' + money(p.cambio) + ')' : ''}`).join('\n') +
+    `\n\n¡Gracias por tu compra! 🙌\nLa próxima vez pide a domicilio en ${urlApp('')}`;
+  return v.cliente && v.cliente.tel ? waLink(v.cliente.tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
+}
+function pdvImprimirCorte(id) {
+  const c = PDV.cajasHoy.find(x => x.id === id) || (PDV._ultimoCorte && PDV._ultimoCorte.id === id ? PDV._ultimoCorte : null);
+  if (!c || !c.cierre) return;
+  const k = c.cierre, r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+  imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CORTE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
+    ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}<hr>
+    ${r('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => r('&nbsp;' + { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[m], money(v))).join('')}
+    ${r('Propinas tarjeta', money(k.propinas))}${k.canceladas ? r('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}<hr>
+    ${r('Fondo inicial', money(c.fondo))}${r('+ Efectivo ventas', money(k.met.efectivo))}${r('- Gastos de caja', money(k.gastosCaja))}${k.provCaja ? r('- Pagos proveedores', money(k.provCaja)) : ''}${r('- Propinas entregadas', money(k.propinas))}
+    <div class="r t"><span>Esperado</span><span>${money(k.esperado)}</span></div>${r('Contado', money(k.contado))}
+    <div class="r t"><span>Diferencia</span><span>${money(k.diferencia)}</span></div><hr>
+    ${r('Deja en caja', money(k.fondoDeja))}${k.retiro >= 0 ? r('Retira', money(k.retiro)) : r('Falta para el fondo', money(-k.retiro))}${k.gastosOtros ? r('Gastos fuera de caja/crédito', money(k.gastosOtros)) : ''}<hr>
+    <div class="c p">Firma: ____________________</div>`, 'Corte turno ' + c.turno));
+}
+
+/* ---------- cocina: ventas de mostrador ---------- */
+async function pdvCocinaConectar() {
+  if (PDV._cocSub || !cocTieneAcceso()) return;
+  try { await pdvConectar(); } catch (e) { return; }
+  if (S.vista !== 'cocina') return;
+  PDV._cocSub = pdvCol('ventas').where('cocina.estado', '==', 'preparando').onSnapshot(s => {
+    const antes = new Set((S._cocPdv || []).map(v => v.id));
+    S._cocPdv = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    if (S._cocPdv.some(v => !antes.has(v.id)) && antes.size + S._cocPdv.length && cocCfg().sonido && PDV._cocListo) beep();
+    PDV._cocListo = true;
+    pintarCocina();
+  }, e => console.warn(e));
+}
+function pdvCocinaSalir() { if (PDV._cocSub) { try { PDV._cocSub(); } catch (e) { } } PDV._cocSub = null; PDV._cocListo = false; S._cocPdv = []; }
+function pdvCocinaListo(id) {
+  pdvGuardar(pdvCol('ventas').doc(id).update({ 'cocina.estado': 'listo', 'cocina.listo': Date.now() }));
+  S._cocPdv = (S._cocPdv || []).filter(v => v.id !== id);
+  toast('📦 Marcado como listo'); pintarCocina();
+}
+function pdvImprimirComandaCaja(id) {
+  const v = (S._cocPdv || []).find(x => x.id === id); if (!v) return;
+  imprimirHTML(htmlComanda({ folio: v.folio, tipoTxt: v.tipo === 'llevar' ? 'PARA LLEVAR' : 'MOSTRADOR', comprador: v.cliente ? { nombre: v.cliente.nombre } : null, creado: v.ts, horaSalida: v.cocina.salida, items: v.items, notas: v.cocina.recoge ? 'Pasa a las ' + v.cocina.recoge : '' }));
+}
+
+/* ============ MODO COCINA (2.25) ============ */
+/* Pantalla para la cocina (plan Pro): pedidos por aceptar, en preparación y listos, en letra grande y sin precios. */
+const cocTieneAcceso = () => esAdminU() || (S.negocio && S.negocio.plan === 'pro');
+function botonCocina() {
+  if (!puedo('pedidos')) return '';
+  if (cocTieneAcceso()) return `<button class="btn pri pill" style="flex:1" onclick="ir('cocina')">🍳 Modo cocina</button>`;
+  return esDueno() ? `<button class="btn pill" style="flex:1" onclick="cocinaSoloPro()">🍳 Modo cocina 🔒</button>` : '';
+}
+function cocinaSoloPro() {
+  modal(`<div style="text-align:center"><div style="font-size:46px">🍳</div><h2 style="margin:4px 0">Modo cocina · Plan Pro</h2>
+    <div class="muted" style="margin:6px 0 12px">Una pantalla para tu cocina: pedidos en letra grande, colores por tiempo, aviso con sonido, botón de “Listo” e impresión de comandas. Viene incluido en el plan Pro.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();ir('suscripcion')">Ver planes</button><button class="btn pill full" onclick="cerrarModal()">Ahora no</button></div></div>`);
+}
+const cocCfg = () => Object.assign({ papel: 58, auto: false, sonido: true }, ls('cocina') || {});
+async function vCocina(_, silencioso) {
+  if (!cocTieneAcceso() || !puedo('pedidos')) { ir(inicioRol()); return; }
+  const d = await api('panelNegocio');
+  if (S.vista !== 'cocina') return;
+  fijarNeg(d.negocio); recordar(d.pedidos);
+  const antes = S._coc ? new Set(S._coc.pedidos.filter(x => x.estado === 'NUEVO').map(x => x.id)) : null;
+  S._coc = d;
+  // pedido nuevo mientras la pantalla está abierta: suena (el sondeo general ya avisa, aquí se insiste hasta aceptarlo)
+  if (antes && d.pedidos.some(x => x.estado === 'NUEVO' && !antes.has(x.id)) && cocCfg().sonido) beep();
+  pintarCocina();
+  entrarCocina_();
+  pdvCocinaConectar();
+}
+function entrarCocina_() {
+  if (S._cocIni) return; S._cocIni = true;
+  pedirPantallaEncendida_();
+  iniciarSondeo(); // consulta cada 10 s mientras la cocina está abierta
+  clearInterval(S._cocT);
+  // reloj y colores cada 15 s sin consultar al servidor; mientras haya pedidos sin aceptar, suena cada 30 s
+  let n = 0;
+  S._cocT = setInterval(() => {
+    if (S.vista !== 'cocina') { salirCocina_(); return; }
+    n++; pintarCocina();
+    if (n % 2 === 0 && cocCfg().sonido && S._coc && S._coc.pedidos.some(x => x.estado === 'NUEVO') && !document.hidden) beep();
+  }, 15000);
+}
+function salirCocina_() {
+  S._cocIni = false; clearInterval(S._cocT); pdvCocinaSalir();
+  try { if (S._wake) S._wake.release(); } catch (e) { } S._wake = null;
+}
+async function pedirPantallaEncendida_() {
+  try { if ('wakeLock' in navigator && !S._wake) { S._wake = await navigator.wakeLock.request('screen'); S._wake.addEventListener('release', () => { S._wake = null; }); } } catch (e) { }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.vista === 'cocina') pedirPantallaEncendida_(); });
+function cocTipo(x) {
+  if (x.tipoTxt) return x.tipoTxt;
+  return x.servicio ? '🛵 Servicio repartidor' : x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio';
+}
+function cocItems(x) {
+  return x.items.map(i => {
+    const d = detalleItem(i);
+    return `<div class="it"><b class="cant">${i.cant}×</b>${esc(i.nombre)}${d ? `<span class="det">${d}</span>` : ''}</div>`;
+  }).join('');
+}
+function cocMin(ms) { const m = Math.round(ms / 60000); return m >= 0 ? m + ' min' : '−' + Math.abs(m) + ' min'; }
+function pintarCocina() {
+  if (S.vista !== 'cocina' || !S._coc || $('#modal').classList.contains('on') && $('#cocCfg')) return;
+  const l = S._coc.pedidos, ahora = Date.now(), cfg = cocCfg();
+  const nuevos = l.filter(x => x.estado === 'NUEVO').sort((a, b) => a.creado - b.creado);
+  const pago = l.filter(x => ['POR_PAGAR', 'PAGO_ENVIADO'].includes(x.estado));
+  const prep = l.filter(x => x.estado === 'PREPARANDO').sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
+  const listos = l.filter(x => x.estado === 'LISTO').sort((a, b) => (a.listo || 0) - (b.listo || 0));
+  // ventas de la caja (mostrador y para llevar): ya están pagadas, entran directo a preparación
+  const caja = (S._cocPdv || []).map(v => ({ _pdv: 1, id: v.id, folio: v.folio, tipoTxt: v.tipo === 'llevar' ? '🥡 Para llevar' : '🧾 Mostrador', comprador: v.cliente ? { nombre: v.cliente.nombre } : null, horaSalida: v.cocina.salida, items: v.items, notas: v.cocina.recoge ? 'Pasa a las ' + v.cocina.recoge : '' }));
+  prep.push(...caja); prep.sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
+  const quien = x => esc(String((x.comprador && x.comprador.nombre) || '').split(' ')[0]);
+  const ops = [10, 15, 20, 30, 45];
+  const tNuevo = x => {
+    const sug = x.minutosSugeridos || (S.negocio && S.negocio.tiempoPrep) || 20, s = ops.find(m => m >= sug) || 45;
+    return `<div class="cTarj nuevo" id="ct_${x.id}"><div class="cab"><span class="folio">${esc(x.folio)}</span><span class="tipo">${cocTipo(x)}</span>${x.porTelefono ? '<span class="tipo">📞</span>' : ''}
+        <span class="tiempo" style="font-size:15px">hace ${Math.max(0, Math.round((ahora - x.creado) / 60000))} min</span></div>
+      <div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
+      <div class="info">¿En cuánto estará listo? Toca para aceptar:</div>
+      <div class="mins">${ops.map(m => `<button class="${m === s ? 'sug' : ''}" onclick="act(this,()=>cocAceptar('${x.id}',${m}))">${m}′</button>`).join('')}</div>
+      <div class="pie"><button class="bImp" onclick="imprimirComanda('${x.id}')" aria-label="Imprimir">🖨️</button><button class="bRech" onclick="act(this,()=>cancelar('${x.id}','Rechazar'))">Rechazar</button></div></div>`;
+  };
+  const tPrep = x => {
+    const falta = (x.horaSalida || ahora) - ahora, color = falta < 0 ? 'rojo' : falta <= 5 * 60000 ? 'amarillo' : 'verde';
+    return `<div class="cTarj ${color}" id="ct_${x.id}"><div class="cab"><span class="folio">${esc(x.folio)}</span><span class="tipo">${cocTipo(x)}</span>${x.porTelefono ? '<span class="tipo">📞</span>' : ''}
+        <span class="tiempo">${x.horaSalida ? (falta < 0 ? '⚠️ ' : '') + cocMin(falta) : ''}</span></div>
+      <div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}${x.horaSalida ? ' · sale ' + hora(x.horaSalida) : ''}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
+      <div class="pie"><button class="bImp" onclick="${x._pdv ? `pdvImprimirComandaCaja('${x.id}')` : `imprimirComanda('${x.id}')`}" aria-label="Imprimir">🖨️</button><button class="bListo" onclick="${x._pdv ? `pdvCocinaListo('${x.id}')` : `act(this,()=>cocListo('${x.id}'))`}">✅ Listo</button></div></div>`;
+  };
+  const tPago = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.estado === 'PAGO_ENVIADO' ? '🔎 Revisando pago' : '💳 Esperando pago'}</span></div>`;
+  const tListo = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.tipoEntrega === 'recoger' ? 'Espera al cliente' : x.repartidor ? '🛵 ' + esc(x.repartidor.nombre.split(' ')[0]) : 'Espera repartidor'}</span></div>`;
+  const col = (t, n, h, vacio) => `<div class="cocCol"><h2>${t}<span>${n}</span></h2>${h || `<div class="cocVacio">${vacio}</div>`}</div>`;
+  const y = window.scrollY;
+  html(`<div class="coc"><div class="cocBar"><h1>🍳 ${esc(S.negocio ? S.negocio.nombre : 'Cocina')}</h1><span class="reloj">${hora(ahora)}</span>
+      <button onclick="cocAjustes()" aria-label="Ajustes">⚙️</button><button onclick="cocPantallaCompleta()" aria-label="Pantalla completa">⛶</button><button onclick="ir('negPedidos')">Salir</button></div>
+    <div class="cocCols">
+      ${col('🔔 Por aceptar', nuevos.length, nuevos.map(tNuevo).join(''), 'Sin pedidos nuevos')}
+      ${col('👩‍🍳 Preparando', prep.length, prep.map(tPrep).join(''), 'Nada en preparación')}
+      ${col('📦 Listos y en espera', listos.length + pago.length, listos.map(tListo).join('') + (pago.length ? `<div class="small" style="margin:10px 4px 6px;opacity:.75">Aceptados, esperando que el cliente pague:</div>${pago.map(tPago).join('')}` : ''), 'Nada en espera')}
+    </div></div>`);
+  window.scrollTo(0, y);
+}
+async function cocAceptar(id, min) {
+  const x = S._coc.pedidos.find(p => p.id === id);
+  await api('aceptarPedido', { id, minutos: min });
+  toast('Pedido ' + (x ? x.folio : '') + ' aceptado · ' + min + ' min');
+  if (x && cocCfg().auto) imprimirComanda(id, min);
+  await pintar(true);
+}
+async function cocListo(id) {
+  await api('marcarListo', { id });
+  toast('📦 Marcado como listo');
+  await pintar(true);
+}
+function cocPantallaCompleta() {
+  try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { toast('Tu navegador no permite pantalla completa', 'err'); }
+}
+function cocAjustes() {
+  const c = cocCfg();
+  modal(`<div id="cocCfg"><div class="row between"><h2 style="margin:0">⚙️ Modo cocina</h2><button class="redondo" onclick="cerrarModal();pintarCocina()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">Estos ajustes se guardan solo en este equipo.</div>
+    <label class="f">Ancho del papel de tu impresora</label>
+    <div class="row" style="gap:8px">${[58, 80].map(w => `<div class="opcion ${c.papel === w ? 'on' : ''}" style="flex:1" onclick="cocGuardar({papel:${w}});cocAjustes()"><span class="radio"></span><b>${w} mm</b></div>`).join('')}</div>
+    <div class="opcion ${c.auto ? 'on' : ''}" style="margin-top:10px" onclick="cocGuardar({auto:${!c.auto}});cocAjustes()"><span class="radio"></span><div class="grow"><b>Imprimir la comanda al aceptar</b><div class="muted small">Sale sola cada vez que aceptas un pedido aquí.</div></div></div>
+    <div class="opcion ${c.sonido ? 'on' : ''}" onclick="cocGuardar({sonido:${!c.sonido}});cocAjustes()"><span class="radio"></span><div class="grow"><b>Sonido de pedidos nuevos</b><div class="muted small">Suena hasta que el pedido se acepta.</div></div></div>
+    <div class="btns"><button class="btn pill full" onclick="imprimirPrueba()">🖨️ Imprimir prueba</button><button class="btn pill full" onclick="beep()">🔔 Probar sonido</button></div>
+    <div class="muted small" style="margin-top:10px">Para imprimir: en computadora, cualquier impresora instalada. En Android, una impresora térmica Bluetooth con la app gratuita <b>RawBT</b> (o el servicio de impresión de tu impresora). En iPhone, impresoras compatibles con AirPrint.</div></div>`);
+}
+function cocGuardar(c) { ls('cocina', Object.assign(cocCfg(), c)); }
+/** Comanda para impresora de tickets (sin precios). */
+function htmlComanda(x, min) {
+  const n = S.negocio || {}, papel = cocCfg().papel, ancho = papel === 80 ? 72 : 48;
+  const lin = i => {
+    const d = detalleItem(i).replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    return `<div class="it"><b>${i.cant} x ${esc(i.nombre)}</b>${d ? `<div class="d">${esc(d)}</div>` : ''}</div>`;
+  };
+  const salida = min ? Date.now() + min * 60000 : x.horaSalida;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Comanda ${esc(x.folio)}</title><style>
+    @page{size:${papel}mm auto;margin:0}*{box-sizing:border-box}body{margin:0;padding:3mm;width:${papel}mm;font-family:Arial,Helvetica,sans-serif;color:#000;font-size:${papel === 80 ? 13 : 11.5}px}
+    .c{text-align:center}.f{font-size:${papel === 80 ? 30 : 24}px;font-weight:900;margin:2px 0}.t{font-size:${papel === 80 ? 15 : 13}px;font-weight:900;border:2px solid #000;padding:2px;margin:3px 0}
+    hr{border:0;border-top:1px dashed #000;margin:5px 0}.it{margin:4px 0;font-size:${papel === 80 ? 16 : 14}px}.d{font-size:${papel === 80 ? 13 : 11.5}px;margin-left:3mm}
+    .n{border:1px solid #000;padding:3px;margin-top:5px;font-weight:700}.p{font-size:10px;margin-top:6px}div{max-width:${ancho}mm}
+  </style></head><body>
+    <div class="c"><b>${esc(n.nombre || '')}</b><div class="f">${esc(x.folio)}</div><div class="t">${x.tipoTxt || (x.servicio ? 'SERVICIO REPARTIDOR' : x.tipoEntrega === 'recoger' ? 'RECOGE EN EL NEGOCIO' : 'A DOMICILIO')}${x.porTelefono ? ' · TEL' : ''}</div>
+    ${x.comprador && x.comprador.nombre ? `<div>${esc(x.comprador.nombre)}</div>` : ''}
+    <div>Recibido ${hora(x.creado)}${salida ? ' · Sale ' + hora(salida) : ''}</div></div><hr>
+    ${x.items.map(lin).join('')}
+    ${x.notas ? `<div class="n">NOTA: ${esc(x.notas)}</div>` : ''}<hr><div class="c p">Pídele · ${new Date().toLocaleDateString('es-MX')} ${hora(Date.now())}</div>
+  </body></html>`;
+}
+function imprimirHTML(h) {
+  let f = $('#marcoImp'); if (f) f.remove();
+  f = document.createElement('iframe'); f.id = 'marcoImp';
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document; d.open(); d.write(h); d.close();
+  setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('No se pudo abrir la impresión', 'err'); } }, 250);
+}
+function imprimirComanda(id, min) {
+  const x = (S._coc && S._coc.pedidos.find(p => p.id === id)) || (S._pedidosVistos || {})[id];
+  if (!x) { toast('No encontramos ese pedido', 'err'); return; }
+  imprimirHTML(htmlComanda(x, min));
+}
+function imprimirPrueba() {
+  imprimirHTML(htmlComanda({ folio: 'PRUEBA', tipoEntrega: 'domicilio', comprador: { nombre: 'Cliente de prueba' }, creado: Date.now(), horaSalida: Date.now() + 20 * 60000,
+    items: [{ cant: 2, nombre: 'Hamburguesa doble', extras: [{ nombre: 'Tocino' }], sin: ['Cebolla'] }, { cant: 1, nombre: 'Café latte', variante: 'Grande', mods: [{ grupo: 'Leche', opciones: ['Deslactosada'] }] }], notas: 'Sin cubiertos' }));
 }
 
 /* ============ PEDIDOS POR TELÉFONO (2.21) ============ */
@@ -3289,7 +4239,7 @@ function abrirProducto(pid) {
     <textarea class="i" id="hNota" maxlength="120" placeholder="Ej. bien dorado, salsa aparte, poco hielo…"></textarea>
     <div class="row between" style="margin-top:16px">
       <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
-      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
+      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() || S.vista === 'caja' ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() || S.vista === 'caja' ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
   cuantasHoja();
 }
 /** Cuántas opciones lleva marcadas cada grupo de la hoja (las repetibles cuentan cada vez). */
@@ -3355,7 +4305,7 @@ function agregarHoja() {
   // cada negocio tiene su propio carrito: agregar de otro negocio ya no vacía el anterior
   const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
   c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
-  if (!Object.keys(c.items).length && carritosLista().length >= 4) { toast('Puedes pedir a máximo 4 negocios a la vez', 'err'); return; }
+  if (S.vista !== 'caja' && !Object.keys(c.items).length && carritosLista().length >= 4) { toast('Puedes pedir a máximo 4 negocios a la vez', 'err'); return; }
   // misma combinación de extras/sin/nota = misma línea del carrito
   const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota, s.mods.map(m => m.g + ':' + m.o.map(o => o.nombre).sort().join('+')).join(',')].join('|');
   const it = c.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, mods: s.mods, cant: 0 };
@@ -3365,6 +4315,7 @@ function agregarHoja() {
   guardarCarritos();
   cerrarModal();
   toast('Agregado: ' + it.nombre + ' ✓');
+  if (S.vista === 'caja') { pdvTrasAgregar(); return; }
   pintarProductos();
   $('#barraC').innerHTML = barraCarrito(n.id);
 }
@@ -3978,7 +4929,7 @@ function avisoSucursal(si) {
     : `<div class="aviso warn">🏪 <b>Sin descuento de sucursal:</b> ${esc(si.motivo || '')}. ${si.listaNuevos && si.listaNuevos.length ? 'Productos que no están en ' + esc(si.base) + ': ' + si.listaNuevos.slice(0, 8).map(esc).join(', ') + (si.listaNuevos.length > 8 ? '…' : '') + '.' : ''} Si vuelves a tener máximo ${si.max}% de productos nuevos, recuperas el ${si.descuento}%.</div>`;
 }
 /* ---------- Mis negocios y equipo (2.15) ---------- */
-const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados']], ['Cajero / mostrador', ['pedidos']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes']]];
+const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados', 'caja']], ['Cajero / mostrador', ['pedidos', 'caja']], ['Mesero', ['mesero']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes', 'caja', 'mesero', 'gerente']]];
 async function vEquipo() {
   const d = S._eq = await api('miEquipo');
   const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
@@ -4408,7 +5359,7 @@ async function vNegPedidos() {
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
       <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
       <label class="sw" title="${puedo('abrir') ? 'Recibir pedidos' : 'Solo el dueño o quien tenga permiso puede pausar'}"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' || !puedo('abrir') ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
-    ${n.estado === 'activo' ? `<button class="btn pill full" style="margin-bottom:4px" onclick="formPedidoTel()">📞 Registrar pedido por teléfono</button>` : ''}
+    ${n.estado === 'activo' ? `<div class="row" style="gap:8px;margin-bottom:4px"><button class="btn pill" style="flex:1" onclick="formPedidoTel()">📞 Pedido por teléfono</button>${botonCocina()}${pdvTieneAcceso() ? `<button class="btn pri pill" style="flex:1" onclick="ir('caja')">🧾 Caja</button>` : ''}</div>` : ''}
     <div class="tabs">
       <button class="${t === 'atender' ? 'on' : ''}" onclick="S.tabNeg='atender';pintar(true)">Por atender (${grupos.atender.length})</button>
       <button class="${t === 'curso' ? 'on' : ''}" onclick="S.tabNeg='curso';pintar(true)">En curso (${grupos.curso.length})</button>
