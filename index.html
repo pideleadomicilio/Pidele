@@ -154,6 +154,9 @@ textarea.i{min-height:70px;resize:vertical}
 .clamp1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* perfil del negocio */
+.barraTel{position:sticky;top:0;z-index:40;margin:-14px -16px 14px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--pri);color:#fff;display:flex;align-items:center;gap:10px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.barraTel .grow{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barraTel button{background:#fff;color:var(--pri);border:0;border-radius:999px;padding:7px 14px;font-weight:800;font-size:14px;cursor:pointer;flex:none}
 .hero{position:relative;margin:-14px -16px 0;height:210px;background:linear-gradient(135deg,var(--pri),var(--pri2));display:flex;align-items:center;justify-content:center;font-size:64px;overflow:hidden}
 .hero img{width:100%;height:100%;object-fit:cover}
 .hero .redondo{position:absolute;top:calc(12px + env(safe-area-inset-top));left:14px}
@@ -344,8 +347,14 @@ body.sinNav main{padding-bottom:96px}
 .promoCard .pie{padding:10px 13px 12px}
 .tachado{text-decoration:line-through;color:var(--tx2);font-weight:700;font-size:.82em;margin-right:4px}
 .precioPromo{color:var(--err)}
-#bloqueoUbic{position:fixed;inset:0;z-index:900;background:rgba(34,40,29,.6);display:flex;align-items:center;justify-content:center;padding:20px}
-#bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center}
+#bloqueoUbic{position:fixed;inset:0;z-index:990;background:rgba(34,40,29,.6);display:flex;padding:20px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#bloqueoUbic .caja{background:var(--card);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center;margin:auto}
+#bloqueoUbic .pasos{text-align:left;background:var(--bg);border-radius:16px;padding:4px 14px;margin:12px 0;font-size:14.5px}
+#bloqueoUbic .pasos ol{padding-left:20px;margin:8px 0}
+#bloqueoUbic .pasos li{margin:6px 0}
+@keyframes girar{to{transform:rotate(360deg)}}
+.girando{display:inline-block;animation:girar 1.2s linear infinite}
+html.sinScroll,html.sinScroll body{overflow:hidden;overscroll-behavior:none}
 /* recorrido guiado */
 #tour{position:fixed;inset:0;z-index:950}
 #tour .hueco{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(20,26,16,.66);transition:all .3s ease;pointer-events:none;outline:3px solid #F3C27A;outline-offset:2px}
@@ -540,7 +549,7 @@ function gpsAhora(motivo) {
   return new Promise((ok, mal) => {
     if (!navigator.geolocation) { mal(new Error('Tu teléfono no permite ubicación.')); return; }
     navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy || 0) }),
-      () => mal(new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.')), { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      er => { const x = new Error('Activa tu ubicación ' + (motivo || 'para continuar') + '.'); x.code = er && er.code; mal(x); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
   });
 }
 /** ¿En qué ciudad estás? La más cercana dentro de su radio, o null. */
@@ -568,11 +577,19 @@ async function ubicarAlAbrir() {
   S._ubicando = true;
   try {
     const primera = !ciudadDefinida();
-    if (!primera && (await permisoUbicacion()) !== 'granted') return; // sin preguntar de más a quien ya tiene su ciudad
+    const perm = await permisoUbicacion();
+    // sin preguntar de más a quien ya tiene su ciudad (salvo quien entró sin ubicación y aún no la ha negado)
+    if (!primera && perm !== 'granted' && !(lsG('sinUbic') && perm === 'prompt' && !navegadorDeApp())) return;
+    if (primera) {
+      if (!navigator.geolocation) { bloqueoUbicacion('', 'sin'); return; }
+      if (navegadorDeApp() && !S._ubicTocado) { bloqueoUbicacion('', 'app'); return; }
+      if (perm === 'denied') { bloqueoUbicacion('', navegadorDeApp() ? 'app' : 'bloqueada'); return; }
+      if (S._ubicTocado) bloqueoUbicacion('', 'buscando');
+    }
     let g;
     try { g = await gpsAhora('para mostrarte los negocios de tu ciudad'); }
-    catch (e) { if (primera) bloqueoUbicacion(e.message); return; }
-    quitarBloqueoUbicacion();
+    catch (e) { if (primera) bloqueoUbicacion(e.message, e.code === 1 ? 'bloqueada' : navegadorDeApp() ? 'app' : e.code ? 'apagada' : 'inicio'); return; }
+    quitarBloqueoUbicacion(); lsG('sinUbic', null);
     const pb = await puebloDeUbicacion(g);
     lsG('fuera', pb ? null : '1'); S.fueraZona = !pb;
     if (primera) {
@@ -593,17 +610,60 @@ async function ubicarAlAbrir() {
     setTimeout(() => { if (lsG('casa') && S.vista === inicioRol() && !$('#bloqueoUbic')) iniciarTour(); }, 900);
   }
 }
-/** Pantalla que no deja avanzar sin ubicación (solo la primera vez). */
-function bloqueoUbicacion(msg) {
+/** ¿Se abrió dentro de WhatsApp, Facebook, Instagram, etc.? Esos navegadores suelen bloquear la ubicación. */
+function navegadorDeApp() { return /FBAN|FBAV|FB_IAB|FBIOS|Instagram|WhatsApp|Messenger|Line\/|TikTok|musical_ly|Snapchat/i.test(navigator.userAgent || ''); }
+/** Pantalla de ubicación la primera vez: activarla o continuar sin ella. tipo: inicio | buscando | bloqueada | apagada | app | sin */
+function bloqueoUbicacion(msg, tipo) {
+  tipo = tipo || 'inicio';
   let d = $('#bloqueoUbic');
   if (!d) { d = document.createElement('div'); d.id = 'bloqueoUbic'; document.body.appendChild(d); }
-  d.innerHTML = `<div class="caja"><div style="font-size:52px">📍</div><h2>Activa tu ubicación</h2>
-    <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
-    <button class="btn pri pill full" onclick="act(this,async()=>{S._ubicando=false;await ubicarAlAbrir()})">Activar ubicación</button>
-    <button class="lnk small" style="margin-top:12px" onclick="ayudaUbicacion()">¿Cómo la activo?</button>
-    ${msg ? `<div class="muted small" style="margin-top:10px">${esc(msg)}</div>` : ''}</div>`;
+  document.documentElement.classList.add('sinScroll');
+  const tour = $('#tour'); if (tour) tour.remove();
+  const sinUbic = `<button class="btn full" style="margin-top:10px" onclick="continuarSinUbicacion()">Continuar sin ubicación por ahora</button>`;
+  const reintentar = `<button class="btn pri pill full" onclick="reintentarUbicacion()">Intentar de nuevo</button>`;
+  let cuerpo;
+  if (tipo === 'buscando') {
+    cuerpo = `<h2>Buscando tu ubicación…</h2><p class="muted">Si tu teléfono te pregunta, elige <b>Permitir</b>.</p>
+      <div style="font-size:30px;margin:8px 0" class="girando">⏳</div>${sinUbic}`;
+  } else if (tipo === 'app') {
+    cuerpo = `<h2>Abre Pídele en tu navegador</h2>
+      <p class="muted">Abriste el enlace dentro de otra app (WhatsApp, Facebook o Instagram) y esa app no deja usar la ubicación.</p>
+      <div class="pasos"><ol><li>Toca <b>Copiar enlace</b>.</li><li>Abre <b>${/iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Safari' : 'Chrome'}</b> y pégalo en la barra de direcciones.</li>
+      <li>O toca los <b>⋮</b> / <b>⋯</b> de arriba y elige <b>Abrir en el navegador</b>.</li></ol></div>
+      <button class="btn pri pill full" onclick="copiarEnlaceApp(this)">📋 Copiar enlace</button>
+      <button class="btn full" style="margin-top:10px" onclick="reintentarUbicacion()">Intentar aquí de todos modos</button>${sinUbic}`;
+  } else if (tipo === 'inicio') {
+    cuerpo = `<h2>Activa tu ubicación</h2>
+      <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
+      <button class="btn pri pill full" onclick="reintentarUbicacion()">Activar ubicación</button>${sinUbic}`;
+  } else {
+    cuerpo = `<h2>${tipo === 'apagada' ? 'No encontramos tu ubicación' : tipo === 'sin' ? 'Ubicación no disponible' : 'La ubicación está bloqueada'}</h2>
+      <div class="pasos">${pasosUbicacion(tipo)}</div>${tipo === 'sin' ? '' : reintentar}${sinUbic}`;
+  }
+  d.innerHTML = `<div class="caja"><div style="font-size:52px">📍</div>${cuerpo}
+    ${msg && tipo === 'inicio' ? `<div class="muted small" style="margin-top:10px">${esc(msg)}</div>` : ''}</div>`;
 }
-function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); }
+function reintentarUbicacion() { S._ubicTocado = true; S._ubicando = false; ubicarAlAbrir(); }
+async function copiarEnlaceApp(btn) {
+  const url = location.href.split('#')[0];
+  try { await navigator.clipboard.writeText(url); }
+  catch (e) { const t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (x) { } t.remove(); }
+  btn.innerHTML = '✅ Enlace copiado'; toast('Enlace copiado: pégalo en tu navegador');
+}
+/** Sin ubicación: elige su ciudad y entra; el efectivo queda apagado hasta que la active. */
+function continuarSinUbicacion() {
+  bloqueoUbicacion('');
+  $('#bloqueoUbic').innerHTML = `<div class="caja" style="text-align:left"><h2 style="margin-top:0">¿En qué ciudad quieres pedir?</h2>
+    <div class="muted" style="margin:6px 0 12px">Puedes entrar sin ubicación. Mientras no la actives, tus pedidos se pagan por <b>transferencia</b>; al activarla se habilita el efectivo.</div>
+    ${PUEBLOS.map(x => `<div class="opcion" onclick="entrarSinUbicacion('${x.id}')"><span class="radio"></span><span class="ico">📍</span><div class="grow"><b>${esc(x.nombre)}</b></div></div>`).join('')}
+    <button class="lnk small" style="margin-top:12px" onclick="bloqueoUbicacion('')">← Mejor activar mi ubicación</button></div>`;
+}
+function entrarSinUbicacion(id) {
+  lsG('casa', id); lsG('sinUbic', '1'); lsG('fuera', '1'); S.fueraZona = true;
+  if (id === PUEBLO.id) { quitarBloqueoUbicacion(); setTimeout(() => iniciarTour(), 500); }
+  else cambiarPueblo(id);
+}
+function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); document.documentElement.classList.remove('sinScroll'); }
 /** Fuera de las dos ciudades: elige dónde quiere pedir (solo con transferencia). */
 function elegirCiudadFuera() {
   bloqueoUbicacion('');
@@ -635,7 +695,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.24.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.24.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -947,7 +1007,14 @@ const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'disponibles', 'entre
 // pantallas a pantalla completa (sin barra inferior)
 const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'capturaTel'];
 
+/** Pantallas del pedido por teléfono; ir a cualquier otra cancela la captura (2.24.2). */
+const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
 async function ir(v, p, sinHistoria) {
+  if (S.modoTel && !VISTAS_TEL.includes(v)) {
+    terminarModoTel();
+    // a su panel: solo pantallas del negocio que puede ver; lo demás (inicio de cliente, buscar…) lo regresa a Pedidos
+    if (!navRol().some(x => x[0] === v) && !['pedido', 'perfil', 'equipo', 'suscripcion'].includes(v)) { v = inicioRol(); p = undefined; }
+  }
   if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
   clearInterval(S._carrusel);
   S.vista = v; S.params = p; S.auto = AUTO.includes(v);
@@ -1064,7 +1131,7 @@ function modoRepartidor(on) {
   if (S.modoRep) iniciarGPS();
   pintarNav(); ir(inicioRol());
 }
-function botonPanel() { if (S.modoTel && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="salirModoTel()">📞 ${esc(S.modoTel.nombre.split(' ')[0])} · Cancelar</button>`;
+function botonPanel() { if (S.modoTel && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="preguntarSalirTel()">📞 ${esc(S.modoTel.nombre.split(' ')[0])} · Cancelar</button>`;
   if (S.modoServicio && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoServicio(false)">🛵 Servicio · Cancelar</button>`;
   return esAdminU() && (S.modoCliente || S.modoRep) ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi panel</button>` : esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
@@ -1674,9 +1741,9 @@ async function activarUbicacion() {
     e => { ayudaUbicacion(e.code === 1 ? 'bloqueada' : 'apagada'); listo(); },
     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }));
 }
-function ayudaUbicacion(tipo) {
+function pasosUbicacion(tipo) {
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const pasos = tipo === 'apagada'
+  return tipo === 'apagada'
     ? `<p>Parece que el <b>GPS del teléfono está apagado</b> o no encuentra señal.</p>
        <ol><li>Desliza desde arriba de la pantalla y activa <b>Ubicación</b> (${ios ? 'en iPhone: Ajustes → Privacidad y seguridad → Localización' : 'el ícono 📍'}).</li><li>Sal a un lugar abierto si estás bajo techo.</li><li>Regresa y toca <b>Intentar de nuevo</b>.</li></ol>`
     : tipo === 'sin' ? '<p>Este navegador no permite usar la ubicación. Abre Pídele en Chrome (Android) o Safari (iPhone).</p>'
@@ -1689,6 +1756,9 @@ function ayudaUbicacion(tipo) {
          <ol><li>Toca el ícono a la izquierda de la dirección (🔒 o ⓘ) y entra a <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
          <li>Si instalaste Pídele como app: mantén presionado su ícono → <b>Información de la app</b> (ⓘ) → <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
          <li>Revisa que la <b>Ubicación</b> del teléfono esté encendida (desliza desde arriba de la pantalla).</li></ol>`;
+}
+function ayudaUbicacion(tipo) {
+  const pasos = pasosUbicacion(tipo);
   modal(`<div class="row between"><h2 style="margin:0">Activar ubicación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${pasos}<div class="btns"><button class="btn pri pill full" onclick="cerrarModal();act(this,activarUbicacion)">Intentar de nuevo</button></div>`);
 }
@@ -1877,11 +1947,25 @@ function iniciarModoTel() {
   cerrarModal(); pintarNav(); ir('negocio', S.negocio.id);
   toast('Agrega lo que pidió ' + nombre.split(' ')[0]);
 }
-function salirModoTel(callado) {
-  S.modoTel = null; ls('modoTel', null); S.modoCliente = false; ls('modoCliente', null);
+/** Apaga la captura (modo cliente, carrito) sin cambiar de pantalla. */
+function terminarModoTel(callado) {
+  if (!S.modoTel) return;
+  S.modoTel = null; ls('modoTel', null); S.modoCliente = false; ls('modoCliente', null); S._capT = null;
   if (S.negocio && S.carritos) { delete S.carritos[S.negocio.id]; guardarCarritos(); }
-  pintarNav(); ir(inicioRol());
+  if ($('#modal').classList.contains('on')) cerrarModal();
+  pintarNav();
   if (!callado) toast('Pedido por teléfono cancelado');
+}
+function salirModoTel(callado) { terminarModoTel(callado); ir(inicioRol()); }
+/** Flecha o "Cancelar" durante la captura: si ya lleva productos, pregunta antes. */
+function preguntarSalirTel() {
+  if (!S.modoTel) { volver('inicio'); return; }
+  const c = S.negocio && (S.carritos || {})[S.negocio.id];
+  if (!c || !Object.keys(c.items || {}).length) { salirModoTel(); return; }
+  modal(`<div style="text-align:center"><div style="font-size:40px">📞</div><h2 style="margin:4px 0">¿Cancelar el pedido de ${esc(S.modoTel.nombre.split(' ')[0])}?</h2>
+    <div class="muted">Se borra lo que llevas agregado.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Seguir capturando</button>
+    <button class="btn pill full" onclick="salirModoTel()">Sí, cancelar</button></div></div>`);
 }
 /** Último paso: cómo se entrega, en cuánto tiempo y cómo paga. */
 async function vCapturaTel() {
@@ -3070,8 +3154,9 @@ async function vNegocio(id, silencioso) {
   if (S._abrirSec && opciones.includes(S._abrirSec)) { S._sec.s = S._abrirSec; S._sec.tab = 'menu'; }
   S._abrirSec = null;
   const km = distanciaTxt(n);
-  html(`<div class="hero">${n.portada ? `<img src="${esc(n.portada)}" alt="">` : (ICONO_CAT[n.categoria] || '🍽️')}
-      <button class="redondo" onclick="volver('inicio')" aria-label="Volver">${ico('atras')}</button>
+  const tel = S.modoTel && esStaff();
+  html(`${tel ? `<div class="barraTel"><span style="font-size:20px">📞</span><span class="grow">Pedido de ${esc(S.modoTel.nombre)}</span><button onclick="preguntarSalirTel()">Cancelar</button></div>` : ''}<div class="hero">${n.portada ? `<img src="${esc(n.portada)}" alt="">` : (ICONO_CAT[n.categoria] || '🍽️')}
+      <button class="redondo" onclick="${tel ? 'preguntarSalirTel()' : "volver('inicio')"}" aria-label="Volver">${ico('atras')}</button>
       <button class="redondo compartir" onclick="compartirNegocio(this,'${n.id}',S._menu.negocio.nombre)" aria-label="Compartir">${ico('compartir')}</button></div>
     <div class="negH">
       ${n.logo ? `<img class="logoBig" src="${esc(n.logo)}" alt="">` : `<div class="logoBig">${ICONO_CAT[n.categoria] || '🍽️'}</div>`}
@@ -3511,7 +3596,7 @@ async function vPago() {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
       const rg = reglaEfectivo(sub + envio, e.tipo);
       if (rg.verificar) S._pedirVerif = true;
-      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
+      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', lsG('sinUbic') ? 'Activa tu ubicación para pagar en efectivo' : 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
       else ops.push(['efectivo', 'efectivo', 'Efectivo', rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio) + ' al repartidor al recibir') + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
     }
     const disp = ops.filter(o => !o[4]);
