@@ -475,6 +475,8 @@ body.enCaja{padding-bottom:0}
 .girando{display:inline-block;animation:girar 1.2s linear infinite}
 html.sinScroll,html.sinScroll body{overflow:hidden;overscroll-behavior:none}
 /* recorrido guiado */
+#guiaOferta{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:450;max-width:460px;margin:0 auto;background:var(--card);border-radius:18px;padding:12px 12px 12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.22);border:2px solid var(--pri)}
+body.sinNav #guiaOferta{bottom:calc(16px + env(safe-area-inset-bottom))}
 #tour{position:fixed;inset:0;z-index:950}
 #tour .hueco{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(20,26,16,.66);transition:all .3s ease;pointer-events:none;outline:3px solid #F3C27A;outline-offset:2px}
 #tour .globo{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--card);border-radius:20px;padding:16px 18px;box-shadow:0 16px 40px rgba(0,0,0,.35);transition:top .3s ease}
@@ -814,7 +816,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.28.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.28.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1162,7 +1164,7 @@ async function pintar(silencioso) {
     if (S.vista !== vista) return;
     await f(S.params, silencioso);
     // primera vez de cada tipo de cuenta: recorrido guiado (cuando ya sabemos su ciudad)
-    if (!silencioso && vista === inicioRol() && TOURS[tourKey()] && !tourVisto(tourKey()) && (PUEBLOS.length < 2 || lsG('casa') || esStaff()))
+    if (!silencioso && vista === inicioRol() && TOURS[tourKey()] && !guiaVista() && (PUEBLOS.length < 2 || lsG('casa') || esStaff()))
       setTimeout(() => { if (S.vista === vista) iniciarTour(); }, 1200);
   }
   catch (e) {
@@ -5792,7 +5794,7 @@ function vPerfil() {
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
     <div class="card">
-      ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía otra vez</button><div style="height:8px"></div>` : ''}
+      ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
       <button class="btn pri full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
@@ -8056,9 +8058,33 @@ async function guardarConfig() {
  */
 const tourVisto = k => !!lsG('tour_' + k);
 function tourKey() { const r = rolActual(); return r === 'invitado' ? 'invitado' : r === 'comprador' ? 'cliente' : r; }
+/*
+ * Guía de uso (2.28.1): ya no aparece sola ni tapa la pantalla. Se ofrece UNA vez con una tarjeta que se puede ignorar,
+ * y queda marcada como vista en el equipo (cualquier cuenta) y en la cuenta (cualquier equipo). Para verla: Perfil → Ver guía de uso.
+ */
+function guiaVista() {
+  if (lsG('guiaVista') || (S.user && S.user.guiaVista)) return true;
+  try { return Object.keys(localStorage).some(k => k.indexOf('pe_tour_') === 0); } catch (e) { return false; }
+}
+function marcarGuiaVista() {
+  lsG('guiaVista', '1');
+  if (S.user && !S.user.guiaVista) { S.user.guiaVista = true; ls('user', S.user); if (S.token) api('guiaVista').catch(() => { }); }
+}
+function ofrecerGuia() {
+  if (navigator.webdriver && !lsG('tourTest')) return; // pruebas automáticas
+  if (guiaVista() || !TOURS[tourKey()] || ['caja', 'cocina', 'entrar'].includes(S.vista) || $('#guiaOferta') || $('#bloqueoUbic') || $('#tour') || $('#modal').classList.contains('on')) return;
+  marcarGuiaVista();
+  const d = document.createElement('div'); d.id = 'guiaOferta';
+  d.innerHTML = `<span style="font-size:26px">👋</span><div class="grow"><b>¿Primera vez en Pídele?</b><div class="small">Mira la guía de uso (1 min).</div></div>
+    <button class="btn sm pri" onclick="quitarOfertaGuia();iniciarTour(tourKey(), true)">Ver guía</button><button class="redondo" style="width:32px;height:32px" onclick="quitarOfertaGuia()" aria-label="No, gracias">✕</button>`;
+  document.body.appendChild(d);
+  S._guiaT = setTimeout(quitarOfertaGuia, 20000);
+}
+function quitarOfertaGuia() { clearTimeout(S._guiaT); const d = $('#guiaOferta'); if (d) d.remove(); }
 async function iniciarTour(k, forzar) {
   k = k || tourKey();
-  if (navigator.webdriver && !lsG('tourTest')) return; // pruebas automáticas
+  if (!forzar) { ofrecerGuia(); return; } // sola, solo se ofrece (una vez)
+  quitarOfertaGuia();
   if (!TOURS[k] || (!forzar && tourVisto(k)) || $('#tour') || $('#bloqueoUbic')) return;
   if ($('#modal').classList.contains('on')) return;
   const pasos = TOURS[k]().filter(p => !p.si || p.si());
@@ -8105,7 +8131,7 @@ function cerrarTour() {
   if (t && t.vuelta && S.vista !== t.vuelta) ir(t.vuelta);
 }
 /** Perfil → "Ver guía otra vez". */
-function repetirTour() { const k = tourKey(); lsG('tour_' + k, null); iniciarTour(k, true); }
+function repetirTour() { iniciarTour(tourKey(), true); }
 const navBtn = n => '#nav button:nth-child(' + n + ')';
 const pruebaTxt = () => {
   const u = S.user || {}, sus = u.rol === 'repartidor' ? u.suscripcion : (S.negocio || {}).suscripcion;
