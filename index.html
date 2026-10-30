@@ -398,6 +398,16 @@ body.enCaja{padding-bottom:0}
 .pdvCambio{font-size:18px;margin-top:6px}
 .pdvCambioG{font-size:28px;font-weight:900;margin:10px 0}
 .pdvVentaFila{cursor:pointer}.pdvVentaFila.cancelada{opacity:.6}
+.pdvMesas{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.pdvMesa{position:relative;min-height:92px;border:2px dashed var(--ln);background:var(--card);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;justify-content:center;cursor:pointer;color:var(--tx);font:inherit;text-align:left}
+.pdvMesa b{font-size:16px}.pdvMesa span{font-weight:800;color:var(--tx2);font-size:13.5px}.pdvMesa small{font-size:12px;color:var(--tx2)}
+.pdvMesa.ocupada{border:2px solid var(--pri);background:#EAF2E3}.pdvMesa.ocupada span{color:var(--pri)}
+.pdvMesa.vieja{border-color:#D98A1B;background:#FFF3DF}
+.pdvListo{position:absolute;top:6px;right:8px;font-size:18px}
+.pdvRonda{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0 2px;font-size:13px;font-weight:900;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
+.pdvRonda.nueva{color:var(--pri)}
+.pdvLinea.tachada{opacity:.55}.pdvLinea.tachada b{text-decoration:line-through}
+.pdvGrande{font-size:30px;font-weight:900;margin:4px 0 6px}
 .pdvDen{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
 .pdvDen label{font-size:13px;font-weight:800}.pdvDen .i{padding:8px;margin-top:2px}
 /* promociones */
@@ -774,7 +784,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.26.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.27.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1070,6 +1080,8 @@ function navRol() {
   if (r === 'negocio') {
     if (!S.negocio) l = [['perfil', 'user', 'Perfil']];
     else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados']) : v === 'promos' ? puedo('promos') : v === 'miNegocio' ? puedo('ajustes') : true);
+    // meseros (sin permiso de pedidos): entran directo a sus mesas
+    if (S.negocio && !puedo('pedidos') && pdvTieneAcceso()) l = [['caja', 'recibo', 'Mesas']].concat(l);
   }
   // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
   return esAdminU() && r !== 'admin' ? l.filter(x => x[0] !== 'perfil').concat([['_panel', 'grafica', 'Mi panel']]) : l;
@@ -2019,7 +2031,7 @@ async function enviarServicio() {
  * se guardan primero en este equipo y se suben solas, así la caja funciona sin internet y no frena a la app.
  * El servidor solo da la llave de acceso (pdvLlave) y guarda las fotos de los comprobantes de gastos.
  */
-const PDV = { db: null, nid: '', letras: '', subs: [], caja: null, cajasHoy: [], ventas: [], gastos: [], pagosProv: [], provs: [], personal: {}, tab: 'vender', sec: '', buscar: '', venta: { tipo: 'mostrador', cocina: true, tel: '', nombre: '', recoge: '' }, pendientes: 0 };
+const PDV = { db: null, nid: '', letras: '', subs: [], caja: null, cajasHoy: [], ventas: [], gastos: [], pagosProv: [], provs: [], personal: {}, cuentas: [], comandas: [], pagosFis: [], pagosVta: [], ventasDia: [], pagosDia: [], mesas: null, cuentaId: '', tab: '', sec: '', buscar: '', venta: { tipo: 'mostrador', cocina: true, tel: '', nombre: '', recoge: '' }, pendientes: 0 };
 const pdvTieneAcceso = () => cocTieneAcceso() && !!S.negocio && (puedo('caja') || puedo('mesero') || esDueno());
 const pdvEsTelefono = () => /Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent || '') && !/iPad|Tablet/i.test(navigator.userAgent || '');
 const pdvHoy = (ms) => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -2142,19 +2154,33 @@ function pdvSuscribir() {
     PDV.caja = l[0] || null;
     pdvSuscribirCaja();
   });
+  // cuentas abiertas (mesas, para llevar), comandas de hoy y mesas configuradas
+  sub(pdvCol('ventas').where('estado', '==', 'abierta'), s => { PDV.cuentas = docs(s).filter(v => v.origen === 'cuenta'); });
+  sub(pdvCol('comandas').where('dia', '==', pdvHoy()), s => { PDV.comandas = docs(s); });
+  PDV.subs.push(pdvCol('estado').doc('mesas').onSnapshot(s => { PDV.mesas = s.exists ? s.data() : null; if (vivo()) pdvRepintar(); }, e => console.warn(e)));
+  // registro del día: solo dueño, gerente o quien ve ventas
+  if (pdvPuede('dgv')) {
+    sub(pdvCol('ventas').where('dia', '==', pdvHoy()), s => { PDV.ventasDia = docs(s); });
+    sub(pdvCol('pagos').where('diaVenta', '==', pdvHoy()), s => { PDV.pagosDia = docs(s); });
+  }
+  clearInterval(PDV._viejasT); PDV._viejasT = setInterval(pdvRevisarViejas, 60000);
+  PDV.subs.push(() => clearInterval(PDV._viejasT));
 }
 /** Ventas, gastos y pagos a proveedores del turno abierto. */
 function pdvSuscribirCaja() {
   const id = PDV.caja ? PDV.caja.id : '';
   if (id === PDV._cajaSubId) return;
   (PDV._subsCaja || []).forEach(f => { try { f(); } catch (e) { } });
-  PDV._subsCaja = []; PDV._cajaSubId = id; PDV.ventas = []; PDV.gastos = []; PDV.pagosProv = [];
+  PDV._subsCaja = []; PDV._cajaSubId = id; PDV.ventas = []; PDV.gastos = []; PDV.pagosProv = []; PDV.pagosFis = []; PDV.pagosVta = [];
   if (!id) return;
   const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
   const sub = (c, f) => PDV._subsCaja.push(pdvCol(c).where('cajaId', '==', id).onSnapshot(s => { f(docs(s)); if (S.vista === 'caja') pdvRepintar(); }, e => console.warn(e)));
   sub('ventas', l => { PDV.ventas = l.sort((a, b) => b.ts - a.ts); });
   sub('gastos', l => { PDV.gastos = l.sort((a, b) => b.ts - a.ts); });
   sub('pagosProv', l => { PDV.pagosProv = l.sort((a, b) => b.ts - a.ts); });
+  // pagos de cuentas: los que entraron a esta caja (efectivo físico) y los que cuentan como venta de este turno
+  sub('pagos', l => { PDV.pagosFis = l.sort((a, b) => b.ts - a.ts); });
+  PDV._subsCaja.push(pdvCol('pagos').where('cajaVenta', '==', id).onSnapshot(s => { PDV.pagosVta = docs(s); if (S.vista === 'caja') pdvRepintar(); }, e => console.warn(e)));
   PDV.subs.push(() => { (PDV._subsCaja || []).forEach(f => { try { f(); } catch (e) { } }); PDV._subsCaja = []; });
 }
 function pdvRepintar() {
@@ -2187,25 +2213,29 @@ function pdvTotal() { return pdvR(subtotalCarrito(pdvCarrito())); }
 function pintarCaja() {
   if (S.vista !== 'caja') return;
   PDV._sucio = false;
-  const t = PDV.tab, c = PDV.caja;
-  const tabs = [['vender', '🛒 Vender'], ['ventas', '🧾 Ventas'], ['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']];
+  const c = PDV.caja, cajero = pdvPuede('dc');
+  const tabs = [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
+    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy']] : []);
+  if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = cajero ? 'vender' : tabs[0][0];
+  const t = PDV.tab;
   const sinRed = !navigator.onLine;
   const y = window.scrollY;
   html(`<div class="pdv">
     <div class="pdvBar"><h1>🧾 ${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno">${c ? 'Turno ' + c.turno + ' · ' + esc(c.abre.nombre.split(' ')[0]) : 'Caja cerrada'}</span>
-      <button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button><button onclick="ir('negPedidos')">Salir</button></div>
+      <button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button><button onclick="ir(puedo('pedidos') ? 'negPedidos' : 'perfil')">Salir</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código personal para abrir y cerrar caja. <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
-    <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';pintarCaja()">${txt}${k === 'ventas' && PDV.ventas.length ? ' (' + PDV.ventas.filter(v => v.estado !== 'cancelada').length + ')' : ''}</button>`).join('')}</div>
-    ${t === 'vender' ? pdvVistaVender() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : pdvVistaCaja()}
+    <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' && pdvVentasTurno().length ? ' (' + pdvVentasTurno().filter(v => v.estado !== 'cancelada').length + ')' : ''}</button>`).join('')}</div>
+    ${PDV.cuentaId ? pdvVistaCuenta() : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : pdvVistaCaja()}
   </div>`);
   window.scrollTo(0, y);
+  setTimeout(pdvRevisarViejas, 400);
 }
-function pdvSinCaja() {
+function pdvSinCaja(msg) {
   return `<div class="card" style="text-align:center;padding:26px 16px"><div style="font-size:46px">🗄️</div><h2 style="margin:6px 0">La caja está cerrada</h2>
-    <div class="muted" style="margin-bottom:14px">Ábrela con tu código y el fondo de caja chica para empezar a vender.</div>
-    <button class="btn pri pill" onclick="act(this,pdvAbrirCaja)">Abrir caja</button></div>`;
+    <div class="muted" style="margin-bottom:14px">${msg || 'Ábrela con tu código y el fondo de caja chica para empezar a vender.'}</div>
+    ${pdvPuede('dc') ? '<button class="btn pri pill" onclick="act(this,pdvAbrirCaja)">Abrir caja</button>' : '<div class="small muted">Pide a quien está en caja que la abra.</div>'}</div>`;
 }
 
 /* ---------- vender ---------- */
@@ -2217,13 +2247,20 @@ function pdvVistaVender() {
   const prods = d.productos.filter(p => q ? (p.nombre + ' ' + (p.descripcion || '')).toLowerCase().includes(q) : !PDV.sec || p.categoria === PDV.sec);
   const c = pdvCarrito(), its = Object.values(c.items), n = its.reduce((s, x) => s + x.cant, 0);
   const enC = {}; its.forEach(x => enC[x.id] = (enC[x.id] || 0) + x.cant);
-  return `<div class="pdvVender"><div class="pdvMenu">
-      <input class="i" id="pdvQ" placeholder="🔎 Buscar producto" value="${esc(PDV.buscar)}" oninput="PDV.buscar=this.value;clearTimeout(PDV._qT);PDV._qT=setTimeout(()=>{pintarCaja();const i=$('#pdvQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)">
-      <div class="pdvSecs"><button class="${!PDV.sec && !q ? 'on' : ''}" onclick="PDV.sec='';PDV.buscar='';pintarCaja()">Todo</button>${secs.map(s => `<button class="${PDV.sec === s && !q ? 'on' : ''}" onclick="PDV.sec=${esc(JSON.stringify(s))};PDV.buscar='';pintarCaja()">${esc(s)}</button>`).join('')}</div>
-      <div class="pdvGrid">${prods.map(p => `<button class="pdvProd" onclick="abrirProducto('${p.id}')">${enC[p.id] ? `<span class="enC">${enC[p.id]}</span>` : ''}<b>${esc(p.nombre)}</b><span>${precioTxt(p)}</span></button>`).join('') || '<div class="muted">Sin productos</div>'}</div>
-    </div>
+  return `<div class="pdvVender"><div class="pdvMenu">${pdvMenuHTML(enC)}</div>
     <div class="pdvCarrito" id="pdvCarrito">${pdvPanelCarrito()}</div>
     ${n ? `<button class="barra pdvBarraTel" onclick="pdvVerCarrito()"><span>🛒 ${n} · Ver cuenta</span><span>${money(pdvTotal())}</span></button>` : ''}</div>`;
+}
+/** Menú de la caja: buscador, secciones y productos (toca para abrir sus opciones). */
+function pdvMenuHTML(enC) {
+  const d = S._menu, secs = [...new Set(d.productos.map(p => p.categoria))];
+  if (!secs.includes(PDV.sec)) PDV.sec = '';
+  const q = PDV.buscar.trim().toLowerCase();
+  const prods = d.productos.filter(p => q ? (p.nombre + ' ' + (p.descripcion || '')).toLowerCase().includes(q) : !PDV.sec || p.categoria === PDV.sec);
+  return `
+      <input class="i" id="pdvQ" placeholder="🔎 Buscar producto" value="${esc(PDV.buscar)}" oninput="PDV.buscar=this.value;clearTimeout(PDV._qT);PDV._qT=setTimeout(()=>{pintarCaja();const i=$('#pdvQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)">
+      <div class="pdvSecs"><button class="${!PDV.sec && !q ? 'on' : ''}" onclick="PDV.sec='';PDV.buscar='';pintarCaja()">Todo</button>${secs.map(s => `<button class="${PDV.sec === s && !q ? 'on' : ''}" onclick="PDV.sec=${esc(JSON.stringify(s))};PDV.buscar='';pintarCaja()">${esc(s)}</button>`).join('')}</div>
+      <div class="pdvGrid">${prods.map(p => `<button class="pdvProd" onclick="abrirProducto('${p.id}')">${enC[p.id] ? `<span class="enC">${enC[p.id]}</span>` : ''}<b>${esc(p.nombre)}</b><span>${precioTxt(p)}</span></button>`).join('') || '<div class="muted">Sin productos</div>'}</div>`;
 }
 function pdvPanelCarrito() {
   const c = pdvCarrito(), its = Object.values(c.items), v = PDV.venta;
@@ -2244,7 +2281,7 @@ function pdvPanelCarrito() {
 }
 function pdvPintarCarrito() { const e = $('#pdvCarrito'); if (e) e.innerHTML = pdvPanelCarrito(); if ($('#modal').classList.contains('on') && $('#pdvCarritoM')) $('#pdvCarritoM').innerHTML = pdvPanelCarrito(); }
 function pdvVerCarrito() { modal(`<div class="row between"><h2 style="margin:0">Cuenta</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div><div id="pdvCarritoM" style="margin-top:8px">${pdvPanelCarrito()}</div>`); }
-function pdvTrasAgregar() { pintarCaja(); }
+function pdvTrasAgregar(it, cant) { if (PDV.cuentaId && it) pdvAgregarACuenta(it, cant); else pintarCaja(); }
 function pdvCant(key, d) {
   const c = pdvCarrito(), x = c.items[key]; if (!x) return;
   x.cant += d; if (x.cant <= 0) delete c.items[key];
@@ -2334,8 +2371,14 @@ async function pdvTerminarVenta() {
     folio: pdvFolio(), dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, por: pdvYo(), tipo: v0.tipo, origen: 'caja',
     cliente: tel ? { tel, nombre: (v0.nombre || '').trim().slice(0, 60) } : null,
     items, total: k.total, pagos: k.pagos, propina: pdvR(k.pagos.reduce((s, p) => s + (p.propina || 0), 0)), estado: 'pagada',
-    cocina: v0.cocina ? { estado: 'preparando', salida, recoge: v0.tipo === 'llevar' ? v0.recoge || '' : '' } : null
+    cocina: null
   };
+  if (v0.cocina) {
+    const kref = pdvCol('comandas').doc();
+    v.cocina = { estado: 'enviada', comandaId: kref.id, salida, recoge: v0.tipo === 'llevar' ? v0.recoge || '' : '' };
+    pdvGuardar(kref.set(JSON.parse(JSON.stringify({ ventaId: ref.id, folio: v.folio, etiqueta: v.tipo === 'llevar' ? '🥡 Para llevar' + (v0.recoge ? ' · ' + v0.recoge : '') : '🧾 Mostrador', tipo: v.tipo, ronda: 1, origen: 'caja',
+      dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(), cliente: v.cliente, items: items.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods })) }))));
+  }
   // JSON limpio (Firestore no acepta undefined)
   const limpio = JSON.parse(JSON.stringify(v));
   pdvGuardar(ref.set(limpio));
@@ -2364,22 +2407,27 @@ function pdvVentaHecha(v) {
 }
 
 /* ---------- ventas del turno ---------- */
+/** Ventas de este turno (directas y cuentas ya pagadas), sin las cuentas que siguen abiertas. */
+function pdvVentasTurno() { return PDV.ventas.filter(v => v.estado === 'pagada' || v.estado === 'cancelada'); }
 function pdvVistaVentas() {
   if (!PDV.caja) return pdvSinCaja();
-  const l = PDV.ventas;
-  if (!l.length) return '<div class="vacio"><span class="big">🧾</span>Aún no hay ventas en este turno</div>';
-  return l.map(v => `<div class="card pdvVentaFila ${v.estado === 'cancelada' ? 'cancelada' : ''}" onclick="pdvDetalleVenta('${v.id}')">
-      <div class="row between"><div><b>${esc(v.folio)}</b> · ${hora(v.ts)} · ${v.tipo === 'llevar' ? '🥡' : '🍽️'}${v.cliente ? ' · ' + esc(v.cliente.nombre || v.cliente.tel) : ''}</div><b>${money(v.total)}</b></div>
-      <div class="small muted">${v.items.map(i => i.cant + '× ' + esc(i.nombre)).join(', ')}</div>
-      <div class="small">${v.estado === 'cancelada' ? '<span class="tag t-err">Cancelada</span>' : v.pagos.map(p => PDV_MET[p.metodo] + ' ' + money(p.monto)).join(' · ')}${v.cocina && v.estado !== 'cancelada' ? ' · ' + (v.cocina.estado === 'listo' ? '📦 Listo' : '👩‍🍳 En cocina') : ''}</div></div>`).join('');
+  const l = pdvVentasTurno(), otros = PDV.pagosFis.filter(p => p.cajaVenta !== PDV.caja.id && !p.anulado);
+  if (!l.length && !otros.length) return '<div class="vacio"><span class="big">🧾</span>Aún no hay ventas en este turno</div>';
+  const kom = v => v.cocina && v.cocina.comandaId ? PDV.comandas.find(k => k.id === v.cocina.comandaId) : null;
+  return l.map(v => { const k = kom(v), est = k ? k.estado : v.cocina ? v.cocina.estado : ''; return `<div class="card pdvVentaFila ${v.estado === 'cancelada' ? 'cancelada' : ''}" onclick="pdvDetalleVenta('${v.id}')">
+      <div class="row between"><div><b>${esc(v.folio)}</b> · ${hora(v.cerrada || v.ts)} · ${v.origen === 'cuenta' ? esc(pdvEtiqueta(v)) : v.tipo === 'llevar' ? '🥡' : '🍽️'}${v.cliente ? ' · ' + esc(v.cliente.nombre || v.cliente.tel) : ''}</div><b>${money(v.total)}</b></div>
+      <div class="small muted">${(v.items || []).filter(i => !i.cancelado).map(i => i.cant + '× ' + esc(i.nombre)).join(', ')}</div>
+      <div class="small">${v.estado === 'cancelada' ? '<span class="tag t-err">Cancelada</span>' : (v.pagos || []).map(p => PDV_MET[p.metodo] + ' ' + money(p.monto)).join(' · ')}${est && v.estado !== 'cancelada' ? ' · ' + (est === 'listo' || est === 'entregada' ? '📦 Listo' : '👩‍🍳 En cocina') : ''}</div></div>`; }).join('')
+    + (otros.length ? `<h3>Cobros de cuentas de otro turno</h3><div class="small muted" style="margin-bottom:6px">El efectivo entra a esta caja, pero la venta cuenta para el turno en que se abrió la cuenta.</div>${otros.map(p => `<div class="card row between small"><span>${esc(p.folio)} · ${esc(p.etiqueta)} · turno ${p.turnoVenta} · ${PDV_MET[p.metodo]}</span><b>${money(p.monto)}</b></div>`).join('')}` : '');
 }
-function pdvVenta(id) { return PDV.ventas.find(v => v.id === id); }
+function pdvVenta(id) { return PDV.ventas.find(v => v.id === id) || PDV.ventasDia.find(v => v.id === id); }
 function pdvDetalleVenta(id) {
   const v = pdvVenta(id); if (!v) return;
   modal(`<div class="row between"><h2 style="margin:0">Venta ${esc(v.folio)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small">${fechaCorta(v.ts)} · ${esc(v.por.nombre)} · ${v.tipo === 'llevar' ? '🥡 Para llevar' : '🍽️ Aquí'}${v.cliente ? ' · 👤 ' + esc(v.cliente.nombre || '') + ' ' + esc(v.cliente.tel) : ''}</div>
     ${v.estado === 'cancelada' ? `<div class="aviso err">Cancelada: ${esc(v.cancelacion.motivo)}<br><span class="small">Pidió ${esc(v.cancelacion.pide.nombre)} · autorizó ${esc(v.cancelacion.autoriza.nombre)} · ${hora(v.cancelacion.ts)}</span></div>` : ''}
-    <div class="card" style="margin-top:8px">${v.items.map(i => `<div class="row between small" style="padding:3px 0"><span>${i.cant}× ${esc(i.nombre)}${detalleItem(i) ? ' <span class="muted">· ' + detalleItem(i) + '</span>' : ''}</span><b>${money(i.importe)}</b></div>`).join('')}
+    ${v.origen === 'cuenta' ? `<div class="small">${esc(pdvEtiqueta(v))} · mesero ${esc(v.mesero.nombre)}</div>` : ''}
+    <div class="card" style="margin-top:8px">${v.items.filter(i => !i.cancelado).map(i => `<div class="row between small" style="padding:3px 0"><span>${i.cant}× ${esc(i.nombre)}${detalleItem(i) ? ' <span class="muted">· ' + detalleItem(i) + '</span>' : ''}</span><b>${money(i.importe != null ? i.importe : i.cant * i.precio)}</b></div>`).join('')}
       <div class="tot g"><span>Total</span><span>${money(v.total)}</span></div>
       ${v.pagos.map(p => `<div class="small">${PDV_MET[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' · recibió ' + money(p.recibe) + ', cambio ' + money(p.cambio) : ''} · ${esc(p.por.nombre.split(' ')[0])}</div>`).join('')}</div>
     <div class="btns"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
@@ -2400,6 +2448,8 @@ async function pdvCancelarVenta(id) {
   const cambios = { estado: 'cancelada', cancelacion: { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts } };
   if (v.cocina) cambios['cocina.estado'] = 'cancelada';
   pdvGuardar(pdvCol('ventas').doc(id).update(cambios));
+  (v.pagoIds || []).forEach(pid => pdvGuardar(pdvCol('pagos').doc(pid).update({ anulado: true, anuladoTs: ts })));
+  if (v.cocina && v.cocina.comandaId) { const k = PDV.comandas.find(x => x.id === v.cocina.comandaId); if (!k || k.estado === 'preparando') pdvGuardar(pdvCol('comandas').doc(v.cocina.comandaId).update({ estado: 'cancelada' })); }
   const inc = { ventas: pdvInc(-v.total), n: pdvInc(-1), canceladas: pdvInc(1), montoCancelado: pdvInc(v.total), propinas: pdvInc(-(v.propina || 0)) };
   const por = {}; v.pagos.forEach(p => { por[p.metodo] = (por[p.metodo] || 0) + p.monto; });
   Object.keys(por).forEach(m => { inc['met_' + m] = pdvInc(-por[m]); });
@@ -2559,17 +2609,31 @@ async function pdvAbrirCaja() {
 }
 /** Cuentas del turno abierto (lo que debe haber en efectivo). */
 function pdvCuentas() {
-  const c = PDV.caja, vs = PDV.ventas.filter(v => v.estado !== 'cancelada');
+  const c = PDV.caja, id = c.id;
+  // ventas directas de la caja de este turno
+  const vs = PDV.ventas.filter(v => v.origen !== 'cuenta' && v.estado !== 'cancelada');
+  // pagos de cuentas: ventas/metas por el turno donde se abrió la cuenta; efectivo por la caja donde entró
+  const vta = PDV.pagosVta.filter(p => !p.anulado), fis = PDV.pagosFis.filter(p => !p.anulado);
   const met = { efectivo: 0, transferencia: 0, tarjeta: 0 };
   vs.forEach(v => v.pagos.forEach(p => { met[p.metodo] = pdvR((met[p.metodo] || 0) + p.monto); }));
-  const propinas = pdvR(vs.reduce((s, v) => s + (v.propina || 0), 0));
+  vta.forEach(p => { met[p.metodo] = pdvR((met[p.metodo] || 0) + p.monto); });
+  const ventas = pdvR(vs.reduce((s, v) => s + v.total, 0) + vta.reduce((s, p) => s + p.monto, 0));
+  const efDirecto = pdvR(vs.reduce((s, v) => s + v.pagos.filter(p => p.metodo === 'efectivo').reduce((a, p) => a + p.monto, 0), 0));
+  const efCuentas = pdvR(fis.filter(p => p.metodo === 'efectivo' && p.cajaVenta === id).reduce((s, p) => s + p.monto, 0));
+  const efOtros = pdvR(fis.filter(p => p.metodo === 'efectivo' && p.cajaVenta !== id).reduce((s, p) => s + p.monto, 0));
+  // propinas con tarjeta que se cobraron en esta caja: se entregan en efectivo al cerrar
+  const propinas = pdvR(vs.reduce((s, v) => s + (v.propina || 0), 0) + fis.reduce((s, p) => s + (p.propina || 0), 0));
+  const propOtros = pdvR(fis.filter(p => p.cajaVenta !== id).reduce((s, p) => s + (p.propina || 0), 0));
   const gastosCaja = pdvR(PDV.gastos.filter(g => g.pago === 'caja' && g.auto !== 'propinas').reduce((s, g) => s + g.monto, 0));
   const gastosOtros = pdvR(PDV.gastos.filter(g => g.pago !== 'caja').reduce((s, g) => s + g.monto, 0));
   const provCaja = pdvR(PDV.pagosProv.filter(p => p.desde === 'caja').reduce((s, p) => s + p.monto, 0));
-  const ventas = pdvR(vs.reduce((s, v) => s + v.total, 0));
-  const esperado = pdvR(c.fondo + met.efectivo - gastosCaja - provCaja - propinas);
+  const esperado = pdvR(c.fondo + efDirecto + efCuentas + efOtros - gastosCaja - provCaja - propinas);
   const canceladas = PDV.ventas.filter(v => v.estado === 'cancelada');
-  return { met, propinas, gastosCaja, gastosOtros, provCaja, ventas, n: vs.length, esperado, canceladas: canceladas.length, montoCancelado: pdvR(canceladas.reduce((s, v) => s + v.total, 0)) };
+  const cerradas = PDV.ventas.filter(v => v.origen === 'cuenta' && v.estado === 'pagada').length;
+  const abiertas = PDV.cuentas.filter(x => x.cajaId === id);
+  return { met, propinas, propOtros, gastosCaja, gastosOtros, provCaja, ventas, n: vs.length + cerradas, esperado, efDirecto, efCuentas, efOtros,
+    abiertasN: abiertas.length, abiertasMonto: pdvR(abiertas.reduce((s, x) => s + pdvSaldo(x), 0)),
+    canceladas: canceladas.length, montoCancelado: pdvR(canceladas.reduce((s, v) => s + v.total, 0)) };
 }
 function pdvVistaCaja() {
   const hoy = PDV.cajasHoy.filter(c => c.estado === 'cerrada');
@@ -2579,10 +2643,11 @@ function pdvVistaCaja() {
   const fila = (a, b, fuerte) => `<div class="tot${fuerte ? ' g' : ''}"><span>${a}</span><span>${b}</span></div>`;
   return `<div class="card"><b>Turno ${c.turno}</b> · abrió ${esc(c.abre.nombre)} a las ${hora(c.abre.ts)}
       ${fila('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => fila('&nbsp;&nbsp;' + PDV_MET[m], money(v))).join('')}
-      ${fila('Propinas con tarjeta', money(k.propinas))}${k.canceladas ? fila('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}</div>
+      ${fila('Propinas con tarjeta', money(k.propinas))}${k.canceladas ? fila('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}
+      ${k.abiertasN ? fila('🍽️ Cuentas abiertas de este turno (' + k.abiertasN + ')', money(k.abiertasMonto)) + '<div class="small muted">Se suman a este turno cuando se cobren, aunque sea en el siguiente.</div>' : ''}</div>
     <div class="card"><b>Efectivo en caja</b>
-      ${fila('Fondo de caja chica', money(c.fondo))}${fila('+ Ventas en efectivo', money(k.met.efectivo))}${fila('− Gastos pagados de caja', money(k.gastosCaja))}
-      ${k.provCaja ? fila('− Pagos a proveedores', money(k.provCaja)) : ''}${fila('− Propinas de tarjeta (se entregan al cerrar)', money(k.propinas))}
+      ${fila('Fondo de caja chica', money(c.fondo))}${fila('+ Ventas en efectivo', money(pdvR(k.efDirecto + k.efCuentas)))}${k.efOtros ? fila('+ Efectivo de cuentas de otro turno', money(k.efOtros)) : ''}${fila('− Gastos pagados de caja', money(k.gastosCaja))}
+      ${k.provCaja ? fila('− Pagos a proveedores', money(k.provCaja)) : ''}${fila('− Propinas de tarjeta (se entregan al cerrar)', money(k.propinas))}${k.propOtros ? '<div class="small muted">De esas, ' + money(k.propOtros) + ' son de cuentas de otro turno: entrégalas a ese equipo.</div>' : ''}
       ${fila('Debe haber', money(k.esperado), 1)}</div>
     <button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvCerrarCaja)">Cerrar turno ${c.turno}</button>${previos}`;
 }
@@ -2599,7 +2664,8 @@ async function pdvCerrarCaja() {
       <details><summary class="small">🧮 Contar por billetes y monedas</summary><div class="pdvDen">${PDV_DEN.map(d => `<label>${money(d)}<input class="i" inputmode="numeric" data-d="${d}" oninput="pdvSumarDen()"></label>`).join('')}</div></details>
       <label class="f">Efectivo contado</label><input class="i pdvNum" id="ciCont" inputmode="decimal" oninput="pdvVistaDif(${k.esperado},${c.fondo})">
       <div id="ciDif" class="small"></div>
-      ${k.propinas ? `<div class="aviso info" style="margin:8px 0">💳 Propinas cobradas con tarjeta: <b>${money(k.propinas)}</b>. Al cerrar se registran como gasto para que las entregues en efectivo.</div>` : ''}`);
+      ${k.propinas ? `<div class="aviso info" style="margin:8px 0">💳 Propinas cobradas con tarjeta: <b>${money(k.propinas)}</b>. Al cerrar se registran como gasto para que las entregues en efectivo.</div>` : ''}
+      ${k.abiertasN ? `<div class="aviso warn" style="margin:8px 0">🍽️ Quedan ${k.abiertasN} cuenta(s) abierta(s) de este turno por ${money(k.abiertasMonto)}. Siguen abiertas: cuando se cobren se suman a las ventas de este turno.</div>` : ''}`);
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   const ts = Date.now(), contado = r.datos.contado, fondoDeja = c.fondo;
@@ -2607,9 +2673,9 @@ async function pdvCerrarCaja() {
     pdvGuardar(pdvCol('gastos').doc().set({ dia: c.dia, ts, cajaId: c.id, concepto: 'Propinas cobradas con tarjeta (turno ' + c.turno + ')', categoria: 'Propinas', monto: k.propinas, pago: 'caja', auto: 'propinas', por: pdvYo(), proveedorId: '', proveedor: '', saldo: 0, comprobante: { tipo: 'sin', fotoId: '', pendiente: false } }));
     pdvGuardar(pdvCol('dias').doc(c.dia).set({ gastos: pdvInc(k.propinas), gasto_caja: pdvInc(k.propinas), propinasEntregadas: pdvInc(k.propinas), ts }, { merge: true }));
   }
-  const cierre = { uid: r.uid, nombre: r.nombre, ts, por: pdvYo(), contado, desglose: r.datos.desglose, esperado: k.esperado, diferencia: pdvR(contado - k.esperado),
+  const cierre = { efDirecto: k.efDirecto, efCuentas: k.efCuentas, uid: r.uid, nombre: r.nombre, ts, por: pdvYo(), contado, desglose: r.datos.desglose, esperado: k.esperado, diferencia: pdvR(contado - k.esperado),
     fondoDeja, retiro: pdvR(contado - fondoDeja), ventas: k.ventas, n: k.n, met: k.met, propinas: k.propinas, gastosCaja: k.gastosCaja, gastosOtros: k.gastosOtros, provCaja: k.provCaja,
-    canceladas: k.canceladas, montoCancelado: k.montoCancelado };
+    canceladas: k.canceladas, montoCancelado: k.montoCancelado, efOtros: k.efOtros, propOtros: k.propOtros, abiertasN: k.abiertasN, abiertasMonto: k.abiertasMonto };
   pdvGuardar(pdvCol('cajas').doc(c.id).update({ estado: 'cerrada', cierre }));
   pdvGuardar(pdvCol('estado').doc('caja').set({ fondo: fondoDeja, ultima: c.id, ts }));
   pdvGuardar(pdvCol('dias').doc(c.dia).set({ cortes: pdvInc(1), diferencia: pdvInc(cierre.diferencia), ts }, { merge: true }));
@@ -2642,7 +2708,11 @@ function pdvAjustes() {
     <div class="row" style="gap:8px">${[58, 80].map(w => `<div class="opcion ${p.papel === w ? 'on' : ''}" style="flex:1" onclick="cocGuardar({papel:${w}});pdvAjustes()"><span class="radio"></span><b>${w} mm</b></div>`).join('')}</div>
     <div class="opcion ${c.autoTicket ? 'on' : ''}" style="margin-top:10px" onclick="ls('pdvCfg',Object.assign(pdvCfg(),{autoTicket:${!c.autoTicket}}));pdvAjustes()"><span class="radio"></span><div class="grow"><b>Imprimir ticket y corte solos</b><div class="muted small">Al terminar cada venta y al cerrar el turno.</div></div></div>
     <div class="opcion ${c.cocina ? 'on' : ''}" onclick="ls('pdvCfg',Object.assign(pdvCfg(),{cocina:${!c.cocina}}));PDV.venta.cocina=${!c.cocina};pdvAjustes()"><span class="radio"></span><div class="grow"><b>Mandar las ventas a cocina</b><div class="muted small">Viene marcado en cada venta (puedes quitarlo en una venta).</div></div></div>
-    <div class="btns"><button class="btn pill full" onclick="imprimirPrueba()">🖨️ Imprimir prueba</button></div>`);
+    <div class="btns"><button class="btn pill full" onclick="imprimirPrueba()">🖨️ Imprimir prueba</button></div>
+    ${pdvPuede('dg') ? `<h3 style="margin:16px 0 4px">🍽️ Mesas del negocio</h3><div class="muted small">Zonas y cuántas mesas tiene cada una (para todos los equipos).</div>
+      <div id="pdvZonas">${((PDV.mesas && PDV.mesas.zonas) || [{ nombre: 'Mesa', n: 8 }]).map(z => `<div class="row pdvZona" style="gap:6px;margin-top:6px"><input class="i zN" style="flex:2" maxlength="20" value="${esc(z.nombre)}"><input class="i zC" style="flex:1" inputmode="numeric" value="${z.n}"><button class="btn sm" onclick="this.parentNode.remove()">✕</button></div>`).join('')}</div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" onclick="$('#pdvZonas').insertAdjacentHTML('beforeend','<div class=&quot;row pdvZona&quot; style=&quot;gap:6px;margin-top:6px&quot;><input class=&quot;i zN&quot; style=&quot;flex:2&quot; maxlength=&quot;20&quot; placeholder=&quot;Ej. Terraza&quot;><input class=&quot;i zC&quot; style=&quot;flex:1&quot; inputmode=&quot;numeric&quot; placeholder=&quot;4&quot;><button class=&quot;btn sm&quot; onclick=&quot;this.parentNode.remove()&quot;>✕</button></div>')">➕ Zona</button>
+      <button class="btn pri pill" style="flex:1" onclick="pdvGuardarMesas()">Guardar mesas</button></div>` : ''}`);
 }
 const pdvTxtDet = i => detalleItem(i).replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 function pdvHtmlTicket(cuerpo, titulo) {
@@ -2660,7 +2730,7 @@ function pdvImprimirVenta(id) {
     <div class="r"><b>Ticket ${esc(v.folio)}</b><span>${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}</span></div>
     <div>${v.tipo === 'llevar' ? 'PARA LLEVAR' : 'CONSUMO AQUÍ'} · Atendió ${esc(v.por.nombre.split(' ')[0])}</div>${v.cliente ? `<div>Cliente: ${esc(v.cliente.nombre || v.cliente.tel)}</div>` : ''}
     ${v.estado === 'cancelada' ? '<div class="c t">*** CANCELADA ***</div>' : ''}<hr>
-    ${v.items.map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.importe)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
+    ${v.items.filter(i => !i.cancelado).map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.importe != null ? i.importe : i.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
     <div class="r t"><span>TOTAL</span><span>${money(v.total)}</span></div>
     ${v.pagos.map(p => `<div class="r"><span>${{ efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[p.metodo]}</span><span>${money(p.monto)}</span></div>${p.propina ? `<div class="r"><span>&nbsp;Propina tarjeta</span><span>${money(p.propina)}</span></div>` : ''}${p.cambio ? `<div class="r"><span>&nbsp;Recibido ${money(p.recibe)}</span><span>Cambio ${money(p.cambio)}</span></div>` : ''}`).join('')}<hr>
     <div class="c">¡Gracias por tu compra!</div><div class="c p">Pide a domicilio en pidele.app</div>`, 'Ticket ' + v.folio));
@@ -2668,7 +2738,7 @@ function pdvImprimirVenta(id) {
 function pdvWaVenta(v) {
   const n = S.negocio || {};
   const txt = `🧾 *${n.nombre || ''}* · Ticket ${v.folio}\n${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}\n\n` +
-    v.items.map(i => `${i.cant} x ${i.nombre} — ${money(i.importe)}${pdvTxtDet(i) ? '\n   ' + pdvTxtDet(i) : ''}`).join('\n') +
+    v.items.filter(i => !i.cancelado).map(i => `${i.cant} x ${i.nombre} — ${money(i.importe != null ? i.importe : i.cant * i.precio)}${pdvTxtDet(i) ? '\n   ' + pdvTxtDet(i) : ''}`).join('\n') +
     `\n\n*Total: ${money(v.total)}*\n` + v.pagos.map(p => `${{ efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' (cambio ' + money(p.cambio) + ')' : ''}`).join('\n') +
     `\n\n¡Gracias por tu compra! 🙌\nLa próxima vez pide a domicilio en ${urlApp('')}`;
   return v.cliente && v.cliente.tel ? waLink(v.cliente.tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
@@ -2681,11 +2751,360 @@ function pdvImprimirCorte(id) {
     ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}<hr>
     ${r('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => r('&nbsp;' + { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[m], money(v))).join('')}
     ${r('Propinas tarjeta', money(k.propinas))}${k.canceladas ? r('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}<hr>
-    ${r('Fondo inicial', money(c.fondo))}${r('+ Efectivo ventas', money(k.met.efectivo))}${r('- Gastos de caja', money(k.gastosCaja))}${k.provCaja ? r('- Pagos proveedores', money(k.provCaja)) : ''}${r('- Propinas entregadas', money(k.propinas))}
+    ${k.abiertasN ? r('Cuentas abiertas (' + k.abiertasN + ')', money(k.abiertasMonto)) : ''}<hr>
+    ${r('Fondo inicial', money(c.fondo))}${r('+ Efectivo ventas', money(pdvR((k.efDirecto != null ? k.efDirecto + k.efCuentas : k.met.efectivo))))}${k.efOtros ? r('+ Efectivo otro turno', money(k.efOtros)) : ''}${r('- Gastos de caja', money(k.gastosCaja))}${k.provCaja ? r('- Pagos proveedores', money(k.provCaja)) : ''}${r('- Propinas entregadas', money(k.propinas))}
     <div class="r t"><span>Esperado</span><span>${money(k.esperado)}</span></div>${r('Contado', money(k.contado))}
     <div class="r t"><span>Diferencia</span><span>${money(k.diferencia)}</span></div><hr>
     ${r('Deja en caja', money(k.fondoDeja))}${k.retiro >= 0 ? r('Retira', money(k.retiro)) : r('Falta para el fondo', money(-k.retiro))}${k.gastosOtros ? r('Gastos fuera de caja/crédito', money(k.gastosOtros)) : ''}<hr>
     <div class="c p">Firma: ____________________</div>`, 'Corte turno ' + c.turno));
+}
+
+/* ---------- mesas y cuentas (2.27) ---------- */
+/*
+ * Una cuenta (mesa, cuenta separada o pedido para llevar) es una venta con estado "abierta" que va juntando rondas.
+ * Cada ronda se manda a cocina como una comanda. Los pagos se guardan aparte (colección "pagos") porque una cuenta
+ * se puede pagar en partes, por monto o por productos, y en otro turno:
+ *  - la venta y las metas son del turno en que se abrió la cuenta (cajaVenta),
+ *  - el efectivo entra a la caja que lo recibe (cajaId) como "efectivo de cuentas de otro turno".
+ */
+const PDV_2H = 2 * 3600e3;
+const pdvItemsVivos = c => (c.items || []).filter(i => !i.cancelado);
+const pdvTotalCuenta = c => pdvR(pdvItemsVivos(c).reduce((s, i) => s + i.cant * i.precio, 0));
+const pdvSaldo = c => pdvR(pdvTotalCuenta(c) - (c.pagado || 0));
+const pdvCuenta = id => PDV.cuentas.find(c => c.id === id);
+const pdvEtiqueta = c => c.tipo === 'llevar' ? '🥡 ' + (c.nombre || 'Para llevar') + (c.recoge ? ' · ' + c.recoge : '') + (c.mesa ? ' (' + c.mesa + ')' : '') : (c.mesa ? c.mesa + ' · ' : '') + (c.nombre || 'Cuenta');
+function pdvMesasLista() {
+  const z = (PDV.mesas && PDV.mesas.zonas) || [{ nombre: 'Mesa', n: 8 }];
+  const l = [];
+  z.forEach(x => { for (let i = 1; i <= Math.min(60, Number(x.n) || 0); i++) l.push(x.nombre + ' ' + i); });
+  return l;
+}
+function pdvVistaMesas() {
+  if (!PDV.caja) return pdvSinCaja('Abre la caja para empezar a tomar órdenes.');
+  const ahora = Date.now(), abiertas = PDV.cuentas;
+  const porMesa = {};
+  abiertas.filter(c => c.mesa).forEach(c => (porMesa[c.mesa] = porMesa[c.mesa] || []).push(c));
+  const lista = pdvMesasLista();
+  Object.keys(porMesa).forEach(m => { if (!lista.includes(m)) lista.push(m); });
+  const listas = new Set(PDV.comandas.filter(k => k.estado === 'listo').map(k => k.ventaId));
+  const tile = m => {
+    const cs = porMesa[m] || [];
+    if (!cs.length) return `<button class="pdvMesa" onclick="pdvNuevaCuenta(${esc(JSON.stringify(m))})"><b>${esc(m)}</b><span>Libre</span></button>`;
+    const total = pdvR(cs.reduce((s, c) => s + pdvSaldo(c), 0)), desde = Math.min(...cs.map(c => c.ts)), lista = cs.some(c => listas.has(c.id));
+    const vieja = cs.some(c => ahora - Math.max(c.ts, c.revisado || 0) > PDV_2H);
+    return `<button class="pdvMesa ocupada ${vieja ? 'vieja' : ''}" onclick="pdvAbrirMesa(${esc(JSON.stringify(m))})">${lista ? '<span class="pdvListo">📦</span>' : ''}<b>${esc(m)}</b>
+      <span>${money(total)}${cs.length > 1 ? ' · ' + cs.length + ' cuentas' : ''}</span><small>${Math.round((ahora - desde) / 60000)} min · ${esc(cs[0].mesero.nombre.split(' ')[0])}</small></button>`;
+  };
+  const sueltas = abiertas.filter(c => !c.mesa).sort((a, b) => a.ts - b.ts);
+  return `<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'llevar')">🥡 Para llevar</button><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'libre')">➕ Cuenta sin mesa</button></div>
+    <div class="pdvMesas">${lista.map(tile).join('')}</div>
+    ${sueltas.length ? `<h3>Para llevar y cuentas sin mesa</h3>${sueltas.map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b>${listas.has(c.id) ? ' <span class="tag t-ok">📦 Listo</span>' : ''}<div class="small muted">${esc(c.folio)} · ${hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}`;
+}
+function pdvAbrirMesa(m) {
+  const cs = PDV.cuentas.filter(c => c.mesa === m);
+  if (cs.length === 1) { pdvIrCuenta(cs[0].id); return; }
+  modal(`<div class="row between"><h2 style="margin:0">${esc(m)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${cs.map(c => `<div class="card row between" style="cursor:pointer" onclick="cerrarModal();pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b><div class="small muted">${hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal();pdvNuevaCuenta(${esc(JSON.stringify(m))})">➕ Otra cuenta en esta mesa</button></div>`);
+}
+/** Nueva cuenta: en una mesa (con nombre, ej. "Cuenta 2" o el de la persona), sin mesa, o para llevar (con hora). */
+function pdvNuevaCuenta(mesa, tipo) {
+  if (!PDV.caja) { toast('Abre la caja primero', 'err'); return; }
+  const enMesa = PDV.cuentas.filter(c => c.mesa === mesa && mesa).length;
+  S._nc = { mesa, tipo: tipo === 'llevar' ? 'llevar' : 'mesa' };
+  modal(`<div class="row between"><h2 style="margin:0">${tipo === 'llevar' ? '🥡 Pedido para llevar' : mesa ? esc(mesa) : 'Cuenta sin mesa'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${mesa ? `<div class="pdvTipo">${[['mesa', '🍽️ Para la mesa'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${S._nc.tipo === k ? 'on' : ''}" onclick="S._nc.tipo='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this));$('#ncHora').style.display=S._nc.tipo==='llevar'?'':'none'">${t}</button>`).join('')}</div>` : ''}
+    <label class="f">${tipo === 'llevar' ? 'Nombre del cliente' : 'Nombre de la cuenta'}</label><input class="i" id="ncNom" maxlength="40" value="${tipo === 'llevar' ? '' : 'Cuenta ' + (enMesa + 1)}" placeholder="${tipo === 'llevar' ? 'Ej. Sra. Rosa' : 'Ej. Cuenta 1, Luis…'}">
+    <div id="ncHora" style="${tipo === 'llevar' ? '' : 'display:none'}"><label class="f">¿A qué hora pasa o sale?</label><input class="i" id="ncRec" type="time"></div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvCrearCuenta)">Abrir cuenta</button></div>`);
+  setTimeout(() => { const i = $('#ncNom'); if (i) i.select(); }, 150);
+}
+async function pdvCrearCuenta() {
+  const k = S._nc, nombre = $('#ncNom').value.trim(), recoge = k.tipo === 'llevar' ? ($('#ncRec') || {}).value || '' : '';
+  if (!nombre && (k.tipo === 'llevar' || !k.mesa)) throw new Error('Escribe un nombre');
+  if (!PDV.caja) throw new Error('La caja está cerrada');
+  const ts = Date.now(), ref = pdvCol('ventas').doc();
+  const c = { folio: pdvFolio(), dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
+    tipo: k.tipo, mesa: k.mesa || '', nombre: (nombre || 'Cuenta 1').slice(0, 40), recoge, items: [], total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts };
+  pdvGuardar(ref.set(c));
+  PDV.cuentas.push(Object.assign({ id: ref.id }, c));
+  cerrarModal(); pdvIrCuenta(ref.id);
+}
+function pdvIrCuenta(id) { PDV.cuentaId = id; PDV.buscar = ''; window.scrollTo(0, 0); pintarCaja(); }
+function pdvSalirCuenta() { PDV.cuentaId = ''; PDV.tab = 'mesas'; pintarCaja(); }
+function pdvVistaCuenta() {
+  const c = pdvCuenta(PDV.cuentaId);
+  if (!c) { PDV.cuentaId = ''; return pdvVistaMesas(); }
+  const nuevos = (c.items || []).filter(i => !i.ronda), n = nuevos.reduce((s, i) => s + i.cant, 0);
+  return `<div class="row" style="gap:8px;margin-bottom:8px;align-items:center"><button class="btn pill" onclick="pdvSalirCuenta()">← Mesas</button>
+      <div class="grow"><b style="font-size:17px">${esc(pdvEtiqueta(c))}</b><div class="small muted">${esc(c.folio)} · abierta ${hora(c.ts)} · ${esc(c.mesero.nombre)}</div></div>
+      ${c.mesa ? `<button class="btn pill" onclick="pdvNuevaCuenta(${esc(JSON.stringify(c.mesa))})" aria-label="Otra cuenta en esta mesa" title="Otra cuenta en esta mesa">➕ Cuenta</button>` : ''}
+      <button class="btn pill" onclick="pdvMenuCuenta('${c.id}')" aria-label="Opciones">⋯</button></div>
+    <div class="pdvVender"><div class="pdvMenu">${pdvMenuHTML({})}</div>
+    <div class="pdvCarrito" id="pdvCarrito">${pdvPanelCuenta(c)}</div>
+    <button class="barra pdvBarraTel" onclick="pdvVerCuentaTel()"><span>${n ? '🆕 ' + n + ' sin enviar · ' : ''}Ver cuenta</span><span>${money(pdvSaldo(c))}</span></button></div>`;
+}
+function pdvVerCuentaTel() { const c = pdvCuenta(PDV.cuentaId); if (!c) return; modal(`<div class="row between"><h2 style="margin:0">${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div><div id="pdvCarritoM" style="margin-top:8px">${pdvPanelCuenta(c)}</div>`); }
+function pdvPintarCuenta() { const c = pdvCuenta(PDV.cuentaId); if (!c) return; const e = $('#pdvCarrito'); if (e) e.innerHTML = pdvPanelCuenta(c); const m = $('#pdvCarritoM'); if (m) m.innerHTML = pdvPanelCuenta(c); }
+function pdvPanelCuenta(c) {
+  const its = c.items || [], nuevos = its.filter(i => !i.ronda), rondas = [...new Set(its.filter(i => i.ronda).map(i => i.ronda))].sort((a, b) => a - b);
+  const kom = r => PDV.comandas.find(k => k.ventaId === c.id && k.ronda === r);
+  const linea = (i, editable) => `<div class="pdvLinea ${i.cancelado ? 'tachada' : ''}"><div class="grow"><b>${esc(i.nombre)}</b>${detalleItem(i) ? `<div class="small muted">${detalleItem(i)}</div>` : ''}
+      ${i.cancelado ? `<div class="small" style="color:var(--err)">Cancelado: ${esc(i.cancelado.motivo)}</div>` : i.pagadoCant ? `<div class="small" style="color:var(--ok)">Pagado ${i.pagadoCant} de ${i.cant}</div>` : ''}</div>
+      ${editable ? `<div class="pdvCant"><button onclick="pdvCantCuenta('${i.k}',-1)">−</button><b>${i.cant}</b><button onclick="pdvCantCuenta('${i.k}',1)">+</button></div>`
+        : `<b>${i.cant}×</b>${!i.cancelado && !i.pagadoCant ? `<button class="redondo" style="width:30px;height:30px" onclick="act(this,()=>pdvCancelarItem('${i.k}'))" aria-label="Cancelar producto">✕</button>` : ''}`}
+      <b style="min-width:58px;text-align:right">${money(i.cant * i.precio)}</b></div>`;
+  const total = pdvTotalCuenta(c), saldo = pdvSaldo(c);
+  return `${rondas.map(r => { const k = kom(r); return `<div class="pdvRonda"><span>Ronda ${r} · ${hora(k ? k.ts : 0)}</span>${k ? (k.estado === 'listo' ? `<button class="btn sm ok" onclick="pdvEntregada('${k.id}')">📦 Lista · Entregué</button>` : k.estado === 'entregada' ? '<span>✅ Entregada</span>' : k.estado === 'cancelada' ? '<span>✖️</span>' : '<span>👩‍🍳 En cocina</span>') : ''}</div>${its.filter(i => i.ronda === r).map(i => linea(i, false)).join('')}`; }).join('')}
+    ${nuevos.length ? `<div class="pdvRonda nueva"><span>🆕 Sin enviar</span></div>${nuevos.map(i => linea(i, true)).join('')}
+      <button class="btn pri pill full" style="margin:8px 0;font-size:17px" onclick="act(this,()=>pdvEnviarRonda('${c.id}'))">👩‍🍳 Enviar a cocina (${nuevos.reduce((s, i) => s + i.cant, 0)})</button>` : ''}
+    ${!its.length ? '<div class="pdvVacio">Toca productos del menú para agregarlos a la cuenta</div>' : ''}
+    <div class="tot" style="margin-top:8px"><span>Total</span><span>${money(total)}</span></div>
+    ${c.pagado ? `<div class="tot"><span>Pagado</span><span>${money(c.pagado)}</span></div>` : ''}
+    <div class="tot g" style="font-size:22px"><span>${c.pagado ? 'Falta' : 'Total'}</span><span>${money(saldo)}</span></div>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="pdvPreventa('${c.id}')">🧾 Preventa</button>
+      <button class="btn pri pill" style="flex:2;font-size:17px" ${saldo > 0 && !nuevos.length ? '' : 'disabled'} onclick="pdvCobrarCuenta('${c.id}')">Cobrar</button></div>
+    ${nuevos.length && saldo > 0 ? '<div class="small muted" style="text-align:center;margin-top:4px">Envía a cocina lo nuevo antes de cobrar.</div>' : ''}
+    ${!its.length || (saldo <= 0 && !pdvItemsVivos(c).length) ? `<button class="lnk small" style="margin-top:10px" onclick="act(this,()=>pdvCerrarVacia('${c.id}'))">Cerrar cuenta vacía</button>` : ''}`;
+}
+/** Guarda la cuenta completa (items y total) en Firestore y en pantalla. */
+function pdvActualizarCuenta(c, extra) {
+  c.total = pdvTotalCuenta(c); c.actualizado = Date.now();
+  const d = Object.assign({ items: JSON.parse(JSON.stringify(c.items)), total: c.total, actualizado: c.actualizado }, extra || {});
+  Object.assign(c, extra || {});
+  pdvGuardar(pdvCol('ventas').doc(c.id).update(d));
+  if (S.vista === 'caja') { pdvPintarCuenta(); if (!$('#modal').classList.contains('on')) pintarCaja(); }
+}
+/** Lo que se agregó con la ventana del producto pasa del carrito a la cuenta (sin enviar). */
+function pdvAgregarACuenta(it, cant) {
+  const c = pdvCuenta(PDV.cuentaId), car = pdvCarrito();
+  if (car.items[it.key]) { car.items[it.key].cant -= cant; if (car.items[it.key].cant <= 0) delete car.items[it.key]; guardarCarritos(); }
+  if (!c) return;
+  const x = (c.items || []).find(i => !i.ronda && i.key === it.key);
+  if (x) x.cant += cant;
+  else (c.items = c.items || []).push({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], ronda: 0, pagadoCant: 0, cancelado: null });
+  pdvActualizarCuenta(c);
+}
+function pdvCantCuenta(k, d) {
+  const c = pdvCuenta(PDV.cuentaId); if (!c) return;
+  const i = c.items.find(x => x.k === k); if (!i || i.ronda) return;
+  i.cant += d; if (i.cant <= 0) c.items = c.items.filter(x => x !== i);
+  pdvActualizarCuenta(c);
+}
+async function pdvEnviarRonda(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  const nuevos = c.items.filter(i => !i.ronda); if (!nuevos.length) return;
+  const r = Math.max(0, ...c.items.map(i => i.ronda || 0)) + 1, ts = Date.now(), ref = pdvCol('comandas').doc();
+  let salida = ts + (Number(S.negocio.tiempoPrep) || 15) * 60000;
+  if (c.tipo === 'llevar' && c.recoge) { const [h, mi] = c.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() > ts) salida = d.getTime(); }
+  nuevos.forEach(i => { i.ronda = r; });
+  const k = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: r, dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(),
+    items: nuevos.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods })) };
+  pdvGuardar(ref.set(JSON.parse(JSON.stringify(k))));
+  PDV.comandas.push(Object.assign({ id: ref.id }, k));
+  pdvActualizarCuenta(c);
+  toast('Ronda ' + r + ' enviada a cocina 👩‍🍳');
+}
+function pdvEntregada(kid) {
+  pdvGuardar(pdvCol('comandas').doc(kid).update({ estado: 'entregada', entregada: Date.now() }));
+  const k = PDV.comandas.find(x => x.id === kid); if (k) k.estado = 'entregada';
+  pdvPintarCuenta(); if (!$('#modal').classList.contains('on')) pintarCaja();
+}
+/** Quitar algo que ya se mandó a cocina: con código de gerente y motivo. */
+async function pdvCancelarItem(k) {
+  const c = pdvCuenta(PDV.cuentaId); if (!c) return;
+  const i = c.items.find(x => x.k === k); if (!i) return;
+  S._pinAntes = () => { const m = ($('#cancMot') || {}).value || ''; if (m.trim().length < 5) { toast('Escribe la justificación (mínimo 5 letras)', 'err'); return false; } };
+  S._pinDatos = () => $('#cancMot').value.trim();
+  let g;
+  try { g = await pdvPedirPin('Quitar ' + i.cant + '× ' + i.nombre, 'gerente', `<div class="aviso warn" style="margin:8px 0">Ya se mandó a cocina. Se quita de la cuenta (${money(i.cant * i.precio)}).</div><label class="f">Justificación</label><textarea class="i" id="cancMot" rows="2" maxlength="200" placeholder="Ej. Se equivocó de producto, salió mal…"></textarea>`); }
+  catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  i.cancelado = { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts: Date.now() };
+  cerrarModal();
+  pdvActualizarCuenta(c);
+  pdvGuardar(pdvCol('dias').doc(c.dia).set({ productosCancelados: pdvInc(1), montoProdCancelado: pdvInc(i.cant * i.precio), ts: Date.now() }, { merge: true }));
+  toast('Producto quitado de la cuenta');
+}
+async function pdvCerrarVacia(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  if (pdvItemsVivos(c).length) throw new Error('La cuenta tiene productos: cóbrala o quítalos con código de gerente');
+  pdvGuardar(pdvCol('ventas').doc(id).update({ estado: pdvR(c.pagado) > 0 ? 'pagada' : 'vacia', cerrada: Date.now() }));
+  PDV.cuentas = PDV.cuentas.filter(x => x.id !== id);
+  pdvSalirCuenta(); toast('Cuenta cerrada');
+}
+function pdvMenuCuenta(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  modal(`<div class="row between"><h2 style="margin:0">${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Nombre de la cuenta</label><input class="i" id="mcNom" maxlength="40" value="${esc(c.nombre)}">
+    ${c.tipo !== 'llevar' ? `<label class="f">Mesa</label><select class="i" id="mcMesa"><option value="">Sin mesa</option>${pdvMesasLista().map(m => `<option ${m === c.mesa ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>` : `<label class="f">Hora</label><input class="i" id="mcRec" type="time" value="${esc(c.recoge || '')}">`}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarMenuCuenta('${id}'))">Guardar</button></div>`);
+}
+async function pdvGuardarMenuCuenta(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  const ex = { nombre: ($('#mcNom').value.trim() || c.nombre).slice(0, 40) };
+  if ($('#mcMesa')) ex.mesa = $('#mcMesa').value;
+  if ($('#mcRec')) ex.recoge = $('#mcRec').value;
+  cerrarModal(); pdvActualizarCuenta(c, ex); toast('Cuenta actualizada');
+}
+/** Cada 2 horas pregunta si la cuenta sigue abierta (para no dejar cuentas olvidadas). */
+function pdvRevisarViejas() {
+  if (S.vista !== 'caja' || !pdvPuede('dcmg') || $('#modal').classList.contains('on')) return;
+  const ahora = Date.now(), c = PDV.cuentas.find(x => ahora - Math.max(x.ts, x.revisado || 0) > PDV_2H && !(PDV._preg || {})[x.id + ':' + (x.revisado || x.ts)]);
+  if (!c) return;
+  (PDV._preg = PDV._preg || {})[c.id + ':' + (c.revisado || c.ts)] = 1;
+  const h = Math.floor((ahora - c.ts) / 3600e3), m = Math.round((ahora - c.ts) / 60000) % 60;
+  modal(`<div style="text-align:center"><div style="font-size:42px">⏰</div><h2 style="margin:4px 0">${esc(pdvEtiqueta(c))}</h2>
+    <div class="muted">Lleva ${h} h ${m} min abierta · ${money(pdvSaldo(c))} por cobrar. ¿Sigue abierta?</div>
+    <div class="btns"><button class="btn pri pill full" onclick="pdvSigueAbierta('${c.id}')">Sí, siguen en la mesa</button>
+      <button class="btn pill full" onclick="cerrarModal();pdvIrCuenta('${c.id}')">Ver la cuenta para cobrar</button></div></div>`);
+}
+function pdvSigueAbierta(id) {
+  const c = pdvCuenta(id), ts = Date.now();
+  if (c) { c.revisado = ts; pdvGuardar(pdvCol('ventas').doc(id).update({ revisado: ts })); }
+  cerrarModal(); pintarCaja();
+}
+
+/* ---------- cobrar una cuenta: por monto o por productos, en partes ---------- */
+function pdvCobrarCuenta(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  if (!PDV.caja) { toast('La caja está cerrada', 'err'); return; }
+  PDV.cobro = { cuentaId: id, met: 'efectivo', modo: 'monto', sel: {} };
+  pdvPintarCobroCuenta();
+}
+function pdvUnidadesPendientes(c) { return pdvItemsVivos(c).map(i => ({ i, resta: i.cant - (i.pagadoCant || 0) })).filter(x => x.resta > 0); }
+function pdvPintarCobroCuenta() {
+  const k = PDV.cobro, c = pdvCuenta(k.cuentaId); if (!c) { cerrarModal(); return; }
+  const saldo = pdvSaldo(c), pend = pdvUnidadesPendientes(c);
+  const selMonto = pdvR(pend.reduce((s, x) => s + (k.sel[x.i.k] || 0) * x.i.precio, 0));
+  const monto = k.modo === 'productos' ? Math.min(selMonto, saldo) : saldo;
+  modal(`<div class="row between"><h2 style="margin:0">Cobrar · ${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div>
+    <div class="pdvSaldo"><span>Total ${money(pdvTotalCuenta(c))}${c.pagado ? ' · pagado ' + money(c.pagado) : ''}</span><b>Falta ${money(saldo)}</b></div>
+    <div class="pdvTipo">${[['monto', '💲 Por monto'], ['productos', '🍽️ Por productos']].map(([m, t]) => `<button class="${k.modo === m ? 'on' : ''}" ${m === 'productos' && !pend.length ? 'disabled' : ''} onclick="PDV.cobro.modo='${m}';pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
+    ${k.modo === 'productos' ? `<div class="small muted" style="margin:4px 0">Marca lo que paga esta persona:</div>${pend.map(x => `<div class="pdvLinea"><div class="grow">${esc(x.i.nombre)}${detalleItem(x.i) ? `<div class="small muted">${detalleItem(x.i)}</div>` : ''}<div class="small">${money(x.i.precio)} c/u · faltan ${x.resta}</div></div>
+        <div class="pdvCant"><button onclick="pdvSel('${x.i.k}',-1,${x.resta})">−</button><b>${k.sel[x.i.k] || 0}</b><button onclick="pdvSel('${x.i.k}',1,${x.resta})">+</button></div></div>`).join('')}` : ''}
+    <div class="pdvMets">${Object.entries(PDV_MET).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="pdvGuardarCampoCobro();PDV.cobro.met='${m}';pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
+    <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${k.monto != null && k.modo === 'monto' ? k.monto : monto}" ${k.modo === 'productos' ? 'readonly' : ''} oninput="pdvCambio()">
+    ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[50, 100, 200, 500, 1000].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
+      <input class="i pdvNum" id="cbRecibe" inputmode="decimal" placeholder="Igual al monto" oninput="pdvCambio()"><div class="pdvCambio" id="cbCambio"></div>` : ''}
+    ${k.met === 'tarjeta' ? '<label class="f">Propina con tarjeta (opcional)</label><input class="i pdvNum" id="cbProp" inputmode="decimal" placeholder="0">' : ''}
+    <div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvPagarCuenta)">Registrar pago</button></div>`);
+  pdvCambio();
+}
+function pdvGuardarCampoCobro() { const i = $('#cbMonto'); if (i && PDV.cobro.modo === 'monto') PDV.cobro.monto = i.value; }
+function pdvSel(k, d, max) { pdvGuardarCampoCobro(); const s = PDV.cobro.sel; s[k] = Math.max(0, Math.min(max, (s[k] || 0) + d)); pdvPintarCobroCuenta(); }
+async function pdvPagarCuenta() {
+  const k = PDV.cobro, c = pdvCuenta(k.cuentaId), caja = PDV.caja;
+  if (!c) throw new Error('La cuenta ya no está abierta');
+  if (!caja) throw new Error('La caja está cerrada');
+  const saldo = pdvSaldo(c);
+  let m = pdvR($('#cbMonto').value);
+  const items = k.modo === 'productos' ? Object.entries(k.sel).filter(([, n]) => n > 0).map(([kk, n]) => ({ k: kk, cant: n })) : [];
+  if (k.modo === 'productos' && !items.length) throw new Error('Marca qué productos paga');
+  if (!(m > 0)) throw new Error('Escribe el monto');
+  if (m > saldo) m = saldo;
+  const ts = Date.now(), ref = pdvCol('pagos').doc();
+  const p = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), cajaId: caja.id, turno: caja.turno, cajaVenta: c.cajaId, turnoVenta: c.turno, diaVenta: c.dia, dia: caja.dia,
+    metodo: k.met, monto: m, ts, por: pdvYo(), mesero: c.mesero, items, anulado: false };
+  if (k.met === 'efectivo') { const r = pdvR(($('#cbRecibe') || {}).value || m); if (r < m) throw new Error('Lo recibido es menos que el monto'); p.recibe = r; p.cambio = pdvR(r - m); }
+  if (k.met === 'tarjeta') { const pr = pdvR(($('#cbProp') || {}).value); if (pr) p.propina = pr; }
+  pdvGuardar(ref.set(JSON.parse(JSON.stringify(p))));
+  items.forEach(x => { const i = c.items.find(y => y.k === x.k); if (i) i.pagadoCant = (i.pagadoCant || 0) + x.cant; });
+  c.pagado = pdvR((c.pagado || 0) + m);
+  c.pagos = (c.pagos || []).concat([{ metodo: p.metodo, monto: m, propina: p.propina || 0, cambio: p.cambio || 0, recibe: p.recibe || 0, ts, por: p.por, pagoId: ref.id, cajaId: caja.id }]);
+  c.pagoIds = (c.pagoIds || []).concat([ref.id]);
+  const fin = pdvSaldo(c) <= 0;
+  const ex = { pagado: c.pagado, pagos: c.pagos, pagoIds: c.pagoIds, propina: pdvR(c.pagos.reduce((s, x) => s + (x.propina || 0), 0)) };
+  if (fin) Object.assign(ex, { estado: 'pagada', cerrada: ts, cobradaEn: caja.id });
+  // ventas y metas: al turno (y día) en que se abrió la cuenta
+  pdvGuardar(pdvCol('dias').doc(c.dia).set({ ventas: pdvInc(m), ['met_' + p.metodo]: pdvInc(m), propinas: pdvInc(p.propina || 0), n: pdvInc(fin ? 1 : 0), ts }, { merge: true }));
+  PDV._ultimoPago = Object.assign({ id: ref.id }, p);
+  pdvActualizarCuenta(c, ex);
+  if (fin) PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id);
+  PDV.cobro = { cuentaId: c.id, met: 'efectivo', modo: k.modo, sel: {} };
+  modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Pago de ${money(m)}</h2><div class="muted">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}</div>
+    ${p.cambio ? `<div class="pdvCambioG">Cambio: ${money(p.cambio)}</div>` : ''}
+    <div class="pdvSaldo" style="justify-content:center"><b>${fin ? '✓ Cuenta pagada' : 'Falta ' + money(pdvSaldo(c))}</b></div>
+    <div class="btns" style="justify-content:center"><button class="btn pill" onclick="pdvImprimirPago('${ref.id}')">🖨️ Ticket</button>
+      ${pdvEsTelefono() ? `<a class="btn pill" href="${esc(pdvWaPago(PDV._ultimoPago, c))}" target="_blank">${ico('chat', 's')} WhatsApp</a>` : ''}</div>
+    <div class="btns">${fin ? `<button class="btn pri pill full" onclick="cerrarModal();pdvSalirCuenta()">Listo</button>` : `<button class="btn pri pill full" onclick="pdvPintarCobroCuenta()">Siguiente pago</button><button class="btn pill full" onclick="cerrarModal();pintarCaja()">Después</button>`}</div></div>`);
+  if (pdvCfg().autoTicket) pdvImprimirPago(ref.id);
+  if (fin) pintarCaja();
+}
+function pdvPago(id) { return (PDV._ultimoPago && PDV._ultimoPago.id === id) ? PDV._ultimoPago : PDV.pagosFis.concat(PDV.pagosVta).find(p => p.id === id); }
+function pdvImprimirPago(id) {
+  const p = pdvPago(id); if (!p) return;
+  const c = pdvCuenta(p.ventaId) || PDV.ventas.find(v => v.id === p.ventaId) || {}, n = S.negocio || {};
+  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `<div class="r"><span>${x.cant} x ${esc(i.nombre)}</span><span>${money(x.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`; }).join('') : '<div>Pago a la cuenta</div>';
+  imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div>${n.direccion ? `<div class="p">${esc(n.direccion)}</div>` : ''}</div><hr>
+    <div class="r"><b>${esc(p.folio)}</b><span>${new Date(p.ts).toLocaleDateString('es-MX')} ${hora(p.ts)}</span></div><div>${esc(p.etiqueta)}</div><hr>
+    ${its}<hr><div class="r t"><span>PAGO</span><span>${money(p.monto)}</span></div>
+    <div class="r"><span>${{ efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta' }[p.metodo]}</span><span>${money(p.monto)}</span></div>
+    ${p.propina ? `<div class="r"><span>Propina tarjeta</span><span>${money(p.propina)}</span></div>` : ''}${p.cambio ? `<div class="r"><span>Recibido ${money(p.recibe)}</span><span>Cambio ${money(p.cambio)}</span></div>` : ''}
+    ${c.items ? `<hr><div class="r"><span>Total de la cuenta</span><span>${money(pdvTotalCuenta(c))}</span></div><div class="r"><span>Falta por pagar</span><span>${money(Math.max(0, pdvSaldo(c)))}</span></div>` : ''}<hr>
+    <div class="c">¡Gracias!</div><div class="c p">Pide a domicilio en pidele.app</div>`, 'Pago ' + p.folio));
+}
+function pdvWaPago(p, c) {
+  const n = S.negocio || {};
+  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `${x.cant} x ${i.nombre} — ${money(x.cant * i.precio)}`; }).join('\n') : 'Pago a la cuenta';
+  return 'https://wa.me/?text=' + encodeURIComponent(`🧾 *${n.nombre || ''}* · ${p.folio}\n${p.etiqueta}\n\n${its}\n\n*Pagaste ${money(p.monto)}* (${{ efectivo: 'efectivo', transferencia: 'transferencia', tarjeta: 'tarjeta' }[p.metodo]}${p.propina ? ' + propina ' + money(p.propina) : ''})\n\n¡Gracias! 🙌\nPide a domicilio en ${urlApp('')}`);
+}
+function pdvPreventa(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  const n = S.negocio || {};
+  imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div><div class="t">PREVENTA</div></div><hr>
+    <div class="r"><b>${esc(c.folio)}</b><span>${hora(Date.now())}</span></div><div>${esc(pdvEtiqueta(c))} · Atiende ${esc(c.mesero.nombre.split(' ')[0])}</div><hr>
+    ${pdvItemsVivos(c).map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
+    <div class="r t"><span>TOTAL</span><span>${money(pdvTotalCuenta(c))}</span></div>
+    ${c.pagado ? `<div class="r"><span>Pagado</span><span>${money(c.pagado)}</span></div><div class="r t"><span>FALTA</span><span>${money(pdvSaldo(c))}</span></div>` : ''}<hr>
+    <div class="c p">Este ticket no es comprobante de pago</div>`, 'Preventa ' + c.folio));
+}
+
+/* ---------- registro del día (dueño y gerentes) ---------- */
+async function pdvCargarApp() {
+  if (!navigator.onLine) return;
+  try { const d = await api('panelNegocio'); PDV.app = { t: Date.now(), pedidos: d.pedidos }; if (S.vista === 'caja' && PDV.tab === 'hoy') pintarCaja(); } catch (e) { }
+}
+function pdvVistaHoy() {
+  if (!PDV.app || Date.now() - PDV.app.t > 60000) { if (!PDV._appCargando) { PDV._appCargando = true; pdvCargarApp().finally(() => { PDV._appCargando = false; }); } }
+  const hoy = pdvHoy(), dir = PDV.ventasDia.filter(v => v.origen !== 'cuenta' && v.estado !== 'cancelada'), pagos = PDV.pagosDia.filter(p => !p.anulado);
+  const cobradoTurno = id => pdvR(dir.filter(v => v.cajaId === id).reduce((s, v) => s + v.total, 0) + pagos.filter(p => p.cajaVenta === id).reduce((s, p) => s + p.monto, 0));
+  const abiertasTurno = id => PDV.cuentas.filter(c => c.cajaId === id);
+  const ap = (PDV.app && PDV.app.pedidos) || [];
+  const enCurso = ap.filter(x => ACTIVOS.includes(x.estado)), entregados = ap.filter(x => x.estado === 'ENTREGADO' && pdvHoy(x.creado) === hoy);
+  const sumP = l => pdvR(l.reduce((s, x) => s + (x.subtotal || 0), 0));
+  const fila = (a, b, cls) => `<div class="tot ${cls || ''}"><span>${a}</span><span>${b}</span></div>`;
+  let totalDia = 0;
+  const turnos = PDV.cajasHoy.map(c => {
+    const cob = cobradoTurno(c.id), ab = abiertasTurno(c.id), mesa = pdvR(ab.filter(x => x.tipo !== 'llevar').reduce((s, x) => s + pdvSaldo(x), 0)), llevar = pdvR(ab.filter(x => x.tipo === 'llevar').reduce((s, x) => s + pdvSaldo(x), 0));
+    const actual = c.estado === 'abierta', dom = actual ? sumP(enCurso) : 0;
+    const tot = pdvR(cob + mesa + llevar + dom); totalDia += tot;
+    return `<div class="card"><div class="row between"><b>Turno ${c.turno} · ${esc(c.abre.nombre.split(' ')[0])} ${hora(c.abre.ts)}${c.cierre ? '–' + hora(c.cierre.ts) : ''}</b><span class="tag ${actual ? 't-ok' : ''}">${actual ? 'Abierto' : 'Cerrado'}</span></div>
+      <div class="pdvGrande">${actual ? 'Hasta el momento ' : c.estado === 'cerrada' && !ab.length ? 'Cerró en ' : ''}${money(tot)}</div>
+      ${fila('✅ Cuentas cobradas', money(cob))}${mesa ? fila('🍽️ Cuentas activas en mesa (' + ab.filter(x => x.tipo !== 'llevar').length + ')', money(mesa)) : ''}${llevar ? fila('🥡 Para llevar abiertas', money(llevar)) : ''}
+      ${actual ? fila('🛵 Pedidos a domicilio en preparación (' + enCurso.length + ')', money(dom)) : ''}
+      ${!actual && ab.length ? '<div class="small muted">Las cuentas que siguen abiertas se suman a este turno cuando se cobren.</div>' : ''}
+      ${c.cierre ? `<div class="small muted">Corte: contado ${money(c.cierre.contado)} · diferencia ${money(c.cierre.diferencia)}</div>` : ''}</div>`;
+  });
+  const dEnt = sumP(entregados); totalDia = pdvR(totalDia + dEnt);
+  const porTipo = {};
+  dir.forEach(v => { const t = v.tipo === 'llevar' ? '🥡 Para llevar (mostrador)' : '🧾 Mostrador'; porTipo[t] = pdvR((porTipo[t] || 0) + v.total); });
+  pagos.forEach(p => { const v = PDV.ventasDia.find(x => x.id === p.ventaId) || {}; const t = v.tipo === 'llevar' ? '🥡 Para llevar (cuentas)' : '🍽️ Mesas'; porTipo[t] = pdvR((porTipo[t] || 0) + p.monto); });
+  if (dEnt) porTipo['🛵 Domicilio entregado (app)'] = dEnt;
+  return `<div class="card" style="background:var(--pri);color:#fff"><div class="small" style="opacity:.85">Total del día ${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</div><div class="pdvGrande">${money(totalDia)}</div>
+      <div class="small" style="opacity:.85">Incluye cuentas abiertas y pedidos en preparación${PDV.app ? '' : ' · sin datos de la app (sin internet)'}</div></div>
+    ${turnos.join('') || '<div class="vacio"><span class="big">🗄️</span>Aún no se abre caja hoy</div>'}
+    ${dEnt ? `<div class="card">${fila('🛵 Pedidos a domicilio entregados hoy (' + entregados.length + ')', money(dEnt))}</div>` : ''}
+    ${Object.keys(porTipo).length ? `<div class="card"><b>Cobrado por tipo</b>${Object.entries(porTipo).map(([a, b]) => fila(a, money(b))).join('')}</div>` : ''}
+    ${PDV.cuentas.length ? `<h3>Cuentas abiertas</h3>${PDV.cuentas.slice().sort((a, b) => a.ts - b.ts).map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b><div class="small muted">${esc(c.mesero.nombre.split(' ')[0])} · ${Math.round((Date.now() - c.ts) / 60000)} min · turno ${c.turno}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}
+    ${enCurso.length ? `<h3>Pedidos de la app en curso</h3>${enCurso.map(x => `<div class="card row between small"><span>${esc(x.folio)} · ${esc((x.comprador && x.comprador.nombre || '').split(' ')[0])} · ${esc(x.estado)}</span><b>${money(x.subtotal)}</b></div>`).join('')}` : ''}`;
+}
+function pdvGuardarMesas() {
+  const z = [...document.querySelectorAll('.pdvZona')].map(r => ({ nombre: r.querySelector('.zN').value.trim(), n: Math.max(0, Math.min(60, Number(r.querySelector('.zC').value) || 0)) })).filter(x => x.nombre && x.n);
+  if (!z.length) { toast('Agrega al menos una zona con mesas', 'err'); return; }
+  PDV.mesas = { zonas: z };
+  pdvGuardar(pdvCol('estado').doc('mesas').set({ zonas: z, ts: Date.now() }));
+  toast('Mesas guardadas ✓'); pdvAjustes();
 }
 
 /* ---------- cocina: ventas de mostrador ---------- */
@@ -2693,6 +3112,13 @@ async function pdvCocinaConectar() {
   if (PDV._cocSub || !cocTieneAcceso()) return;
   try { await pdvConectar(); } catch (e) { return; }
   if (S.vista !== 'cocina') return;
+  PDV._cocSub2 = pdvCol('comandas').where('estado', '==', 'preparando').onSnapshot(s => {
+    const antes = new Set((S._cocKom || []).map(v => v.id));
+    S._cocKom = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    if (S._cocKom.some(v => !antes.has(v.id)) && cocCfg().sonido && PDV._cocListo2) beep();
+    PDV._cocListo2 = true;
+    pintarCocina();
+  }, e => console.warn(e));
   PDV._cocSub = pdvCol('ventas').where('cocina.estado', '==', 'preparando').onSnapshot(s => {
     const antes = new Set((S._cocPdv || []).map(v => v.id));
     S._cocPdv = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
@@ -2701,7 +3127,18 @@ async function pdvCocinaConectar() {
     pintarCocina();
   }, e => console.warn(e));
 }
-function pdvCocinaSalir() { if (PDV._cocSub) { try { PDV._cocSub(); } catch (e) { } } PDV._cocSub = null; PDV._cocListo = false; S._cocPdv = []; }
+function pdvCocinaSalir() { [PDV._cocSub, PDV._cocSub2].forEach(f => { if (f) { try { f(); } catch (e) { } } }); PDV._cocSub = PDV._cocSub2 = null; PDV._cocListo = PDV._cocListo2 = false; S._cocPdv = []; S._cocKom = []; }
+function pdvComandaLista(id) {
+  pdvGuardar(pdvCol('comandas').doc(id).update({ estado: 'listo', listo: Date.now() }));
+  const k = (S._cocKom || []).find(v => v.id === id);
+  if (k && k.ventaId && k.origen === 'caja') pdvGuardar(pdvCol('ventas').doc(k.ventaId).update({ 'cocina.estado': 'listo', 'cocina.listo': Date.now() }).catch(() => { }));
+  S._cocKom = (S._cocKom || []).filter(v => v.id !== id);
+  toast('📦 Marcado como listo'); pintarCocina();
+}
+function pdvImprimirComandaK(id) {
+  const k = (S._cocKom || []).find(x => x.id === id); if (!k) return;
+  imprimirHTML(htmlComanda({ folio: k.folio + (k.ronda > 1 ? ' R' + k.ronda : ''), tipoTxt: String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase(), comprador: k.cliente ? { nombre: k.cliente.nombre } : null, creado: k.ts, horaSalida: k.salida, items: k.items, notas: '' }));
+}
 function pdvCocinaListo(id) {
   pdvGuardar(pdvCol('ventas').doc(id).update({ 'cocina.estado': 'listo', 'cocina.listo': Date.now() }));
   S._cocPdv = (S._cocPdv || []).filter(v => v.id !== id);
@@ -2779,6 +3216,8 @@ function pintarCocina() {
   const prep = l.filter(x => x.estado === 'PREPARANDO').sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
   const listos = l.filter(x => x.estado === 'LISTO').sort((a, b) => (a.listo || 0) - (b.listo || 0));
   // ventas de la caja (mostrador y para llevar): ya están pagadas, entran directo a preparación
+  const koms = (S._cocKom || []).map(k => ({ _kom: 1, id: k.id, folio: k.folio + (k.ronda > 1 ? ' · R' + k.ronda : ''), tipoTxt: k.etiqueta, comprador: k.mesero && k.tipo === 'mesa' ? { nombre: k.mesero.nombre } : k.cliente ? { nombre: k.cliente.nombre } : null, horaSalida: k.salida, items: k.items, notas: '' }));
+  prep.push(...koms);
   const caja = (S._cocPdv || []).map(v => ({ _pdv: 1, id: v.id, folio: v.folio, tipoTxt: v.tipo === 'llevar' ? '🥡 Para llevar' : '🧾 Mostrador', comprador: v.cliente ? { nombre: v.cliente.nombre } : null, horaSalida: v.cocina.salida, items: v.items, notas: v.cocina.recoge ? 'Pasa a las ' + v.cocina.recoge : '' }));
   prep.push(...caja); prep.sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
   const quien = x => esc(String((x.comprador && x.comprador.nombre) || '').split(' ')[0]);
@@ -2797,7 +3236,7 @@ function pintarCocina() {
     return `<div class="cTarj ${color}" id="ct_${x.id}"><div class="cab"><span class="folio">${esc(x.folio)}</span><span class="tipo">${cocTipo(x)}</span>${x.porTelefono ? '<span class="tipo">📞</span>' : ''}
         <span class="tiempo">${x.horaSalida ? (falta < 0 ? '⚠️ ' : '') + cocMin(falta) : ''}</span></div>
       <div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}${x.horaSalida ? ' · sale ' + hora(x.horaSalida) : ''}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
-      <div class="pie"><button class="bImp" onclick="${x._pdv ? `pdvImprimirComandaCaja('${x.id}')` : `imprimirComanda('${x.id}')`}" aria-label="Imprimir">🖨️</button><button class="bListo" onclick="${x._pdv ? `pdvCocinaListo('${x.id}')` : `act(this,()=>cocListo('${x.id}'))`}">✅ Listo</button></div></div>`;
+      <div class="pie"><button class="bImp" onclick="${x._kom ? `pdvImprimirComandaK('${x.id}')` : x._pdv ? `pdvImprimirComandaCaja('${x.id}')` : `imprimirComanda('${x.id}')`}" aria-label="Imprimir">🖨️</button><button class="bListo" onclick="${x._kom ? `pdvComandaLista('${x.id}')` : x._pdv ? `pdvCocinaListo('${x.id}')` : `act(this,()=>cocListo('${x.id}'))`}">✅ Listo</button></div></div>`;
   };
   const tPago = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.estado === 'PAGO_ENVIADO' ? '🔎 Revisando pago' : '💳 Esperando pago'}</span></div>`;
   const tListo = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.tipoEntrega === 'recoger' ? 'Espera al cliente' : x.repartidor ? '🛵 ' + esc(x.repartidor.nombre.split(' ')[0]) : 'Espera repartidor'}</span></div>`;
@@ -4310,12 +4749,13 @@ function agregarHoja() {
   const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota, s.mods.map(m => m.g + ':' + m.o.map(o => o.nombre).sort().join('+')).join(',')].join('|');
   const it = c.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, mods: s.mods, cant: 0 };
   it.precio = s.unit; it.antes = s.antes; it.promo = s.promo; it.base = s.base;
-  it.cant = Math.min(50, it.cant + S._hoja.cant);
+  const cantAg = Math.min(50, it.cant + S._hoja.cant) - it.cant;
+  it.cant += cantAg;
   c.items[key] = it;
   guardarCarritos();
   cerrarModal();
   toast('Agregado: ' + it.nombre + ' ✓');
-  if (S.vista === 'caja') { pdvTrasAgregar(); return; }
+  if (S.vista === 'caja') { pdvTrasAgregar(it, cantAg); return; }
   pintarProductos();
   $('#barraC').innerHTML = barraCarrito(n.id);
 }
