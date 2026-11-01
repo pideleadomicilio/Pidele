@@ -400,6 +400,18 @@ body.enCaja{padding-bottom:0}
 .pdvCli summary{cursor:pointer;font-weight:800;margin:8px 0 6px}
 .pdvChk{display:flex;gap:8px;align-items:center;margin-top:8px;font-weight:700}
 .pdvChk input{width:20px;height:20px}
+.tabChips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.tabChips button{flex:none;border:1.5px solid var(--ln);background:var(--card,#fff);border-radius:999px;padding:9px 16px;font-weight:700;font-size:15px;color:var(--tx);cursor:pointer}
+.tabChips button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.tabKpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media(min-width:760px){.tabKpis{grid-template-columns:repeat(4,1fr)}.tabGrid{grid-template-columns:repeat(2,1fr)!important}}
+.tabKpi{background:var(--card,#fff);border-radius:16px;padding:12px 14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.tabKpi span{font-size:12px;font-weight:800;color:var(--tx2,#666);text-transform:uppercase;letter-spacing:.3px}
+.tabKpi b{display:block;font-size:26px;margin-top:4px;line-height:1.1}.tabKpi small{display:block;color:var(--tx2,#666);font-weight:600;margin-top:2px}
+.tabGrid{display:grid;grid-template-columns:1fr;gap:12px}
+.tabNeg{background:var(--card,#fff);border-radius:16px;padding:14px;border-left:6px solid var(--pri);box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.tabNeg2{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.tabNeg2 small{display:block;color:var(--tx2,#666);font-size:12px}.tabNeg2 b{font-size:17px}
+.tabMini{display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:8px;font-size:14px}
 .pdvSaldo{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:17px}
 .pdvSaldo b{font-size:22px}
 .pdvNum{font-size:22px;font-weight:800}
@@ -836,7 +848,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.34.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.35.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1134,6 +1146,8 @@ function navRol() {
     else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados']) : v === 'promos' ? puedo('promos') : v === 'miNegocio' ? puedo('ajustes') : true);
     // meseros (sin permiso de pedidos): entran directo a sus mesas
     if (S.negocio && !puedo('pedidos') && pdvTieneAcceso()) l = [['caja', 'recibo', 'Mesas']].concat(l);
+    // 2.35: dueño de varios negocios: su tablero primero
+    if (esDuenoVarios()) l = [['tablero', 'grafica', 'Tablero']].concat(l);
   }
   // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
   return esAdminU() && r !== 'admin' ? l.filter(x => x[0] !== 'perfil').concat([['_panel', 'grafica', 'Mi panel']]) : l;
@@ -1141,12 +1155,12 @@ function navRol() {
 const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
-  pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, repartidores: vRepartidores, oferta: vOferta,
+  pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
   negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
-const AUTO = ['inicio', 'pedidos', 'pedido', 'negPedidos', 'cocina', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
+const AUTO = ['tablero', 'inicio', 'pedidos', 'pedido', 'negPedidos', 'cocina', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
 // pantallas a pantalla completa (sin barra inferior)
 const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'capturaTel', 'cocina', 'caja', 'oferta'];
 
@@ -5519,6 +5533,94 @@ async function aceptarOferta(tok) {
   const r = await api('aceptarOferta', { tok });
   toast('¡Servicio aceptado! 🛵');
   ir('pedido', r.id);
+}
+
+/* ============ TABLERO DEL DUEÑO (2.35) ============ */
+/*
+ * Hoy, en todos sus negocios: ventas (caja + app), órdenes completadas y abiertas, y su personal (quién está, quién llegó
+ * a tiempo, retardos y quién falta). Arriba se elige "Todos" o un negocio para ver su detalle y entrar a administrarlo.
+ */
+const esDuenoVarios = () => rolActual() === 'negocio' && (S.negocios || []).filter(n => n.dueno).length > 1;
+/** Ventas de caja de hoy y cuentas abiertas (Firestore), para los negocios con punto de venta. */
+async function tabCaja(ids) {
+  if (!ids.length) return {};
+  try {
+    await pdvCargarSdk();
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    if (!PDV.db) { PDV.db = firebase.firestore(); try { await PDV.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { } }
+    const au = firebase.auth();
+    await new Promise(ok => { const off = au.onAuthStateChanged(() => { off(); ok(); }); });
+    const negs = async () => { try { return ((await au.currentUser.getIdTokenResult()).claims || {}).negs || {}; } catch (e) { return {}; } };
+    let n = au.currentUser && au.currentUser.uid === S.user.id ? await negs() : {};
+    if (ids.some(id => !n[id]) && navigator.onLine) { const k = await api('pdvLlave'); await au.signInWithCustomToken(k.token); ls('pdvLlaveT', Date.now()); n = await negs(); }
+    const hoy = pdvHoy(), out = {};
+    await Promise.all(ids.filter(id => n[id]).map(async id => {
+      const neg = PDV.db.collection('negocios').doc(id);
+      const [dia, ab] = await Promise.all([neg.collection('dias').doc(hoy).get(), neg.collection('ventas').where('estado', '==', 'abierta').get()]);
+      const x = dia.exists ? dia.data() : {};
+      out[id] = { ventas: pdvR(x.ventas), tickets: Math.round(x.n || 0), abiertas: ab.docs.length, abiertasMonto: pdvR(ab.docs.reduce((s, d) => { const c = d.data(); return s + (pdvTotalCuenta(c) - (c.pagado || 0)); }, 0)) };
+    }));
+    return out;
+  } catch (e) { console.warn(e); return {}; }
+}
+async function vTablero() {
+  const d = await api('tableroDueno');
+  const caja = await tabCaja(d.negocios.filter(n => n.caja).map(n => n.id));
+  d.negocios.forEach(n => {
+    const c = caja[n.id] || { ventas: 0, tickets: 0, abiertas: 0, abiertasMonto: 0 };
+    n.cajaD = c;
+    n.ventas = pdvR(c.ventas + n.app.ventas); n.completadas = c.tickets + n.app.pedidos; n.abiertas = c.abiertas + n.app.activos;
+  });
+  S._tab = d;
+  if (S.vista === 'tablero') pintarTablero();
+}
+function pintarTablero() {
+  const d = S._tab; if (!d) return;
+  const l = d.negocios, sel = l.find(n => n.id === S._tabSel) || null;
+  const vis = sel ? [sel] : l;
+  const sum = k => vis.reduce((s, n) => s + n[k], 0), per = k => vis.reduce((s, n) => s + n.personal[k], 0);
+  const kpi = (t, v, sub, ico) => `<div class="tabKpi"><div class="row between"><span>${t}</span><span style="font-size:20px">${ico}</span></div><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const EST = { presente: ['🟢', 'Llegó a tiempo'], retardo: ['🟠', 'Llegó tarde'], por_llegar: ['⏳', 'Por llegar'], sin_decidir: ['🔴', 'No ha llegado'], falta: ['🔴', 'Falta'], descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], permiso_goce: ['📝', 'Permiso'], permiso_sin: ['📝', 'Permiso'] };
+  const personal = n => n.personal.lista.length ? n.personal.lista.map(p => { const [i, t] = EST[p.estado] || ['•', p.estado];
+    return `<div class="pdvFila g"><span>${i} ${esc(p.nombre)}<small>${p.salida ? 'Salió ' + hora(p.salida) : p.entrada ? 'Entró ' + hora(p.entrada) + (p.minRetardo ? ' · ' + p.minRetardo + ' min tarde' : '') : t}${p.horario && !p.entrada ? ' · entra ' + horaTxt(p.horario.e) : ''}</small></span><span></span><span class="small">${p.salida ? 'Salió' : t}</span></div>`; }).join('')
+    : '<div class="small muted">Sin personal registrado. Se da de alta en Caja → 👥 Personal.</div>';
+  const tarjeta = n => `<div class="tabNeg">
+      <div class="row between" style="gap:8px"><b style="font-size:17px">${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:30px;height:30px;border-radius:9px;object-fit:cover;vertical-align:middle;margin-right:6px">` : '🏪 '}${esc(n.nombre)}</b><span class="tag ${n.abierto ? 't-ok' : 't-gray'}">${n.abierto ? 'Abierto' : 'Cerrado'}</span></div>
+      <div class="tabNeg2"><div><small>Ventas</small><b>${money(n.ventas)}</b></div><div><small>Completadas</small><b>${n.completadas}</b></div><div><small>Abiertas</small><b>${n.abiertas}</b></div><div><small>Personal</small><b>${n.personal.presentes}/${n.personal.total}</b></div></div>
+      ${n.app.porAceptar ? `<div class="aviso warn small" style="margin:6px 0 0">📥 ${n.app.porAceptar} pedido(s) de la app por aceptar</div>` : ''}
+      <button class="btn pri pill full" style="margin-top:10px" onclick="S._tabSel='${n.id}';pintarTablero();window.scrollTo(0,0)">Ver detalle</button></div>`;
+  const detalle = n => `<div class="card"><h3 style="margin:0 0 6px">💵 Ventas de hoy</h3>
+      <div class="tot"><span>🧾 Caja (mostrador y mesas)</span><b>${n.caja ? money(n.cajaD.ventas) + ' · ' + n.cajaD.tickets + ' tickets' : '—'}</b></div>
+      <div class="tot"><span>🛵 Pedidos de la app</span><b>${money(n.app.ventas)} · ${n.app.pedidos} entregados</b></div>
+      <div class="tot"><span>🍽️ Cuentas abiertas</span><b>${n.caja ? n.cajaD.abiertas + (n.cajaD.abiertasMonto ? ' · ' + money(n.cajaD.abiertasMonto) : '') : '—'}</b></div>
+      <div class="tot"><span>📦 Pedidos de la app en curso</span><b>${n.app.activos}${n.app.porAceptar ? ' (' + n.app.porAceptar + ' por aceptar)' : ''}</b></div></div>
+    <div class="card"><h3 style="margin:0 0 6px">👥 Personal hoy</h3>
+      <div class="tabMini"><span>🟢 <b>${n.personal.presentes}</b> trabajando</span><span>✅ <b>${n.personal.aTiempo}</b> a tiempo</span><span>🟠 <b>${n.personal.retardos}</b> tarde</span><span>⏳ <b>${n.personal.porLlegar}</b> por llegar</span><span>🔴 <b>${n.personal.faltan}</b> no han llegado</span></div>
+      ${personal(n)}</div>
+    <div class="btns">${n.caja ? `<button class="btn pri pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','caja'))">🧾 Caja de ${esc(n.nombre.split(' ')[0])}</button>` : ''}<button class="btn pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">📥 Pedidos</button></div>`;
+  html(`<div class="row between"><h2>📊 Tablero</h2><button class="btn sm" onclick="act(this,vTablero)">↻ Actualizar</button></div>
+    <div class="muted small" style="margin:-6px 0 10px">Hoy, ${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · se actualiza solo</div>
+    <div class="tabChips"><button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>
+    <div class="tabKpis">
+      ${kpi('Ventas de hoy', money(sum('ventas')), sel ? '' : 'En ' + l.length + ' negocios', '💵')}
+      ${kpi('Órdenes completadas', sum('completadas'), 'Caja y app', '🧾')}
+      ${kpi('Órdenes abiertas', sum('abiertas'), 'Mesas y pedidos en curso', '🍽️')}
+      ${kpi('Personal trabajando', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥')}
+    </div>
+    ${sel ? detalle(sel) : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
+    ${l.some(n => n.caja) ? `<div class="btns"><button class="btn pill full" onclick="act(this,tabReportes)">📈 Reportes de ${sel ? esc(sel.nombre) : 'todos mis negocios'}</button></div>` : ''}`);
+}
+/** Entra a un negocio (lo deja seleccionado) y abre su caja o sus pedidos. */
+async function tabEntrar(id, vista) {
+  if (id !== S.negActivo) { S.negActivo = id; ls('negActivo', id); fijarSesionNeg(await api('yo')); S._prods = null; S._grupos = null; S._promosNeg = null; S.firma = ''; }
+  if (vista === 'caja') { PDV.tab = 'hoy'; PDV.cuentaId = ''; }
+  pintarNav(); ir(vista);
+}
+async function tabReportes() {
+  const sel = S._tab.negocios.find(n => n.id === S._tabSel), base = sel && sel.caja ? sel : S._tab.negocios.find(n => n.caja && n.id === S.negActivo) || S._tab.negocios.find(n => n.caja);
+  PDV.rep = { per: 'hoy', neg: sel && sel.caja ? sel.id : 'todos' };
+  await tabEntrar(base.id, 'caja');
+  PDV.tab = 'reportes'; pintarCaja();
 }
 
 /** El negocio elige a cuál de sus repartidores manda el pedido. */
