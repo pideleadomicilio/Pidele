@@ -836,7 +836,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.33.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.34.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1431,8 +1431,9 @@ async function entrar() {
 }
 
 /* ---------- planes (2.10): Donado, Básico, Plus y Pro, configurables en Ajustes ---------- */
-const PLAN_ICO = { donado: '🎁', basico: '🏪', plus: '📣', pro: '🚀' };
-const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Plus', pro: 'Pro', completo: 'Plus', '': 'Plus' };
+const PLAN_ICO = { donado: '🎁', basico: '🏪', plus: '📣', pro: '🚀', ultra: '💎' };
+const PLANES_PAGO = ['basico', 'plus', 'pro', 'ultra'];
+const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Plus', pro: 'Pro', ultra: 'Ultra', completo: 'Plus', '': 'Plus' };
 function planesCfg() { return (S._susc && S._susc.planes) || (S.conf && S.conf.planes) || {}; }
 function nombrePlan(id, P) { return ((P || planesCfg())[id] || {}).nombre || PLAN_NOM[id] || id; }
 /** Lo que incluye un plan, en una línea. */
@@ -1440,13 +1441,14 @@ function textoPlan(p) {
   if (!p) return '';
   const cats = 'Apareces en ' + p.categorias + (p.categorias > 1 ? ' categorías' : ' categoría');
   if (!p.anuncios) return cats + '. Sin anuncios en el banner de Inicio: tus promociones se ven en Promociones y dentro de tu negocio.';
+  const extra = p.id === 'ultra' ? ' Incluye punto de venta (caja, mesas, cocina, cortes y personal) y monedero de clientes.' : p.id === 'pro' ? ' Incluye punto de venta: caja, mesas, cocina, cortes y personal.' : '';
   return cats + '. ' + p.anuncios + (p.anuncios > 1 ? ' anuncios' : ' anuncio') + (p.fijo ? ' fijo por semana' : ' por día (lo cambias cuando quieras)') +
-    ' en el banner de Inicio, visibilidad x' + p.visibilidad + ' y ' + p.segundos + ' s en pantalla.';
+    ' en el banner de Inicio, visibilidad x' + p.visibilidad + ' y ' + p.segundos + ' s en pantalla.' + extra;
 }
 /** Tarjetas para elegir plan al registrar un negocio (se puede cambiar en el mes de prueba). */
 function eligePlanHTML() {
   const P = planesCfg(), sel = S._plan || 'plus';
-  return `<label class="f">Tu plan</label><div>${['basico', 'plus', 'pro'].filter(k => P[k]).map(k => `<div class="opcion ${sel === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${k}';this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.toggle('on',o===this))">
+  return `<label class="f">Tu plan</label><div>${PLANES_PAGO.filter(k => P[k]).map(k => `<div class="opcion ${sel === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${k}';this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.toggle('on',o===this))">
       <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${esc(textoPlan(P[k]))}</small></div></div>`).join('')}</div>
     <div class="muted small" style="margin-top:6px">Puedes cambiarlo cuando quieras durante tu mes de prueba.</div>`;
 }
@@ -2139,7 +2141,7 @@ async function pdvConectar() {
       ls('pdvLlaveT', Date.now());
       letras = await leer();
     } catch (e) {
-      if (!letras) throw new Error(/plan Pro/.test(e.message) ? e.message : 'Para usar la caja la primera vez en este equipo necesitas internet. (' + e.message + ')');
+      if (!letras) throw new Error(/planes Pro/.test(e.message) ? e.message : 'Para usar la caja la primera vez en este equipo necesitas internet. (' + e.message + ')');
     }
   }
   if (!letras) throw new Error('Tu cuenta no tiene acceso a la caja de ' + S.negocio.nombre);
@@ -4781,15 +4783,15 @@ function btAjustesHTML(volver) {
 
 /* ============ MODO COCINA (2.25) ============ */
 /* Pantalla para la cocina (plan Pro): pedidos por aceptar, en preparación y listos, en letra grande y sin precios. */
-const cocTieneAcceso = () => esAdminU() || (S.negocio && S.negocio.plan === 'pro');
+const cocTieneAcceso = () => esAdminU() || (S.negocio && ['pro', 'ultra'].includes(S.negocio.plan));
 function botonCocina() {
   if (!puedo('pedidos')) return '';
   if (cocTieneAcceso()) return `<button class="btn pri pill" style="flex:1" onclick="ir('cocina')">🍳 Modo cocina</button>`;
   return esDueno() ? `<button class="btn pill" style="flex:1" onclick="cocinaSoloPro()">🍳 Modo cocina 🔒</button>` : '';
 }
 function cocinaSoloPro() {
-  modal(`<div style="text-align:center"><div style="font-size:46px">🍳</div><h2 style="margin:4px 0">Modo cocina · Plan Pro</h2>
-    <div class="muted" style="margin:6px 0 12px">Una pantalla para tu cocina: pedidos en letra grande, colores por tiempo, aviso con sonido, botón de “Listo” e impresión de comandas. Viene incluido en el plan Pro.</div>
+  modal(`<div style="text-align:center"><div style="font-size:46px">🍳</div><h2 style="margin:4px 0">Modo cocina · Planes Pro y Ultra</h2>
+    <div class="muted" style="margin:6px 0 12px">Una pantalla para tu cocina: pedidos en letra grande, colores por tiempo, aviso con sonido, botón de “Listo” e impresión de comandas. Viene incluido en los planes Pro y Ultra, junto con la caja.</div>
     <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();ir('suscripcion')">Ver planes</button><button class="btn pill full" onclick="cerrarModal()">Ahora no</button></div></div>`);
 }
 const cocCfg = () => Object.assign({ papel: 58, auto: false, sonido: true }, ls('cocina') || {});
@@ -7179,6 +7181,7 @@ async function enviarAlta(tipo) {
 /** Sucursal con descuento: si se conserva y por qué. */
 function avisoSucursal(si) {
   if (!si) return '';
+  if (si.tipo === 'otro') return si.aplica ? `<div class="aviso ok">🏪 <b>Otro negocio de tu cuenta: ${si.descuento}% de descuento</b> en tu plan (tu primer negocio, ${esc(si.base)}, paga completo).</div>` : '';
   return si.aplica ? `<div class="aviso ok">🏪 <b>Sucursal de ${esc(si.base)}: ${si.descuento}% de descuento</b> en tu plan. Lo conservas mientras tu menú sea el mismo: puedes cambiar precios, fotos y disponibilidad, y agregar hasta ${si.max}% de productos nuevos (llevas ${si.nuevos} de ${si.total}, ${si.pctNuevos}%).</div>`
     : `<div class="aviso warn">🏪 <b>Sin descuento de sucursal:</b> ${esc(si.motivo || '')}. ${si.listaNuevos && si.listaNuevos.length ? 'Productos que no están en ' + esc(si.base) + ': ' + si.listaNuevos.slice(0, 8).map(esc).join(', ') + (si.listaNuevos.length > 8 ? '…' : '') + '.' : ''} Si vuelves a tener máximo ${si.max}% de productos nuevos, recuperas el ${si.descuento}%.</div>`;
 }
@@ -7194,7 +7197,7 @@ async function vEquipo() {
     ${d.negocios.map(n => `<div class="card row" style="gap:10px">${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:44px;height:44px;border-radius:12px;object-fit:cover">` : '<span style="font-size:30px">🏪</span>'}
       <div class="grow" style="min-width:0"><b>${esc(n.nombre)}</b> <span class="tag ${(EST[n.estado] || EST.pendiente)[0]}">${(EST[n.estado] || [0, n.estado])[1]}</span>
         <div class="muted small">${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}${n.plan !== 'donado' && n.precio ? ' · ' + money(n.precio) + '/mes' : ''}${n.vence ? ' · corte ' + fechaCorta(n.vence).split(' ').slice(0, 2).join(' ') : ''}${n.direccion ? ' · ' + esc(n.direccion) : ''}</div>
-        ${n.sucursal ? `<div class="small" style="margin-top:2px;color:${n.sucursal.aplica ? 'var(--ok)' : 'var(--warn)'};font-weight:700">${n.sucursal.aplica ? '🏪 Sucursal de ' + esc(n.sucursal.base) + ' · −' + n.sucursal.descuento + '% (' + n.sucursal.pctNuevos + '% de productos nuevos)' : '⚠️ Sin descuento: ' + esc(n.sucursal.motivo)}</div>` : ''}</div>
+        ${n.sucursal ? `<div class="small" style="margin-top:2px;color:${n.sucursal.aplica ? 'var(--ok)' : 'var(--warn)'};font-weight:700">${n.sucursal.aplica && n.sucursal.tipo === 'otro' ? '🏪 Otro negocio de tu cuenta · −' + n.sucursal.descuento + '%' : n.sucursal.aplica ? '🏪 Sucursal de ' + esc(n.sucursal.base) + ' · −' + n.sucursal.descuento + '% (' + n.sucursal.pctNuevos + '% de productos nuevos)' : '⚠️ Sin descuento: ' + esc(n.sucursal.motivo)}</div>` : ''}</div>
       ${n.id === S.negActivo ? '<span class="tag t-info">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}</div>`).join('')}
     <button class="btn pri pill" onclick="formSucursal()">${ico('mas', 's')} Agregar negocio o sucursal</button>
     <div class="muted small" style="margin:6px 2px 0">Cada negocio o sucursal tiene su propio plan, horario, ubicación y menú. Los nuevos los aprueba Pídele.</div>
@@ -7255,8 +7258,9 @@ function formSucursal() {
     <label class="f">Categoría</label><select class="i" id="suCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
     <label class="f">Copiar el menú de</label><select class="i" id="suCop"><option value="">No copiar (empiezo desde cero)</option>${d.negocios.map(n => `<option value="${n.id}" ${n.id === S.negActivo ? 'selected' : ''}>${esc(n.nombre)}</option>`).join('')}</select>
     <div class="muted small" style="margin-top:4px">Copia secciones, productos, fotos, opciones, logo, portada, horario y datos de pago. Después cambia lo que sea distinto (ubicación, precios…).</div>
+    ${S.conf && S.conf.descuentoOtroNegocio ? `<div class="aviso info" style="margin-top:8px">🏪 Un negocio distinto (con otro menú) paga <b>${S.conf.descuentoOtroNegocio}% menos</b> en su plan: tu primer negocio paga completo.</div>` : ''}
     ${S.conf && S.conf.descuentoSucursal ? `<div class="aviso ok" style="margin-top:8px">🏪 Si copias el menú, esta sucursal paga <b>${S.conf.descuentoSucursal}% menos</b> en su plan mientras siga siendo el mismo negocio: puedes cambiar precios, fotos y disponibilidad y agregar hasta ${S.conf.sucursalNuevosMax}% de productos nuevos.</div>` : ''}
-    <label class="f">Plan de este negocio</label><select class="i" id="suPlan">${['basico', 'plus', 'pro'].filter(k => P[k]).map(k => `<option value="${k}" ${k === 'plus' ? 'selected' : ''}>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</option>`).join('')}</select>
+    <label class="f">Plan de este negocio</label><select class="i" id="suPlan">${PLANES_PAGO.filter(k => P[k]).map(k => `<option value="${k}" ${k === 'plus' ? 'selected' : ''}>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</option>`).join('')}</select>
     <div class="aviso info" style="margin-top:12px">Queda <b>por aprobar</b> por Pídele. Mientras, entra a él para poner su ubicación y revisar el menú.</div>
     <div class="btns"><button class="btn pri pill" onclick="act(this,crearSucursalForm)">Crear</button><button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
   const c = $('#suCat'), base = d.negocios.find(n => n.id === S.negActivo); if (base && S.negocio && S.negocio.categoria) c.value = S.negocio.categoria;
@@ -8326,7 +8330,7 @@ async function vSuscripcion() {
   const prueba = textoPrueba(s.vence, !(d.pagos || []).some(x => x.estado === 'confirmado' && (x.meses > 0)));
   const P = d.planes || {}, cobro = rep ? '' : d.planSig || d.plan;
   const sinExtras = !rep && !((P[cobro] || {}).anuncios > 0), donado = !rep && d.plan === 'donado';
-  const masCaros = rep || d.cambioLibre ? [] : ['basico', 'plus', 'pro'].filter(k => P[k] && P[k].precio > (P[cobro] || {}).precio);
+  const masCaros = rep || d.cambioLibre ? [] : PLANES_PAGO.filter(k => P[k] && P[k].precio > (P[cobro] || {}).precio);
   html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
     ${prueba ? `<div class="aviso ok" id="avisoPrueba">${prueba}</div>` : ''}
     ${d.sucursal ? avisoSucursal(d.sucursal) : ''}
@@ -8392,7 +8396,7 @@ function seccionPlay(d) {
   if (!p.disponible) return `<div class="card"><b>Pago de tu ${rep ? 'mensualidad' : 'suscripción'}</b><div class="muted small">Comunícate con Pídele para mantener tu cuenta activa.</div>
     ${wa ? `<div class="btns"><a class="btn pri" href="${waLink(wa, 'Hola, quiero mantener activa mi cuenta de ' + (rep ? 'repartidor' : 'negocio') + ' en Pídele')}" target="_blank">${ico('chat', 's')} Escribir a Pídele</a></div>` : ''}</div>`;
   if (!playCobro()) return `<div class="aviso warn">Para suscribirte, actualiza la app de Pídele desde Google Play.</div>`;
-  const lista = rep ? ['repartidor'] : ['basico', 'plus', 'pro'].filter(k => P[k] && p.productos[k]);
+  const lista = rep ? ['repartidor'] : PLANES_PAGO.filter(k => P[k] && p.productos[k]);
   const cur = rep ? 'repartidor' : (d.planSig || d.plan);
   const pagadoHasta = s.vence && s.vence > Date.now() ? s.vence : 0;
   const antes = p.desde && Date.now() < p.desde;
@@ -8489,7 +8493,7 @@ function planesSusc(d, s) {
   const conPagos = (d.pagos || []).some(x => x.estado === 'confirmado' && x.meses > 0 && !x.donado);
   return `<div class="row between"><b>Tu plan</b><span class="tag t-pri">${PLAN_ICO[cur] || ''} ${esc(nombrePlan(cur, P))}</span></div>
     ${cur === 'donado' ? `<div class="muted small" style="margin-top:6px">${esc(textoPlan(P.donado))}</div>`
-    : `${['basico', 'plus', 'pro'].filter(k => P[k]).map(op).join('')}
+    : `${PLANES_PAGO.filter(k => P[k]).map(op).join('')}
     ${d.cambioLibre ? `<div class="muted small" style="margin-top:8px">${conPagos ? 'Elige tu plan antes de pagar.' : 'Estás en tu mes de prueba: cambia de plan cuando quieras, sin costo.'}</div>`
       : d.planSig ? `<div class="aviso warn" style="margin:8px 0 0">Pasas al plan ${esc(nombrePlan(d.planSig, P))} el <b>${fechaLarga(d.planDesde)}</b>; hasta entonces conservas tu plan ${esc(nombrePlan(cur, P))}. Tus próximos pagos ya son de ${money(P[d.planSig].precio)}. <button class="lnk small" onclick="act(this,()=>elegirPlanSusc('${cur}'))">Quedarme en ${esc(nombrePlan(cur, P))}</button></div>`
       : `<div class="muted small" style="margin-top:8px">Para subir de plan elígelo en “Plan con este pago”. Si bajas, conservas tu plan hasta tu fecha de corte.</div>`}`}
@@ -9264,7 +9268,7 @@ async function formInvitar(lista, tipo) {
     : `<div class="muted small" style="margin-bottom:6px">Le llega un enlace para crear su cuenta: queda aprobada al instante, sin pasar por “Por aprobar”.</div>
       <label class="f">Nombre del negocio</label><input class="i" id="ivN" maxlength="60">
       <label class="f">Teléfono del dueño (10 dígitos)</label><input class="i" id="ivT" type="tel" inputmode="numeric" maxlength="14">
-      <label class="f">Plan</label><div>${['donado', 'basico', 'plus', 'pro'].map(k => `<div class="opcion ${k === 'basico' ? 'on' : ''}" style="padding:10px 12px" onclick="${sel}S._ivPlan='${k}'"><span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(nombrePlan(k))}</b> <span class="muted small">· ${(planesCfg()[k] || {}).precio ? money(planesCfg()[k].precio) + '/mes' : 'sin costo'}</span></div></div>`).join('')}</div>`}
+      <label class="f">Plan</label><div>${['donado', ...PLANES_PAGO].map(k => `<div class="opcion ${k === 'basico' ? 'on' : ''}" style="padding:10px 12px" onclick="${sel}S._ivPlan='${k}'"><span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(nombrePlan(k))}</b> <span class="muted small">· ${(planesCfg()[k] || {}).precio ? money(planesCfg()[k].precio) + '/mes' : 'sin costo'}</span></div></div>`).join('')}</div>`}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,crearInvitacion)">Crear invitación</button></div>
     ${l.length ? `<h3>Invitaciones</h3>${l.map(x => `<div class="tot small"><span>${x.tipo === 'repartidor' ? '🛵' : '🏪'} ${esc(x.negocio)} · ${esc(x.telefono)}${x.tipo === 'repartidor' ? '' : ' · ' + esc(nombrePlan(x.plan || 'plus'))}<br><span class="muted">${fechaCorta(x.creado)}</span></span>
       <span style="text-align:right"><span class="tag ${EST[x.estado] || 't-gray'}">${esc(x.estado)}</span>${x.estado === 'pendiente' ? `<br><button class="lnk small" onclick='mandarInvitacion(${JSON.stringify(x).replace(/'/g, '&#39;')})'>Reenviar</button>` : ''}</span></div>`).join('')}` : ''}`);
@@ -9332,7 +9336,7 @@ function formPlanAdmin(negocioId, actual, nombre) {
   const P = planesCfg();
   modal(`<div class="row between"><h2 style="margin:0">📋 Plan</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:4px 0 10px">${esc(nombre)} · aplica al momento</div>
-    ${['donado', 'basico', 'plus', 'pro'].map(k => `<div class="opcion ${k === actual ? 'on' : ''}" onclick="act(null,async()=>{if('${k}'==='${actual}')return;await api('adminPlan',{negocioId:'${negocioId}',plan:'${k}'});cerrarModal();toast('Plan ${esc(nombrePlan(k))} ✓');pintar(true)})">
+    ${['donado', ...PLANES_PAGO].map(k => `<div class="opcion ${k === actual ? 'on' : ''}" onclick="act(null,async()=>{if('${k}'==='${actual}')return;await api('adminPlan',{negocioId:'${negocioId}',plan:'${k}'});cerrarModal();toast('Plan ${esc(nombrePlan(k))} ✓');pintar(true)})">
       <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(nombrePlan(k))} · ${(P[k] || {}).precio ? money(P[k].precio) + '/mes' : 'sin costo'}</b><small>${esc(textoPlan(P[k]))}</small></div></div>`).join('')}`);
 }
 /** Bonus de ranking (acuerdos comerciales o publicidad): suma puntos sin etiqueta visible, con vencimiento. */
@@ -9453,7 +9457,7 @@ function editorPlanes() {
   const P = S._planesCfg;
   return `<details class="card cfgG" data-planes="1"><summary class="row between" style="cursor:pointer;list-style:none"><b>📋 Planes de los negocios</b><span class="muted small"><span class="cfgN"></span>4 planes ›</span></summary>
     <div class="muted small" style="margin:6px 0 4px">“Anuncio fijo” = su anuncio se queda toda la semana (no lo puede cambiar en 7 días). La visibilidad multiplica cuántas veces sale en cada vuelta del banner. Donado solo lo asignas tú.</div>
-    ${['donado', 'basico', 'plus', 'pro'].map(k => `<div class="cfgF" data-txt="plan ${k} precio categorias anuncios visibilidad segundos" style="border-top:1px solid var(--ln);padding-top:8px;margin-top:8px">
+    ${['donado', ...PLANES_PAGO].map(k => `<div class="cfgF" data-txt="plan ${k} precio categorias anuncios visibilidad segundos" style="border-top:1px solid var(--ln);padding-top:8px;margin-top:8px">
       <b>${PLAN_ICO[k]} ${esc(nombrePlan(k, P))}</b>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">${CAMPOS_PLAN.map(([f, t]) => `<div><label class="f" style="margin-top:4px">${t}</label><input class="i plCfg" type="number" min="0" step="${f === 'visibilidad' ? '0.5' : '1'}" data-p="${k}" data-f="${f}" value="${esc((P[k] || {})[f] ?? '')}" oninput="cfgCambio()"></div>`).join('')}
         <label class="opc" style="align-self:end"><input type="checkbox" class="plCfg" data-p="${k}" data-f="fijo" ${(P[k] || {}).fijo ? 'checked' : ''} onchange="cfgCambio()"> <span>Anuncio fijo semanal</span></label></div></div>`).join('')}
