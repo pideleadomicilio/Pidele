@@ -72,6 +72,11 @@ main{max-width:720px;margin:0 auto;padding:14px 16px 24px}
 nav{position:fixed;bottom:0;left:0;right:0;z-index:60;transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0);will-change:transform;background:var(--card);border-top:1px solid var(--ln);display:none;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom))}
 nav button{flex:1;max-width:110px;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;color:#9A9486;padding:2px;cursor:pointer;position:relative}
 nav button.on{color:var(--pri)}
+nav .navFab{color:var(--pri);flex:1.35;white-space:nowrap}
+nav .navFab .fab{position:relative;width:60px;height:60px;margin-top:-30px;border-radius:50%;background:var(--pri);border:4px solid var(--card);box-shadow:0 6px 16px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+nav .navFab .fab svg{width:36px;height:36px}
+nav .navFab .fab i{position:absolute;top:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:#F4EBD6;color:var(--pri);font-style:normal;font-weight:900;font-size:15px;line-height:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+nav .navFab:active .fab{transform:scale(.94)}
 /* iPhone: mientras el teclado está abierto se ocultan la barra de abajo y la del carrito (iOS las deja "flotando" a media pantalla) */
 body.teclado nav,body.teclado .barra{display:none!important}
 nav .badge,.badgeC{position:absolute;top:-4px;right:calc(50% - 22px);background:var(--pri);color:#fff;border:2px solid var(--card);border-radius:999px;font-size:10px;font-weight:800;min-width:19px;height:19px;display:flex;align-items:center;justify-content:center;padding:0 4px}
@@ -548,6 +553,7 @@ input.i,select.i,textarea.i{min-width:0;max-width:100%}
   nav button:hover{background:var(--pri-xs)}
   nav button.on{background:var(--pri-xs)}
   nav .badge{top:4px;right:calc(50% - 26px)}
+  nav .navFab .fab{margin-top:0;width:50px;height:50px;border-width:0}nav .navFab .fab svg{width:30px;height:30px}
   main{max-width:1180px;padding:22px 32px 48px}
   body[data-rol="negocio"] main,body[data-rol="repartidor"] main,body[data-rol="moderador"] main{max-width:980px}
   .grid2{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
@@ -866,7 +872,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.37.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.38.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1202,8 +1208,10 @@ function navRol() {
   if (r === 'negocio') {
     if (!S.negocio) l = [['perfil', 'user', 'Perfil']];
     else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados']) : v === 'promos' ? puedo('promos') : v === 'miNegocio' ? puedo('ajustes') : true);
-    // meseros (sin permiso de pedidos): entran directo a sus mesas
-    if (S.negocio && !puedo('pedidos') && pdvTieneAcceso()) l = [['caja', 'recibo', 'Mesas']].concat(l);
+    // 2.38: quien puede vender tiene su pestaña "Vender" (caja sencilla); si el plan no trae caja, "Nuevo pedido" (por teléfono).
+    // Con permiso de pedidos, Pedidos sigue siendo la primera (para no perder los de la app)
+    const tabV = S.negocio && pdvTieneAcceso() ? ['vender', 'fab', 'Nuevo pedido'] : S.negocio && puedo('pedidos') && S.negocio.estado === 'activo' ? ['nuevoPedido', 'fab', 'Nuevo pedido'] : null;
+    if (tabV) l = l[0] && l[0][0] === 'negPedidos' ? [l[0], tabV].concat(l.slice(1)) : [tabV].concat(l);
     // 2.35: dueño de varios negocios: su tablero primero
     if (esDuenoVarios()) l = [['tablero', 'grafica', 'Tablero']].concat(l);
   }
@@ -1214,7 +1222,7 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
-  negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, vender: vVender, nuevoPedido: vNuevoPedido, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
@@ -1333,7 +1341,7 @@ async function responderEquipo(id, aceptar) {
   if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
   else { toast('Invitación rechazada'); pintar(true); }
 }
-const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'tomar órdenes de mesa y cobrar', gerente: 'autorizar cancelaciones con su código' };
+const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'vender: tomar órdenes (mostrador y mesas) y cobrar', gerente: 'autorizar cancelaciones con su código' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
@@ -1362,6 +1370,8 @@ function carritosLista() { return Object.values(S.carritos || {}).filter(c => c 
 function guardarCarritos() { Object.keys(S.carritos).forEach(k => { if (!Object.keys(S.carritos[k].items || {}).length) delete S.carritos[k]; }); ls('carritos', S.carritos); }
 function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
 
+// logo de Pídele (la campana de servir con líneas de velocidad), en trazo crema
+const LOGO_PIDELE = '<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="#F4EBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h8M6 23h7M8 28h5"/><path d="M15 33a12.5 12.5 0 0 1 25 0z"/><circle cx="27.5" cy="17.5" r="2"/><path d="M12 36h31"/></svg>';
 function pintarNav() {
   const rol = rolActual();
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
@@ -1380,7 +1390,11 @@ function pintarNav() {
   $('#nav').style.display = verNav ? 'flex' : 'none';
   document.body.classList.toggle('sinNav', !verNav);
   const raiz = { pedido: rol === 'comprador' ? 'pedidos' : rol === 'negocio' ? 'negPedidos' : rol === 'admin' || rol === 'moderador' ? 'adminPedidos' : 'entregas' }[S.vista] || S.vista;
-  $('#nav').innerHTML = navRol().map(([v, i, t]) => {
+  // 2.38: el botón de nuevo pedido (logo de Pídele) va al centro de la barra, más grande
+  const items = navRol().slice(), iF = items.findIndex(x => x[1] === 'fab');
+  if (iF >= 0) { const f = items.splice(iF, 1)[0]; items.splice(Math.floor(items.length / 2), 0, f); }
+  $('#nav').innerHTML = items.map(([v, i, t]) => {
+    if (i === 'fab') return `<button class="navFab ${raiz === v || (v === 'vender' && S.vista === 'caja' && S.params === 'simple') ? 'on' : ''}" onclick="ir('${v}')" aria-label="${t}"><span class="fab">${LOGO_PIDELE}<i>+</i></span>${t}</button>`;
     const badge = (v === 'negPedidos' || v === 'disponibles') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
     return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
@@ -1743,7 +1757,7 @@ function abrirDesdeUrl(url) {
   }
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio'))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -2355,6 +2369,14 @@ function pdvRepintar() {
 }
 
 /* ---------- pantalla ---------- */
+/** 2.38 · Pestaña "Vender": la caja en modo sencillo (vender, mesas y mis ventas). */
+function vVender() { history.replaceState({ v: 'caja', p: 'simple' }, ''); return ir('caja', 'simple', true); }
+/** Pestaña "Nuevo pedido" (negocios sin caja): abre Pedidos con la captura del pedido por teléfono. */
+async function vNuevoPedido() {
+  history.replaceState({ v: 'negPedidos' }, '');
+  await ir('negPedidos', undefined, true);
+  if (S.vista === 'negPedidos') formPedidoTel();
+}
 async function vCaja() {
   if (!pdvTieneAcceso()) { ir(inicioRol()); return; }
   clearTimeout(PDV._salirT);
@@ -2389,20 +2411,20 @@ function pdvTotal() { return pdvR(subtotalCarrito(pdvCarrito())); }
 function pintarCaja() {
   if (S.vista !== 'caja') return;
   PDV._sucio = false;
-  const c = PDV.caja, cajero = pdvPuede('dc');
-  const tabs = [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
+  const c = PDV.caja, cajero = pdvPuede('dc'), simple = S.params === 'simple';
+  const tabs = simple ? [].concat(pdvPuede('dcm') ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Mis ventas']]) : [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
     cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('d') || (PDV.gid && pdvPuede('cg') && monCfg().activo) ? [['monedero', '👛 Monedero' + (PDV.gid ? '' : ' 🔒')]] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy'], ['reportes', '📈 Reportes']] : [], pdvPuede('dg') ? [['personal', '👥 Personal']] : []);
-  if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = cajero ? 'vender' : tabs[0][0];
+  if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = tabs[0][0];
   const t = PDV.tab;
   const sinRed = !navigator.onLine;
   const y = window.scrollY;
   html(`<div class="pdv">
-    <div class="pdvBar"><h1>🧾 ${esc(S.negocio.nombre)}</h1>
+    <div class="pdvBar"><h1>${simple ? '🛒' : '🧾'} ${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno">${c ? 'Turno ' + c.turno + ' · ' + esc(c.abre.nombre.split(' ')[0]) : 'Caja cerrada'}</span>
-      ${pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button><button onclick="ir(puedo('pedidos') ? 'negPedidos' : 'perfil')">Salir</button></div>
+      ${pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}<button onclick="ir(puedo('pedidos') ? 'negPedidos' : 'perfil')">Salir</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código personal para abrir y cerrar caja. <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
-    <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' && pdvVentasTurno().length ? ' (' + pdvVentasTurno().filter(v => v.estado !== 'cancelada').length + ')' : ''}</button>`).join('')}</div>
+    <div class="tabs pdvTabs">${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' ? ((n => n ? ' (' + n + ')' : '')(pdvVentasTurno().filter(v => v.estado !== 'cancelada' && (!simple || [v.por, v.mesero].some(x => x && x.uid === S.user.id))).length)) : ''}</button>`).join('')}</div>
     ${PDV.cuentaId ? pdvVistaCuenta() : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : t === 'reportes' ? pdvVistaReportes() : t === 'personal' ? pdvVistaPersonal() : t === 'monedero' ? monVista() : pdvVistaCaja()}
   </div>`);
   window.scrollTo(0, y);
@@ -2624,8 +2646,9 @@ function pdvVentasTurno() { return PDV.ventas.filter(v => v.estado === 'pagada' 
 const kpiHTML = (t, v, sub, ico) => `<div class="tabKpi"><div class="row between"><span>${t}</span><span style="font-size:20px">${ico}</span></div><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
 function pdvVistaVentas() {
   if (!PDV.caja) return pdvSinCaja();
-  const l = pdvVentasTurno(), otros = PDV.pagosFis.filter(p => p.cajaVenta !== PDV.caja.id && !p.anulado);
-  if (!l.length && !otros.length) return '<div class="vacio"><span class="big">🧾</span>Aún no hay ventas en este turno</div>';
+  const simple = S.params === 'simple', mia = v => [v.por, v.mesero].some(x => x && x.uid === S.user.id);
+  const l = pdvVentasTurno().filter(v => !simple || mia(v)), otros = simple ? [] : PDV.pagosFis.filter(p => p.cajaVenta !== PDV.caja.id && !p.anulado);
+  if (!l.length && !otros.length) return `<div class="vacio"><span class="big">🧾</span>${simple ? 'Aún no tienes ventas en este turno' : 'Aún no hay ventas en este turno'}</div>`;
   const kom = v => v.cocina && v.cocina.comandaId ? PDV.comandas.find(k => k.id === v.cocina.comandaId) : null;
   const estCoc = v => { const k = kom(v); return k ? k.estado : v.cocina ? v.cocina.estado : ''; };
   const enCoc = v => { const e = estCoc(v); return v.estado !== 'cancelada' && e && !['listo', 'entregada'].includes(e); };
@@ -2648,7 +2671,7 @@ function pdvVistaVentas() {
       ${c ? '' : `<div class="small" style="margin-top:2px">${(v.pagos || []).map(p => PDV_MET[p.metodo] + ' ' + money(p.monto)).join(' · ')}${v.propina ? ' · propina ' + money(v.propina) : ''}</div>`}</div>`;
   };
   return `<div class="tabKpis">
-      ${kpiHTML('Vendido en el turno', money(total), 'Turno ' + PDV.caja.turno + ' · desde ' + hora(PDV.caja.abre.ts), '💵')}
+      ${kpiHTML(simple ? 'Vendí en el turno' : 'Vendido en el turno', money(total), 'Turno ' + PDV.caja.turno + ' · desde ' + hora(PDV.caja.abre.ts), '💵')}
       ${kpiHTML('Ventas', ok.length, canc.length ? canc.length + ' cancelada(s)' : 'Sin cancelaciones', '🧾')}
       ${kpiHTML('Ticket promedio', money(ok.length ? pdvR(total / ok.length) : 0), '', '📊')}
       ${kpiHTML('En cocina', ok.filter(enCoc).length, prop ? 'Propinas ' + money(prop) : 'Pedidos en preparación', '👩‍🍳')}
@@ -4495,7 +4518,7 @@ function monVista() {
     <div class="muted" style="margin-bottom:12px">Tus clientes ganan cashback en cada compra, recargan saldo con bono y suben de nivel con sus visitas. Sirve en todos tus negocios.</div>
     ${dueno ? '<button class="btn pri pill" onclick="monConfig()">Activar y configurar</button>' : '<div class="small muted">El dueño lo activa desde aquí.</div>'}</div>`;
   const rs = (PDV.recargas || []).slice().sort((a, b) => b.ts - a.ts);
-  return `<div class="card"><label class="f" style="margin-top:0">Buscar cliente por teléfono</label>
+  return `<div class="card"><div class="row between"><label class="f" style="margin-top:0">Buscar cliente por teléfono</label><button class="btn sm pri" onclick="monFormCliente()">➕ Nuevo cliente</button></div>
       <div class="row" style="gap:8px"><input class="i" id="monQ" inputmode="tel" maxlength="14" placeholder="10 dígitos" value="${esc(PDV.monQ || '')}" onkeydown="if(event.key==='Enter')act(null,monBuscar)" style="flex:1"><button class="btn pri" onclick="act(this,monBuscar)">Buscar</button></div></div>
     <div id="monCli">${PDV.monCli ? monCardCliente(PDV.monCli) : ''}</div>
     <div class="card"><div class="row between"><b>💳 Recargas de este turno</b>${PDV.caja ? '<button class="btn sm pri" onclick="monFormRecarga(\'\')">Nueva recarga</button>' : ''}</div>
@@ -4503,6 +4526,31 @@ function monVista() {
         <span>${r.estado !== 'cancelada' ? `<button class="btn sm" onclick="monImprimirRecarga('${r.id}')">🖨️</button> <button class="btn sm err" onclick="act(this,()=>monCancelarRecarga('${r.id}'))">Cancelar</button>` : ''}</span><b>${money(r.monto)}</b></div>`).join('') || '<div class="small muted">Aún no hay recargas.</div>'}</div>
     <div class="card small muted">Cashback ${cfg.cashback}% · vence a los ${cfg.vigencia} días · bono ${cfg.bonoPct}% al recargar ${money(cfg.bonoDesde)} o más · con ${cfg.visitas} visitas al mes gana +${cfg.extra}%. Lo recargado no vence.
       ${dueno ? '<div style="margin-top:6px"><button class="btn sm" onclick="monConfig()">⚙️ Configurar</button></div>' : ''}</div>`;
+}
+/** 2.38 · Registra a un cliente en el monedero (sin compra) y le manda por WhatsApp cómo ver su saldo en Pídele. */
+function monFormCliente(tel) {
+  modal(`<div class="row between"><h2 style="margin:0">➕ Nuevo cliente</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Desde hoy acumula en cada compra en todos tus negocios. Con su teléfono lo encuentras al cobrar.</div>
+    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="mnTel" inputmode="tel" maxlength="14" value="${esc(tel || '')}">
+    <label class="f">Nombre</label><input class="i" id="mnNom" maxlength="60" placeholder="Ej. Ana López">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,monGuardarCliente)">Registrar</button></div>`);
+  setTimeout(() => { const i = $(tel ? '#mnNom' : '#mnTel'); if (i) i.focus(); }, 200);
+}
+async function monGuardarCliente() {
+  const tel = monTel($('#mnTel').value), nombre = $('#mnNom').value.trim().slice(0, 60);
+  if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
+  if (!nombre) throw new Error('Escribe su nombre');
+  let x = null; try { x = await monLeer(tel, navigator.onLine); } catch (e) { }
+  const ts = Date.now(), upd = { tel, act: ts };
+  if (!x) upd.creado = ts;
+  if (!(x && x.nombre)) upd.nombre = nombre;
+  pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
+  const cfg = monCfg(), neg = S.negocio.nombre;
+  const txt = `Hola ${nombre.split(' ')[0]} 👋 Ya tienes tu monedero en ${neg}: ganas ${cfg.cashback}% de cada compra para usarlo en tus siguientes visitas${cfg.vigencia ? ' (vence en ' + cfg.vigencia + ' días)' : ''}. Solo da tu teléfono al pagar.\n\nVe tu saldo y tus visitas en Pídele, entrando con este mismo número (${tel}): ${urlApp('v=monedero')}`;
+  modal(`<div style="text-align:center"><div style="font-size:46px">👛</div><h2 style="margin:4px 0">${x ? esc(x.nombre || nombre) + ' ya tenía monedero' : esc(nombre) + ' ya tiene monedero'}</h2>
+    <div class="muted" style="margin:6px 0 12px">Mándale el aviso para que descargue Pídele y vea su saldo.</div>
+    <div class="btns"><a class="btn pri pill full" href="${esc(waLink(tel, txt))}" target="_blank" onclick="setTimeout(cerrarModal,400)">${ico('chat', 's')} Mandar por WhatsApp</a><button class="btn pill full" onclick="cerrarModal()">Listo</button></div></div>`);
+  PDV.monQ = tel; monBuscar(tel).catch(() => { });
 }
 async function monBuscar(tel) {
   tel = monTel(tel || ($('#monQ') || {}).value);
@@ -4517,8 +4565,8 @@ async function monBuscar(tel) {
 }
 function monCardCliente(c) {
   const cfg = monCfg(), x = c.x, hoy = pdvHoy();
-  if (!x) return `<div class="card"><b>${esc(c.tel)}</b><div class="muted small">Aún no tiene monedero. Se crea con su primera compra o recarga.</div>
-    <div class="btns">${PDV.caja ? `<button class="btn pri pill" onclick="monFormRecarga('${c.tel}')">💳 Recargar</button>` : ''}</div></div>`;
+  if (!x) return `<div class="card"><b>${esc(c.tel)}</b><div class="muted small">Aún no tiene monedero. Regístralo ahora o se crea solo con su primera compra o recarga.</div>
+    <div class="btns"><button class="btn pri pill" onclick="monFormCliente('${c.tel}')">➕ Registrar cliente</button>${PDV.caja ? `<button class="btn pill" onclick="monFormRecarga('${c.tel}')">💳 Recargar</button>` : ''}</div></div>`;
   const s = monSaldo(x, hoy), vis = (x.vis || {})[monMes(hoy)] || 0, extra = monExtra(x, hoy, cfg), prox = s.lotes[0];
   return `<div class="card"><div class="row between"><div><b>${esc(x.nombre || 'Cliente')}</b><div class="small muted">${esc(c.tel)}</div></div><b style="font-size:24px">${money(s.total)}</b></div>
     <div class="tot"><span>Recargado (no vence)</span><span>${money(s.rec)}</span></div>
@@ -7687,7 +7735,7 @@ function avisoSucursal(si) {
     : `<div class="aviso warn">🏪 <b>Sin descuento de sucursal:</b> ${esc(si.motivo || '')}. ${si.listaNuevos && si.listaNuevos.length ? 'Productos que no están en ' + esc(si.base) + ': ' + si.listaNuevos.slice(0, 8).map(esc).join(', ') + (si.listaNuevos.length > 8 ? '…' : '') + '.' : ''} Si vuelves a tener máximo ${si.max}% de productos nuevos, recuperas el ${si.descuento}%.</div>`;
 }
 /* ---------- Mis negocios y equipo (2.15) ---------- */
-const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados', 'caja']], ['Cajero / mostrador', ['pedidos', 'caja']], ['Mesero', ['mesero']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes', 'caja', 'mesero', 'gerente']]];
+const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados', 'caja']], ['Cajero / mostrador', ['pedidos', 'caja']], ['Mesero / vendedor', ['mesero']], ['Cocina', ['pedidos', 'agotados']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'ventas', 'ajustes', 'caja', 'mesero', 'gerente']]];
 async function vEquipo() {
   const d = S._eq = await api('miEquipo');
   const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
