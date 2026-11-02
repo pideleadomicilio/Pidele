@@ -866,7 +866,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.37.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.37.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -4754,7 +4754,11 @@ const BT_SERVICIOS = [0x18f0, 0xff00, 0xffe0, 0xff12, 0xae30, 0xae3a, 0xfee7, 0x
 const btCfg = () => Object.assign({ nombre: '', id: '', acentos: true, modo: '' }, ls('btImp') || {});
 const btDisponible = () => !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
 const btVinculada = () => !!btCfg().id;
-const esAndroid = () => /Android/i.test(navigator.userAgent);
+// también tabletas Android que se presentan como computadora ("sitio de escritorio", común en Samsung): Linux con pantalla táctil
+// Android, incluidas tabletas que se presentan como computadora ("sitio de escritorio", común en Samsung):
+// todo lo que no sea iPhone/iPad, Windows, Mac o Chromebook
+const esAndroid = () => { const u = navigator.userAgent, d = navigator.userAgentData;
+  return /Android/i.test(u) || !!(d && /android/i.test(d.platform || '')) || !/iPhone|iPad|iPod|Windows|Macintosh|CrOS/.test(u); };
 /*
  * 2.37 · Impresora emparejada en el teléfono (Android): la mayoría de las térmicas baratas son Bluetooth "clásico", que el
  * navegador no puede abrir. Se emparejan una vez en Ajustes del teléfono y Pídele manda el ticket (ESC/POS) a la app gratuita
