@@ -429,6 +429,10 @@ body.enCaja{padding-bottom:0}
 .pdvCambioG{font-size:28px;font-weight:900;margin:10px 0}
 .pdvVentaFila{cursor:pointer}.pdvVentaFila.cancelada{opacity:.6}
 .tabNeg.vtaWarn{border-left-color:var(--warn)}
+.pdvMesasSel{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px}
+.pdvMesasSel button{border:1.5px solid var(--ln);background:var(--card);border-radius:12px;padding:10px 6px;font-weight:800;font-size:14px;cursor:pointer;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:2px}
+.pdvMesasSel button small{font-size:11px;font-weight:700;color:var(--warn)}.pdvMesasSel button.ocup{border-color:var(--warn-s);background:var(--warn-s)}
+.pdvMesasSel button.on{background:var(--pri);border-color:var(--pri);color:#fff}.pdvMesasSel button.on small{color:#fff}
 .pdvActivos{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;margin:0 0 10px;border:0;cursor:pointer;font:inherit;text-align:left}.tabNeg.vtaErr{border-left-color:var(--err)}
 .tabChips{scrollbar-width:none}.tabChips::-webkit-scrollbar{display:none}
 .pdvMesas{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
@@ -873,7 +877,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.39.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.39.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2511,56 +2515,110 @@ function pdvPanelCarrito() {
  */
 function pdvFormGuardar() {
   if (!pdvTotal()) { toast('Agrega productos primero', 'err'); return; }
-  const v = PDV.venta, g = S._gp = S._gp || { tipo: 'recoge' }, dom = puedo('pedidos') && S.negocio.estado === 'activo';
+  const v = PDV.venta, dom = puedo('pedidos') && S.negocio.estado === 'activo';
+  const g = S._gp = S._gp || { tipo: v.tipo === 'llevar' ? 'recoge' : 'aqui', mesa: '', cocina: v.cocina, hora: v.recoge || '' };
   if (g.tipo === 'domicilio' && !dom) g.tipo = 'recoge';
+  const aqui = g.tipo === 'aqui';
   const opc = (k, t, sub) => `<div class="opcion ${g.tipo === k ? 'on' : ''}" onclick="pdvGpGuardar();S._gp.tipo='${k}';pdvFormGuardar()"><span class="radio"></span><div class="grow"><b>${t}</b><div class="muted small">${sub}</div></div></div>`;
+  // mesas: solo si el negocio las configuró (Caja → ⚙️ → Mesas del negocio)
+  const mesas = PDV.mesas && PDV.mesas.zonas ? pdvMesasLista() : [], ocup = new Set(PDV.cuentas.filter(c => c.mesa).map(c => c.mesa));
   modal(`<div class="row between"><h2 style="margin:0">📋 Guardar pedido</h2><button class="redondo" onclick="pdvGpGuardar();cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:4px 0 8px">${money(pdvTotal())} · se cobra después, cuando lo entregues.</div>
-    ${opc('recoge', '🥡 Pasan a recoger', 'Elige a qué hora pasa.')}
-    ${opc('espera', '🙋 El cliente espera en el negocio', 'Se entrega en cuanto esté listo.')}
-    ${dom ? opc('domicilio', '🛵 A domicilio · pedir repartidor', 'Después pones la dirección y lo mandas con un repartidor.') : ''}
-    <label class="f">Nombre del cliente</label><input class="i" id="gpNom" maxlength="40" value="${esc(g.nombre != null ? g.nombre : v.nombre || '')}" placeholder="Ej. Sra. Rosa">
-    <label class="f">Teléfono ${g.tipo === 'domicilio' ? '(10 dígitos)' : '(opcional)'}</label><input class="i" id="gpTel" inputmode="tel" maxlength="14" value="${esc(g.tel != null ? g.tel : v.tel || '')}">
-    ${g.tipo === 'recoge' ? `<label class="f">¿A qué hora pasa?</label><input class="i" id="gpHora" type="time" value="${esc(g.hora || v.recoge || '')}">` : ''}
-    ${g.tipo !== 'domicilio' ? `<label class="pdvChk"><input type="checkbox" id="gpCoc" ${(g.cocina != null ? g.cocina : v.cocina) ? 'checked' : ''}> Mandar a cocina</label>` : ''}
-    <div class="btns"><button class="btn pri pill full" style="font-size:17px" onclick="act(this,pdvGuardarPedido)">${g.tipo === 'domicilio' ? 'Siguiente: dirección →' : 'Guardar pedido'}</button></div>`);
-  setTimeout(() => { const i = $('#gpNom'); if (i && !i.value) i.focus(); }, 150);
+    <div class="muted small" style="margin:4px 0 8px">${money(pdvTotal())} · se cobra después.</div>
+    <div class="pdvTipo">${[['aqui', '🍽️ Comer aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${(k === 'aqui') === aqui ? 'on' : ''}" onclick="pdvGpGuardar();S._gp.tipo='${k === 'aqui' ? 'aqui' : 'recoge'}';PDV.venta.tipo='${k === 'aqui' ? 'mostrador' : 'llevar'}';pdvFormGuardar()">${t}</button>`).join('')}</div>
+    ${aqui ? (mesas.length ? `<label class="f">¿En qué mesa?</label><div class="pdvMesasSel">${[''].concat(mesas).map(m => `<button class="${g.mesa === m ? 'on' : ''} ${ocup.has(m) ? 'ocup' : ''}" onclick="pdvGpGuardar();S._gp.mesa=${esc(JSON.stringify(m))};pdvFormGuardar()">${m ? esc(m) : 'Sin mesa'}${ocup.has(m) ? '<small>ocupada</small>' : ''}</button>`).join('')}</div>
+        ${g.mesa && ocup.has(g.mesa) ? '<div class="small muted" style="margin-top:4px">Se agrega a la cuenta que ya está abierta en esa mesa.</div>' : ''}` : '')
+      : `${opc('recoge', '🥡 Pasan a recoger', 'Puedes poner a qué hora pasa.')}${opc('espera', '🙋 El cliente espera en el negocio', 'Se entrega en cuanto esté listo.')}${dom ? opc('domicilio', '🛵 A domicilio · pedir repartidor', 'Después pones la dirección y lo mandas con un repartidor.') : ''}
+      ${g.tipo === 'recoge' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" id="gpHora" type="time" value="${esc(g.hora || '')}">` : ''}`}
+    ${g.tipo !== 'domicilio' ? `<label class="pdvChk"><input type="checkbox" id="gpCoc" ${g.cocina !== false ? 'checked' : ''}> Mandar a cocina</label>` : ''}
+    <div class="btns"><button class="btn pri pill full" style="font-size:17px" onclick="pdvGpSiguiente()">Siguiente →</button></div>`);
 }
 function pdvGpGuardar() {
-  const g = S._gp; if (!g) return; const v = id => ($('#' + id) || {}).value;
-  if ($('#gpNom')) g.nombre = v('gpNom'); if ($('#gpTel')) g.tel = v('gpTel'); if ($('#gpHora')) g.hora = v('gpHora'); if ($('#gpCoc')) g.cocina = $('#gpCoc').checked;
+  const g = S._gp; if (!g) return;
+  if ($('#gpHora')) g.hora = $('#gpHora').value; if ($('#gpCoc')) g.cocina = $('#gpCoc').checked;
 }
-async function pdvGuardarPedido() {
+/** Después de elegir cómo se entrega: a nombre de quién (se puede saltar; a domicilio es obligatorio). */
+function pdvGpSiguiente() {
   pdvGpGuardar();
-  const g = S._gp, nombre = (g.nombre || '').trim(), tel = (g.tel || '').replace(/\D/g, '');
-  if (nombre.length < 2) throw new Error('Escribe el nombre del cliente');
+  const g = S._gp, v = PDV.venta, tel = (v.tel || '').replace(/\D/g, '');
   if (g.tipo === 'domicilio') {
-    if (tel.length !== 10) throw new Error('Para enviarlo, escribe el teléfono del cliente a 10 dígitos');
-    // el mismo carrito sigue al paso de dirección y pago del pedido por teléfono (de ahí se busca repartidor en Pedidos)
-    S.modoTel = { tel, nombre, desdeCaja: true }; ls('modoTel', S.modoTel);
-    S.modoCliente = true; ls('modoCliente', 1);
-    S._capT = { tipo: 'domicilio', metodo: 'efectivo' }; S._gp = null;
-    cerrarModal(); pintarNav(); ir('capturaTel');
+    pdvPasoCliente('¿A quién se le envía?', 'Para el repartidor y para mandarle su seguimiento.', cli => {
+      S.modoTel = { tel: cli.tel, nombre: cli.nombre, desdeCaja: true }; ls('modoTel', S.modoTel);
+      S.modoCliente = true; ls('modoCliente', 1);
+      S._capT = { tipo: 'domicilio', metodo: 'efectivo' }; S._gp = null;
+      cerrarModal(); pintarNav(); ir('capturaTel');
+    }, true);
     return;
   }
-  if (tel && tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
-  if (!PDV.caja) throw new Error('La caja está cerrada');
-  const car = pdvCarrito(), ts = Date.now(), ref = pdvCol('ventas').doc(), cocina = g.cocina !== false;
+  if (tel.length === 10) { pdvGuardarPedido({ tel, nombre: (v.nombre || '').trim() }); return; }
+  pdvPasoCliente('¿A nombre de quién?', 'Opcional. ' + pdvTxtRegistro(), cli => pdvGuardarPedido(cli));
+}
+const pdvTxtRegistro = () => monActivo() ? 'Regístralo para que acumule en su monedero y lo reconozcas en su próxima visita.' : 'Regístralo para reconocerlo en su próxima visita.';
+async function pdvGuardarPedido(cli) {
+  const g = S._gp; if (!g) return;
+  if (!PDV.caja) { toast('La caja está cerrada', 'err'); return; }
+  const car = pdvCarrito(), ts = Date.now(), cocina = g.cocina !== false;
   const items = Object.values(car.items).map(it => ({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant: it.cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], ronda: cocina ? 0 : 1, pagadoCant: 0, cancelado: null }));
-  const c = { folio: pdvFolio(), dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
-    tipo: 'llevar', mesa: '', nombre: nombre.slice(0, 40), recoge: g.tipo === 'recoge' ? g.hora || '' : '', espera: g.tipo === 'espera', cliente: tel ? { tel, nombre: nombre.slice(0, 60) } : null,
-    items, total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts };
-  c.total = pdvTotalCuenta(c);
-  pdvGuardar(ref.set(JSON.parse(JSON.stringify(c))));
-  PDV.cuentas.push(Object.assign({ id: ref.id }, c));
-  if (cocina) await pdvEnviarRonda(ref.id);
+  if (!items.length) { toast('Agrega productos primero', 'err'); return; }
+  const nom = cli && cli.nombre ? cli.nombre.slice(0, 40) : '';
+  // mesa ocupada: se agrega a su cuenta abierta
+  let c = g.tipo === 'aqui' && g.mesa ? PDV.cuentas.find(x => x.mesa === g.mesa) : null, nueva = !c;
+  if (c) {
+    c.items = (c.items || []).concat(items);
+    if (cli && !c.cliente) c.cliente = { tel: cli.tel, nombre: cli.nombre };
+    pdvActualizarCuenta(c, c.cliente ? { cliente: c.cliente } : null);
+  } else {
+    const ref = pdvCol('ventas').doc(), folio = pdvFolio(), aqui = g.tipo === 'aqui';
+    c = { id: ref.id, folio, dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
+      tipo: aqui ? 'mesa' : 'llevar', mesa: aqui ? g.mesa || '' : '', nombre: nom || (aqui ? (g.mesa ? 'Cuenta 1' : 'Aquí · ' + folio) : 'Pedido ' + folio),
+      recoge: g.tipo === 'recoge' ? g.hora || '' : '', espera: g.tipo === 'espera', cliente: cli ? { tel: cli.tel, nombre: cli.nombre } : null,
+      items, total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts };
+    c.total = pdvTotalCuenta(c);
+    const d = JSON.parse(JSON.stringify(c)); delete d.id;
+    pdvGuardar(ref.set(d));
+    PDV.cuentas.push(c);
+  }
+  if (cocina) await pdvEnviarRonda(c.id);
   car.items = {}; guardarCarritos(); S._gp = null;
   PDV.venta = { tipo: 'mostrador', cocina: pdvCfg().cocina, tel: '', nombre: '', recoge: '' };
-  modal(`<div style="text-align:center"><div style="font-size:46px">📋</div><h2 style="margin:4px 0">Pedido ${esc(c.folio)} guardado</h2>
-    <div class="muted">${esc(pdvEtiqueta(c))} · ${money(c.total)}${cocina ? ' · 👩‍🍳 enviado a cocina' : ''}</div>
+  modal(`<div style="text-align:center"><div style="font-size:46px">📋</div><h2 style="margin:4px 0">${nueva ? 'Pedido ' + esc(c.folio) + ' guardado' : 'Agregado a ' + esc(c.mesa)}</h2>
+    <div class="muted">${esc(pdvEtiqueta(c))} · ${money(pdvTotalCuenta(c))}${cocina ? ' · 👩‍🍳 enviado a cocina' : ''}</div>
     <div class="muted small" style="margin-top:6px">Lo cobras en <b>Mesas y pedidos</b> cuando lo entregues.</div>
-    <div class="btns"><button class="btn pill" style="flex:1" onclick="cerrarModal();pdvIrCuenta('${ref.id}')">Ver pedido</button><button class="btn pri pill" style="flex:1" onclick="cerrarModal();pintarCaja()">Nuevo pedido</button></div></div>`);
+    <div class="btns"><button class="btn pill" style="flex:1" onclick="cerrarModal();pdvIrCuenta('${c.id}')">Ver pedido</button><button class="btn pri pill" style="flex:1" onclick="cerrarModal();pintarCaja()">Nuevo pedido</button></div></div>`);
   pintarCaja();
+}
+/*
+ * Paso "¿A nombre de quién?": busca al cliente por teléfono (si ya vino, sale su nombre) o lo registra con su nombre.
+ * Se puede saltar (salvo obligatorio, p. ej. a domicilio). No abre el teclado solo.
+ */
+function pdvPasoCliente(titulo, sub, cb, obligatorio) {
+  S._pc = { cb, obligatorio, existe: null };
+  modal(`<div class="row between"><h2 style="margin:0">👤 ${esc(titulo)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">${esc(sub)}</div>
+    <label class="f">Teléfono del cliente</label><input class="i" id="pcTel" inputmode="tel" maxlength="14" placeholder="10 dígitos" oninput="pdvPcBuscar()">
+    <div class="small" id="pcInfo" style="margin-top:4px"></div>
+    <div id="pcNomW" style="${obligatorio ? '' : 'display:none'}"><label class="f">Nombre</label><input class="i" id="pcNom" maxlength="60" placeholder="Ej. Ana López"></div>
+    <div class="btns">${obligatorio ? '' : '<button class="btn pill" style="flex:1" onclick="pdvPcFin(false)">Saltar</button>'}<button class="btn pri pill" style="flex:2" onclick="act(this,()=>pdvPcFin(true))">Continuar</button></div>`);
+}
+async function pdvPcBuscar() {
+  const tel = ($('#pcTel').value || '').replace(/\D/g, ''), info = $('#pcInfo'), w = $('#pcNomW'), nom = $('#pcNom');
+  S._pc.existe = null;
+  if (tel.length !== 10) { info.textContent = ''; if (!S._pc.obligatorio) w.style.display = 'none'; return; }
+  let x = null; try { const d = await pdvCol('clientes').doc(tel).get(); x = d.exists ? d.data() : null; } catch (e) { }
+  if (($('#pcTel').value || '').replace(/\D/g, '') !== tel) return;
+  S._pc.existe = x;
+  w.style.display = '';
+  if (x && x.nombre) { nom.value = x.nombre; info.innerHTML = `⭐ <b>${esc(x.nombre)}</b> · ${x.visitas || 0} visita(s)`; }
+  else { info.innerHTML = '🆕 Cliente nuevo: escribe su nombre para registrarlo.'; }
+}
+function pdvPcFin(con) {
+  const k = S._pc; if (!k) return;
+  if (!con) { S._pc = null; k.cb(null); return; }
+  const tel = ($('#pcTel').value || '').replace(/\D/g, ''), nombre = ($('#pcNom').value || '').trim();
+  if (!tel && !k.obligatorio) { S._pc = null; k.cb(null); return; }
+  if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
+  if (nombre.length < 2) throw new Error('Escribe el nombre del cliente');
+  if (!k.existe || k.existe.nombre !== nombre) pdvGuardar(pdvCol('clientes').doc(tel).set({ tel, nombre: nombre.slice(0, 60), ...(k.existe ? {} : { creado: Date.now() }) }, { merge: true }));
+  S._pc = null; k.cb({ tel, nombre: nombre.slice(0, 60) });
 }
 function pdvPintarCarrito() { const e = $('#pdvCarrito'); if (e) e.innerHTML = pdvPanelCarrito(); if ($('#modal').classList.contains('on') && $('#pdvCarritoM')) $('#pdvCarritoM').innerHTML = pdvPanelCarrito(); }
 function pdvVerCarrito() { modal(`<div class="row between"><h2 style="margin:0">Cuenta</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div><div id="pdvCarritoM" style="margin-top:8px">${pdvPanelCarrito()}</div>`); }
@@ -2591,6 +2649,10 @@ function pdvCobrar() {
   if (!total) { toast('La cuenta está vacía', 'err'); return; }
   const tel = PDV.venta.tel.replace(/\D/g, '');
   if (tel && tel.length !== 10) { toast('El teléfono del cliente debe tener 10 dígitos', 'err'); return; }
+  if (!tel && !PDV.venta.cliPreg) {
+    pdvPasoCliente('¿A nombre de quién?', 'Opcional. ' + pdvTxtRegistro(), cli => { PDV.venta.cliPreg = true; if (cli) { PDV.venta.tel = cli.tel; PDV.venta.nombre = cli.nombre; } pdvCobrar(); });
+    return;
+  }
   PDV.cobro = { total, pagos: [], met: 'efectivo' };
   pdvPintarCobro();
 }
@@ -3357,7 +3419,11 @@ function pdvSigueAbierta(id) {
 function pdvCobrarCuenta(id) {
   const c = pdvCuenta(id); if (!c) return;
   if (!PDV.caja) { toast('La caja está cerrada', 'err'); return; }
-  PDV.cobro = { cuentaId: id, met: 'efectivo', modo: 'monto', sel: {} };
+  if (!c.cliente && !c.cliPreg) {
+    pdvPasoCliente('¿A nombre de quién?', 'Opcional. ' + pdvTxtRegistro(), cli => { c.cliPreg = true; if (cli) { c.cliente = cli; pdvGuardar(pdvCol('ventas').doc(c.id).update({ cliente: cli })); } pdvCobrarCuenta(id); });
+    return;
+  }
+  PDV.cobro = { cuentaId: id, met: 'efectivo', modo: 'monto', sel: {}, tel: c.cliente ? c.cliente.tel : '' };
   pdvPintarCobroCuenta();
 }
 function pdvUnidadesPendientes(c) { return pdvItemsVivos(c).map(i => ({ i, resta: i.cant - (i.pagadoCant || 0) })).filter(x => x.resta > 0); }
