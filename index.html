@@ -866,7 +866,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.37.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.37.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2217,7 +2217,7 @@ async function pdvConectar() {
   await new Promise(ok => { const off = au.onAuthStateChanged(() => { off(); ok(); }); });
   let letras = '';
   let conMon = false;
-  const leer = async () => { try { const r = await au.currentUser.getIdTokenResult(), cl = r.claims || {}; PDV.negs = cl.negs || {}; conMon = !!cl.ngid; PDV.gid = (cl.ngid || {})[nid] || ''; return PDV.negs[nid] || ''; } catch (e) { return PDV.letras || ''; } };
+  const leer = async () => { try { const r = await au.currentUser.getIdTokenResult(), cl = r.claims || {}; PDV.negs = cl.negs || {}; conMon = !!(cl.ngid || {})[nid] || !(S.negocio && S.negocio.plan === 'ultra'); PDV.gid = (cl.ngid || {})[nid] || ''; return PDV.negs[nid] || ''; } catch (e) { return PDV.letras || ''; } };
   if (au.currentUser && au.currentUser.uid === S.user.id) letras = await leer();
   const vieja = Date.now() - (Number(ls('pdvLlaveT')) || 0) > 6 * 3600e3;
   if (!letras || ((vieja || !conMon) && navigator.onLine)) {
@@ -2391,7 +2391,7 @@ function pintarCaja() {
   PDV._sucio = false;
   const c = PDV.caja, cajero = pdvPuede('dc');
   const tabs = [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas' + (PDV.cuentas.length ? ' (' + PDV.cuentas.length + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
-    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], PDV.gid && pdvPuede('dcg') && (monCfg().activo || pdvPuede('d')) ? [['monedero', '👛 Monedero']] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy'], ['reportes', '📈 Reportes']] : [], pdvPuede('dg') ? [['personal', '👥 Personal']] : []);
+    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('d') || (PDV.gid && pdvPuede('cg') && monCfg().activo) ? [['monedero', '👛 Monedero' + (PDV.gid ? '' : ' 🔒')]] : [], pdvPuede('dgv') ? [['hoy', '📊 Hoy'], ['reportes', '📈 Reportes']] : [], pdvPuede('dg') ? [['personal', '👥 Personal']] : []);
   if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = cajero ? 'vender' : tabs[0][0];
   const t = PDV.tab;
   const sinRed = !navigator.onLine;
@@ -4473,9 +4473,24 @@ function monTicket(m) {
 }
 
 /* --- pestaña Monedero de la caja --- */
+/** El plan cambió a Ultra hace poco: pide una llave nueva de la caja (ya con el monedero) y vuelve a conectar. */
+async function monRecargarAcceso() {
+  if (!navigator.onLine) throw new Error('Necesitas internet para cargar el monedero');
+  fijarSesionNeg(await api('yo'));
+  ls('pdvLlaveT', 0); await pdvConectar(); PDV._subsNid = PDV.nid; pdvSuscribir();
+  if (!PDV.gid) throw new Error(S.negocio.plan === 'ultra' ? 'Aún no se pudo cargar el monedero. Intenta de nuevo en un momento.' : 'El plan de este negocio no es Ultra');
+  toast('Monedero listo 👛'); pintarCaja();
+}
 function monVista() {
   const cfg = monCfg(), dueno = pdvPuede('d');
-  if (!PDV.gid) return '<div class="card">Cierra y vuelve a abrir la caja para cargar el monedero.</div>';
+  if (!PDV.gid) {
+    if (!(S.negocio && S.negocio.plan === 'ultra')) return `<div class="card" style="text-align:center;padding:24px 16px"><div style="font-size:46px">👛</div><h2 style="margin:6px 0">Monedero de clientes · Plan Ultra</h2>
+      <div class="muted" style="margin-bottom:12px">Tus clientes ganan cashback en cada compra, recargan saldo con bono y suben de nivel con sus visitas, con un solo saldo en todos tus negocios. Viene incluido en el plan Ultra.</div>
+      <button class="btn pri pill" onclick="ir('suscripcion')">Ver planes</button></div>`;
+    return `<div class="card" style="text-align:center;padding:24px 16px"><div style="font-size:46px">👛</div><h2 style="margin:6px 0">Monedero de clientes</h2>
+      <div class="muted" style="margin-bottom:12px">Tu negocio ya tiene el plan Ultra. Toca para cargar el monedero en esta caja (necesita internet).</div>
+      <button class="btn pri pill" onclick="act(this,monRecargarAcceso)">Cargar monedero</button></div>`;
+  }
   if (!cfg.activo) return `<div class="card" style="text-align:center;padding:24px 16px"><div style="font-size:46px">👛</div><h2 style="margin:6px 0">Monedero de clientes</h2>
     <div class="muted" style="margin-bottom:12px">Tus clientes ganan cashback en cada compra, recargan saldo con bono y suben de nivel con sus visitas. Sirve en todos tus negocios.</div>
     ${dueno ? '<button class="btn pri pill" onclick="monConfig()">Activar y configurar</button>' : '<div class="small muted">El dueño lo activa desde aquí.</div>'}</div>`;
