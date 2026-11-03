@@ -884,7 +884,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.42.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.43.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -3108,7 +3108,16 @@ async function pdvCerrarCaja() {
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   S._cierrePend = { r, cajaId: c.id };
+  // 2.43: lo cierra alguien distinto a quien lo abrió → nota obligatoria y aviso al dueño
+  if (r.uid !== c.abre.uid) { S._cierrePend.otro = true; pdvNotaCierreOtro(); return; }
   pdvContinuarCierre();
+}
+function pdvNotaCierreOtro() {
+  const c = PDV.caja, p = S._cierrePend; if (!c || !p) return;
+  modal(`<div class="row between"><h2 style="margin:0">Cierras el turno de ${esc(c.abre.nombre.split(' ')[0])}</h2><button class="redondo" onclick="S._cierrePend=null;cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0">Este turno lo abrió <b>${esc(c.abre.nombre)}</b> a las ${hora(c.abre.ts)}. Quedará registrado que lo cerraste tú y se le avisará al dueño.</div>
+    <label class="f">¿Por qué lo cierras tú? (obligatorio)</label><textarea class="i" id="ciOtro" rows="2" maxlength="160" placeholder="Ej. Se fue sin cerrar; dejó su corte en papel con el retiro"></textarea>
+    <div class="btns"><button class="btn pri pill full" onclick="const t=$('#ciOtro').value.trim();if(t.length<5){toast('Escribe por qué lo cierras tú','err');return}S._cierrePend.nota=t;pdvContinuarCierre()">Continuar con el cierre</button></div>`);
 }
 /** Revisa si cuadra. Si falta dinero, pregunta si hay un gasto sin registrar antes de cerrar. */
 function pdvContinuarCierre() {
@@ -3124,9 +3133,9 @@ function pdvContinuarCierre() {
     return;
   }
   S._cierrePend = null;
-  pdvFinCierre(pend.r, k);
+  pdvFinCierre(pend.r, k, pend);
 }
-function pdvFinCierre(r, k) {
+function pdvFinCierre(r, k, pend) {
   const c = PDV.caja, ve = pdvVeCuentas(), ts = Date.now(), d = r.datos;
   const contado = pdvR(d.retiro + d.deja), fondoDeja = d.deja;
   if (k.propinas > 0) {
@@ -3137,9 +3146,11 @@ function pdvFinCierre(r, k) {
   }
   const cierre = { efDirecto: k.efDirecto, efCuentas: k.efCuentas, uid: r.uid, nombre: r.nombre, ts, por: pdvYo(), contado, desglose: d.desglose, esperado: k.esperado, diferencia: pdvR(contado - k.esperado),
     fondoDeja, retiro: d.retiro, ventas: k.ventas, n: k.n, met: k.met, propinas: k.propinas, gastosCaja: k.gastosCaja, gastosOtros: k.gastosOtros, provCaja: k.provCaja,
-    canceladas: k.canceladas, montoCancelado: k.montoCancelado, efOtros: k.efOtros, recargas: k.rec, propOtros: k.propOtros, abiertasN: k.abiertasN, abiertasMonto: k.abiertasMonto, gastosDia: pdvGastosHoy(), ciego: !ve };
+    canceladas: k.canceladas, montoCancelado: k.montoCancelado, efOtros: k.efOtros, recargas: k.rec, propOtros: k.propOtros, abiertasN: k.abiertasN, abiertasMonto: k.abiertasMonto, gastosDia: pdvGastosHoy(), ciego: !ve,
+    porOtro: !!(pend && pend.otro), notaOtro: (pend && pend.nota) || '' };
   pdvGuardar(pdvCol('cajas').doc(c.id).update({ estado: 'cerrada', cierre }));
   pdvGuardar(pdvCol('estado').doc('caja').set({ fondo: fondoDeja, ultima: c.id, ts, quien: r.nombre, turno: c.turno }));
+  if (cierre.porOtro) pdvAvisarDueno({ tipo: 'otro', turno: c.turno, quien: r.nombre, abrio: c.abre.nombre, nota: cierre.notaOtro });
   if (Math.abs(pdvR(contado - k.esperado)) >= 0.5) pdvAvisarDueno({ tipo: 'corte', turno: c.turno, quien: r.nombre, esperado: k.esperado, contado, diferencia: pdvR(contado - k.esperado) });
   pdvGuardar(pdvCol('dias').doc(c.dia).set({ cortes: pdvInc(1), diferencia: pdvInc(cierre.diferencia), ts }, { merge: true }));
   const cerrada = Object.assign({}, c, { estado: 'cerrada', cierre });
@@ -3219,13 +3230,13 @@ function pdvImprimirCorte(id) {
   const k = c.cierre, r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   if (!pdvVeCuentas()) {
     imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CIERRE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
-      ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}<hr>
+      ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
       <div class="r t"><span>Retiro</span><span>${money(k.retiro)}</span></div>${r('Deja en caja chica', money(k.fondoDeja))}${k.propinas ? r('Propinas entregadas', money(k.propinas)) : ''}${r('Gastos de hoy', money(k.gastosDia || 0))}<hr>
       <div class="c p">Firma: ____________________</div>`, 'Cierre turno ' + c.turno));
     return;
   }
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CORTE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
-    ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}<hr>
+    ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
     ${r('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => r('&nbsp;' + PDV_MET_TXT[m], money(v))).join('')}
     ${r('Propinas tarjeta', money(k.propinas))}${k.canceladas ? r('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}<hr>
     ${k.recargas && k.recargas.n ? r('Recargas monedero (' + k.recargas.n + ')', money(k.recargas.total)) + ['efectivo', 'tarjeta', 'transferencia'].filter(m => k.recargas[m]).map(m => r('&nbsp;' + PDV_MET_TXT[m], money(k.recargas[m]))).join('') + '<hr>' : ''}
