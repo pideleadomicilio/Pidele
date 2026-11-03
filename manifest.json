@@ -2,12 +2,15 @@
   "id": "./",
   "name": "Pídele",
   "short_name": "Pídele",
-  "description": "Pide comida y más de los negocios de tu ciudad, con envío a domicilio y seguimiento en el mapa. Sin comisiones para los negocios.",
+  "description": "Pide a domicilio a los negocios de tu ciudad. Para negocios: caja, pedidos, personal y nómina, sin comisiones.",
   "lang": "es-MX",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "standalone"
+  ],
   "orientation": "any",
   "background_color": "#3B5A2C",
   "theme_color": "#3B5A2C",
@@ -16,7 +19,6 @@
     "shopping",
     "lifestyle"
   ],
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -65,6 +67,27 @@
       "type": "image/jpeg",
       "form_factor": "narrow",
       "label": "Planes para negocios"
+    },
+    {
+      "src": "icons/capturas/tab-vender.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Punto de venta en tableta"
+    },
+    {
+      "src": "icons/capturas/tab-ventas.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Ventas del turno al instante"
+    },
+    {
+      "src": "icons/capturas/tab-tablero.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Tablero de todos tus negocios"
     }
   ],
   "shortcuts": [
@@ -101,5 +124,20 @@
         }
       ]
     }
-  }
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=app.pidele",
+      "id": "app.pidele"
+    }
+  ],
+  "prefer_related_applications": false
 }
