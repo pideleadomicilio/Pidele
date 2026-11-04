@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.43.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.44.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1243,7 +1243,7 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 const VISTAS = {
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
-  negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
@@ -1778,7 +1778,7 @@ function abrirDesdeUrl(url) {
   }
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user) || (v === 'facturas' && rolActual() === 'negocio'))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
@@ -2839,6 +2839,283 @@ function pdvVistaVentas() {
     + (otros.length ? `<h3>Cobros de cuentas de otro turno</h3><div class="small muted" style="margin-bottom:6px">El efectivo entra a esta caja, pero la venta cuenta para el turno en que se abrió la cuenta.</div>${otros.map(p => `<div class="card row between small"><span>${esc(p.folio)} · ${esc(p.etiqueta)} · turno ${p.turnoVenta} · ${PDV_MET[p.metodo]}</span><b>${money(p.monto)}</b></div>`).join('')}` : '');
 }
 function pdvVenta(id) { return PDV.ventas.find(v => v.id === id) || PDV.ventasDia.find(v => v.id === id); }
+/* =========================== 2.44 · FACTURACIÓN (CFDI 4.0 con Facturama) =========================== */
+const FAC_EST = { pendiente: ['t-warn', 'En revisión'], emitida: ['t-ok', 'Emitida'], rechazada: ['t-err', 'No procede'], cancelada: ['t-err', 'Cancelada'] };
+let FAC_CAT = null; // regímenes, usos y formas de pago del SAT (vienen del servidor)
+function facOpciones(obj, val, ph) { return `<option value="">${esc(ph || 'Elige…')}</option>` + Object.entries(obj || {}).map(([k, t]) => `<option value="${k}" ${String(val) === k ? 'selected' : ''}>${k} · ${esc(t)}</option>`).join(''); }
+function facRegimenTxt(k) { return FAC_CAT && FAC_CAT.regimenes && FAC_CAT.regimenes[k] ? k + ' · ' + FAC_CAT.regimenes[k] : k; }
+/** Campos del receptor (cliente que recibe la factura). */
+function facReceptorCampos(r, p) {
+  r = r || {}; p = p || 'fr';
+  return `<label class="f">RFC</label><input class="i" id="${p}Rfc" value="${esc(r.rfc || '')}" maxlength="13" autocapitalize="characters" style="text-transform:uppercase" placeholder="13 letras y números (12 si es empresa)">
+    <label class="f">Nombre o razón social</label><input class="i" id="${p}Nom" value="${esc(r.nombre || '')}" autocapitalize="characters" placeholder="Tal como aparece en la constancia de situación fiscal">
+    <label class="f">Régimen fiscal</label><select class="i" id="${p}Reg">${facOpciones(FAC_CAT.regimenes, r.regimen)}</select>
+    <label class="f">Código postal fiscal</label><input class="i" id="${p}Cp" value="${esc(r.cp || '')}" inputmode="numeric" maxlength="5">
+    <label class="f">Uso de la factura</label><select class="i" id="${p}Uso">${facOpciones(FAC_CAT.usos, r.uso || 'G03')}</select>
+    <label class="f">Correo para recibir la factura</label><input class="i" id="${p}Mail" type="email" value="${esc(r.email || '')}" placeholder="correo@ejemplo.com">`;
+}
+function facLeerReceptor(p) {
+  p = p || 'fr'; const v = k => (($('#' + p + k) || {}).value || '').trim();
+  return { rfc: v('Rfc').toUpperCase().replace(/[\s-]/g, ''), nombre: v('Nom').toUpperCase(), regimen: v('Reg'), cp: v('Cp'), uso: v('Uso'), email: v('Mail') };
+}
+function facTarjeta(f, negocio) {
+  const e = FAC_EST[f.estado] || ['', f.estado], r = f.receptor || {};
+  return `<div class="card" style="margin:8px 0;padding:12px"><div class="row between"><div class="grow"><b>${f.folio ? esc(f.serie + f.folio) + ' · ' : ''}${money(f.total || f.totalVenta)}</b>
+      <div class="muted small">${negocio ? esc(f.negocio) : esc(r.nombre || '') + ' · ' + esc(r.rfc || '')}</div>
+      <div class="muted small">${f.origen === 'app' ? '🛵 Pedido de la app' : '🧾 Ticket ' + esc(f.ref || '')} · ${fechaCorta(f.emitida || f.creado)}${f.por ? ' · ' + esc(f.por) : ''}</div></div>
+      <span class="tag ${e[0]}">${e[1]}</span></div>
+    ${f.estado === 'rechazada' && f.motivo ? `<div class="aviso err small" style="margin:6px 0 0">${esc(f.motivo)}</div>` : ''}
+    ${f.error && f.estado === 'pendiente' ? `<div class="aviso err small" style="margin:6px 0 0">Último intento: ${esc(f.error)}</div>` : ''}
+    ${f.estado === 'emitida' ? `<div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" onclick="act(this,()=>facDescargar('${f.id}','pdf'))">📄 PDF</button><button class="btn sm" onclick="act(this,()=>facDescargar('${f.id}','xml'))">🗂️ XML</button></div>` : ''}
+    ${f.acciones || ''}</div>`;
+}
+async function facDescargar(id, fmt) {
+  const r = await api('facturaArchivo', { facturaId: id, formato: fmt });
+  if (!r.b64) throw new Error('Facturama no regresó el archivo; intenta de nuevo en un momento');
+  const bin = atob(r.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([u8], { type: r.tipo })), a = document.createElement('a');
+  a.href = url; a.download = r.nombre; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 5000);
+  toast('Descargando ' + r.nombre);
+}
+
+/* ---------- cliente: Perfil → Facturación ---------- */
+async function facAbrir() {
+  const d = await api('misFacturas'); FAC_CAT = FAC_CAT || (await api('fiscalMisDatos'));
+  S._facCli = d;
+  const f = d.datos;
+  modal(`<div class="row between"><h2 style="margin:0">🧾 Facturación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Pide la factura de tus compras en los negocios que facturan en ${APP}. Te llega por correo y aquí la puedes descargar.</div>
+    ${f ? `<div class="card" style="padding:12px"><div class="row between"><div class="grow"><b>${esc(f.nombre)}</b><div class="muted small">${esc(f.rfc)} · CP ${esc(f.cp)}</div><div class="muted small">${esc(facRegimenTxt(f.regimen))}</div><div class="muted small">✉️ ${esc(f.email)}</div></div>
+        <button class="lnk small" onclick="facFormMisDatos()">Editar</button></div></div>
+      <div class="btns"><button class="btn pri pill full" onclick="facFormCompra()">🧾 Facturar una compra en el negocio</button></div>
+      <div class="muted small">¿Pediste por la app? Abre tu pedido entregado y toca <b>Pedir factura</b>.</div>`
+    : `<div class="aviso warn">Primero guarda tus datos fiscales (los de tu constancia de situación fiscal).</div><div class="btns"><button class="btn pri pill full" onclick="facFormMisDatos()">Capturar mis datos fiscales</button></div>`}
+    ${d.facturas.length ? `<h3 style="margin:14px 0 4px">Mis facturas</h3>${d.facturas.map(x => facTarjeta(x, true)).join('')}` : ''}`);
+}
+function facFormMisDatos() {
+  const f = (S._facCli && S._facCli.datos) || { email: S.user.correo || '' };
+  modal(`<h2 style="margin:0 0 4px">Mis datos fiscales</h2><div class="muted small">Cópialos de tu constancia de situación fiscal; si no coinciden con el SAT la factura no se puede timbrar.</div>
+    ${facReceptorCampos(f, 'fm')}
+    <div class="btns"><button class="btn pill" onclick="act(this,facAbrir)">Cancelar</button><button class="btn pri pill" onclick="act(this,facGuardarMisDatos)">Guardar</button></div>`);
+}
+async function facGuardarMisDatos() {
+  const r = await api('fiscalGuardarMisDatos', facLeerReceptor('fm'));
+  if (S._facCli) S._facCli.datos = r.datos;
+  toast('Datos fiscales guardados');
+  if (S._facTrasDatos) { const f = S._facTrasDatos; S._facTrasDatos = null; cerrarModal(); await f(); return; }
+  await facAbrir();
+}
+function facFormCompra() {
+  const l = (S._facCli && S._facCli.negocios) || [];
+  if (!l.length) { toast('Todavía no hay negocios que facturen en ' + APP, 'err'); return; }
+  modal(`<h2 style="margin:0 0 4px">Facturar una compra</h2><div class="muted small">Usa los datos de tu ticket. El negocio lo revisa y te manda la factura.</div>
+    <label class="f">Negocio</label><select class="i" id="fcNeg">${l.length > 1 ? '<option value="">Elige…</option>' : ''}${l.map(n => `<option value="${n.id}">${esc(n.nombre)}</option>`).join('')}</select>
+    <label class="f">Folio del ticket</label><input class="i" id="fcFol" autocapitalize="characters" placeholder="Ej. A-0123">
+    <label class="f">Total pagado</label><input class="i" id="fcTot" inputmode="decimal" placeholder="$">
+    <label class="f">Fecha de la compra</label><input class="i" id="fcDia" type="date" value="${new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10)}">
+    <div class="muted small" style="margin-top:6px">Solo se pueden facturar compras del mes en curso.</div>
+    <div class="btns"><button class="btn pill" onclick="act(this,facAbrir)">Cancelar</button><button class="btn pri pill" onclick="act(this,facEnviarCompra)">Pedir factura</button></div>`);
+}
+async function facEnviarCompra() {
+  const nid = $('#fcNeg').value; if (!nid) throw new Error('Elige el negocio');
+  await api('facturaSolicitar', { negocioId: nid, origen: 'caja', folio: $('#fcFol').value, total: parseFloat(String($('#fcTot').value).replace(/[$,\s]/g, '')) || 0, dia: $('#fcDia').value });
+  toast('Listo: el negocio revisará tu ticket y te avisaremos'); await facAbrir();
+}
+/** Botón en un pedido entregado de la app. */
+function facBloquePedido(p) {
+  if (p.estado !== 'ENTREGADO' || !p.negocio || !p.negocio.factura) return '';
+  const f = p.factura;
+  if (f && f.estado === 'emitida') return `<div class="card row between"><div><b>🧾 Factura ${esc(f.folio)}</b><div class="muted small">Te llegó por correo</div></div><button class="btn sm" onclick="act(this,()=>facDescargar('${f.id}','pdf'))">📄 PDF</button></div>`;
+  if (f && f.estado === 'pendiente') return `<div class="card row"><span style="font-size:24px">🧾</span><div class="grow"><b>Factura en revisión</b><div class="muted small">${esc(p.negocio.nombre)} la está preparando; te avisaremos.</div></div></div>`;
+  return `<div class="card row between"><div class="grow"><b>🧾 ¿Necesitas factura?</b><div class="muted small">${f && f.estado === 'rechazada' ? 'No procedió: ' + esc(f.motivo) : 'Pídela con tus datos fiscales'}</div></div><button class="btn pri sm" onclick="act(this,()=>facPedirApp('${p.id}','${p.negocio.id}'))">Pedir factura</button></div>`;
+}
+async function facPedirApp(pid, nid) {
+  const d = await api('fiscalMisDatos'); FAC_CAT = d;
+  if (!d.datos) { S._facCli = { datos: null, negocios: [], facturas: [] }; S._facTrasDatos = () => facPedirApp(pid, nid); facFormMisDatos(); return; }
+  await api('facturaSolicitar', { negocioId: nid, origen: 'app', pedidoId: pid });
+  toast('Factura solicitada: el negocio la emitirá y te llegará por correo'); pintar(true);
+}
+
+/* ---------- negocio: solicitudes, emisión y configuración ---------- */
+async function vFacturas() {
+  if (rolActual() !== 'negocio' || !S.negocio) { ir(inicioRol()); return; }
+  html(`<div class="segTop"><button class="redondo" onclick="volver('tablero')">${ico('atras')}</button><h2>🧾 Facturación</h2><span class="esp"></span></div><div id="facBox"><div class="muted">Cargando…</div></div>`);
+  await facPintar();
+}
+async function facPintar() {
+  const box = $('#facBox'); if (!box || !box.tagName) return;
+  const d = await api('facturasNegocio', { negocioId: S.negocio.id }), c = d.config;
+  FAC_CAT = { regimenes: c.regimenes, usos: c.usos, formas: c.formas }; S._facNeg = d;
+  if (S.negocio.factura !== c.listo) { S.negocio.factura = c.listo; ls('negocio', S.negocio); }
+  const dueno = esDueno();
+  if (dueno) setTimeout(() => facRestaurarPaquete(c), 0);
+  box.innerHTML = `${!c.servidor ? `<div class="aviso err">La facturación aún no está activada en el servidor de ${esc(PUEBLO.nombre || APP)}. Avísale al administrador de ${APP}.</div>` : c.sandbox ? `<div class="aviso warn small">🧪 Modo de pruebas: las facturas se timbran en el ambiente de pruebas de Facturama y <b>no tienen validez ante el SAT</b>.</div>` : ''}
+    <div class="card">${c.listo ? `<div class="row between"><div class="grow"><b>${esc(c.nombre)}</b><div class="muted small">${esc(c.rfc)} · CP ${esc(c.cp)} · ${esc(facRegimenTxt(c.regimen))}</div>
+        <div class="muted small">Siguiente folio ${esc(c.serie)}${c.folio} · IVA ${c.iva}% · ${c.concepto === 'consumo' ? 'concepto “Consumo”' : 'conceptos detallados'}</div></div>${dueno ? '<button class="lnk small" onclick="facFormConfig()">Editar</button>' : ''}</div>`
+      : `<b>Factura a tus clientes con tu RFC</b><div class="muted small" style="margin:4px 0 8px">Captura tus datos fiscales y sube tus sellos digitales (CSD: archivos .cer y .key con su contraseña, los que te da el SAT). Los sellos se mandan directo a Facturama; ${APP} no los guarda.</div>
+        ${dueno ? '<button class="btn pri pill full" onclick="facFormConfig()">Configurar facturación</button>' : '<div class="aviso warn small">Solo el dueño puede configurar la facturación.</div>'}`}</div>
+    ${c.listo ? facCuotaHTML(c, dueno) : ''}
+    ${c.listo ? `<h3>Solicitudes de clientes ${d.pendientes.length ? '(' + d.pendientes.length + ')' : ''}</h3>
+      ${d.pendientes.length ? d.pendientes.map(f => facTarjeta(Object.assign({}, f, { acciones: `<div class="row" style="gap:8px;margin-top:8px"><button class="btn pri sm" style="flex:1" onclick="facFormEmitir('${f.id}')">Revisar y emitir</button><button class="btn err sm" onclick="facFormRechazar('${f.id}')">No procede</button></div>` }))).join('') : '<div class="muted small">No hay solicitudes pendientes. También puedes facturar directo desde una venta en la caja (Ventas → toca la venta → 🧾 Facturar).</div>'}
+      ${d.recientes.length ? `<h3>Facturas recientes</h3>${d.recientes.map(f => facTarjeta(Object.assign({}, f, { acciones: f.estado === 'emitida' && (dueno || (S.negocio.permisos || []).includes('gerente')) ? `<div style="margin-top:6px"><button class="lnk small" style="color:var(--err)" onclick="facFormCancelar('${f.id}')">Cancelar factura</button></div>` : '' }))).join('')}` : ''}` : ''}`;
+}
+function facFormConfig() {
+  const c = S._facNeg.config;
+  modal(`<h2 style="margin:0 0 4px">Datos fiscales del negocio</h2><div class="muted small">Igual que en tu constancia de situación fiscal. Si tienes dudas, confírmalos con tu contador.</div>
+    <label class="f">RFC</label><input class="i" id="fnRfc" value="${esc(c.rfc)}" maxlength="13" style="text-transform:uppercase">
+    <label class="f">Nombre o razón social</label><input class="i" id="fnNom" value="${esc(c.nombre)}" style="text-transform:uppercase" placeholder="Sin “S.A. de C.V.” si tu constancia no lo trae">
+    <label class="f">Régimen fiscal</label><select class="i" id="fnReg">${facOpciones(c.regimenes, c.regimen)}</select>
+    <label class="f">Código postal (lugar de expedición)</label><input class="i" id="fnCp" value="${esc(c.cp)}" inputmode="numeric" maxlength="5">
+    <div class="row" style="gap:8px"><div class="grow"><label class="f">Serie</label><input class="i" id="fnSer" value="${esc(c.serie)}" maxlength="10"></div><div class="grow"><label class="f">Siguiente folio</label><input class="i" id="fnFol" value="${c.folio}" inputmode="numeric"></div></div>
+    <label class="f">IVA que cobras</label><select class="i" id="fnIva">${[16, 8, 0].map(x => `<option value="${x}" ${c.iva === x ? 'selected' : ''}>${x}%${x === 8 ? ' (región fronteriza)' : x === 0 ? ' (tasa 0)' : ''}</option>`).join('')}</select>
+    <label class="f">Conceptos en la factura</label><select class="i" id="fnCon"><option value="detalle" ${c.concepto !== 'consumo' ? 'selected' : ''}>Cada producto vendido</option><option value="consumo" ${c.concepto === 'consumo' ? 'selected' : ''}>Un solo concepto: “Consumo de alimentos y bebidas”</option></select>
+    <details style="margin-top:8px"><summary class="small">Claves del SAT (avanzado)</summary>
+      <label class="f">Clave de producto o servicio</label><input class="i" id="fnCla" value="${esc(c.clave)}" inputmode="numeric" maxlength="8"><div class="muted small">90101500 = Establecimientos para comer y beber.</div>
+      <div class="row" style="gap:8px"><div class="grow"><label class="f">Clave de unidad</label><input class="i" id="fnUni" value="${esc(c.unidad)}" maxlength="3"></div><div class="grow"><label class="f">Unidad</label><input class="i" id="fnUnT" value="${esc(c.unidadTxt)}"></div></div>
+      <label class="f">Correo del negocio (copia de cada factura)</label><input class="i" id="fnMail" type="email" value="${esc(c.email)}"></details>
+    <hr class="hr"><b>Imagen en la factura</b><div class="muted small">Aparece en el PDF que recibe tu cliente.</div>
+    <select class="i" id="fnLogo" onchange="facLogoCambio()" style="margin-top:6px">
+      <option value="negocio" ${c.logo === 'negocio' ? 'selected' : ''} ${c.tieneLogoNeg ? '' : 'disabled'}>El logo de mi negocio${c.tieneLogoNeg ? '' : ' (aún no subes uno)'}</option>
+      <option value="propia" ${c.logo === 'propia' ? 'selected' : ''}>Otra imagen (subirla)</option>
+      <option value="url" ${c.logo === 'url' ? 'selected' : ''}>Una imagen de internet (dirección .png o .jpg)</option>
+      <option value="no" ${c.logo === 'no' ? 'selected' : ''}>Sin imagen</option></select>
+    <div id="fnLogoPropia" style="margin-top:6px;display:${c.logo === 'propia' ? 'block' : 'none'}"><input class="i" id="fnLogoImg" type="file" accept="image/png,image/jpeg" onchange="facLogoPrev(this)"></div>
+    <div id="fnLogoDir" style="margin-top:6px;display:${c.logo === 'url' ? 'block' : 'none'}"><input class="i" id="fnLogoUrl" value="${esc(c.logoUrl)}" placeholder="https://pidele.app/logos/mi-negocio.png" oninput="facLogoPrev()"></div>
+    <div id="fnLogoVer" style="margin-top:8px;text-align:center">${c.logoVista ? `<img src="${esc(c.logoVista)}" alt="" style="max-height:80px;max-width:220px;border:1px solid var(--ln);border-radius:8px;padding:4px;background:#fff">` : ''}</div>
+    <hr class="hr"><b>Sellos digitales (CSD)</b>
+    <div class="muted small">${c.csd ? '✅ Sellos cargados' + (c.csdFecha ? ' el ' + fechaCorta(c.csdFecha) : '') + '. Súbelos de nuevo solo si los renovaste.' : 'Los descargas del portal del SAT (no es tu e.firma). Se envían directo a Facturama y no se guardan en ' + APP + '.'}</div>
+    <label class="f">Archivo .cer</label><input class="i" id="fnCer" type="file" accept=".cer">
+    <label class="f">Archivo .key</label><input class="i" id="fnKey" type="file" accept=".key">
+    <label class="f">Contraseña de los sellos</label><input class="i" id="fnPas" type="password" autocomplete="off">
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,facGuardarConfig)">Guardar</button></div>`);
+}
+function facLogoCambio() {
+  const v = $('#fnLogo').value, c = S._facNeg.config;
+  $('#fnLogoPropia').style.display = v === 'propia' ? 'block' : 'none'; $('#fnLogoDir').style.display = v === 'url' ? 'block' : 'none';
+  const src = v === 'negocio' && c.tieneLogoNeg ? (c.logo === 'negocio' && c.logoVista ? c.logoVista : (S.negocio.logo || '')) : v === 'propia' && c.logo === 'propia' ? c.logoVista : '';
+  $('#fnLogoVer').innerHTML = src ? `<img src="${esc(src)}" alt="" style="max-height:80px;max-width:220px;border:1px solid var(--ln);border-radius:8px;padding:4px;background:#fff">` : '';
+  if (v === 'url') facLogoPrev();
+}
+function facLogoPrev(inp) {
+  const box = $('#fnLogoVer'), pon = src => { box.innerHTML = src ? `<img src="${esc(src)}" alt="" style="max-height:80px;max-width:220px;border:1px solid var(--ln);border-radius:8px;padding:4px;background:#fff" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'muted small',textContent:'No se pudo ver esa imagen'}))">` : ''; };
+  if (inp && inp.files && inp.files[0]) { const r = new FileReader(); r.onload = () => pon(r.result); r.readAsDataURL(inp.files[0]); return; }
+  const u = ($('#fnLogoUrl').value || '').trim(); pon(/^https:\/\/\S+\.(png|jpe?g)$/i.test(u) ? u : '');
+}
+/** Facturas del mes y paquetes extra (se compran con Google Play). */
+function facCuotaHTML(c, dueno) {
+  const q = c.cuota || {}, pct = q.incluidas ? Math.min(100, Math.round(q.usadas / q.incluidas * 100)) : 100;
+  const sinNada = q.disponibles <= 0;
+  return `<div class="card"><div class="row between"><b>Facturas de este mes</b><b>${q.usadas} de ${q.incluidas}</b></div>
+    <div style="height:8px;border-radius:6px;background:var(--ln);margin:8px 0;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct >= 100 ? 'var(--err)' : pct >= 80 ? 'var(--warn)' : 'var(--pri)'}"></div></div>
+    <div class="muted small">${q.libres} incluidas disponibles · se reinician el día 1${q.extra ? ` · <b>${q.extra} de paquetes</b> (no vencen)` : ''}</div>
+    ${sinNada ? `<div class="aviso err small" style="margin:8px 0 0">Ya no quedan facturas este mes. ${q.producto ? 'Compra un paquete para seguir facturando.' : ''}</div>` : ''}
+    ${q.producto && dueno ? (playCobro() ? `<div class="btns"><button class="btn ${sinNada ? 'pri' : ''} pill full" onclick="act(this,facComprarPaquete)">➕ ${q.paquete} facturas más · <span class="precioFac">$${q.precio}</span></button></div>`
+      : `<div class="muted small" style="margin-top:8px">➕ Paquete de ${q.paquete} facturas por $${q.precio}: cómpralo desde la app de Pídele instalada de Google Play.</div>`) : ''}</div>`;
+}
+async function facComprarPaquete() {
+  const c = S._facNeg.config, sku = c.cuota.producto;
+  const svc = await servicioPlay(), det = await svc.getDetails([sku]);
+  if (!det || !det.length) throw new Error('No encontramos el paquete de facturas en Google Play. Intenta más tarde.');
+  const pr = det[0].price || { currency: 'MXN', value: String(c.cuota.precio) };
+  const req = new PaymentRequest([{ supportedMethods: 'https://play.google.com/billing', data: { sku } }], { total: { label: 'Total', amount: { currency: pr.currency, value: pr.value } } });
+  let resp;
+  try { resp = await req.show(); } catch (e) { if (e && e.name === 'AbortError') return; throw new Error('No se completó la compra' + (e && e.message ? ': ' + e.message : '')); }
+  const token = resp.details && (resp.details.purchaseToken || resp.details.token);
+  try {
+    if (!token) throw new Error('Google no devolvió la compra. Si se te cobró, abre de nuevo Facturación y se sumará sola.');
+    await api('facturasComprar', { negocioId: S.negocio.id, token });
+    await resp.complete('success');
+  } catch (e) { try { await resp.complete('fail'); } catch (x) { } throw e; }
+  try { await svc.consume(token); } catch (e) { }
+  toast('¡Listo! Se sumaron ' + c.cuota.paquete + ' facturas ✓'); await facPintar();
+}
+/** Si una compra quedó sin aplicar (se cerró la app a medio pago), se suma sola. */
+async function facRestaurarPaquete(c) {
+  const sku = c.cuota && c.cuota.producto; if (!sku || !playCobro() || S._facRest) return;
+  S._facRest = true;
+  try {
+    const svc = await servicioPlay(), l = (await svc.listPurchases()).filter(x => x.itemId === sku);
+    let suma = false;
+    for (const x of l) { const r = await api('facturasComprar', { negocioId: S.negocio.id, token: x.purchaseToken }); if (!r.yaAplicada) suma = true; try { await svc.consume(x.purchaseToken); } catch (e) { } }
+    if (suma) { toast('Se sumó tu paquete de facturas ✓'); await facPintar(); }
+    else {
+      const e = document.querySelector('.precioFac'); if (!e) return;
+      const det = await svc.getDetails([sku]); if (det && det[0] && det[0].price) e.textContent = new Intl.NumberFormat('es-MX', { style: 'currency', currency: det[0].price.currency }).format(+det[0].price.value);
+    }
+  } catch (e) { } finally { S._facRest = false; }
+}
+function facLeerArchivo(inp) {
+  const f = inp && inp.files && inp.files[0]; if (!f) return Promise.resolve('');
+  if (f.size > 200000) return Promise.reject(new Error('El archivo ' + f.name + ' es demasiado grande; revisa que sea el sello (.cer / .key)'));
+  return new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).replace(/^data:[^,]*,/, '')); r.onerror = () => mal(new Error('No se pudo leer ' + f.name)); r.readAsDataURL(f); });
+}
+async function facGuardarConfig() {
+  const v = id => ($('#' + id).value || '').trim();
+  const d = { negocioId: S.negocio.id, rfc: v('fnRfc'), nombre: v('fnNom'), regimen: v('fnReg'), cp: v('fnCp'), serie: v('fnSer'), folio: parseInt(v('fnFol'), 10) || undefined, iva: parseInt(v('fnIva'), 10), concepto: v('fnCon'), clave: v('fnCla'), unidad: v('fnUni').toUpperCase(), unidadTxt: v('fnUnT'), email: v('fnMail') };
+  const cer = await facLeerArchivo($('#fnCer')), key = await facLeerArchivo($('#fnKey')), pass = $('#fnPas').value;
+  if (cer || key || pass) { if (!cer || !key || !pass) throw new Error('Para los sellos sube el .cer, el .key y escribe su contraseña'); Object.assign(d, { cer, key, pass }); }
+  else if (!S._facNeg.config.csd) throw new Error('Falta subir tus sellos digitales (.cer y .key con su contraseña)');
+  d.logo = v('fnLogo') || 'negocio'; d.logoUrl = v('fnLogoUrl');
+  const fl = $('#fnLogoImg').files[0]; if (d.logo === 'propia' && fl) d.logoImg = await comprimir(fl, 600);
+  const c = await api('fiscalGuardar', d);
+  S.negocio.factura = c.listo; ls('negocio', S.negocio);
+  cerrarModal(); toast(d.cer ? 'Datos y sellos guardados en Facturama' : 'Datos fiscales guardados'); await facPintar();
+}
+const FAC_FORMA_DE = { efectivo: '01', transferencia: '03', tarjeta: '04', monedero: '05' };
+function facFormaSelect(val) { return `<label class="f">Forma de pago</label><select class="i" id="feFor">${['01', '03', '04', '28', '05', '02'].map(k => `<option value="${k}" ${val === k ? 'selected' : ''}>${k} · ${esc((FAC_CAT.formas || {})[k] || k)}</option>`).join('')}</select>`; }
+function facFormEmitir(id) {
+  const f = S._facNeg.pendientes.find(x => x.id === id); if (!f) return;
+  const r = f.receptor || {};
+  modal(`<h2 style="margin:0 0 4px">Emitir factura</h2>
+    <div class="card" style="padding:12px"><b>${esc(r.nombre)}</b><div class="muted small">${esc(r.rfc)} · CP ${esc(r.cp)} · ${esc(facRegimenTxt(r.regimen))}</div><div class="muted small">Uso ${esc(r.uso)} · ✉️ ${esc(r.email)}</div></div>
+    ${f.origen === 'app' ? `<div class="small">🛵 Pedido de la app del ${esc(f.dia)} por <b>${money(f.totalVenta)}</b>. Los conceptos salen del pedido (sin el envío).</div>`
+      : `<div class="aviso warn small">Revisa el ticket <b>${esc(f.ref)}</b> del ${esc(f.dia)}: confirma que exista y que el total sea correcto.</div>
+        <label class="f">Total del ticket (con IVA)</label><input class="i" id="feTot" inputmode="decimal" value="${f.totalVenta}">`}
+    ${facFormaSelect(f.origen === 'app' ? '03' : '01')}
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facEmitirSolicitud('${f.id}'))">Timbrar factura</button></div>`);
+}
+async function facEmitirSolicitud(id) {
+  const f = S._facNeg.pendientes.find(x => x.id === id), d = { negocioId: S.negocio.id, facturaId: id, formaPago: $('#feFor').value };
+  if (f.origen !== 'app') { const t = parseFloat(String($('#feTot').value).replace(/[$,\s]/g, '')) || 0; if (!(t > 0)) throw new Error('Escribe el total del ticket'); d.conceptos = [{ nombre: 'Consumo de alimentos y bebidas', cant: 1, importe: t }]; }
+  const r = await api('facturaEmitir', d);
+  cerrarModal(); toast('Factura ' + r.serie + r.folio + ' timbrada y enviada a ' + ((r.receptor || {}).email || 'el cliente')); await facPintar();
+}
+function facFormRechazar(id) {
+  modal(`<h2 style="margin:0 0 4px">No procede la factura</h2><div class="muted small">Le avisamos al cliente con tu explicación.</div>
+    <label class="f">Motivo</label><input class="i" id="frMot" placeholder="Ej. no encontramos ese folio, el total no coincide…">
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn err pill" onclick="act(this,async()=>{await api('facturaRechazar',{negocioId:S.negocio.id,facturaId:'${id}',motivo:$('#frMot').value});cerrarModal();toast('Le avisamos al cliente');await facPintar();})">Enviar</button></div>`);
+}
+function facFormCancelar(id) {
+  modal(`<h2 style="margin:0 0 4px">Cancelar factura ante el SAT</h2><div class="aviso warn small">Se cancela con el motivo 02 (comprobante emitido con errores sin relación). Si es para corregirla, después emite una nueva. No se puede deshacer.</div>
+    <label class="f">Nota interna</label><input class="i" id="fxMot" placeholder="Ej. RFC equivocado">
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Volver</button><button class="btn err pill" onclick="act(this,async()=>{await api('facturaCancelar',{negocioId:S.negocio.id,facturaId:'${id}',motivo:$('#fxMot').value});cerrarModal();toast('Factura cancelada');await facPintar();})">Cancelar factura</button></div>`);
+}
+/** Desde la caja: facturar una venta directo (el cliente da sus datos en el mostrador). */
+async function facDesdeVenta(id) {
+  const v = pdvVenta(id); if (!v) return;
+  if (!FAC_CAT || !FAC_CAT.formas) { const c = await api('fiscalConfig', { negocioId: S.negocio.id }); FAC_CAT = { regimenes: c.regimenes, usos: c.usos, formas: c.formas }; }
+  const pagos = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto), forma = FAC_FORMA_DE[(pagos[0] || {}).metodo] || '01';
+  let previo = null; try { previo = JSON.parse(localStorage.getItem('pe_facUlt') || 'null'); } catch (e) { }
+  modal(`<h2 style="margin:0 0 4px">🧾 Facturar ${esc(v.folio)} · ${money(v.total)}</h2><div class="muted small">Datos de la constancia de situación fiscal del cliente.${v.cliente && v.cliente.nombre ? ' Cliente: ' + esc(v.cliente.nombre) : ''}</div>
+    ${previo ? `<button class="lnk small" onclick="facRellenar()">Usar los datos de ${esc(previo.nombre)}</button>` : ''}
+    ${facReceptorCampos({ uso: 'G03' }, 'fv')}
+    ${facFormaSelect(forma)}
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facEmitirVenta('${v.id}'))">Timbrar factura</button></div>`);
+}
+function facRellenar() { let p = null; try { p = JSON.parse(localStorage.getItem('pe_facUlt') || 'null'); } catch (e) { } if (!p) return; [['Rfc', 'rfc'], ['Nom', 'nombre'], ['Reg', 'regimen'], ['Cp', 'cp'], ['Uso', 'uso'], ['Mail', 'email']].forEach(([a, b]) => { const i = $('#fv' + a); if (i && i.tagName) i.value = p[b] || ''; }); }
+async function facEmitirVenta(id) {
+  const v = pdvVenta(id), receptor = facLeerReceptor('fv');
+  const its = v.items.filter(i => !i.cancelado).map(i => ({ id: i.productoId || i.id || '', nombre: i.nombre + (detalleItem(i) ? ' ' + detalleItem(i).replace(/<[^>]+>/g, '') : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
+  const suma = its.reduce((s, i) => s + i.importe, 0);
+  if (suma > 0 && Math.abs(suma - v.total) > 0.01) { const k = v.total / suma; its.forEach(i => { i.importe = Math.round(i.importe * k * 100) / 100; }); } // descuentos de la venta
+  const r = await api('facturaEmitir', { negocioId: S.negocio.id, ref: v.folio, dia: v.dia, receptor, conceptos: its, formaPago: $('#feFor').value });
+  try { localStorage.setItem('pe_facUlt', JSON.stringify(receptor)); } catch (e) { }
+  pdvGuardar(pdvCol('ventas').doc(v.id).set({ factura: { id: r.id, folio: r.serie + r.folio, uuid: r.uuid } }, { merge: true }));
+  v.factura = { id: r.id, folio: r.serie + r.folio };
+  cerrarModal(); toast('Factura ' + r.serie + r.folio + ' timbrada' + (receptor.email ? ' y enviada a ' + receptor.email : ''));
+}
+
 function pdvDetalleVenta(id) {
   const v = pdvVenta(id); if (!v) return;
   modal(`<div class="row between"><h2 style="margin:0">Venta ${esc(v.folio)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -2848,7 +3125,9 @@ function pdvDetalleVenta(id) {
     <div class="card" style="margin-top:8px">${v.items.filter(i => !i.cancelado).map(i => `<div class="row between small" style="padding:3px 0"><span>${i.cant}× ${esc(i.nombre)}${detalleItem(i) ? ' <span class="muted">· ' + detalleItem(i) + '</span>' : ''}</span><b>${money(i.importe != null ? i.importe : i.cant * i.precio)}</b></div>`).join('')}
       <div class="tot g"><span>Total</span><span>${money(v.total)}</span></div>
       ${v.pagos.map(p => `<div class="small">${PDV_MET[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' · recibió ' + money(p.recibe) + ', cambio ' + money(p.cambio) : ''} · ${esc(p.por.nombre.split(' ')[0])}</div>`).join('')}</div>
+    ${v.factura ? `<div class="aviso ok small" style="margin:8px 0 0">🧾 Facturada · ${esc(v.factura.folio || '')}</div>` : ''}
     <div class="btns"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
+      ${S.negocio && S.negocio.factura && v.estado !== 'cancelada' && !v.factura && pdvPuede('dcg') ? `<button class="btn pill" onclick="act(this,()=>facDesdeVenta('${v.id}'))">🧾 Facturar</button>` : ''}
       ${pdvEsTelefono() ? `<a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>` : ''}
       ${v.estado !== 'cancelada' ? `<button class="btn err pill" onclick="act(this,()=>pdvCancelarVenta('${v.id}'))">Cancelar venta</button>` : ''}</div>`);
 }
@@ -7844,6 +8123,7 @@ async function vPedido(id, silencioso) {
     ${bloquePagoEnvio(p)}
     ${bloqueNoRecibido(p)}
     ${bloqueRecibido(p)}
+    ${facBloquePedido(p)}
     <div class="card"><div class="row between"><b>Pedido ${p.folio}</b><span class="muted small">${fechaCorta(p.creado)}</span></div>
       <div class="muted small" style="margin:2px 0 8px">${esc(p.negocio.nombre)} · ${recoger ? 'Recoger en restaurante' : esc(p.direccion)}</div>
       ${listaItems(p.items)}<hr class="hr">${resumenCobro(p)}
@@ -8182,6 +8462,7 @@ function vPerfil() {
     ${r === 'negocio' && S.negocio && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
     ${esStaff() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
       : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
+    <div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Facturación</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
     <div class="card row between" style="cursor:pointer" onclick="ir('monedero')"><div><b>👛 Mi monedero</b><div class="muted small">Tu saldo, cashback y código para pagar en los negocios con monedero</div></div><span class="lnk small">Abrir ›</span></div>
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
       <div class="row" style="gap:8px"><button class="btn sm" style="flex:1" onclick="formAlta('negocio')">🏪 Registrar mi negocio</button><button class="btn sm" style="flex:1" onclick="formAlta('repartidor')">🛵 Quiero repartir</button></div></div>` : ''}
@@ -9510,6 +9791,7 @@ async function vMiNegocio() {
   S._negPos = { lat: n.lat, lng: n.lng }; S._logo = null; S._qr = null; S._portada = null;
   const su = n.suscripcion, esu = su ? (EST_SUSC[su.estado] || EST_SUSC.sin) : null;
   html(`${pendienteAviso()}<h2>Mi negocio</h2>
+    <div class="card row between" style="cursor:pointer" onclick="ir('facturas')"><div><b>🧾 Facturación</b><div class="muted small">${n.factura ? 'Activa · solicitudes de clientes y facturas emitidas' : 'Factura a tus clientes con tu RFC (CFDI 4.0)'}</div></div><span class="lnk small">Abrir ›</span></div>
     <div class="card row between" style="cursor:pointer" onclick="ir('repartidores')"><div><b>🛵 Repartidores</b><div class="muted small">Tus repartidores, independientes y favoritos · invitar por WhatsApp</div></div><span class="lnk small">Abrir ›</span></div>
     ${su && su.vence && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
       <div class="muted small">${su.estado === 'suspendido' || su.estado === 'gracia' ? 'Venció el ' : 'Activa hasta el '}${fechaLarga(su.vence)}</div></div>
