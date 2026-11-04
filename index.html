@@ -440,6 +440,7 @@ body.enCaja{padding-bottom:0}
 .pdvMesasSel button small{font-size:11px;font-weight:700;color:var(--warn)}.pdvMesasSel button.ocup{border-color:var(--warn-s);background:var(--warn-s)}
 .pdvMesasSel button.on{background:var(--pri);border-color:var(--pri);color:#fff}.pdvMesasSel button.on small{color:#fff}
 .pdvTurnoBar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 10px;padding:8px 12px;border-radius:14px;background:var(--card);border:1px solid var(--ln);font-size:14px}
+@keyframes sacude{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}#modalCaja.sacude{animation:sacude .35s}
 .pdvActivos{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;margin:0 0 10px;border:0;cursor:pointer;font:inherit;text-align:left}.tabNeg.vtaErr{border-left-color:var(--err)}
 .tabChips{scrollbar-width:none}.tabChips::-webkit-scrollbar{display:none}
 .pdvMesas{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
@@ -618,7 +619,7 @@ input.i,select.i,textarea.i{min-width:0;max-width:100%}
 </header>
 <main id="vista"></main>
 <nav id="nav"></nav>
-<div id="modal" onclick="if(event.target===this)cerrarModal()"><div class="caja" id="modalCaja"></div></div>
+<div id="modal" onclick="if(event.target===this)modalFuera()"><div class="caja" id="modalCaja"></div></div>
 <div id="visor" onclick="if(event.target===this)this.classList.remove('on')"><img id="visorImg" alt=""><button class="btn" onclick="$('#visor').classList.remove('on')">Cerrar</button></div>
 <div id="toast"></div>
 <script>
@@ -884,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.43.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.43.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -988,7 +989,15 @@ function toast(msg, tipo) {
   clearTimeout(t._t); t._t = setTimeout(() => t.className = '', tipo === 'err' ? 4500 : 2600);
 }
 function modal(h) { $('#modalCaja').innerHTML = h; $('#modal').classList.add('on'); }
-function cerrarModal() { $('#modal').classList.remove('on'); $('#modalCaja').innerHTML = ''; S.chat = null; clearInterval(S._chatT); }
+/** 2.43.2 · Tocar fuera de la ventana: solo cierra las que no tienen datos por escribir (para salir: Cancelar o ✕). */
+function modalFuera() {
+  const c = $('#modalCaja');
+  if (c.querySelector('input:not([type=hidden]),textarea,select,[data-fijo]')) { c.classList.remove('sacude'); void c.offsetWidth; c.classList.add('sacude'); toast('Usa los botones de la ventana para continuar'); return; }
+  cerrarModal();
+}
+function cerrarModal() {
+  // si se estaba pidiendo un código, se cancela (así el botón que lo pidió no se queda cargando)
+  if (S._pinCb) { const cb = S._pinCb; S._pinCb = null; try { cb.mal(new Error('Cancelado')); } catch (e) { } } $('#modal').classList.remove('on'); $('#modalCaja').innerHTML = ''; S.chat = null; clearInterval(S._chatT); }
 function visor(src) { $('#visorImg').src = src; $('#visor').classList.add('on'); }
 function telLink(t, txt) { return t ? `<a class="btn sm" href="tel:${esc(t)}">${ico('tel', 's')} ${txt || 'Llamar'}</a>` : ''; }
 /** Enlace de WhatsApp: 10 dígitos = México (52); si ya trae lada de país (11 a 15 dígitos) se usa tal cual. */
@@ -2317,7 +2326,7 @@ function pdvPedirPin(titulo, rol, extra) {
       <label class="f">${rol === 'dueno' ? 'Dueño' : rol === 'gerente' ? 'Gerente que autoriza' : '¿Quién eres?'}</label>
       <select class="i" id="pinQuien">${g.map(x => `<option value="${esc(x.uid)}" ${x.uid === S.user.id ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select>
       <label class="f">Código</label><input class="i" id="pinVal" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
-      <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvValidarPin)">Continuar</button></div>`);
+      <div class="btns"><button class="btn pill" style="flex:1" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" style="flex:2" onclick="act(this,pdvValidarPin)">${/^Cerrar turno/.test(titulo) ? 'Guardar corte' : 'Continuar'}</button></div>`);
     setTimeout(() => { const i = $('#pinVal'); if (i) i.focus(); }, 200);
   });
 }
@@ -3109,14 +3118,10 @@ async function pdvCerrarCaja() {
   PDV._desg = null;
   let r;
   try {
-    r = await pdvPedirPin('Cerrar turno ' + c.turno, 'caja', `<div class="muted" style="margin:6px 0">Cuenta el efectivo de la caja: aparta lo que dejas de caja chica y retira el resto.</div>
-      <label class="f">¿Cuánto dejas en caja chica?</label><input class="i pdvNum" id="ciDeja" inputmode="decimal" value="${c.fondo}" ${ve ? `oninput="pdvVistaDif(${k.esperado})"` : ''}>
-      <div class="small muted">Este turno abrió con ${money(c.fondo)}: deja lo mismo para el siguiente.</div>
-      <label class="f">¿Cuánto retiras?</label><input class="i pdvNum" id="ciRet" inputmode="decimal" ${ve ? `oninput="pdvVistaDif(${k.esperado})"` : ''}>
-      <details><summary class="small">🧮 Contar el retiro por billetes y monedas</summary><div class="pdvDen">${PDV_DEN.map(d => `<label>${money(d)}<input class="i" inputmode="numeric" data-d="${d}" oninput="pdvSumarDen()"></label>`).join('')}</div></details>
-      ${ve ? '<div id="ciDif" class="small" style="margin-top:6px"></div>' : ''}
-      ${k.propinas ? `<div class="aviso info" style="margin:8px 0">💳 Propinas cobradas con tarjeta: <b>${money(k.propinas)}</b>. Entrégalas al equipo en efectivo; se registran solas como gasto.</div>` : ''}
-      ${k.abiertasN ? `<div class="aviso warn" style="margin:8px 0">🍽️ Quedan ${k.abiertasN} cuenta(s) abierta(s) de este turno. Siguen abiertas: cuando se cobren se suman a las ventas de este turno.</div>` : ''}`);
+    r = await pdvPedirPin('Cerrar turno ' + c.turno, 'caja', `<div class="muted" style="margin:6px 0">Cuenta el efectivo de la caja y contesta:</div>
+      <label class="f">1. ¿Cuánto dejas en caja chica?</label><input class="i pdvNum" id="ciDeja" inputmode="decimal" value="${c.fondo}">
+      <label class="f">2. ¿Cuánto retiras de la caja?</label><input class="i pdvNum" id="ciRet" inputmode="decimal">
+      <details><summary class="small">🧮 Contar el retiro por billetes y monedas</summary><div class="pdvDen">${PDV_DEN.map(d => `<label>${money(d)}<input class="i" inputmode="numeric" data-d="${d}" oninput="pdvSumarDen()"></label>`).join('')}</div></details>`);
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   S._cierrePend = { r, cajaId: c.id };
@@ -3137,11 +3142,10 @@ function pdvContinuarCierre() {
   if (!pend || !c || c.id !== pend.cajaId) { S._cierrePend = null; return; }
   const k = pdvCuentas(), d = pend.r.datos, dif = pdvR(d.retiro + d.deja - k.esperado);
   if (dif < -0.5 && !pend.seguir) {
-    modal(`<div style="text-align:center"><div style="font-size:44px">🤔</div><h2 style="margin:4px 0">Faltan ${money(-dif)}</h2>
-      <div class="muted" style="margin:6px 0 12px">¿No habrá un gasto sin registrar? Si pagaste algo con dinero de la caja, regístralo ahora.</div>
-      <div class="btns"><button class="btn pri pill full" onclick="pdvFormGasto({ pago: 'caja' })">📝 Registrar un gasto</button>
-        <button class="btn pill full" onclick="S._cierrePend.seguir=1;pdvContinuarCierre()">No, cerrar así</button>
-        <button class="lnk small" onclick="S._cierrePend=null;cerrarModal();pintarCaja()">Volver a contar</button></div></div>`);
+    modal(`<div style="text-align:center" data-fijo><div style="font-size:44px">🤔</div><h2 style="margin:4px 0">Hay un faltante en tu corte</h2>
+      <div class="muted" style="margin:6px 0 12px">¿Tienes algún gasto por registrar? Si pagaste algo con dinero de la caja, regístralo ahora.</div>
+      <div class="btns"><button class="btn pri pill full" onclick="pdvFormGasto({ pago: 'caja' })">📝 Registrar gasto faltante</button>
+        <button class="btn pill full" onclick="S._cierrePend.seguir=1;pdvContinuarCierre()">Continuar</button></div></div>`);
     return;
   }
   S._cierrePend = null;
@@ -3170,15 +3174,14 @@ function pdvFinCierre(r, k, pend) {
   PDV.cajasHoy = PDV.cajasHoy.filter(x => x.id !== c.id).concat([cerrada]);
   PDV.caja = null; pdvSuscribirCaja();
   const falta = cierre.diferencia < -0.5;
-  modal(ve ? `<div style="text-align:center"><div style="font-size:46px">🗄️</div><h2 style="margin:4px 0">Turno ${c.turno} cerrado</h2>
-    <div class="pdvCambioG" style="color:${Math.abs(cierre.diferencia) < 0.5 ? 'var(--ok)' : 'var(--err)'}">${Math.abs(cierre.diferencia) < 0.5 ? '✓ La caja cuadra' : (cierre.diferencia > 0 ? 'Sobran ' : 'Faltan ') + money(Math.abs(cierre.diferencia))}</div>
-    <div class="card" style="text-align:left">${[['Retira', d.retiro], ['Deja en caja chica', fondoDeja], ['Debía haber', k.esperado], ...(k.propinas ? [['Propinas entregadas al equipo', k.propinas]] : []), ['Gastos de hoy', cierre.gastosDia]].map(([a, b]) => `<div class="tot"><span>${a}</span><span>${money(b)}</span></div>`).join('')}</div>
-    <div class="btns"><button class="btn pill full" onclick="pdvImprimirCorte('${c.id}')">🖨️ Imprimir corte</button><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`
-    : `<div style="text-align:center"><div style="font-size:46px">🙌</div><h2 style="margin:4px 0">¡Gracias por tu retiro de ${money(d.retiro)}!</h2>
-    <div class="muted" style="margin:6px 0">Hoy tuvieron un gasto total de ${money(cierre.gastosDia)}. ¡Gracias!</div>
-    ${falta ? `<div class="small" style="color:var(--err);margin-top:6px">Quedó registrado un faltante de ${money(-cierre.diferencia)}.</div>` : ''}
-    <div class="btns"><button class="btn pill full" onclick="pdvImprimirCorte('${c.id}')">🖨️ Imprimir comprobante</button><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`);
-  if (pdvCfg().autoTicket) pdvImprimirCorte(c.id);
+  const h = new Date().getHours(), despedida = h < 12 ? 'que tengas un lindo día' : h < 19 ? 'que tengas linda tarde' : 'que tengas linda noche';
+  const extras = `${k.propinas ? `<div class="aviso info" style="text-align:left;margin:8px 0">💳 Entrega <b>${money(k.propinas)}</b> de propinas con tarjeta al equipo (ya se registraron como gasto).</div>` : ''}${k.abiertasN ? `<div class="aviso warn" style="text-align:left;margin:8px 0">🍽️ Quedan ${k.abiertasN} cuenta(s) abierta(s) de este turno; se suman a tus ventas cuando se cobren.</div>` : ''}`;
+  modal(`<div style="text-align:center"><div style="font-size:46px">${falta ? '📝' : '🙌'}</div><h2 style="margin:4px 0">Turno ${c.turno} cerrado</h2>
+    ${falta ? `<div class="pdvCambioG" style="color:var(--err)">Faltaron ${money(-cierre.diferencia)}</div><div class="muted" style="margin:6px 0">Enviaremos el reporte para su revisión. ¡Gracias por tu trabajo de hoy!</div>`
+      : `<div class="muted" style="margin:8px 0;font-size:18px">¡Gracias por tu trabajo, ${despedida}!</div>`}
+    <div class="small muted">Retiraste ${money(d.retiro)} · dejaste ${money(fondoDeja)} en caja chica</div>${extras}
+    <div class="btns"><button class="btn pill full" onclick="pdvImprimirCorte('${c.id}',true)">🖨️ Imprimir comprobante</button><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`);
+  if (pdvCfg().autoTicket) pdvImprimirCorte(c.id, true);
   pintarCaja();
 }
 function pdvSumarDen() { let t = 0; const d = {}; document.querySelectorAll('.pdvDen input').forEach(i => { const n = Number(i.value) || 0; if (n) { d[i.dataset.d] = n; t += n * Number(i.dataset.d); } }); PDV._desg = d; $('#ciRet').value = pdvR(t); $('#ciRet').dispatchEvent(new Event('input')); }
@@ -3236,11 +3239,11 @@ function pdvWaVenta(v) {
     `\n${v.monedero ? '\n👛 ' + monTicket(v.monedero).map(([a, b]) => a + ': ' + b).join('\n') + '\n' : ''}\n¡Gracias por tu compra! 🙌\nLa próxima vez pide a domicilio en ${urlApp('')}`;
   return v.cliente && v.cliente.tel ? waLink(v.cliente.tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
 }
-function pdvImprimirCorte(id) {
+function pdvImprimirCorte(id, ciego) {
   const c = PDV.cajasHoy.find(x => x.id === id) || (PDV._ultimoCorte && PDV._ultimoCorte.id === id ? PDV._ultimoCorte : null);
   if (!c || !c.cierre) return;
   const k = c.cierre, r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
-  if (!pdvVeCuentas()) {
+  if (ciego || !pdvVeCuentas()) {
     imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CIERRE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
       ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
       <div class="r t"><span>Retiro</span><span>${money(k.retiro)}</span></div>${r('Deja en caja chica', money(k.fondoDeja))}${k.propinas ? r('Propinas entregadas', money(k.propinas)) : ''}${r('Gastos de hoy', money(k.gastosDia || 0))}<hr>
