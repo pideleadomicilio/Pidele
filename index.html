@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.43.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.43.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -3302,7 +3302,8 @@ function pdvVistaMesas() {
   const sueltas = abiertas.filter(c => !c.mesa).sort((a, b) => a.ts - b.ts);
   return `<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'llevar')">🥡 Para llevar</button><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'libre')">➕ Cuenta sin mesa</button></div>
     <div class="pdvMesas">${lista.map(tile).join('')}</div>
-    ${sueltas.length ? `<h3>📋 Pedidos activos (para llevar y sin mesa)</h3>${sueltas.map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b>${listas.has(c.id) ? ' <span class="tag t-ok">📦 Listo</span>' : ''}<div class="small muted">${esc(c.folio)} · ${hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}`;
+    ${sueltas.length ? `<h3>📋 Pedidos activos (para llevar y sin mesa)</h3>${sueltas.map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b>${listas.has(c.id) ? ' <span class="tag t-ok">📦 Listo</span>' : ''}<div class="small muted">${esc(c.folio)} · ${c.dia !== pdvHoy() ? '<b style="color:var(--err)">📅 ' + esc(fechaCorta(c.ts)) + '</b>' : hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}
+    ${abiertas.some(c => c.dia !== pdvHoy()) ? '<div class="aviso warn small" style="margin-top:8px">📅 Hay cuentas abiertas de otro día. Ábrelas para cobrarlas, o en ⋯ → <b>Cancelar cuenta completa</b> si ya no se van a cobrar.</div>' : ''}`;
 }
 function pdvAbrirMesa(m) {
   const cs = PDV.cuentas.filter(c => c.mesa === m);
@@ -3442,7 +3443,27 @@ function pdvMenuCuenta(id) {
   modal(`<div class="row between"><h2 style="margin:0">${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <label class="f">Nombre de la cuenta</label><input class="i" id="mcNom" maxlength="40" value="${esc(c.nombre)}">
     ${c.tipo !== 'llevar' ? `<label class="f">Mesa</label><select class="i" id="mcMesa"><option value="">Sin mesa</option>${pdvMesasLista().map(m => `<option ${m === c.mesa ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>` : `<label class="f">Hora</label><input class="i" id="mcRec" type="time" value="${esc(c.recoge || '')}">`}
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarMenuCuenta('${id}'))">Guardar</button></div>`);
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarMenuCuenta('${id}'))">Guardar</button></div>
+    ${pdvPuede('dcmg') ? `<hr class="hr"><button class="btn err pill full" onclick="act(this,()=>pdvCancelarCuenta('${id}'))">❌ Cancelar cuenta completa</button><div class="small muted" style="margin-top:4px">Para cuentas que no se van a cobrar (el cliente se fue, se abrió por error). Necesita código de gerente o del dueño.</div>` : ''}`);
+}
+/** 2.43.3 · Cancela toda una cuenta abierta (con código de gerente y motivo): se quitan sus productos y sus comandas. */
+async function pdvCancelarCuenta(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  if ((c.pagado || 0) > 0) throw new Error('Esta cuenta ya tiene pagos por ' + money(c.pagado) + '. Cobra lo que falta, o quita los productos que no se pagaron.');
+  const vivos = pdvItemsVivos(c), monto = pdvR(vivos.reduce((s, i) => s + i.cant * i.precio, 0));
+  S._pinAntes = () => { const m = ($('#ccMot') || {}).value || ''; if (m.trim().length < 5) { toast('Escribe el motivo (mínimo 5 letras)', 'err'); return false; } };
+  S._pinDatos = () => $('#ccMot').value.trim();
+  let g;
+  try { g = await pdvPedirPin('Cancelar ' + pdvEtiqueta(c), 'gerente', `<div class="aviso warn" style="margin:8px 0">Se cancela la cuenta completa: ${vivos.length} producto(s) · ${money(monto)}. Abierta ${fechaCorta(c.ts)}.</div><label class="f">Motivo</label><textarea class="i" id="ccMot" rows="2" maxlength="200" placeholder="Ej. El cliente se fue sin pedir la cuenta; cuenta abierta por error"></textarea>`); }
+  catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  const ts = Date.now(), can = { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts };
+  (c.items || []).forEach(i => { if (!i.cancelado) i.cancelado = can; });
+  pdvActualizarCuenta(c, { estado: 'cancelada', cancelacion: can, cerrada: ts });
+  PDV.comandas.filter(k => k.ventaId === c.id && !['entregada', 'cancelada'].includes(k.estado)).forEach(k => { k.estado = 'cancelada'; pdvGuardar(pdvCol('comandas').doc(k.id).update({ estado: 'cancelada', cancelada: ts })); });
+  if (monto) pdvGuardar(pdvCol('dias').doc(c.dia).set({ productosCancelados: pdvInc(vivos.length), montoProdCancelado: pdvInc(monto), cuentasCanceladas: pdvInc(1), ts }, { merge: true }));
+  PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id);
+  cerrarModal(); PDV.cuentaId = ''; PDV.tab = 'mesas'; toast('Cuenta cancelada'); pintarCaja();
 }
 async function pdvGuardarMenuCuenta(id) {
   const c = pdvCuenta(id); if (!c) return;
@@ -6096,7 +6117,8 @@ async function tabCaja(ids) {
       const neg = PDV.db.collection('negocios').doc(id);
       const [dia, ab] = await Promise.all([neg.collection('dias').doc(hoy).get(), neg.collection('ventas').where('estado', '==', 'abierta').get()]);
       const x = dia.exists ? dia.data() : {};
-      out[id] = { ventas: pdvR(x.ventas), tickets: Math.round(x.n || 0), abiertas: ab.docs.length, abiertasMonto: pdvR(ab.docs.reduce((s, d) => { const c = d.data(); return s + (pdvTotalCuenta(c) - (c.pagado || 0)); }, 0)) };
+      const lista = ab.docs.map(d => Object.assign({ id: d.id }, d.data())).map(c => ({ id: c.id, nid: id, etiqueta: pdvEtiqueta(c), ts: c.ts, dia: c.dia, saldo: pdvR(pdvTotalCuenta(c) - (c.pagado || 0)) })).sort((a, b) => a.ts - b.ts);
+      out[id] = { ventas: pdvR(x.ventas), tickets: Math.round(x.n || 0), abiertas: ab.docs.length, abiertasMonto: pdvR(ab.docs.reduce((s, d) => { const c = d.data(); return s + (pdvTotalCuenta(c) - (c.pagado || 0)); }, 0)), lista };
     }));
     return out;
   } catch (e) { console.warn(e); return {}; }
@@ -6147,9 +6169,22 @@ function pintarTablero() {
       ${kpi('Personal trabajando', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥')}
       ${!sel ? `<button class="tabNomina" style="grid-column:1/-1" onclick="tabElegirNomina()"><span style="font-size:26px">👥</span><span class="grow"><b>Personal y nómina</b><small>Asistencia, turnos, nómina, bonos y metas de cada negocio</small></span><span>→</span></button>` : ''}
     </div>
+    ${tabAbiertasHTML(vis, l.length > 1)}
     ${sel ? detalle(sel) : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
     ${l.some(n => n.caja) ? `<div class="btns"><button class="btn pill full" onclick="act(this,tabReportes)">📈 Reportes de ${sel ? esc(sel.nombre) : 'todos mis negocios'}</button></div>` : ''}`);
 }
+/** 2.43.3 · Las órdenes abiertas de la caja (las de otro día, marcadas) con botón para ir a cada una; y las de la app. */
+function tabAbiertasHTML(vis, varios) {
+  const hoy = pdvHoy(), cs = [].concat(...vis.map(n => ((n.cajaD || {}).lista || []).map(c => Object.assign({ neg: n.nombre }, c)))).sort((a, b) => a.ts - b.ts);
+  const app = vis.filter(n => n.app.activos);
+  if (!cs.length && !app.length) return '';
+  const viejas = cs.filter(c => c.dia !== hoy).length;
+  return `<div class="card"><div class="row between"><h3 style="margin:0">🍽️ Órdenes abiertas</h3>${viejas ? `<span class="tag t-err">${viejas} de otro día</span>` : ''}</div>
+    ${cs.map(c => `<div class="pdvFila g"><span>${esc(c.etiqueta)}${varios ? ' · ' + esc(c.neg) : ''}<small>${c.dia !== hoy ? '<b style="color:var(--err)">📅 abierta ' + esc(fechaCorta(c.ts)) + '</b>' : 'abierta ' + hora(c.ts)} · ${money(c.saldo)} por cobrar</small></span><span></span><button class="btn sm" onclick="act(this,()=>tabIrCuenta('${c.nid}','${c.id}'))">Ver cuenta</button></div>`).join('')}
+    ${app.map(n => `<div class="pdvFila g"><span>🛵 ${n.app.activos} pedido(s) de la app en curso${varios ? ' · ' + esc(n.nombre) : ''}<small>Se cierran al marcarlos entregados (o cancelarlos) en Pedidos</small></span><span></span><button class="btn sm" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">Ver pedidos</button></div>`).join('')}
+    ${viejas ? '<div class="small muted" style="margin-top:6px">Las cuentas de otro día que ya no se van a cobrar se cancelan en la cuenta → ⋯ → Cancelar cuenta completa.</div>' : ''}</div>`;
+}
+async function tabIrCuenta(nid, cid) { S.tabNeg = 'curso'; await tabEntrar(nid, 'caja'); PDV.tab = 'mesas'; PDV.cuentaId = cid; pintarCaja(); }
 /** Entra a un negocio (lo deja seleccionado) y abre su caja o sus pedidos. */
 async function tabEntrar(id, vista) {
   if (id !== S.negActivo) { S.negActivo = id; ls('negActivo', id); fijarSesionNeg(await api('yo')); S._prods = null; S._grupos = null; S._promosNeg = null; S.firma = ''; }
