@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.44.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.44.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2885,7 +2885,8 @@ async function facAbrir() {
   S._facCli = d;
   const f = d.datos;
   modal(`<div class="row between"><h2 style="margin:0">🧾 Facturación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:4px 0 8px">Pide la factura de tus compras en los negocios que facturan en ${APP}. Te llega por correo y aquí la puedes descargar.</div>
+    ${facMisNegociosHTML()}
+    <div class="muted small" style="margin:4px 0 8px">${facMisNegociosHTML() ? '<b>Como cliente:</b> ' : ''}Pide la factura de tus compras en los negocios que facturan en ${APP}. Te llega por correo y aquí la puedes descargar.</div>
     ${f ? `<div class="card" style="padding:12px"><div class="row between"><div class="grow"><b>${esc(f.nombre)}</b><div class="muted small">${esc(f.rfc)} · CP ${esc(f.cp)}</div><div class="muted small">${esc(facRegimenTxt(f.regimen))}</div><div class="muted small">✉️ ${esc(f.email)}</div></div>
         <button class="lnk small" onclick="facFormMisDatos()">Editar</button></div></div>
       <div class="btns"><button class="btn pri pill full" onclick="facFormCompra()">🧾 Facturar una compra en el negocio</button></div>
@@ -2921,6 +2922,25 @@ async function facEnviarCompra() {
   const nid = $('#fcNeg').value; if (!nid) throw new Error('Elige el negocio');
   await api('facturaSolicitar', { negocioId: nid, origen: 'caja', folio: $('#fcFol').value, total: parseFloat(String($('#fcTot').value).replace(/[$,\s]/g, '')) || 0, dia: $('#fcDia').value });
   toast('Listo: el negocio revisará tu ticket y te avisaremos'); await facAbrir();
+}
+/** Dueños y cajeros: acceso directo a la facturación de sus negocios (para emitir facturas a sus clientes). */
+function facMisNegociosHTML() {
+  if (!S.user || S.user.rol !== 'negocio') return '';
+  const l = (S.negocios || []).filter(n => n.dueno || (n.permisos || []).some(x => ['caja', 'gerente', 'ventas'].includes(x)));
+  if (!l.length) return '';
+  return `<div class="card" style="border:2px solid var(--pri);padding:12px"><b>🏪 Facturar a mis clientes</b><div class="muted small" style="margin:2px 0 8px">Datos fiscales, sellos (CSD) y facturas de ${l.length > 1 ? 'tus negocios' : 'tu negocio'}</div>
+    ${l.map(n => `<button class="btn pri pill full" style="margin-top:6px" onclick="cerrarModal();act(null,()=>facIrNegocio('${n.id}'))">🧾 ${esc(n.nombre)}</button>`).join('')}</div>`;
+}
+async function facIrNegocio(id) {
+  if (S.modoCliente) { S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null); }
+  await tabEntrar(id, 'facturas');
+}
+function tabElegirFactura() {
+  const l = (S._tab && S._tab.negocios) || S.negocios || [];
+  if (l.length === 1) { act(null, () => facIrNegocio(l[0].id)); return; }
+  modal(`<div class="row between"><h2 style="margin:0">🧾 ¿Qué negocio?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small">Cada negocio factura con su RFC, su serie y sus sellos.</div>
+    <div class="btns">${l.map(n => `<button class="btn pill full" onclick="cerrarModal();act(null,()=>facIrNegocio('${n.id}'))">${esc(n.nombre)}</button>`).join('')}</div>`);
 }
 /** Botón en un pedido entregado de la app. */
 function facBloquePedido(p) {
@@ -6436,6 +6456,7 @@ function pintarTablero() {
     <div class="card"><h3 style="margin:0 0 6px">👥 Personal hoy</h3>
       <div class="tabMini"><span>🟢 <b>${n.personal.presentes}</b> trabajando</span><span>✅ <b>${n.personal.aTiempo}</b> a tiempo</span><span>🟠 <b>${n.personal.retardos}</b> tarde</span><span>⏳ <b>${n.personal.porLlegar}</b> por llegar</span><span>🔴 <b>${n.personal.faltan}</b> no han llegado</span></div>
       ${personal(n)}</div>
+    <button class="tabNomina" onclick="act(this,()=>facIrNegocio('${n.id}'))"><span style="font-size:26px">🧾</span><span class="grow"><b>Facturación</b><small>Datos fiscales, sellos y facturas de ${esc(n.nombre)}</small></span><span>→</span></button>
     ${n.caja ? `<button class="tabNomina" onclick="act(this,()=>tabEntrar('${n.id}','nomina'))"><span style="font-size:26px">👥</span><span class="grow"><b>Personal y nómina</b><small>Asistencia, turnos, nómina, bonos y metas</small></span><span>→</span></button>` : ''}
     <div class="btns">${n.caja ? `<button class="btn pri pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','caja'))">🧾 Caja de ${esc(n.nombre.split(' ')[0])}</button>` : ''}<button class="btn pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">📥 Pedidos</button></div>`;
   html(`<div class="row between"><h2>📊 Tablero</h2><button class="btn sm" onclick="act(this,vTablero)">↻ Actualizar</button></div>
@@ -6446,6 +6467,7 @@ function pintarTablero() {
       ${kpi('Órdenes completadas', sum('completadas'), 'Caja y app', '🧾')}
       ${kpi('Órdenes abiertas', sum('abiertas'), 'Mesas y pedidos en curso', '🍽️')}
       ${kpi('Personal trabajando', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥')}
+      ${!sel ? `<button class="tabNomina" style="grid-column:1/-1" onclick="tabElegirFactura()"><span style="font-size:26px">🧾</span><span class="grow"><b>Facturación</b><small>Datos fiscales, sellos y facturas a tus clientes</small></span><span>→</span></button>` : ''}
       ${!sel ? `<button class="tabNomina" style="grid-column:1/-1" onclick="tabElegirNomina()"><span style="font-size:26px">👥</span><span class="grow"><b>Personal y nómina</b><small>Asistencia, turnos, nómina, bonos y metas de cada negocio</small></span><span>→</span></button>` : ''}
     </div>
     ${tabAbiertasHTML(vis, l.length > 1)}
