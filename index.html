@@ -884,7 +884,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.43.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.43.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2273,7 +2273,16 @@ async function pdvPinOk(uid, pin) {
   if (!p || !p.pin) return false;
   return (await pdvHash(pin, p.pin.s)) === p.pin.h;
 }
-function pdvGente(rol) { return Object.entries(PDV.personal).filter(([uid, p]) => p.pin && (rol === 'dueno' ? uid === PDV.gid : p[rol])).map(([uid, p]) => ({ uid, nombre: p.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)); }
+function pdvGente(rol) { return Object.entries(PDV.personal).filter(([uid, p]) => p.pin && (rol === 'dueno' ? uid === PDV.gid : p[rol] || (rol === 'caja' && p.gerente))).map(([uid, p]) => ({ uid, nombre: p.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)); }
+/** 2.43.1 · Si mi código se creó con otros permisos (versión anterior o me cambiaron el rol), se corrige solo. */
+function pdvPersonalAlDia() {
+  const p = PDV.personal[S.user.id]; if (!p || !p.pin || PDV._alDia === PDV.nid + PDV.letras) return;
+  const f = { caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), dueno: pdvPuede('d') };
+  PDV._alDia = PDV.nid + PDV.letras;
+  if (Object.keys(f).every(k => !!p[k] === f[k]) && p.nombre === S.user.nombre) return;
+  Object.assign(p, f, { nombre: S.user.nombre });
+  pdvGuardar(pdvCol('personal').doc(S.user.id).set(Object.assign({}, p, { ts: Date.now() })));
+}
 function pdvFormPin() {
   const tiene = PDV.personal[S.user.id] && PDV.personal[S.user.id].pin;
   modal(`<div class="row between"><h2 style="margin:0">🔑 Mi código</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -2289,7 +2298,7 @@ async function pdvGuardarPin() {
   if (/^(\d)\1+$/.test(a) || '0123456789'.includes(a) || '9876543210'.includes(a)) throw new Error('Elige un código menos fácil de adivinar');
   const s = Math.random().toString(36).slice(2) + Date.now().toString(36);
   const h = await pdvHash(a, s);
-  const doc = { nombre: S.user.nombre, caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), pin: { s, h }, ts: Date.now() };
+  const doc = { nombre: S.user.nombre, caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), dueno: pdvPuede('d'), pin: { s, h }, ts: Date.now() };
   PDV.personal[S.user.id] = doc;
   pdvGuardar(pdvCol('personal').doc(S.user.id).set(doc));
   cerrarModal(); toast('Código guardado 🔑'); pintarCaja();
@@ -2298,9 +2307,12 @@ async function pdvGuardarPin() {
 function pdvPedirPin(titulo, rol, extra) {
   return new Promise((ok, mal) => {
     const g = pdvGente(rol);
+    if (!g.length && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { mal(new Error('Cancelado')); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return; }
     if (!g.length) { mal(new Error(rol === 'dueno' ? 'El dueño aún no crea su código. Lo hace en Caja → 🔑 Mi código.' : rol === 'gerente' ? 'Ningún gerente tiene código todavía. El dueño o un gerente lo crea en Caja → 🔑 Mi código.' : 'Nadie tiene código de caja todavía. Créalo en 🔑 Mi código.')); return; }
     S._pinCb = { ok, mal };
+    const yoPuedo = rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'), yoTengo = g.some(x => x.uid === S.user.id);
     modal(`<div class="row between"><h2 style="margin:0">${titulo}</h2><button class="redondo" onclick="S._pinCb.mal(new Error('Cancelado'));cerrarModal()" aria-label="Cerrar">✕</button></div>
+      ${yoPuedo && !yoTengo ? `<div class="aviso warn" style="margin:8px 0">🔑 Tú no apareces porque aún no creas tu código en <b>${esc(S.negocio.nombre)}</b> (es uno por negocio). <button class="lnk" onclick="S._pinCb.mal(new Error('Cancelado'));pdvFormPin()">Crear mi código</button></div>` : ''}
       ${extra || ''}
       <label class="f">${rol === 'dueno' ? 'Dueño' : rol === 'gerente' ? 'Gerente que autoriza' : '¿Quién eres?'}</label>
       <select class="i" id="pinQuien">${g.map(x => `<option value="${esc(x.uid)}" ${x.uid === S.user.id ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select>
@@ -2325,7 +2337,7 @@ function pdvSuscribir() {
   const vivo = () => S.vista === 'caja';
   const sub = (q, f) => PDV.subs.push(q.onSnapshot({ includeMetadataChanges: false }, s => { f(s); if (vivo()) pdvRepintar(); }, e => console.warn(e)));
   const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
-  sub(pdvCol('personal'), s => { PDV.personal = {}; s.docs.forEach(d => { PDV.personal[d.id] = d.data(); }); });
+  sub(pdvCol('personal'), s => { PDV.personal = {}; s.docs.forEach(d => { PDV.personal[d.id] = d.data(); }); pdvPersonalAlDia(); });
   sub(pdvCol('proveedores'), s => { PDV.provs = docs(s).sort((a, b) => a.nombre.localeCompare(b.nombre)); });
   sub(pdvCol('cajas').where('dia', '==', pdvHoy()), s => { PDV.cajasHoy = docs(s).sort((a, b) => a.turno - b.turno); });
   sub(pdvCol('cajas').where('estado', '==', 'abierta'), s => {
