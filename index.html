@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.44.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.45.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2776,6 +2776,7 @@ async function pdvTerminarVenta() {
   Object.keys(porMet).forEach(m => { inc['met_' + m] = pdvInc(porMet[m]); });
   pdvGuardar(pdvCol('dias').doc(v.dia).set(inc, { merge: true }));
   if (telM) pdvGuardar(pdvCol('clientes').doc(telM).set({ tel: telM, nombre: v.cliente.nombre, visitas: pdvInc(1), total: pdvInc(v.total), ultima: ts }, { merge: true }));
+  if (telM) facTicketCliente(Object.assign({ id: ref.id }, limpio), telM);
   PDV._ultimaVenta = Object.assign({ id: ref.id }, limpio);
   if (!PDV.ventas.some(x => x.id === ref.id)) PDV.ventas.unshift(PDV._ultimaVenta);
   c.items = {}; guardarCarritos();
@@ -2847,12 +2848,70 @@ function facRegimenTxt(k) { return FAC_CAT && FAC_CAT.regimenes && FAC_CAT.regim
 /** Campos del receptor (cliente que recibe la factura). */
 function facReceptorCampos(r, p) {
   r = r || {}; p = p || 'fr';
-  return `<label class="f">RFC</label><input class="i" id="${p}Rfc" value="${esc(r.rfc || '')}" maxlength="13" autocapitalize="characters" style="text-transform:uppercase" placeholder="13 letras y números (12 si es empresa)">
+  return `<label class="btn pill full" style="margin-top:8px">📄 Llenar con la constancia de situación fiscal (PDF)<input type="file" accept="application/pdf,.pdf" hidden onchange="act(null,()=>facConstancia(this,'${p}'))"></label>
+    <div class="muted small" style="margin-top:4px">Se lee en este teléfono; el PDF no se sube. Revisa los datos antes de guardar.</div>
+    <label class="f">RFC</label><input class="i" id="${p}Rfc" value="${esc(r.rfc || '')}" maxlength="13" autocapitalize="characters" style="text-transform:uppercase" placeholder="13 letras y números (12 si es empresa)" oninput="facNotaIsr('${p}')">
     <label class="f">Nombre o razón social</label><input class="i" id="${p}Nom" value="${esc(r.nombre || '')}" autocapitalize="characters" placeholder="Tal como aparece en la constancia de situación fiscal">
-    <label class="f">Régimen fiscal</label><select class="i" id="${p}Reg">${facOpciones(FAC_CAT.regimenes, r.regimen)}</select>
+    <label class="f">Régimen fiscal</label><select class="i" id="${p}Reg" onchange="facUsoSegunRegimen('${p}')">${facOpciones(FAC_CAT.regimenes, r.regimen)}</select>
     <label class="f">Código postal fiscal</label><input class="i" id="${p}Cp" value="${esc(r.cp || '')}" inputmode="numeric" maxlength="5">
     <label class="f">Uso de la factura</label><select class="i" id="${p}Uso">${facOpciones(FAC_CAT.usos, r.uso || 'G03')}</select>
     <label class="f">Correo para recibir la factura</label><input class="i" id="${p}Mail" type="email" value="${esc(r.email || '')}" placeholder="correo@ejemplo.com">`;
+}
+function facUsoSegunRegimen(p) {
+  const reg = $('#' + p + 'Reg').value, uso = $('#' + p + 'Uso');
+  if ((reg === '616' || reg === '605') && /^[GI]/.test(uso.value)) uso.value = 'S01';
+  else if (!['616', '605'].includes(reg) && uso.value === 'S01') uso.value = 'G03';
+}
+/** Aviso de retención de ISR: el negocio es RESICO y el cliente es persona moral (RFC de 12). */
+function facNotaIsr(p) {
+  const box = $('#' + p + 'Isr'); if (!box || !box.tagName) return;
+  const c = S._facCfg || (S._facNeg && S._facNeg.config) || {}, rfc = (($('#' + p + 'Rfc') || {}).value || '').trim().toUpperCase();
+  const si = c.regimen === '626' && rfc.length === 12 && !/^XAXX|^XEXX/.test(rfc), tot = +box.dataset.total || 0;
+  box.innerHTML = si ? `<div class="aviso warn small" style="margin:8px 0 0">RESICO a persona moral: se retiene <b>1.25% de ISR</b>${tot ? ' (≈ ' + money(Math.round(tot / (1 + (c.iva || 16) / 100) * 0.0125 * 100) / 100) + ')' : ''}. El cliente te paga el total menos esa retención.</div>` : '';
+}
+/** Lee la constancia de situación fiscal (PDF del SAT) en el teléfono y llena los campos. */
+async function facConstancia(inp, p) {
+  const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+  if (f.size > 5e6) throw new Error('Ese PDF pesa demasiado; usa la constancia que descargas del SAT');
+  if (!window.pdfjsLib) {
+    await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    for (let i = 0; i < 30 && !window.pdfjsLib; i++) await new Promise(r => setTimeout(r, 100));
+    if (!window.pdfjsLib) throw new Error('No se pudo abrir el lector de PDF. Revisa tu internet.');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+  let t = '';
+  for (let i = 1; i <= Math.min(doc.numPages, 3); i++) t += ' ' + (await (await doc.getPage(i)).getTextContent()).items.map(x => x.str).join(' ');
+  const d = facParseConstancia(t);
+  if (!d.rfc) throw new Error('No encontramos el RFC en ese PDF. ¿Es la constancia de situación fiscal del SAT? Puedes llenar los datos a mano.');
+  const pon = (k, v) => { const e = $('#' + p + k); if (e && e.tagName && v) e.value = v; };
+  pon('Rfc', d.rfc); pon('Nom', d.nombre); pon('Cp', d.cp); if (d.regimen) { pon('Reg', d.regimen); facUsoSegunRegimen(p); }
+  facNotaIsr(p);
+  toast('Listo: revisa los datos' + (d.regimen ? '' : ' y elige el régimen'));
+}
+function facParseConstancia(t) {
+  t = String(t).replace(/\s+/g, ' ');
+  const sinAc = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const m = (re) => { const r = t.match(re); return r ? r[1].trim() : ''; };
+  const rfc = (m(/RFC:?\s*([A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3})\b/) || m(/\b([A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3})\b/)).toUpperCase();
+  let nombre = m(/Denominaci[oó]n\s*\/?\s*Raz[oó]n\s+Social:?\s*(.+?)\s+(?:R[eé]gimen\s+Capital|Nombre\s+Comercial|Fecha|Estatus)/i);
+  if (!nombre) {
+    const n1 = m(/Nombre\s*\(s\):?\s*(.+?)\s+Primer\s+Apellido/i), a1 = m(/Primer\s+Apellido:?\s*(.*?)\s+Segundo\s+Apellido/i), a2 = m(/Segundo\s+Apellido:?\s*(.*?)\s+(?:Fecha|Estatus|Nombre\s+Comercial)/i);
+    nombre = [n1, a1, a2].filter(Boolean).join(' ');
+  }
+  const cp = m(/C[oó]digo\s+Postal:?\s*(\d{5})/i);
+  // régimen: el primero de la lista "Regímenes" que esté en el catálogo
+  const zona = sinAc(t.slice(Math.max(0, t.search(/Reg[ií]menes/i))));
+  let reg = '', pos = 1e9;
+  Object.entries((FAC_CAT && FAC_CAT.regimenes) || {}).forEach(([k, txt]) => { const i = zona.indexOf(sinAc(txt)); if (i >= 0 && i < pos) { pos = i; reg = k; } });
+  return { rfc, nombre: nombre.toUpperCase().slice(0, 254), cp, regimen: reg };
+}
+/** La caja liga el ticket al teléfono del cliente para que lo vea en su app (solo si el negocio factura). */
+function facTicketCliente(v, tel) {
+  if (!S.negocio || !S.negocio.factura || String(tel || '').length !== 10) return;
+  const pg = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto)[0] || {};
+  const items = (v.items || []).filter(i => !i.cancelado).map(i => ({ nombre: i.nombre + (i.variante ? ' ' + i.variante : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
+  api('ticketCliente', { negocioId: S.negocio.id, ventaId: v.id, folio: v.folio, dia: v.dia, total: v.total, tel, items, forma: FAC_FORMA_DE[pg.metodo] || '01' }).catch(() => { });
 }
 function facLeerReceptor(p) {
   p = p || 'fr'; const v = k => (($('#' + p + k) || {}).value || '').trim();
@@ -2892,6 +2951,9 @@ async function facAbrir() {
       <div class="btns"><button class="btn pri pill full" onclick="facFormCompra()">🧾 Facturar una compra en el negocio</button></div>
       <div class="muted small">¿Pediste por la app? Abre tu pedido entregado y toca <b>Pedir factura</b>.</div>`
     : `<div class="aviso warn">Primero guarda tus datos fiscales (los de tu constancia de situación fiscal).</div><div class="btns"><button class="btn pri pill full" onclick="facFormMisDatos()">Capturar mis datos fiscales</button></div>`}
+    ${f && (d.tickets || []).filter(t => !t.factura).length ? `<h3 style="margin:14px 0 4px">Mis compras de este mes</h3>${d.tickets.filter(t => !t.factura).map(t => `<div class="card row between" style="margin:8px 0;padding:12px"><div class="grow"><b>${esc(t.negocio)} · ${money(t.total)}</b>
+      <div class="muted small">🧾 Ticket ${esc(t.folio)} · ${esc(t.dia)}</div><div class="muted small">${esc(t.items.slice(0, 3).map(i => i.cant + '× ' + i.nombre).join(', '))}${t.items.length > 3 ? '…' : ''}</div></div>
+      <button class="btn pri sm" onclick="act(this,()=>facPedirTicket('${t.id}','${t.negocioId}'))">Facturar este ticket</button></div>`).join('')}` : ''}
     ${d.facturas.length ? `<h3 style="margin:14px 0 4px">Mis facturas</h3>${d.facturas.map(x => facTarjeta(x, true)).join('')}` : ''}`);
 }
 function facFormMisDatos() {
@@ -2915,12 +2977,18 @@ function facFormCompra() {
     <label class="f">Folio del ticket</label><input class="i" id="fcFol" autocapitalize="characters" placeholder="Ej. A-0123">
     <label class="f">Total pagado</label><input class="i" id="fcTot" inputmode="decimal" placeholder="$">
     <label class="f">Fecha de la compra</label><input class="i" id="fcDia" type="date" value="${new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10)}">
+    ${facModoSelect('detalle')}
     <div class="muted small" style="margin-top:6px">Solo se pueden facturar compras del mes en curso.</div>
     <div class="btns"><button class="btn pill" onclick="act(this,facAbrir)">Cancelar</button><button class="btn pri pill" onclick="act(this,facEnviarCompra)">Pedir factura</button></div>`);
 }
+function facPedirTicket(id, nid) { facElegirModo(m => facPedirTicketModo(id, nid, m)); }
+async function facPedirTicketModo(id, nid, concepto) {
+  await api('facturaSolicitar', { negocioId: nid, ticketId: id, concepto });
+  toast('Factura solicitada: el negocio la emitirá y te llegará por correo'); await facAbrir();
+}
 async function facEnviarCompra() {
   const nid = $('#fcNeg').value; if (!nid) throw new Error('Elige el negocio');
-  await api('facturaSolicitar', { negocioId: nid, origen: 'caja', folio: $('#fcFol').value, total: parseFloat(String($('#fcTot').value).replace(/[$,\s]/g, '')) || 0, dia: $('#fcDia').value });
+  await api('facturaSolicitar', { negocioId: nid, origen: 'caja', concepto: $('#feCon').value, folio: $('#fcFol').value, total: parseFloat(String($('#fcTot').value).replace(/[$,\s]/g, '')) || 0, dia: $('#fcDia').value });
   toast('Listo: el negocio revisará tu ticket y te avisaremos'); await facAbrir();
 }
 /** Dueños y cajeros: acceso directo a la facturación de sus negocios (para emitir facturas a sus clientes). */
@@ -2953,7 +3021,8 @@ function facBloquePedido(p) {
 async function facPedirApp(pid, nid) {
   const d = await api('fiscalMisDatos'); FAC_CAT = d;
   if (!d.datos) { S._facCli = { datos: null, negocios: [], facturas: [] }; S._facTrasDatos = () => facPedirApp(pid, nid); facFormMisDatos(); return; }
-  await api('facturaSolicitar', { negocioId: nid, origen: 'app', pedidoId: pid });
+  const concepto = await new Promise(ok => facElegirModo(m => { cerrarModal(); ok(m); }));
+  await api('facturaSolicitar', { negocioId: nid, origen: 'app', pedidoId: pid, concepto });
   toast('Factura solicitada: el negocio la emitirá y te llegará por correo'); pintar(true);
 }
 
@@ -2972,7 +3041,8 @@ async function facPintar() {
   if (dueno) setTimeout(() => facRestaurarPaquete(c), 0);
   box.innerHTML = `${!c.servidor ? `<div class="aviso err">La facturación aún no está activada en el servidor de ${esc(PUEBLO.nombre || APP)}. Avísale al administrador de ${APP}.</div>` : c.sandbox ? `<div class="aviso warn small">🧪 Modo de pruebas: las facturas se timbran en el ambiente de pruebas de Facturama y <b>no tienen validez ante el SAT</b>.</div>` : ''}
     <div class="card">${c.listo ? `<div class="row between"><div class="grow"><b>${esc(c.nombre)}</b><div class="muted small">${esc(c.rfc)} · CP ${esc(c.cp)} · ${esc(facRegimenTxt(c.regimen))}</div>
-        <div class="muted small">Siguiente folio ${esc(c.serie)}${c.folio} · IVA ${c.iva}% · ${c.concepto === 'consumo' ? 'concepto “Consumo”' : 'conceptos detallados'}</div></div>${dueno ? '<button class="lnk small" onclick="facFormConfig()">Editar</button>' : ''}</div>`
+        <div class="muted small">Siguiente folio ${esc(c.serie)}${c.folio} · IVA ${c.iva}% · ${c.concepto === 'consumo' ? 'concepto “Consumo”' : 'conceptos detallados'}</div>
+        ${c.regimen === '626' ? '<div class="muted small">RESICO: a personas morales se les retiene 1.25% de ISR automáticamente.</div>' : ''}</div>${dueno ? '<button class="lnk small" onclick="facFormConfig()">Editar</button>' : ''}</div>`
       : `<b>Factura a tus clientes con tu RFC</b><div class="muted small" style="margin:4px 0 8px">Captura tus datos fiscales y sube tus sellos digitales (CSD: archivos .cer y .key con su contraseña, los que te da el SAT). Los sellos se mandan directo a Facturama; ${APP} no los guarda.</div>
         ${dueno ? '<button class="btn pri pill full" onclick="facFormConfig()">Configurar facturación</button>' : '<div class="aviso warn small">Solo el dueño puede configurar la facturación.</div>'}`}</div>
     ${c.listo ? facCuotaHTML(c, dueno) : ''}
@@ -2989,7 +3059,7 @@ function facFormConfig() {
     <label class="f">Código postal (lugar de expedición)</label><input class="i" id="fnCp" value="${esc(c.cp)}" inputmode="numeric" maxlength="5">
     <div class="row" style="gap:8px"><div class="grow"><label class="f">Serie</label><input class="i" id="fnSer" value="${esc(c.serie)}" maxlength="10"></div><div class="grow"><label class="f">Siguiente folio</label><input class="i" id="fnFol" value="${c.folio}" inputmode="numeric"></div></div>
     <label class="f">IVA que cobras</label><select class="i" id="fnIva">${[16, 8, 0].map(x => `<option value="${x}" ${c.iva === x ? 'selected' : ''}>${x}%${x === 8 ? ' (región fronteriza)' : x === 0 ? ' (tasa 0)' : ''}</option>`).join('')}</select>
-    <label class="f">Conceptos en la factura</label><select class="i" id="fnCon"><option value="detalle" ${c.concepto !== 'consumo' ? 'selected' : ''}>Cada producto vendido</option><option value="consumo" ${c.concepto === 'consumo' ? 'selected' : ''}>Un solo concepto: “Consumo de alimentos y bebidas”</option></select>
+    <label class="f">Conceptos (lo que se propone; se puede cambiar en cada factura)</label><select class="i" id="fnCon"><option value="detalle" ${c.concepto !== 'consumo' ? 'selected' : ''}>Cada producto vendido</option><option value="consumo" ${c.concepto === 'consumo' ? 'selected' : ''}>Un solo concepto: “Consumo de alimentos y bebidas”</option></select>
     <details style="margin-top:8px"><summary class="small">Claves del SAT (avanzado)</summary>
       <label class="f">Clave de producto o servicio</label><input class="i" id="fnCla" value="${esc(c.clave)}" inputmode="numeric" maxlength="8"><div class="muted small">90101500 = Establecimientos para comer y beber.</div>
       <div class="row" style="gap:8px"><div class="grow"><label class="f">Clave de unidad</label><input class="i" id="fnUni" value="${esc(c.unidad)}" maxlength="3"></div><div class="grow"><label class="f">Unidad</label><input class="i" id="fnUnT" value="${esc(c.unidadTxt)}"></div></div>
@@ -3082,6 +3152,18 @@ async function facGuardarConfig() {
   S.negocio.factura = c.listo; ls('negocio', S.negocio);
   cerrarModal(); toast(d.cer ? 'Datos y sellos guardados en Facturama' : 'Datos fiscales guardados'); await facPintar();
 }
+/** Conceptos de esta factura: desglosada (cada producto) o un solo concepto "Consumo de alimentos y bebidas". */
+function facModoSelect(val) {
+  return `<label class="f">Conceptos de la factura</label><select class="i" id="feCon"><option value="detalle" ${val !== 'consumo' ? 'selected' : ''}>Desglosada: cada producto</option><option value="consumo" ${val === 'consumo' ? 'selected' : ''}>Consumo de alimentos y bebidas (un solo concepto)</option></select>`;
+}
+/** El cliente elige cómo quiere su factura antes de pedirla. */
+function facElegirModo(fn) {
+  S._facModoFn = fn;
+  modal(`<h2 style="margin:0 0 4px">¿Cómo quieres tu factura?</h2><div class="muted small">El total es el mismo; solo cambia cómo se describe.</div>
+    <div class="btns" style="flex-direction:column"><button class="btn pri pill full" onclick="act(this,()=>S._facModoFn('detalle'))">📋 Desglosada (cada producto)</button>
+      <button class="btn pill full" onclick="act(this,()=>S._facModoFn('consumo'))">🍽️ Consumo de alimentos y bebidas</button>
+      <button class="btn pill full" onclick="act(this,facAbrir)">Cancelar</button></div>`);
+}
 const FAC_FORMA_DE = { efectivo: '01', transferencia: '03', tarjeta: '04', monedero: '05' };
 function facFormaSelect(val) { return `<label class="f">Forma de pago</label><select class="i" id="feFor">${['01', '03', '04', '28', '05', '02'].map(k => `<option value="${k}" ${val === k ? 'selected' : ''}>${k} · ${esc((FAC_CAT.formas || {})[k] || k)}</option>`).join('')}</select>`; }
 function facFormEmitir(id) {
@@ -3089,15 +3171,20 @@ function facFormEmitir(id) {
   const r = f.receptor || {};
   modal(`<h2 style="margin:0 0 4px">Emitir factura</h2>
     <div class="card" style="padding:12px"><b>${esc(r.nombre)}</b><div class="muted small">${esc(r.rfc)} · CP ${esc(r.cp)} · ${esc(facRegimenTxt(r.regimen))}</div><div class="muted small">Uso ${esc(r.uso)} · ✉️ ${esc(r.email)}</div></div>
-    ${f.origen === 'app' ? `<div class="small">🛵 Pedido de la app del ${esc(f.dia)} por <b>${money(f.totalVenta)}</b>. Los conceptos salen del pedido (sin el envío).</div>`
+    ${f.origen === 'app' || f.conTicket ? `<div class="small">${f.origen === 'app' ? '🛵 Pedido de la app' : '🧾 Ticket ' + esc(f.ref)} del ${esc(f.dia)} por <b>${money(f.totalVenta)}</b>. Los conceptos salen ${f.origen === 'app' ? 'del pedido (sin el envío)' : 'del ticket'}.</div>`
       : `<div class="aviso warn small">Revisa el ticket <b>${esc(f.ref)}</b> del ${esc(f.dia)}: confirma que exista y que el total sea correcto.</div>
         <label class="f">Total del ticket (con IVA)</label><input class="i" id="feTot" inputmode="decimal" value="${f.totalVenta}">`}
+    ${f.origen === 'app' || f.conTicket ? facModoSelect(f.modo || S._facNeg.config.concepto) : ''}
+    ${f.modo ? `<div class="muted small">El cliente la pidió ${f.modo === 'consumo' ? 'por consumo' : 'desglosada'}.</div>` : ''}
     ${facFormaSelect(f.origen === 'app' ? '03' : '01')}
+    <div id="feIsr" data-total="${f.totalVenta}"></div>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facEmitirSolicitud('${f.id}'))">Timbrar factura</button></div>`);
+  const c = S._facNeg.config; if (c.regimen === '626' && String(r.rfc || '').length === 12) $('#feIsr').innerHTML = `<div class="aviso warn small" style="margin:8px 0 0">RESICO a persona moral: se retiene <b>1.25% de ISR</b>. El cliente te paga el total menos esa retención.</div>`;
 }
 async function facEmitirSolicitud(id) {
   const f = S._facNeg.pendientes.find(x => x.id === id), d = { negocioId: S.negocio.id, facturaId: id, formaPago: $('#feFor').value };
-  if (f.origen !== 'app') { const t = parseFloat(String($('#feTot').value).replace(/[$,\s]/g, '')) || 0; if (!(t > 0)) throw new Error('Escribe el total del ticket'); d.conceptos = [{ nombre: 'Consumo de alimentos y bebidas', cant: 1, importe: t }]; }
+  if ($('#feCon')) d.concepto = $('#feCon').value;
+  if (f.origen !== 'app' && !f.conTicket) { const t = parseFloat(String($('#feTot').value).replace(/[$,\s]/g, '')) || 0; if (!(t > 0)) throw new Error('Escribe el total del ticket'); d.conceptos = [{ nombre: 'Consumo de alimentos y bebidas', cant: 1, importe: t }]; }
   const r = await api('facturaEmitir', d);
   cerrarModal(); toast('Factura ' + r.serie + r.folio + ' timbrada y enviada a ' + ((r.receptor || {}).email || 'el cliente')); await facPintar();
 }
@@ -3114,26 +3201,55 @@ function facFormCancelar(id) {
 /** Desde la caja: facturar una venta directo (el cliente da sus datos en el mostrador). */
 async function facDesdeVenta(id) {
   const v = pdvVenta(id); if (!v) return;
-  if (!FAC_CAT || !FAC_CAT.formas) { const c = await api('fiscalConfig', { negocioId: S.negocio.id }); FAC_CAT = { regimenes: c.regimenes, usos: c.usos, formas: c.formas }; }
+  const c = await api('fiscalConfig', { negocioId: S.negocio.id }); S._facCfg = c; FAC_CAT = { regimenes: c.regimenes, usos: c.usos, formas: c.formas };
   const pagos = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto), forma = FAC_FORMA_DE[(pagos[0] || {}).metodo] || '01';
-  let previo = null; try { previo = JSON.parse(localStorage.getItem('pe_facUlt') || 'null'); } catch (e) { }
-  modal(`<h2 style="margin:0 0 4px">🧾 Facturar ${esc(v.folio)} · ${money(v.total)}</h2><div class="muted small">Datos de la constancia de situación fiscal del cliente.${v.cliente && v.cliente.nombre ? ' Cliente: ' + esc(v.cliente.nombre) : ''}</div>
-    ${previo ? `<button class="lnk small" onclick="facRellenar()">Usar los datos de ${esc(previo.nombre)}</button>` : ''}
-    ${facReceptorCampos({ uso: 'G03' }, 'fv')}
+  // ¿el cliente ya pidió factura de este ticket desde su app?
+  let sol = null; try { sol = (await api('facturasNegocio', { negocioId: S.negocio.id })).pendientes.find(x => x.origen !== 'app' && x.ref === String(v.folio).toUpperCase() && x.dia === v.dia); } catch (e) { }
+  S._facVenta = { id, sol, pid: null };
+  modal(`<h2 style="margin:0 0 4px">🧾 Facturar ${esc(v.folio)} · ${money(v.total)}</h2>
+    ${sol ? `<div class="aviso ok small">📲 <b>${esc(sol.receptor.nombre)}</b> (${esc(sol.receptor.rfc)}) pidió factura de este ticket desde su app. Se usan sus datos.</div>`
+      : `<div class="row" style="gap:6px;margin-top:6px"><input class="i" id="fvBus" placeholder="Buscar cliente: teléfono, RFC o nombre" value="${esc(v.cliente && v.cliente.tel || '')}" style="flex:1" onkeydown="if(event.key==='Enter')act(null,facBuscarCliente)"><button class="btn sm" onclick="act(this,facBuscarCliente)">Buscar</button></div>
+      <div id="fvRes"></div><div id="fvSel"></div>
+      <div id="fvForm">${facReceptorCampos({ uso: 'G03' }, 'fv')}</div>`}
+    ${facModoSelect(sol && sol.modo ? sol.modo : c.concepto)}
+    ${sol && sol.modo ? `<div class="muted small">El cliente la pidió ${sol.modo === 'consumo' ? 'por consumo' : 'desglosada'}.</div>` : ''}
     ${facFormaSelect(forma)}
+    <div id="fvIsr" data-total="${v.total}"></div>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facEmitirVenta('${v.id}'))">Timbrar factura</button></div>`);
+  if (sol) { const box = $('#fvIsr'); if (c.regimen === '626' && String(sol.receptor.rfc).length === 12) box.innerHTML = `<div class="aviso warn small" style="margin:8px 0 0">RESICO a persona moral: se retiene <b>1.25% de ISR</b>.</div>`; }
+  else if (v.cliente && v.cliente.tel) facBuscarCliente().catch(() => { });
 }
-function facRellenar() { let p = null; try { p = JSON.parse(localStorage.getItem('pe_facUlt') || 'null'); } catch (e) { } if (!p) return; [['Rfc', 'rfc'], ['Nom', 'nombre'], ['Reg', 'regimen'], ['Cp', 'cp'], ['Uso', 'uso'], ['Mail', 'email']].forEach(([a, b]) => { const i = $('#fv' + a); if (i && i.tagName) i.value = p[b] || ''; }); }
+async function facBuscarCliente() {
+  const q = ($('#fvBus').value || '').trim(); if (!q) return;
+  const r = await api('facReceptores', { negocioId: S.negocio.id, q }); S._facRes = r.clientes;
+  $('#fvRes').innerHTML = r.clientes.length ? `<div class="muted small" style="margin:6px 0 2px">Toca para usar sus datos:</div>` + r.clientes.map((x, i) => `<button class="btn sm full" style="margin-top:4px;text-align:left;justify-content:flex-start" onclick="facUsarCliente(${i})">${x.pidele ? '📲 ' : '🧾 '}<b>${esc(x.nombre)}</b>&nbsp;· ${esc(x.rfc)}${x.pidele ? ' · cliente de ' + APP : ''}</button>`).join('')
+    : `<div class="muted small" style="margin-top:6px">No encontramos a ese cliente; captura sus datos abajo${/^\d{10}$/.test(q.replace(/\D/g, '')) ? ' (o pídele que los guarde en su app en Perfil → 🧾 Facturación)' : ''}.</div>`;
+}
+function facUsarCliente(i) {
+  const x = S._facRes[i]; if (!x) return;
+  if (x.pidele) {
+    S._facVenta.pid = x.tel;
+    $('#fvForm').style.display = 'none';
+    $('#fvSel').innerHTML = `<div class="card" style="padding:10px;margin-top:8px"><div class="row between"><div class="grow"><b>📲 ${esc(x.nombre)}</b><div class="muted small">${esc(x.rfc)} · CP ${esc(x.cp)} · ${esc(facRegimenTxt(x.regimen))}</div><div class="muted small">Uso ${esc(x.uso)} · ✉️ ${esc(x.email)}</div></div><button class="lnk small" onclick="facQuitarCliente()">Cambiar</button></div></div>`;
+  } else {
+    S._facVenta.pid = null; $('#fvForm').style.display = ''; $('#fvSel').innerHTML = '';
+    [['Rfc', 'rfc'], ['Nom', 'nombre'], ['Reg', 'regimen'], ['Cp', 'cp'], ['Uso', 'uso'], ['Mail', 'email']].forEach(([a, b]) => { const e = $('#fv' + a); if (e && e.tagName) e.value = x[b] || ''; });
+  }
+  $('#fvRes').innerHTML = '';
+  const box = $('#fvIsr'), c = S._facCfg || {};
+  box.innerHTML = c.regimen === '626' && String(x.rfc).length === 12 ? `<div class="aviso warn small" style="margin:8px 0 0">RESICO a persona moral: se retiene <b>1.25% de ISR</b>.</div>` : '';
+}
+function facQuitarCliente() { S._facVenta.pid = null; $('#fvSel').innerHTML = ''; $('#fvForm').style.display = ''; facNotaIsr('fv'); }
 async function facEmitirVenta(id) {
-  const v = pdvVenta(id), receptor = facLeerReceptor('fv');
+  const v = pdvVenta(id), fv = S._facVenta || {}, receptor = fv.sol ? fv.sol.receptor : fv.pid ? null : facLeerReceptor('fv');
   const its = v.items.filter(i => !i.cancelado).map(i => ({ id: i.productoId || i.id || '', nombre: i.nombre + (detalleItem(i) ? ' ' + detalleItem(i).replace(/<[^>]+>/g, '') : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
   const suma = its.reduce((s, i) => s + i.importe, 0);
   if (suma > 0 && Math.abs(suma - v.total) > 0.01) { const k = v.total / suma; its.forEach(i => { i.importe = Math.round(i.importe * k * 100) / 100; }); } // descuentos de la venta
-  const r = await api('facturaEmitir', { negocioId: S.negocio.id, ref: v.folio, dia: v.dia, receptor, conceptos: its, formaPago: $('#feFor').value });
-  try { localStorage.setItem('pe_facUlt', JSON.stringify(receptor)); } catch (e) { }
+  const base = { negocioId: S.negocio.id, conceptos: its, formaPago: $('#feFor').value, concepto: $('#feCon').value };
+  const r = await api('facturaEmitir', fv.sol ? Object.assign(base, { facturaId: fv.sol.id }) : fv.pid ? Object.assign(base, { ref: v.folio, dia: v.dia, clienteTel: fv.pid }) : Object.assign(base, { ref: v.folio, dia: v.dia, receptor }));
   pdvGuardar(pdvCol('ventas').doc(v.id).set({ factura: { id: r.id, folio: r.serie + r.folio, uuid: r.uuid } }, { merge: true }));
   v.factura = { id: r.id, folio: r.serie + r.folio };
-  cerrarModal(); toast('Factura ' + r.serie + r.folio + ' timbrada' + (receptor.email ? ' y enviada a ' + receptor.email : ''));
+  cerrarModal(); toast('Factura ' + r.serie + r.folio + ' timbrada' + ((r.receptor || {}).email ? ' y enviada por correo' : ''));
 }
 
 function pdvDetalleVenta(id) {
@@ -3859,6 +3975,7 @@ async function pdvPagarCuenta() {
   PDV._ultimoPago = Object.assign({ id: ref.id }, p);
   pdvActualizarCuenta(c, ex);
   if (fin) PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id);
+  if (fin && ((c.cliente && c.cliente.tel) || telM.length === 10)) facTicketCliente(Object.assign({}, c, ex), (c.cliente && c.cliente.tel) || telM);
   PDV.cobro = { cuentaId: c.id, met: 'efectivo', modo: k.modo, sel: {}, tel: k.tel || '' };
   modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Pago de ${money(m)}</h2><div class="muted">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}</div>
     ${p.monedero ? `<div class="aviso ok" style="text-align:left;margin:8px 0">👛 ${p.monedero.cashback ? 'Ganó ' + money(p.monedero.cashback) + ' (' + p.monedero.pct + '%) · ' : ''}saldo ${money(p.monedero.saldo)} · visitas del mes ${p.monedero.visitas}/${p.monedero.meta}</div>` : ''}
