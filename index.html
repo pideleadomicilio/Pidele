@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.45.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.46.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -5054,7 +5054,7 @@ const monMesAnt = dia => { const [y, m] = dia.split('-').map(Number); const d = 
 const monSuma = (dia, dias) => pdvHoy(new Date(dia + 'T12:00:00').getTime() + dias * 864e5);
 const monTel = t => String(t || '').replace(/\D/g, '').slice(-10);
 const monFecha = dia => { const [y, m, d] = dia.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }); };
-const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada' };
+const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada' };
 /** Saldo disponible: lo recargado más el cashback y bonos que no han vencido (lotes ordenados del que vence primero). */
 function monSaldo(x, hoy) {
   hoy = hoy || pdvHoy();
@@ -5247,7 +5247,115 @@ function monVista() {
       ${!PDV.caja ? '<div class="small muted">Abre la caja para recargar.</div>' : rs.map(r => `<div class="pdvFila g"><span>${hora(r.ts)} · ${esc(r.nombre || r.tel)}<small>${esc(r.tel)} · ${PDV_MET_TXT[r.metodo]}${r.bono ? ' · bono ' + money(r.bono) : ''}${r.estado === 'cancelada' ? ' · ✖️ cancelada' : ''}</small></span>
         <span>${r.estado !== 'cancelada' ? `<button class="btn sm" onclick="monImprimirRecarga('${r.id}')">🖨️</button> <button class="btn sm err" onclick="act(this,()=>monCancelarRecarga('${r.id}'))">Cancelar</button>` : ''}</span><b>${money(r.monto)}</b></div>`).join('') || '<div class="small muted">Aún no hay recargas.</div>'}</div>
     <div class="card small muted">Cashback ${cfg.cashback}% · vence a los ${cfg.vigencia} días · bono ${cfg.bonoPct}% al recargar ${money(cfg.bonoDesde)} o más · con ${cfg.visitas} visitas al mes gana +${cfg.extra}%. Lo recargado no vence.
-      ${dueno ? '<div style="margin-top:6px"><button class="btn sm" onclick="monConfig()">⚙️ Configurar</button></div>' : ''}</div>`;
+      ${dueno ? '<div style="margin-top:6px"><button class="btn sm" onclick="monConfig()">⚙️ Configurar</button> <button class="btn sm" onclick="monImportar()">📥 Importar clientes de otra app</button></div>' : ''}</div>`;
+}
+/* ---------- 2.46 · Importar clientes y saldos de otra app (exportación JSON de Firestore) ---------- */
+function monImportar() {
+  modal(`<div class="row between"><h2 style="margin:0">📥 Importar clientes</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Sube el archivo de clientes de tu app anterior (.json). Primero verás un resumen; nada se guarda hasta que confirmes.
+      Se respeta el saldo de cada cliente y sus visitas; el monedero sirve en todos tus negocios.</div>
+    <label class="btn pri pill full">Elegir archivo .json<input type="file" accept=".json,application/json" hidden onchange="act(null,()=>monImpLeer(this))"></label>`);
+}
+const monImpFecha = x => x && x.__time__ ? Date.parse(x.__time__) : typeof x === 'number' ? x : x ? Date.parse(x) || 0 : 0;
+async function monImpLeer(inp) {
+  const f = inp.files && inp.files[0]; if (!f) return;
+  let j; try { j = JSON.parse(await f.text()); } catch (e) { throw new Error('Ese archivo no es un JSON válido'); }
+  const data = j && j.data && typeof j.data === 'object' ? j.data : j;
+  const filas = Array.isArray(data) ? data.map((v, i) => [v.id || String(i), v]) : Object.entries(data || {});
+  if (!filas.length || !filas.some(([, v]) => v && (v.phone || v.telefono || v.tel))) throw new Error('No encontramos clientes con teléfono en ese archivo');
+  const grupos = {}, malos = [];
+  filas.forEach(([id, v]) => {
+    const r = (v.restaurant && (v.restaurant.__ref__ || v.restaurant)) || v.negocio || 'sin negocio', g = grupos[r] = grupos[r] || { ref: r, n: 0, saldo: 0, muestra: [], filas: [] };
+    const tel = String(v.phone || v.telefono || v.tel || '').replace(/\D/g, '');
+    const o = { id, tel: tel.length === 12 && tel.startsWith('52') ? tel.slice(2) : tel, nombre: [v.name || v.nombre || '', v.lastName || v.apellido || ''].map(x => String(x).trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').slice(0, 60),
+      email: String(v.email || '').trim().slice(0, 80), tarjeta: String(v.card || '').trim().slice(0, 30), nivel: String(v.plan || '').trim().slice(0, 30),
+      saldo: Math.max(0, Math.round((+v.wallet || +v.saldo || 0) * 100) / 100), alta: monImpFecha(v.registerDate), ult: monImpFecha(v.lastVisitDate),
+      visMes: +v.montlyVisits || +v.monthlyVisits || 0, visAnt: +v.lastMonthVisits || 0, visTot: +v.totalVisits || 0, grupo: r };
+    g.n++;
+    if (o.tel.length !== 10) { malos.push(o); return; }
+    g.saldo += o.saldo;
+    g.filas.push(o); if (o.nombre && g.muestra.length < 3) g.muestra.push(o.nombre);
+  });
+  PDV._imp = { grupos: Object.values(grupos).sort((a, b) => b.n - a.n), malos, archivo: f.name };
+  monImpResumen();
+}
+function monImpResumen() {
+  const I = PDV._imp, cfg = monCfg();
+  modal(`<div class="row between"><h2 style="margin:0">📥 Revisa antes de importar</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">${esc(I.archivo)} · el archivo trae ${I.grupos.length > 1 ? I.grupos.length + ' negocios' : 'un negocio'}. Marca solo los que son tuyos (viene marcado el que tiene más clientes).</div>
+    ${I.grupos.map((g, i) => `<label class="card" style="display:flex;gap:10px;align-items:flex-start;padding:10px;margin:6px 0;cursor:pointer"><input type="checkbox" class="impG" data-i="${i}" ${i === 0 ? 'checked' : ''} style="margin-top:4px" onchange="monImpTotales()">
+      <span class="grow"><b>${esc(String(g.ref).split('/').pop())}</b> · ${g.filas.length} clientes · ${money(Math.round(g.saldo * 100) / 100)}<br><span class="muted small">${esc(g.muestra.join(', '))}${g.n - g.filas.length ? ' · ' + (g.n - g.filas.length) + ' sin teléfono válido' : ''}</span></span></label>`).join('')}
+    <label class="f">El saldo que traen</label>
+    <select class="i" id="impVence"><option value="0">No vence (se guarda como saldo recargado) · recomendado</option><option value="${cfg.vigencia}">Vence en ${cfg.vigencia} días, como el cashback</option><option value="365">Vence en 1 año</option></select>
+    <div id="impTot" class="aviso small" style="margin-top:10px"></div>
+    ${I.malos.length ? `<div class="muted small" style="margin-top:6px">${I.malos.length} registros no tienen teléfono de 10 dígitos y no se pueden importar (el monedero se busca por teléfono). <button class="lnk small" onclick="monImpDescargarMalos()">Descargar la lista</button></div>` : ''}
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,monImpGuardar)">Importar</button></div>`);
+  monImpTotales();
+}
+/** Une los registros con el mismo teléfono (en la app anterior algunos clientes se dieron de alta dos veces): suma saldos y visitas. */
+function monImpUnir() {
+  const sel = [...document.querySelectorAll('.impG')].filter(x => x.checked).map(x => PDV._imp.grupos[+x.dataset.i]), m = {};
+  sel.forEach(g => g.filas.forEach(o => {
+    const y = m[o.tel];
+    if (!y) { m[o.tel] = Object.assign({ ids: [o.id], dup: 0 }, o); return; }
+    y.ids.push(o.id); y.dup++; y.saldo = Math.round((y.saldo + o.saldo) * 100) / 100;
+    if (o.nombre.length > y.nombre.length) y.nombre = o.nombre;
+    ['email', 'tarjeta', 'nivel'].forEach(k => { if (!y[k] && o[k]) y[k] = o[k]; });
+    y.alta = Math.min(y.alta || o.alta, o.alta || y.alta); y.visTot += o.visTot;
+    if (o.ult > y.ult) { y.ult = o.ult; y.visMes = Math.max(y.visMes, o.visMes); y.visAnt = Math.max(y.visAnt, o.visAnt); }
+  }));
+  return Object.values(m);
+}
+function monImpTotales() {
+  const l = monImpUnir(), dup = l.reduce((s, x) => s + x.dup, 0), tot = Math.round(l.reduce((s, x) => s + x.saldo, 0) * 100) / 100;
+  $('#impTot').innerHTML = `Se importarán <b>${l.length} clientes</b> con <b>${money(tot)}</b> de saldo (${l.filter(x => x.saldo > 0).length} con saldo).${dup ? ` ${dup} registros repetidos con el mismo teléfono se unen y se suman sus saldos.` : ''}`;
+}
+function monImpDescargarMalos() {
+  const csv = 'nombre,telefono,email,saldo,negocio\n' + PDV._imp.malos.map(o => [o.nombre, o.tel, o.email, o.saldo, String(o.grupo).split('/').pop()].map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = 'clientes-sin-telefono.csv'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 3000);
+}
+async function monImpGuardar() {
+  if (!pdvPuede('d')) throw new Error('Solo el dueño importa clientes');
+  if (!navigator.onLine) throw new Error('Necesitas internet para importar');
+  const l = monImpUnir(); if (!l.length) throw new Error('Marca al menos un negocio');
+  const vence = +$('#impVence').value, hoy = pdvHoy(), diaV = vence ? monSuma(hoy, vence) : '';
+  // los que ya se importaron (por si se corre dos veces) no se vuelven a sumar
+  const ya = {}; (await monCol('monedero').get()).docs.forEach(d => { ya[d.id] = d.data(); });
+  const mesDe = ms => pdvHoy(ms).slice(0, 7), mesAct = monMes(hoy), mesAnt = monMesAnt(hoy);
+  let hechos = 0, saltados = 0, total = 0; const ts = Date.now(), lote = [];
+  for (const o of l) {
+    const x = ya[o.tel];
+    if (x && x.imp) { saltados++; continue; }
+    const upd = { tel: o.tel, act: ts, imp: { origen: 'app anterior', ids: o.ids.slice(0, 10), saldo: o.saldo, ts } };
+    if (o.nombre && !(x && x.nombre)) upd.nombre = o.nombre;
+    if (o.email && !(x && x.email)) upd.email = o.email;
+    if (o.tarjeta) upd.tarjeta = o.tarjeta; if (o.nivel) upd.nivelAnt = o.nivel;
+    if (!x) upd.creado = o.alta || ts;
+    if (o.saldo > 0) { if (diaV) upd.cb = { [diaV]: pdvInc(o.saldo) }; else upd.rec = pdvInc(o.saldo); }
+    // visitas: las del mes y las del mes pasado cuentan para el nivel (+extra)
+    const vis = {};
+    if (o.ult && mesDe(o.ult) === mesAct && o.visMes) vis[mesAct] = o.visMes;
+    if (o.ult && mesDe(o.ult) === mesAct && o.visAnt) vis[mesAnt] = o.visAnt;
+    if (o.ult && mesDe(o.ult) === mesAnt && o.visMes) vis[mesAnt] = o.visMes;
+    if (Object.keys(vis).length) { upd.vis = {}; Object.keys(vis).forEach(k => { upd.vis[k] = Math.max(vis[k], ((x && x.vis) || {})[k] || 0); }); }
+    if (o.ult && !(x && x.ultVis)) upd.ultVis = pdvHoy(o.ult);
+    lote.push([monCol('monedero').doc(o.tel), upd]);
+    if (o.saldo > 0) lote.push([monCol('movs').doc(), monMov({ tel: o.tel, nombre: o.nombre, tipo: 'importado', monto: o.saldo, nota: 'Saldo traído de la app anterior' + (diaV ? ' · vence ' + monFecha(diaV) : ''), vence: diaV || '' })]);
+    hechos++; total += o.saldo;
+  }
+  const caja = $('#modalCaja');
+  for (let i = 0; i < lote.length; i += 400) {
+    const parte = lote.slice(i, i + 400);
+    if (caja) caja.innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:40px">📥</div><b>Importando…</b><div class="muted">${Math.min(i + 400, lote.length)} de ${lote.length}</div></div>`;
+    if (PDV.db.batch) { const b = PDV.db.batch(); parte.forEach(([r, d]) => b.set(r, d, { merge: true })); await b.commit(); }
+    else await Promise.all(parte.map(([r, d]) => r.set(d, { merge: true })));
+  }
+  modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Clientes importados</h2>
+    <div>${hechos} clientes · ${money(Math.round(total * 100) / 100)} en saldo${diaV ? ' (vence el ' + monFecha(diaV) + ')' : ' (no vence)'}</div>
+    ${saltados ? `<div class="muted small">${saltados} ya se habían importado antes y no se sumaron de nuevo.</div>` : ''}
+    <div class="muted small" style="margin-top:6px">Cada cliente ve su saldo al entrar a ${APP} con su teléfono, y en caja lo encuentras al cobrar.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`);
+  PDV._imp = null;
 }
 /** 2.38 · Registra a un cliente en el monedero (sin compra) y le manda por WhatsApp cómo ver su saldo en Pídele. */
 function monFormCliente(tel) {
@@ -5298,7 +5406,7 @@ function monCardCliente(c) {
     <div class="btns">${PDV.caja ? `<button class="btn pri pill" onclick="monFormRecarga('${c.tel}')">💳 Recargar</button>` : ''}<button class="btn pill" onclick="monFormAjuste('${c.tel}')">✍️ Ajustar saldo</button></div>
     <details style="margin-top:8px"><summary class="small">Movimientos (${c.movs.length})</summary>${c.movs.map(m => `<div class="pdvFila g"><span>${fechaCorta(m.ts)} · ${MON_MOV[m.tipo] || m.tipo}<small>${esc(m.negocio || '')}${m.folio ? ' · ' + esc(m.folio) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}</small></span><span></span><b style="color:${monSigno(m) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(m) > 0 ? '+' : '−'}${money(m.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
 }
-const monSigno = m => ['recarga', 'bono', 'cashback', 'devolucion'].includes(m.tipo) || (m.tipo === 'ajuste' && m.signo > 0) ? 1 : -1;
+const monSigno = m => ['recarga', 'bono', 'cashback', 'devolucion', 'importado'].includes(m.tipo) || (m.tipo === 'ajuste' && m.signo > 0) ? 1 : -1;
 
 function monFormRecarga(tel) {
   if (!PDV.caja) { toast('Abre la caja primero', 'err'); return; }
