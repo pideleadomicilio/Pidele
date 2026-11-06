@@ -908,7 +908,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.51.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.52.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -10232,21 +10232,65 @@ function estadoPromoTag(p) {
   return `<span class="tag t-info">${Date.now() < p.inicio ? '📅 Programada' : '🕒 Activa otros días u horario'}</span>`;
 }
 
+/** 2.52 · Banner extra: en la app de Google Play se compra ahí (mensual o solo este mes); en la web, con transferencia en Mi plan. */
+function bannerExtra() {
+  if (!enPlay()) { ir('suscripcion'); return; }
+  if (!playCobro()) throw new Error('Para comprar un banner extra abre Pídele desde la app instalada de Google Play.');
+  const pre = Number((S.conf || {}).precioBannerExtra) || 199;
+  modal(`<div class="row between"><h2 style="margin:0">🏷️ Banner extra</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="card" style="margin-top:10px;text-align:center"><div style="font-size:30px;font-weight:900" id="beP">${money(pre)}</div><div class="muted">+1 banner por día · al mes</div></div>
+    <div class="muted small">Tendrás un banner más cada día (además de los de tu plan) para tus promociones y anuncios. Se cobra con tu cuenta de Google Play.</div>
+    <label class="opc" style="margin-top:10px"><input type="checkbox" id="beMes"><span><b>Solo este mes</b><br><span class="muted small">Pago único por 30 días, sin cobro automático. Si no lo marcas, se renueva cada mes y lo cancelas cuando quieras en Google Play.</span></span></label>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,comprarBannerPlay)">Comprar con Google Play</button></div>`);
+  servicioPlay().then(svc => svc.getDetails([(S.conf || {}).playBannerSub || 'pidele_banner_extra'])).then(det => { const e = $('#beP'); if (e && det && det[0] && det[0].price) e.textContent = new Intl.NumberFormat('es-MX', { style: 'currency', currency: det[0].price.currency }).format(+det[0].price.value); }).catch(() => { });
+}
+async function comprarBannerPlay() {
+  const c = S.conf || {}, sku = $('#beMes').checked ? c.playBannerMes || 'pidele_banner_mes' : c.playBannerSub || 'pidele_banner_extra';
+  const svc = await servicioPlay(), det = await svc.getDetails([sku]);
+  if (!det || !det.length) throw new Error('No encontramos el banner extra en Google Play. Intenta más tarde.');
+  const pr = det[0].price || { currency: 'MXN', value: String(c.precioBannerExtra || 199) };
+  const req = new PaymentRequest([{ supportedMethods: 'https://play.google.com/billing', data: { sku } }], { total: { label: 'Total', amount: { currency: pr.currency, value: pr.value } } });
+  let resp;
+  try { resp = await req.show(); } catch (e) { if (e && e.name === 'AbortError') return; throw new Error('No se completó la compra' + (e && e.message ? ': ' + e.message : '')); }
+  const token = resp.details && (resp.details.purchaseToken || resp.details.token);
+  try {
+    if (!token) throw new Error('Google no devolvió la compra. Si se te cobró, abre de nuevo Banners y se sumará sola.');
+    await api('playBanner', { token, producto: sku });
+    await resp.complete('success');
+  } catch (e) { try { await resp.complete('fail'); } catch (x) { } throw e; }
+  if (sku === (c.playBannerMes || 'pidele_banner_mes')) { try { await svc.consume(token); } catch (e) { } }
+  cerrarModal(); toast('¡Listo! Tienes 1 banner extra por día ✓'); pintar(true);
+}
+/** Si una compra de banner quedó sin aplicar (se cerró la app a medio pago), se suma sola. */
+async function restaurarBannersPlay() {
+  if (!playCobro() || S._bannRest || !esDueno()) return;
+  S._bannRest = true;
+  try {
+    const c = S.conf || {}, skus = [c.playBannerSub || 'pidele_banner_extra', c.playBannerMes || 'pidele_banner_mes'];
+    const svc = await servicioPlay(), l = (await svc.listPurchases()).filter(x => skus.includes(x.itemId));
+    let suma = false;
+    for (const x of l) { const r = await api('playBanner', { token: x.purchaseToken, producto: x.itemId }); if (r.nuevo) suma = true; if (x.itemId === skus[1]) { try { await svc.consume(x.purchaseToken); } catch (e) { } } }
+    if (suma) { toast('Se sumó tu banner extra ✓'); pintar(true); }
+  } catch (e) { }
+}
 async function vPromos() {
   const [l, prods, n] = await Promise.all([api('misPromos'), api('misProductos'), api('miNegocio')]);
   S._promosNeg = l; S._prods = prods; fijarNeg(n);
-  const su = n.suscripcion || {}, incl = su.bannersIncluidos === undefined ? 1 : Math.max(1, su.bannersIncluidos), ext = su.bannersExtra || 0;
+  const su = n.suscripcion || {}, incl = su.bannersIncluidos === undefined ? 1 : Math.max(1, su.bannersIncluidos), bp = su.bannersPlay || [], ext = (su.bannersExtra || 0) + bp.length;
+  S._bannersPlay = bp;
+  if (enPlay() && esDueno()) restaurarBannersPlay();
   html(`${pendienteAviso()}<div class="row between"><h2>Banners</h2>
       <button class="btn pri" onclick="formPromo()">${ico('mas', 's')} Nuevo</button></div>
     <div class="card"><div class="row between"><div><b>Tu plan: ${incl + ext} banner${incl + ext > 1 ? 's' : ''} por día</b>
-      <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${ext ? ' + ' + ext + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}</div></div>
-      ${esDueno() ? `<button class="btn sm" onclick="ir('suscripcion')">${ext ? 'Mi plan' : '+ Banner extra'}</button>` : ''}</div>
+      <div class="muted small">${incl} incluido${incl > 1 ? 's' : ''}${su.bannersExtra ? ' + ' + su.bannersExtra + ' extra hasta el ' + fechaCorta(su.extrasVence).split(' ').slice(0, 2).join(' ') : ''}${bp.map(b => ' + 1 extra ' + (b.tipo === 'sub' ? (b.renueva ? 'mensual (se renueva el ' : 'mensual cancelado (hasta el ') : 'hasta el ') + fechaCorta(b.vence).split(' ').slice(0, 2).join(' ') + (b.tipo === 'sub' ? ')' : '')).join('')}</div></div>
+      ${esDueno() && su.bannersIncluidos ? `<button class="btn sm" onclick="act(this,bannerExtra)">+ Banner extra</button>` : ''}</div>
+      ${bp.some(b => b.tipo === 'sub') && enPlay() ? `<div class="small" style="margin-top:6px"><a class="lnk" href="https://play.google.com/store/account/subscriptions" target="_blank">Administrar el cobro automático en Google Play ›</a></div>` : ''}
       ${n.planCfg ? `<div class="aviso info" style="margin:8px 0 0">${PLAN_ICO[n.plan] || ''} <b>Plan ${esc(n.planCfg.nombre)}:</b> ${esc(textoPlan(n.planCfg))} ${n.plan !== 'ultra' && n.plan !== 'donado' ? `<button class="lnk small" onclick="ir('suscripcion')">Subir de plan ›</button>` : ''}</div>` : ''}
       <div class="muted small" style="margin-top:8px">Tus banners salen en Inicio, rotando con los demás negocios (los segundos y la visibilidad dependen de tu plan).
         Una <b>🏷️ Promoción</b> (precio especial, 2x1, 3x2, % o $ de descuento, regalo o descuento de primera compra) se ve <b>el doble</b> que un <b>📣 Anuncio</b> y además aparece en la categoría Promociones.
         Puedes programar banners distintos para cada día (ej. "Martes de tacos").</div></div>
     ${l.length ? l.map(p => `<div class="promoCard" style="cursor:default">${slidePromo(Object.assign({}, p, { abierto: true })).replace(/onclick="abrirPromo\('[^']*'\)"/, '')}
-      <div class="pie"><div class="row wrap" style="gap:6px">${estadoPromoTag(p)}</div>
+      <div class="pie"><div class="row wrap" style="gap:6px">${estadoPromoTag(p)}${p.sinBanner ? '<span class="tag t-gray">📋 Solo en tu menú</span>' : ''}</div>
         ${p.descripcion ? `<div style="margin-top:6px">${esc(p.descripcion)}</div>` : ''}
         <div class="muted small" style="margin-top:4px">${ico('reloj', 's')} ${esc(p.vigencia)}</div>
         ${lineasPromo(p, 8)}
@@ -10309,7 +10353,8 @@ function formPromo(id) {
       <div class="grow"><label class="f">Hasta</label><input class="i" id="prFin" type="date" value="${esc(p.finDia)}"></div></div>
     <label class="f">Días</label>
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" class="prDia" value="${d}" ${dias.includes(d) ? 'checked' : ''}>${DIAS[d].slice(0, 3)}</label>`).join('')}</div>
-    <div class="muted small" style="margin-top:6px">Cada día puedes tener los banners de tu plan (1 incluido + los extra que compres). Si alguno de estos días ya está lleno, te avisamos.</div>
+    <label class="opc" style="margin-top:8px"><input type="checkbox" id="prSinB" ${p.sinBanner ? 'checked' : ''}><span><b>📋 Solo en mi menú (sin banner)</b><br><span class="muted small">No sale en el banner de Inicio ni ocupa tus banners del día. Sí aplica en tu menú y en tu caja, y aparece en la categoría Promociones.</span></span></label>
+    <div class="muted small" style="margin-top:6px">Cada día puedes tener los banners de tu plan (los incluidos + los extra que compres). Si alguno de estos días ya está lleno, te avisamos.</div>
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="prConHora" ${conHora ? 'checked' : ''} onchange="$('#prHoras').style.display=this.checked?'':'none'"><span>Solo en un horario (ej. happy hour)</span></label>
     <div class="row" id="prHoras" style="${conHora ? '' : 'display:none'}"><div class="grow"><label class="f">De</label>${selHora('class="i" id="prHI"', p.horaIni || '13:00')}</div>
       <div class="grow"><label class="f">A</label>${selHora('class="i" id="prHF"', p.horaFin || '17:00')}</div></div>
@@ -10485,7 +10530,7 @@ async function guardarPromoForm() {
   const l = await api('guardarPromo', {
     id: S._promoEdit.id || undefined, tipo: S._promoTipo, titulo: $('#prTit').value, descripcion: $('#prDes').value,
     ...(({ mecanica, valor, lleva, paga, tope }) => ({ mecanica, valor, lleva, paga, tope }))(mecForm()),
-    espacios: S._promoMec === 'combo' && S._promoTipo !== 'anuncio' ? espaciosForm() : undefined,
+    espacios: S._promoMec === 'combo' && S._promoTipo !== 'anuncio' ? espaciosForm() : undefined, sinBanner: $('#prSinB').checked ? 1 : 0,
     productos: mecForm().todo ? [{ productoId: '*' }] : ['primera', 'combo'].includes(S._promoMec) && S._promoTipo !== 'anuncio' ? [] : productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
     regalos: S._promoMec === 'regalo' ? productosForm(true).map(x => ({ productoId: x.productoId, variante: x.variante })) : [],
     inicio: $('#prIni').value, fin: $('#prFin').value, dias, horaIni: conHora ? $('#prHI').value : '', horaFin: conHora ? $('#prHF').value : '',
