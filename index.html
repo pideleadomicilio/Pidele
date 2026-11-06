@@ -908,7 +908,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.50.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.51.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1426,7 +1426,7 @@ async function responderEquipo(id, aceptar) {
   if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
   else { toast('Invitación rechazada'); pintar(true); }
 }
-const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'vender: tomar órdenes (mostrador y mesas) y cobrar', gerente: 'autorizar cancelaciones con su código' };
+const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'vender: tomar órdenes (mostrador y mesas) y cobrar', gerente: 'autorizar cancelaciones con su código', mercadotecnia: 'subir fotos, logo y portada, y manejar promociones y anuncios' };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
@@ -2286,7 +2286,7 @@ async function enviarServicio() {
   const hechos = [];
   for (const c of cs) {
     const r = await api('crearServicio', { negocioId: c.negocioId, subtotalEsperado: subtotalCarrito(c), telCliente: telC, nombreCliente: nomC,
-      items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) })) });
+      items: Object.values(c.items).map(itemPedido) });
     hechos.push(r); delete S.carritos[c.negocioId];
   }
   guardarCarritos();
@@ -2571,7 +2571,7 @@ function pdvSinCaja(msg) {
 function pdvVistaVender() {
   if (!PDV.caja) return pdvSinCaja();
   const d = S._menu, secs = [...new Set(d.productos.map(p => p.categoria))];
-  if (!secs.includes(PDV.sec)) PDV.sec = '';
+  if (!secs.includes(PDV.sec) && PDV.sec !== SEC_COMBO) PDV.sec = '';
   const q = PDV.buscar.trim().toLowerCase();
   const prods = d.productos.filter(p => q ? (p.nombre + ' ' + (p.descripcion || '')).toLowerCase().includes(q) : !PDV.sec || p.categoria === PDV.sec);
   const c = pdvCarrito(), its = Object.values(c.items), n = its.reduce((s, x) => s + x.cant, 0);
@@ -2596,11 +2596,14 @@ function pdvMenuLista(enC) {
   const d = S._menu, cuenta = {};
   d.productos.forEach(p => { cuenta[p.categoria] = (cuenta[p.categoria] || 0) + 1; });
   const secs = Object.keys(cuenta);
-  if (!secs.includes(PDV.sec)) PDV.sec = '';
+  if (!secs.includes(PDV.sec) && PDV.sec !== SEC_COMBO) PDV.sec = '';
   const q = PDV.buscar.trim().toLowerCase();
   const prods = d.productos.filter(p => q ? (p.nombre + ' ' + (p.descripcion || '')).toLowerCase().includes(q) : !PDV.sec || p.categoria === PDV.sec);
   const chip = (s, txt, n) => `<button class="${(s === PDV.sec) && !q ? 'on' : ''}" onclick="pdvElegirSec(${esc(JSON.stringify(s))})">${esc(txt)}<small>${n}</small></button>`;
-  return `<div class="pdvCatsWrap"><div class="pdvSecs">${chip('', 'Todo', d.productos.length)}${secs.map(s => chip(s, s, cuenta[s])).join('')}</div>
+  const cbs = q ? [] : combosDe(d.negocio.id);
+  if (PDV.sec === SEC_COMBO && !q) return `<div class="pdvCatsWrap"><div class="pdvSecs">${chip('', 'Todo', d.productos.length)}${chip(SEC_COMBO, SEC_COMBO, cbs.length)}${secs.map(s => chip(s, s, cuenta[s])).join('')}</div>
+      <div class="pdvGrid">${cbs.map(pr => `<button class="pdvProd" onclick="abrirCombo('${pr.id}')"><b>🍱 ${esc(pr.titulo)}</b><span>${money(pr.valor)}</span></button>`).join('')}</div></div>`;
+  return `<div class="pdvCatsWrap"><div class="pdvSecs">${chip('', 'Todo', d.productos.length)}${cbs.length ? chip(SEC_COMBO, SEC_COMBO, cbs.length) : ''}${secs.map(s => chip(s, s, cuenta[s])).join('')}</div>
       <div class="pdvGrid">${q ? `<div class="small muted" style="grid-column:1/-1">${prods.length} resultado(s) para “${esc(PDV.buscar.trim())}”</div>` : ''}${prods.map(p => `<button class="pdvProd" onclick="abrirProducto('${p.id}')">${enC[p.id] ? `<span class="enC">${enC[p.id]}</span>` : ''}<b>${esc(p.nombre)}</b><span>${precioTxt(p)}</span></button>`).join('') || '<div class="muted">Sin productos</div>'}</div></div>`;
 }
 /** Cambia de sección o busca sin redibujar toda la caja (más rápido y no pierde el teclado). */
@@ -2681,7 +2684,7 @@ async function pdvGuardarPedido(cli) {
   const g = S._gp; if (!g) return;
   if (!PDV.caja) { toast('La caja está cerrada', 'err'); return; }
   const car = pdvCarrito(), ts = Date.now(), cocina = g.cocina !== false;
-  const items = Object.values(car.items).map(it => ({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant: it.cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], ronda: cocina ? 0 : 1, pagadoCant: 0, cancelado: null }));
+  const items = Object.values(car.items).map(it => ({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant: it.cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], partes: it.partes || null, ronda: cocina ? 0 : 1, pagadoCant: 0, cancelado: null }));
   if (!items.length) { toast('Agrega productos primero', 'err'); return; }
   const nom = cli && cli.nombre ? cli.nombre.slice(0, 40) : '';
   // mesa ocupada: se agrega a su cuenta abierta
@@ -2851,7 +2854,7 @@ async function pdvTerminarVenta() {
   const telM = tel || ((k.pagos.find(x => x.metodo === 'monedero') || {}).monTel || '');
   const baseCb = pdvR(k.total - k.pagos.filter(x => x.metodo === 'monedero' || x.metodo === 'consumo').reduce((s, x) => s + x.monto, 0));
   const monInfo = await monAcumular({ tel: telM, nombre: v0.nombre, base: baseCb, folio, ventaId: ref.id });
-  const items = Object.values(c.items).map(x => ({ id: x.id, nombre: x.nombre, cant: x.cant, precio: pdvR(x.precio), importe: pdvR(x.cant * x.precio), variante: x.variante || '', extras: x.extras || [], sin: x.sin || [], nota: x.nota || '', mods: x.mods || [] }));
+  const items = Object.values(c.items).map(x => ({ id: x.id, nombre: x.nombre, cant: x.cant, precio: pdvR(x.precio), importe: pdvR(x.cant * x.precio), variante: x.variante || '', extras: x.extras || [], sin: x.sin || [], nota: x.nota || '', mods: x.mods || [], partes: x.partes || null }));
   const v = {
     folio, dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, por: pdvYo(), tipo: v0.tipo, origen: 'caja',
     cliente: telM ? { tel: telM, nombre: (v0.nombre || (k.pagos.find(x => x.monTel === telM) || {}).monNombre || '').trim().slice(0, 60) } : null, monedero: monInfo,
@@ -2862,7 +2865,7 @@ async function pdvTerminarVenta() {
     const kref = pdvCol('comandas').doc();
     v.cocina = { estado: 'enviada', comandaId: kref.id, salida, recoge: v0.tipo === 'llevar' ? v0.recoge || '' : '' };
     pdvGuardar(kref.set(JSON.parse(JSON.stringify({ ventaId: ref.id, folio: v.folio, etiqueta: v.tipo === 'llevar' ? '🥡 Para llevar' + (v0.recoge ? ' · ' + v0.recoge : '') : '🧾 Mostrador', tipo: v.tipo, ronda: 1, origen: 'caja',
-      dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(), cliente: v.cliente, items: items.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods })) }))));
+      dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(), cliente: v.cliente, items: items.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) }))));
   }
   // JSON limpio (Firestore no acepta undefined)
   const limpio = JSON.parse(JSON.stringify(v));
@@ -4181,7 +4184,7 @@ function pdvAgregarACuenta(it, cant) {
   if (!c) return;
   const x = (c.items || []).find(i => !i.ronda && i.key === it.key);
   if (x) x.cant += cant;
-  else (c.items = c.items || []).push({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], ronda: 0, pagadoCant: 0, cancelado: null });
+  else (c.items = c.items || []).push({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant, precio: pdvR(it.precio), variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], partes: it.partes || null, ronda: 0, pagadoCant: 0, cancelado: null });
   pdvActualizarCuenta(c);
 }
 function pdvCantCuenta(k, d) {
@@ -4198,7 +4201,7 @@ async function pdvEnviarRonda(id) {
   if (c.tipo === 'llevar' && c.recoge) { const [h, mi] = c.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() > ts) salida = d.getTime(); }
   nuevos.forEach(i => { i.ronda = r; });
   const k = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: r, dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(),
-    items: nuevos.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods })) };
+    items: nuevos.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) };
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(k))));
   PDV.comandas.push(Object.assign({ id: ref.id }, k));
   pdvActualizarCuenta(c);
@@ -4238,6 +4241,7 @@ function pdvMenuCuenta(id) {
     <label class="f">Nombre de la cuenta</label><input class="i" id="mcNom" maxlength="40" value="${esc(c.nombre)}">
     ${c.tipo !== 'llevar' ? `<label class="f">Mesa</label><select class="i" id="mcMesa"><option value="">Sin mesa</option>${pdvMesasLista().map(m => `<option ${m === c.mesa ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>` : `<label class="f">Hora</label><input class="i" id="mcRec" type="time" value="${esc(c.recoge || '')}">`}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarMenuCuenta('${id}'))">Guardar</button></div>
+    ${c.divGrupo && pdvPuede('dcmg') && pdvGrupoDiv(c).length > 1 ? `<hr class="hr"><button class="btn pill full" onclick="act(this,()=>pdvUnirCuentas('${id}'))">🔗 Unir las cuentas divididas (${pdvGrupoDiv(c).length})</button><div class="small muted" style="margin-top:4px">Junta otra vez las cuentas de esta división que no tengan pagos. Lo compartido vuelve a ser un solo producto.</div>` : ''}
     ${pdvPuede('dcmg') ? `<hr class="hr"><button class="btn err pill full" onclick="act(this,()=>pdvCancelarCuenta('${id}'))">❌ Cancelar cuenta completa</button><div class="small muted" style="margin-top:4px">Para cuentas que no se van a cobrar (el cliente se fue, se abrió por error). Necesita código de gerente o del dueño.</div>` : ''}`);
 }
 /** 2.43.3 · Cancela toda una cuenta abierta (con código de gerente y motivo): se quitan sus productos y sus comandas. */
@@ -4372,7 +4376,7 @@ async function pdvDivConfirmar() {
     const i = pdvDivItem(u.k), l = its[p.cta];
     if (p.n === 1) { const x = l.find(y => y.of === i.k && !y.comp); if (x) { x.cant++; return; } }
     l.push(Object.assign(JSON.parse(JSON.stringify(i)), { k: Math.random().toString(36).slice(2, 10), cant: 1, precio: p.monto, of: i.k, pagadoCant: 0 },
-      p.n > 1 ? { comp: p.n, nombre: i.nombre + ' (compartido ÷' + p.n + ')', precioOrig: u.precio } : {}));
+      p.n > 1 ? { comp: p.n, nombre: i.nombre + ' (compartido ÷' + p.n + ')', nombreOrig: i.nombre, precioOrig: u.precio, ut: u.t } : {}));
   }));
   const canceladas = (c.items || []).filter(i => i.cancelado);
   const grupo = c.divGrupo || c.folio;
@@ -4397,6 +4401,43 @@ async function pdvDivConfirmar() {
       <div class="row" style="gap:6px"><b>${money(pdvTotalCuenta(x))}</b><button class="btn sm" onclick="event.stopPropagation();pdvPreventa('${x.id}')">🧾</button></div></div>`).join('')}
     <div class="btns"><button class="btn pill full" onclick="act(this,()=>{${todas.map(x => `pdvPreventa('${x.id}');`).join('')}})">🧾 Imprimir todas las preventas</button><button class="btn pri pill full" onclick="cerrarModal();pdvIrCuenta('${c.id}')">Listo</button></div>`);
   pintarCaja();
+}
+
+/** Cuentas abiertas y sin pagos de la misma división (las que se pueden unir). */
+const pdvGrupoDiv = c => PDV.cuentas.filter(x => x.divGrupo && x.divGrupo === c.divGrupo && x.dia === c.dia && !pdvR(x.pagado));
+/** 2.50.1 · Une otra vez las subcuentas sin pagos: unidades completas regresan a su producto y las partes compartidas, si están todas, vuelven a ser una unidad. */
+async function pdvUnirCuentas(id) {
+  const c = pdvCuenta(id); if (!c) return;
+  const l = pdvGrupoDiv(c);
+  if (l.length < 2) throw new Error('No hay otras cuentas de esta división sin pagos');
+  if (l.some(x => (x.items || []).some(i => !i.ronda))) throw new Error('Envía a cocina lo nuevo antes de unir');
+  if (!confirm('¿Unir ' + l.length + ' cuentas (' + l.map(x => x.nombre).join(', ') + ') en una sola de ' + money(l.reduce((t, x) => t + pdvTotalCuenta(x), 0)) + '?')) return;
+  // destino: la cuenta original si sigue abierta; si no, la más antigua
+  const dest = l.find(x => !x.de) || l.find(x => l.some(y => y.de === x.id)) || l[0];
+  const vivos = [], canc = [];
+  l.forEach(x => (x.items || []).forEach(i => (i.cancelado ? canc : vivos).push(i)));
+  const out = [], porOf = {}, partes = {};
+  vivos.forEach(i => {
+    if (i.comp && i.ut) { (partes[i.ut] = partes[i.ut] || []).push(i); return; }
+    if (i.of) { const k = i.of + '|' + i.precio; if (porOf[k]) { porOf[k].cant += i.cant; return; } porOf[k] = Object.assign({}, i, { k: i.of }); delete porOf[k].of; out.push(porOf[k]); return; }
+    out.push(i);
+  });
+  Object.values(partes).forEach(ps => {
+    const i0 = ps[0];
+    if (ps.length === i0.comp) {
+      const k = i0.of + '|' + i0.precioOrig;
+      if (porOf[k]) porOf[k].cant += 1;
+      else { const x = Object.assign({}, i0, { k: i0.of, nombre: i0.nombreOrig || i0.nombre, precio: i0.precioOrig, cant: 1 }); ['of', 'comp', 'ut', 'nombreOrig', 'precioOrig'].forEach(z => delete x[z]); porOf[k] = x; out.push(x); }
+    } else ps.forEach(p => out.push(p)); // falta una parte (ya se cobró): se quedan como partes
+  });
+  const ts = Date.now();
+  l.filter(x => x !== dest).forEach(x => {
+    pdvGuardar(pdvCol('ventas').doc(x.id).update({ estado: 'unida', unidaEn: dest.id, items: [], total: 0, cerrada: ts }));
+    PDV.cuentas = PDV.cuentas.filter(y => y.id !== x.id);
+  });
+  const cliente = dest.cliente || (l.find(x => x.cliente) || {}).cliente || null;
+  pdvActualizarCuenta(Object.assign(dest, { items: out.concat(canc) }), { nombre: dest.mesa ? 'Cuenta 1' : dest.nombre, cliente, unida: { por: pdvYo(), ts } });
+  cerrarModal(); toast('Cuentas unidas ✓'); pdvIrCuenta(dest.id);
 }
 
 /* ---------- cobrar una cuenta: por monto o por productos, en partes ---------- */
@@ -6672,7 +6713,7 @@ async function confirmarPedidoTel() {
   const r = await apiDe(PUEBLO, 'crearPedidoTel', {
     telCliente: t.tel, nombreCliente: t.nombre, tipoEntrega: f.tipo, direccion: f.direccion, referencia: f.referencia, lat: f.lat, lng: f.lng,
     minutos: f.minutos, metodoPago: f.metodo, notas: f.notas, subtotalEsperado: subtotalCarrito(c),
-    items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
+    items: Object.values(c.items).map(itemPedido)
   }, S.token, true, '');
   S._capT = null; S.tabNeg = 'curso'; terminarModoTel(true); ir('negPedidos'); // ya está aceptado: se ve en "En curso" (de ahí se busca repartidor)
   toast('Pedido ' + r.folio + ' registrado ✓');
@@ -6854,6 +6895,7 @@ function detalleItem(it) {
   (it.extras || []).forEach(e => p.push('+ ' + esc(e.nombre)));
   (it.sin || []).forEach(s => p.push('Sin ' + esc(s)));
   if (it.nota) p.push('“' + esc(it.nota) + '”');
+  (it.partes || []).forEach(pt => { const d = detalleItem(pt); p.push('▸ ' + esc(pt.nombre) + (d ? ' (' + d + ')' : '')); });
   return p.join(' · ');
 }
 
@@ -7762,7 +7804,7 @@ function aplicarMenuFresco(m) {
 function promosDe(negId) { return (S.promos || []).filter(p => p.negocioId === negId); }
 const mecDe = p => (p.tipo || 'promocion') === 'promocion' ? (p.mecanica || 'precio') : '';
 /** Promos con 2x1, %, $, regalo o primera compra de un negocio (las que calcula descuentosPromo). */
-function mecsDe(negId) { return promosDe(negId).filter(p => mecDe(p) && mecDe(p) !== 'precio'); }
+function mecsDe(negId) { return promosDe(negId).filter(p => mecDe(p) && mecDe(p) !== 'precio' && mecDe(p) !== 'combo'); }
 /** ¿La promo incluye este producto (o todo el menú)? */
 const enPromo = (p, prodId, lista) => (lista || p.aplica || []).some(x => x.productoId === '*' || x.productoId === prodId);
 function promoProducto(negId, prodId, variante) {
@@ -7949,6 +7991,7 @@ function etiquetaPromo(p) {
     case 'monto': return '-$' + v;
     case 'regalo': return '🎁 Regalo';
     case 'primera': return '-' + v + '% 1ª compra';
+    case 'combo': return 'Combo $' + v;
     default: return 'PROMO';
   }
 }
@@ -7956,7 +7999,7 @@ function etiquetaPromo(p) {
 /** Descuentos de un carrito con las promos guardadas del negocio. */
 function descCarrito(c) {
   const its = Object.values(c.items || {});
-  const lineas = its.map((x, i) => ({ i, id: x.id, variante: x.variante || '', base: x.base || x.antes || x.precio, bruto: x.precio, cant: x.cant, especial: !!x.promo }));
+  const lineas = its.map((x, i) => ({ i, id: x.id, variante: x.variante || '', base: x.base || x.antes || x.precio, bruto: x.precio, cant: x.cant, especial: !!x.promo, combo: !!x.combo })).filter(l => !l.combo);
   const ps = mecsDe(c.negocioId);
   const r = descuentosPromo(lineas, ps, (S._primera || {})[c.negocioId] === true);
   r.its = its;
@@ -8018,6 +8061,7 @@ function seccionesMenu(d) {
   const extra = [];
   if (d.productos.some(p => ids.has(p.id))) extra.push(SEC_PROMO);
   if (d.productos.some(p => nov.has(p.id))) extra.push(SEC_NOVEDAD);
+  if (combosDe(d.negocio.id).length) extra.unshift(SEC_COMBO);
   return [...extra, ...base];
 }
 function precioTxt(p, negId) {
@@ -8040,6 +8084,13 @@ function repreciarCarrito(menuD) {
   menuD.productos.forEach(p => prods[p.id] = p);
   let cambio = false;
   Object.values(c.items).forEach(it => {
+    if (it.combo) { // 2.51: el combo sigue vigente y sus productos siguen entrando
+      const pr = (menuD.promos || []).concat(promosDe(c.negocioId)).find(x => x.id === it.combo && mecDe(x) === 'combo');
+      const u = pr ? precioCombo(pr, it.partes, prods, menuD.grupos) : null;
+      if (u === null) { delete c.items[it.key]; cambio = true; return; }
+      if (u !== it.precio) { it.precio = u; cambio = true; }
+      return;
+    }
     const p = prods[it.id];
     if (!p) { delete c.items[it.key]; cambio = true; return; } // ya no está disponible
     const b = precioBase(c.negocioId, p, it.variante);
@@ -8171,10 +8222,11 @@ function promosOrdenadas(cat) {
 function slidePromo(p) {
   const prods = p.productos || [], conPrecio = prods.filter(x => x.precioPromo);
   const mec = mecDe(p);
-  const precio = mec && mec !== 'precio' ? `<div class="precioS">${esc(p.etiqueta || etiquetaPromo(p))}</div>`
+  const precio = mec === 'combo' ? `<div class="precioS">${p.ahorroCombo ? `<s>${money(p.desde)}</s>` : '<s style="text-decoration:none">Combo</s>'}${money(p.valor)}</div>`
+    : mec && mec !== 'precio' ? `<div class="precioS">${esc(p.etiqueta || etiquetaPromo(p))}</div>`
     : conPrecio.length === 1 ? `<div class="precioS"><s>${money(conPrecio[0].precioAntes)}</s>${money(conPrecio[0].precioPromo)}</div>`
     : conPrecio.length > 1 ? `<div class="precioS"><s style="text-decoration:none">Ahorra hasta</s>${money(p.ahorroMax)}</div>` : '';
-  const sub = p.todoMenu ? ' · en todo el menú' : mec === 'primera' ? ' · en tu primera compra' : prods.length === 1 ? ' · ' + esc(prods[0].nombre) + (prods[0].variante && prods[0].variante !== '*' ? ' ' + esc(prods[0].variante) : '') : prods.length > 1 ? ' · ' + prods.length + ' productos en promo' : '';
+  const sub = mec === 'combo' ? ' · arma tu combo' : p.todoMenu ? ' · en todo el menú' : mec === 'primera' ? ' · en tu primera compra' : prods.length === 1 ? ' · ' + esc(prods[0].nombre) + (prods[0].variante && prods[0].variante !== '*' ? ' ' + esc(prods[0].variante) : '') : prods.length > 1 ? ' · ' + prods.length + ' productos en promo' : '';
   return `<div class="slide" onclick="abrirPromo('${p.id}')">
     ${p.imagen ? `<img class="fondo" src="${esc(p.imagen)}" alt="" loading="lazy" decoding="async">` : `<div class="sinImg">${ICONO_CAT[p.categoria] || '🏷️'}</div>`}
     <div class="velo"></div>
@@ -8256,6 +8308,10 @@ function listaPromos() {
 /** Al tocar una promo: abre el negocio y, si va ligada a un producto, su hoja con la opción ya elegida. */
 function abrirPromo(id) {
   const p = (S.promos || []).find(x => x.id === id); if (!p) return;
+  if (mecDe(p) === 'combo') { // 2.51: abre "Arma tu combo" en su negocio
+    if (S.vista === 'negocio' && S.params === p.negocioId && S._menu) { abrirCombo(id); return; }
+    S._abrirCombo = id; ir('negocio', p.negocioId); return;
+  }
   const prods = p.productos || [];
   // un solo producto: se abre su hoja; varios: el menú abre en la sección "Promo del día"
   if (prods.length === 1) { S._abrirProd = prods[0].productoId; S._abrirVar = prods[0].variante || ''; }
@@ -8344,6 +8400,7 @@ async function vNegocio(id, silencioso) {
     <div id="barraC">${barraCarrito(n.id)}</div>`);
   pintarTabNegocio();
   if (S._abrirProd) { const pid = S._abrirProd; S._abrirProd = null; abrirProducto(pid); }
+  if (S._abrirCombo) { const cid = S._abrirCombo; S._abrirCombo = null; abrirCombo(cid); }
 }
 
 /** El menú guardado se mostró al instante; aquí se trae la versión nueva y se repinta sin mover la pantalla. */
@@ -8417,7 +8474,7 @@ function pintarProductos() {
   if ((s === 'Todo' || s === SEC_PROMO) && ids.size) grupos[SEC_PROMO] = d.productos.filter(p => ids.has(p.id));
   const nov = idsPromo(d.negocio.id, 'anuncio');
   if ((s === 'Todo' || s === SEC_NOVEDAD) && nov.size) grupos[SEC_NOVEDAD] = d.productos.filter(p => nov.has(p.id));
-  if (s !== SEC_PROMO && s !== SEC_NOVEDAD) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
+  if (s !== SEC_PROMO && s !== SEC_NOVEDAD && s !== SEC_COMBO) d.productos.filter(p => s === 'Todo' || p.categoria === s).forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
   const tarjeta = p => `<div class="pCard" onclick="abrirProducto('${p.id}')">
       ${enCarrito[p.id] ? `<span class="enCarrito">${enCarrito[p.id]}</span>` : ''}
       ${(et => et ? `<span class="tagPromo">${esc(et)}</span>` : '')(etiquetaProducto(d.negocio.id, p.id))}
@@ -8432,7 +8489,9 @@ function pintarProductos() {
     if (subs.length <= 1 && !subs[0]) return `<div class="grid2" style="margin-bottom:12px">${l.map(tarjeta).join('')}</div>`;
     return subs.sort((a, b) => (a ? 1 : 0) - (b ? 1 : 0)).map(sb => `${sb ? `<div class="subTit">${esc(sb)}</div>` : ''}<div class="grid2" style="margin-bottom:12px">${l.filter(p => (p.subcategoria || '') === sb).map(tarjeta).join('')}</div>`).join('');
   };
-  $('#prods').innerHTML = Object.keys(grupos).map(g => `${s === 'Todo' ? `<h3 class="secTit">${esc(g)}</h3>` : ''}${bloque(g, grupos[g])}`).join('');
+  const cbs = s === 'Todo' || s === SEC_COMBO ? combosDe(d.negocio.id) : [];
+  $('#prods').innerHTML = (cbs.length ? `${s === 'Todo' ? `<h3 class="secTit">${SEC_COMBO}</h3>` : ''}<div class="grid2" style="margin-bottom:12px">${cbs.map(tarjetaCombo).join('')}</div>` : '')
+    + Object.keys(grupos).map(g => `${s === 'Todo' ? `<h3 class="secTit">${esc(g)}</h3>` : ''}${bloque(g, grupos[g])}`).join('');
 }
 
 /** Hoja de producto: extras, opciones "sin", indicaciones y cantidad. */
@@ -8443,7 +8502,10 @@ function abrirProducto(pid) {
   // si viene de una promo de una variante, esa opción queda elegida
   let vi = vars.length ? Math.max(0, vars.findIndex(v => v.nombre === S._abrirVar)) : -1;
   S._abrirVar = '';
-  S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(p, d.grupos) };
+  // 2.51: dentro de "Arma tu combo": solo el tamaño incluido o uno más grande (se cobra la diferencia)
+  const cs = S._comboSel; S._comboSel = null;
+  if (cs && vars.length) vi = Math.max(0, vars.findIndex(v => v.nombre === cs.incl));
+  S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(p, d.grupos), combo: cs };
   S._hoja.q = S._hoja.grupos.map(g => g.opciones.map(() => 0));
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
   const promoTxt = promosDe(n.id).filter(x => mecDe(x) && mecDe(x) !== 'primera' && (enPromo(x, p.id, mecDe(x) === 'precio' ? x.productos : null) || (x.regalos || []).some(y => y.productoId === p.id)))
@@ -8451,10 +8513,10 @@ function abrirProducto(pid) {
   modal(`${p.foto ? `<img class="hojaImg" src="${esc(p.foto)}" alt="">` : ''}
     <div class="row between" style="align-items:flex-start"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
-    <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${precioTxt(p, n.id)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
-    ${promoTxt}
-    ${vars.length ? `<div class="grupoT"><b>${S._hoja.grupos.some(g => g.porVariante) ? '¿Cuántas quieres?' : 'Elige una opción'}</b><span class="tag t-pri">Obligatorio</span></div>
-      ${vars.map((v, i) => `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
+    <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${cs ? '🍱 Incluido en el combo' : precioTxt(p, n.id)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
+    ${cs ? '' : promoTxt}
+    ${vars.length ? `<div class="grupoT"><b>${cs ? 'Tamaño' : S._hoja.grupos.some(g => g.porVariante) ? '¿Cuántas quieres?' : 'Elige una opción'}</b><span class="tag t-pri">${cs ? 'Puedes subir de tamaño' : 'Obligatorio'}</span></div>
+      ${vars.map((v, i) => cs && !comboVarOk(vars, cs.incl, v) ? '' : cs ? `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${v.nombre === cs.incl ? 'Incluido' : '+' + money(comboDif(vars, cs.incl, v))}</b></label>` : `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
     ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span id="hGc${gi}" class="${g.obligatorio ? 'tag t-pri' : 'muted small'}"></span></div>
       ${g.repetir ? g.opciones.map((o, oi) => `<div class="opc opcCant"><span>${esc(o.nombre)}${o.precio ? ' <b class="muted small">+' + money(o.precio) + '</b>' : ''}</span>
           <div class="cant chica"><button type="button" aria-label="Quitar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},-1)">${ico('menos', 's')}</button><b id="hQ${gi}_${oi}">0</b><button type="button" aria-label="Agregar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},1)">${ico('mas', 's')}</button></div></div>`).join('')
@@ -8466,8 +8528,8 @@ function abrirProducto(pid) {
     <div class="grupoT"><b>Indicaciones especiales</b><span class="muted small">Opcional</span></div>
     <textarea class="i" id="hNota" maxlength="120" placeholder="Ej. bien dorado, salsa aparte, poco hielo…"></textarea>
     <div class="row between" style="margin-top:16px">
-      <div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
-      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() || S.vista === 'caja' ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() || S.vista === 'caja' ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button></div>`);
+      ${cs ? `<button class="btn pill" onclick="pintarCombo()">← Volver</button><button class="btn pri pill" style="flex:1;margin-left:12px" onclick="agregarHoja()">${S._combo.i < S._combo.pr.espacios.length - 1 ? 'Siguiente →' : 'Agregar combo'} · <span id="hTot"></span></button>` : `<div class="cant"><button onclick="cantHoja(-1)">${ico('menos', 's')}</button><b id="hCant">1</b><button onclick="cantHoja(1)">${ico('mas', 's')}</button></div>
+      <button class="btn pri pill" style="flex:1;margin-left:12px" ${n.abierto || esAdminU() || S.vista === 'caja' ? '' : 'disabled'} onclick="agregarHoja()">${n.abierto || esAdminU() || S.vista === 'caja' ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button>`}</div>`);
   cuantasHoja();
 }
 /** Cuántas opciones lleva marcadas cada grupo de la hoja (las repetibles cuentan cada vez). */
@@ -8510,6 +8572,7 @@ function selHoja() {
   const mods = S._hoja.grupos.map((g, gi) => ({ g: g.id, grupo: g.nombre, o: g.repetir ? g.opciones.flatMap((o, oi) => Array(S._hoja.q[gi][oi]).fill(o))
     : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).map(x => g.opciones[+x.dataset.o]) })).filter(m => m.o.length);
   const extra = extras.reduce((s, e) => s + e.precio, 0) + mods.reduce((s, m) => s + m.o.reduce((a, o) => a + (Number(o.precio) || 0), 0), 0);
+  if (S._hoja.combo) { const dif = variante ? comboDif(p.variantes, S._hoja.combo.incl, variante) : 0; return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: pdvR(dif + extra), dif }; }
   return { extras, sin, nota, mods, variante: variante ? variante.nombre : '', unit: b.precio + extra, antes: b.antes ? b.antes + extra : 0, promo: b.promo, base: b.antes || b.precio };
 }
 /** No deja marcar más opciones de las permitidas en un grupo (desmarca la más antigua). */
@@ -8518,9 +8581,118 @@ function limiteGrupo(el) {
   const g = S._hoja.grupos[+el.dataset.g], c = cuantasPide(g, varHoja()), lim = c.exacto || c.max, marcadas = [...document.querySelectorAll('.hGr[data-g="' + el.dataset.g + '"]')].filter(x => x.checked && x !== el);
   if (marcadas.length >= lim) marcadas.slice(0, marcadas.length - lim + 1).forEach(x => { x.checked = false; });
 }
-function totalHoja() { const t = $('#hTot'); if (t) t.textContent = money(selHoja().unit * S._hoja.cant); }
+function totalHoja() { const t = $('#hTot'); if (!t) return; t.textContent = S._hoja.combo ? money(S._combo.pr.valor + S._combo.partes.slice(0, S._combo.i).reduce((a, x) => a + x.extra, 0) + selHoja().unit) : money(selHoja().unit * S._hoja.cant); }
 function cantHoja(k) { S._hoja.cant = Math.max(1, Math.min(50, S._hoja.cant + k)); $('#hCant').textContent = S._hoja.cant; totalHoja(); }
 
+/** Carrito del negocio (cada negocio tiene el suyo; máximo 4 a la vez). */
+function carritoDe(n) {
+  const nuevo = !S.carritos[n.id];
+  const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
+  c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
+  if (S.vista !== 'caja' && !Object.keys(c.items).length && carritosLista().length >= 4) { if (nuevo) delete S.carritos[n.id]; toast('Puedes pedir a máximo 4 negocios a la vez', 'err'); return null; }
+  return c;
+}
+/* ---------- 2.51 · Combos: "Arma tu combo" (mismas reglas que el servidor: incluidoCombo_) ---------- */
+const SEC_COMBO = '🍱 Combos';
+function combosDe(negId) {
+  const m = S._menu && S._menu.negocio && S._menu.negocio.id === negId ? (S._menu.promos || []) : [], vistos = {};
+  return m.concat(promosDe(negId)).filter(p => p.negocioId === negId && mecDe(p) === 'combo' && (p.espacios || []).length && !vistos[p.id] && (vistos[p.id] = 1));
+}
+/** Con qué tamaño entra un producto en un espacio del combo ('' = no tiene tamaños) o null si no entra. */
+function incluidoCombo(esp, p) {
+  const m = x => String(x || '').toLowerCase().trim(), vars = p.variantes || [];
+  for (const o of (esp && esp.opciones) || []) {
+    if (o.productoId) {
+      if (o.productoId !== p.id) continue;
+      if (!vars.length) return '';
+      if (vars.some(v => v.nombre === o.variante)) return o.variante;
+      continue;
+    }
+    if (!o.seccion) continue;
+    const k = m(o.seccion).split('>').map(x => x.trim());
+    if (k[0] !== m(p.categoria || 'General') || (k.length > 1 && k[1] !== m(p.subcategoria))) continue;
+    if (!vars.length) return '';
+    if (!o.variante) return vars.slice().sort((a, b) => (Number(a.precio) || 0) - (Number(b.precio) || 0))[0].nombre;
+    const v = vars.find(z => m(z.nombre) === m(o.variante));
+    if (v) return v.nombre;
+  }
+  return null;
+}
+const precioVar = (vars, nom) => Number((vars.find(v => v.nombre === nom) || {}).precio) || 0;
+/** Mejora de tamaño: solo el incluido o uno más caro del mismo producto. */
+const comboVarOk = (vars, incl, v) => v.nombre === incl || (Number(v.precio) || 0) > precioVar(vars, incl);
+const comboDif = (vars, incl, v) => Math.max(0, pdvR((Number(v.precio) || 0) - precioVar(vars, incl)));
+/** Precio de un combo armado con el menú de ahora (null si ya no se puede armar). */
+function precioCombo(pr, partes, prods, grupos) {
+  if (!partes || partes.length !== pr.espacios.length) return null;
+  let t = Number(pr.valor) || 0;
+  for (let k = 0; k < partes.length; k++) {
+    const pt = partes[k], p = prods[pt.productoId]; if (!p) return null;
+    const incl = incluidoCombo(pr.espacios[k], p); if (incl === null) return null;
+    const vars = p.variantes || [];
+    if (vars.length) { const v = vars.find(x => x.nombre === pt.variante); if (!v || !comboVarOk(vars, incl, v)) return null; t += comboDif(vars, incl, v); }
+    (pt.extras || []).forEach(e => { const x = (p.extras || []).find(y => y.nombre === e.nombre); t += x ? Number(x.precio) || 0 : 0; });
+    const gs = gruposDe(p, grupos);
+    (pt.mods || []).forEach(md => { const g = gs.find(x => x.id === md.g); (md.o || []).forEach(o => { const y = g && g.opciones.find(z => z.nombre === o.nombre); t += y ? Number(y.precio) || 0 : 0; }); });
+  }
+  return pdvR(t);
+}
+function tarjetaCombo(pr) {
+  return `<div class="pCard" onclick="abrirCombo('${pr.id}')"><span class="tagPromo">🍱 Combo</span>
+    <div class="img">${pr.imagen ? `<img src="${esc(pr.imagen)}" alt="" loading="lazy" decoding="async">` : '🍱'}</div>
+    <div class="info"><b class="clamp2">${esc(pr.titulo)}</b><div class="desc clamp2">${esc(pr.descripcion || pr.espacios.map(e => e.nombre).join(' + '))}</div>
+      <div class="pie"><div><span class="precio">${pr.ahorroCombo ? `<span class="tachado">${money(pr.desde)}</span><span class="precioPromo">${money(pr.valor)}</span>` : money(pr.valor)}</span></div><span class="mas">${ico('mas', 's')}</span></div></div></div>`;
+}
+function abrirCombo(id) {
+  const n = S._menu && S._menu.negocio; if (!n) return;
+  const pr = combosDe(n.id).find(x => x.id === id);
+  if (!pr) { toast('Este combo ya no está disponible', 'err'); return; }
+  if (!n.abierto && !esAdminU() && S.vista !== 'caja') { toast(n.nombre + ' no recibe pedidos ahora', 'err'); return; }
+  S._combo = { pr, i: 0, partes: [] };
+  pintarCombo();
+}
+function pintarCombo() {
+  const k = S._combo; if (!k) return;
+  const pr = k.pr, esp = pr.espacios[k.i], l = S._menu.productos.filter(p => incluidoCombo(esp, p) !== null);
+  const tot = pr.valor + k.partes.slice(0, k.i).reduce((a, x) => a + x.extra, 0);
+  modal(`<div class="row between" style="align-items:flex-start">${k.i ? `<button class="redondo" onclick="S._combo.i--;pintarCombo()" aria-label="Atrás">${ico('atras')}</button>` : ''}<div class="grow" style="margin:0 8px"><h2 style="margin:0">🍱 ${esc(pr.titulo)}</h2><div class="muted small">Paso ${k.i + 1} de ${pr.espacios.length} · combo ${money(pr.valor)}${tot > pr.valor ? ' · llevas ' + money(tot) : ''}</div></div><button class="redondo" onclick="S._combo=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${k.partes.slice(0, k.i).map((x, j) => `<div class="small" style="margin-top:4px">✓ ${esc(pr.espacios[j].nombre)}: <b>${esc(x.nombre)}${x.variante ? ' ' + esc(x.variante) : ''}</b>${x.extra ? ' +' + money(x.extra) : ''}</div>`).join('')}
+    <h3 style="margin:12px 0 4px">${k.i + 1} · ${esc(esp.nombre)}</h3>
+    <div class="muted small" style="margin-bottom:8px">Puedes agregar extras o subir de tamaño (se cobra la diferencia).</div>
+    ${l.length ? l.map(p => { const inc = incluidoCombo(esp, p); return `<div class="card row comboOp" style="cursor:pointer;gap:10px;margin:6px 0;padding:10px" onclick="comboElegir('${p.id}')">${p.foto ? `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">` : '<span class="fotoP" style="display:grid;place-items:center">🍽️</span>'}<div class="grow"><b>${esc(p.nombre)}</b>${inc ? `<div class="muted small">${esc(inc)}</div>` : ''}</div><span class="lnk">Elegir ›</span></div>`; }).join('')
+      : '<div class="vacio">Por ahora no hay productos disponibles para este paso.</div>'}`);
+}
+function comboElegir(pid) {
+  const k = S._combo, p = S._menu.productos.find(x => x.id === pid); if (!k || !p) return;
+  S._comboSel = { incl: incluidoCombo(k.pr.espacios[k.i], p) };
+  abrirProducto(pid);
+  totalHoja();
+}
+/** Guarda lo elegido en este paso; en el último, el combo entra al carrito (o a la cuenta de la caja) como una sola línea. */
+function comboParte(s) {
+  const k = S._combo, p = S._hoja.p, n = S._menu.negocio;
+  k.partes[k.i] = { productoId: p.id, nombre: p.nombre, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, mods: s.mods, extra: s.unit, mejora: s.dif || 0 };
+  k.partes = k.partes.slice(0, k.i + 1);
+  if (k.i < k.pr.espacios.length - 1) { k.i++; pintarCombo(); return; }
+  const c = carritoDe(n); if (!c) return;
+  const pr = k.pr, precio = pdvR(pr.valor + k.partes.reduce((a, x) => a + x.extra, 0));
+  const partes = k.partes.map(x => { const y = Object.assign({}, x); delete y.extra; if (!y.mejora) delete y.mejora; return y; });
+  const key = 'combo|' + pr.id + '|' + JSON.stringify(partes.map(x => [x.productoId, x.variante, (x.extras || []).map(e => e.nombre).sort(), (x.sin || []).slice().sort(), x.nota, (x.mods || []).map(m => [m.g, m.o.map(o => o.nombre).sort()])]));
+  const it = c.items[key] || { key, id: 'combo:' + pr.id, combo: pr.id, nombre: '🍱 ' + pr.titulo, foto: pr.imagen || '', precio, variante: '', extras: [], sin: [], nota: '', mods: [], partes, cant: 0 };
+  it.precio = precio; it.cant = Math.min(50, it.cant + 1);
+  c.items[key] = it;
+  guardarCarritos(); S._combo = null; cerrarModal();
+  toast('Agregado: ' + it.nombre + ' ✓');
+  if (S.vista === 'caja') { pdvTrasAgregar(it, 1); return; }
+  pintarProductos();
+  if ($('#barraC')) $('#barraC').innerHTML = barraCarrito(n.id);
+}
+/** Lo que se manda al servidor de cada línea del carrito (un combo va con sus partes). */
+function itemPedido(x) {
+  const mods = l => (l || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) }));
+  if (x.combo) return { combo: x.combo, cant: x.cant, partes: x.partes.map(pt => ({ productoId: pt.productoId, variante: pt.variante || '', extras: (pt.extras || []).map(z => z.nombre), sin: pt.sin || [], nota: pt.nota || '', mods: mods(pt.mods) })) };
+  return { productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: mods(x.mods) };
+}
 function agregarHoja() {
   const n = S._menu.negocio, p = S._hoja.p, s = selHoja();
   if (p.variantes.length && S._hoja.v < 0) { toast('Elige una opción de ' + p.nombre, 'err'); return; }
@@ -8530,10 +8702,8 @@ function agregarHoja() {
     toast(c.exacto > 1 ? 'En ' + falta.nombre.toLowerCase() + ' elige ' + c.exacto + (n ? ' (llevas ' + n + ')' : '') : 'Elige ' + falta.nombre.toLowerCase(), 'err');
     const el = $('#hGc' + gi); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
   }
-  // cada negocio tiene su propio carrito: agregar de otro negocio ya no vacía el anterior
-  const c = S.carritos[n.id] = S.carritos[n.id] || { negocioId: n.id, negocio: n.nombre, logo: n.logo || '', lat: n.lat, lng: n.lng, items: {}, t: Date.now() };
-  c.negocio = n.nombre; c.logo = n.logo || ''; c.lat = n.lat; c.lng = n.lng;
-  if (S.vista !== 'caja' && !Object.keys(c.items).length && carritosLista().length >= 4) { toast('Puedes pedir a máximo 4 negocios a la vez', 'err'); return; }
+  if (S._hoja.combo) { comboParte(s); return; }
+  const c = carritoDe(n); if (!c) return;
   // misma combinación de extras/sin/nota = misma línea del carrito
   const key = [p.id, s.variante, s.extras.map(e => e.nombre).sort().join('+'), s.sin.slice().sort().join('+'), s.nota, s.mods.map(m => m.g + ':' + m.o.map(o => o.nombre).sort().join('+')).join(',')].join('|');
   const it = c.items[key] || { key, id: p.id, nombre: p.nombre, foto: p.foto, precio: s.unit, variante: s.variante, extras: s.extras, sin: s.sin, nota: s.nota, mods: s.mods, cant: 0 };
@@ -8850,7 +9020,7 @@ async function confirmarPedido() {
       practicaRep: muestra && $('#pPracRep') ? $('#pPracRep').value : '', sinNegocio: muestra && $('#pSinNeg') && $('#pSinNeg').checked ? 1 : '',
       pedidos: cs.map(c => ({
         negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
-        items: Object.values(c.items).map(x => ({ productoId: x.id, cant: x.cant, variante: x.variante || '', extras: x.extras.map(z => z.nombre), sin: x.sin, nota: x.nota, mods: (x.mods || []).map(m => ({ g: m.g, o: m.o.map(o => o.nombre) })) }))
+        items: Object.values(c.items).map(itemPedido)
       }))
     });
   } catch (err) {
@@ -10114,7 +10284,7 @@ function formPromo(id) {
     <div id="prMecBox">
       <label class="f">¿Qué tipo de promoción?</label>
       <select class="i" id="prMec" onchange="S._promoMec=this.value;actualizarMec()">
-        ${[['precio', '💲 Precio especial por producto'], ['nxm', '🍔🍔 2x1, 3x2…'], ['pct', '％ Porcentaje de descuento'], ['monto', '➖ Pesos de descuento por pieza'], ['regalo', '🎁 Producto de regalo'], ['primera', '🎉 Descuento en la primera compra']]
+        ${[['precio', '💲 Precio especial por producto'], ['nxm', '🍔🍔 2x1, 3x2…'], ['pct', '％ Porcentaje de descuento'], ['monto', '➖ Pesos de descuento por pieza'], ['regalo', '🎁 Producto de regalo'], ['primera', '🎉 Descuento en la primera compra'], ['combo', '🍱 Combo (el cliente arma su combo)']]
           .map(o => `<option value="${o[0]}" ${S._promoMec === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>
       <div class="row" id="prNxm" style="margin-top:8px"><div class="grow"><label class="f">Promoción</label><select class="i" id="prLP">${[[2, 1], [3, 2], [3, 1], [4, 3]].map(o => `<option value="${o[0]}-${o[1]}" ${(p.lleva || 2) === o[0] && (p.paga || 1) === o[1] ? 'selected' : ''}>${o[0]}x${o[1]} (llevas ${o[0]}, pagas ${o[1]})</option>`).join('')}</select></div></div>
       <div class="row" id="prVal" style="margin-top:8px"><div class="grow"><label class="f" id="prValT">Descuento</label><input class="i" id="prValor" type="number" inputmode="decimal" value="${p.valor || ''}" oninput="prevPromo()"></div>
@@ -10131,6 +10301,10 @@ function formPromo(id) {
       <div class="muted small" style="margin:-2px 0 6px">Si pones varios, el cliente elige uno. Va gratis el producto (y su opción); los extras se cobran.</div>
       <div id="prRegs"></div>
       <button class="btn sm" onclick="filaProdPromo(null,true)">${ico('mas', 's')} Agregar regalo</button></div>
+    <div id="prComboB"><label class="f">Precio del combo ($)</label><input class="i" id="prCbPre" type="number" inputmode="decimal" value="${p.mecanica === 'combo' ? p.valor || '' : ''}" placeholder="Ej. 119" oninput="prevPromo()">
+      <label class="f">Pasos del combo</label>
+      <div class="muted small" style="margin:-2px 0 6px">Cada paso es lo que el cliente elige (ej. 1 · Tu baguette, 2 · Tu bebida). Agrega productos con su tamaño o una sección completa con un tamaño. El cliente solo puede agregar extras o subir de tamaño, pagando la diferencia.</div>
+      <div id="prEsps"></div><button class="btn sm" onclick="filaEspacio()">${ico('mas', 's')} Agregar paso</button></div>
     <div class="row"><div class="grow"><label class="f">Desde</label><input class="i" id="prIni" type="date" value="${esc(p.inicioDia)}"></div>
       <div class="grow"><label class="f">Hasta</label><input class="i" id="prFin" type="date" value="${esc(p.finDia)}"></div></div>
     <label class="f">Días</label>
@@ -10144,6 +10318,7 @@ function formPromo(id) {
   if (!(p.productos || []).length) filaProdPromo();
   (p.regalos || []).forEach(x => filaProdPromo(x, true));
   if (!(p.regalos || []).length) filaProdPromo(null, true);
+  ((p.espacios || []).length ? p.espacios : [{ nombre: '', opciones: [] }, { nombre: '', opciones: [] }]).forEach(e => filaEspacio(e));
   actualizarMec();
 }
 /** Muestra los campos de la mecánica elegida. */
@@ -10153,8 +10328,9 @@ function actualizarMec() {
   vis('prNxm', !an && m === 'nxm'); vis('prVal', !an && ['pct', 'monto', 'primera'].includes(m)); vis('prTopeB', m === 'primera'); vis('prReg', !an && m === 'regalo');
   vis('prTodoB', !an && ['pct', 'monto', 'nxm'].includes(m));
   const todo = !an && ['pct', 'monto', 'nxm'].includes(m) && $('#prTodo').checked;
-  vis('prProdsB', an || (m !== 'primera' && !todo)); vis('prRegsB', !an && m === 'regalo');
-  vis('prProdsT', an || (m !== 'primera' && !todo)); vis('prProdsN', an || (m !== 'primera' && !todo));
+  const sinProds = m === 'primera' || m === 'combo';
+  vis('prProdsB', an || (!sinProds && !todo)); vis('prRegsB', !an && m === 'regalo'); vis('prComboB', !an && m === 'combo');
+  vis('prProdsT', an || (!sinProds && !todo)); vis('prProdsN', an || (!sinProds && !todo));
   if ($('#prValT')) $('#prValT').textContent = m === 'monto' ? 'Pesos menos por pieza ($)' : 'Descuento (%)';
   const ayuda = {
     precio: 'Pon el precio especial de cada producto. Los que dejes sin precio solo se destacan.',
@@ -10162,7 +10338,8 @@ function actualizarMec() {
     pct: 'Se descuenta ese % del precio de cada pieza (los extras se cobran completos).',
     monto: 'Se descuentan esos pesos a cada pieza de los productos elegidos. Ej. $21 menos en cualquier hamburguesa.',
     regalo: 'Elige los productos que hay que comprar y abajo el regalo. En su carrito, al cliente le aparece "Agrega tu regalo".',
-    primera: 'Para clientes que nunca te han comprado en Pídele. Se descuenta del total de productos (después de otras promos).'
+    primera: 'Para clientes que nunca te han comprado en Pídele. Se descuenta del total de productos (después de otras promos).',
+    combo: 'El cliente toca el combo y lo arma paso a paso con lo que tú permites, a un precio fijo. Aparece en el banner y en la sección 🍱 Combos de tu menú y de tu caja.'
   }[m] || '';
   if ($('#prMecAyuda')) $('#prMecAyuda').textContent = ayuda;
   if ($('#prProdsT')) $('#prProdsT').textContent = an ? 'Productos que quieres dar a conocer (opcional)' : m === 'regalo' ? 'Productos que hay que comprar' : 'Productos en promoción';
@@ -10218,6 +10395,57 @@ function productosForm(reg) {
   }).filter(Boolean);
 }
 
+/* ---- 2.51 · pasos del combo en el formulario ---- */
+function filaEspacio(e) {
+  e = e || { nombre: '', opciones: [] };
+  const box = $('#prEsps'); if (!box) return;
+  if (box.children.length >= 6) { toast('Un combo lleva máximo 6 pasos', 'err'); return; }
+  const d = document.createElement('div');
+  d.className = 'card esRow'; d.style.cssText = 'box-shadow:none;border:1.5px solid var(--ln);padding:10px;margin-bottom:8px';
+  d.innerHTML = `<div class="row" style="gap:6px"><input class="i esN" maxlength="40" placeholder="Ej. Elige tu bebida"><button class="btn sm err" onclick="this.closest('.esRow').remove()" aria-label="Quitar paso">✕</button></div>
+    <div class="esOps"></div>
+    <div class="row wrap" style="gap:6px;margin-top:6px"><button class="btn sm" onclick="filaOpcCombo(this.closest('.esRow'),{productoId:''})">${ico('mas', 's')} Producto</button><button class="btn sm" onclick="filaOpcCombo(this.closest('.esRow'),{seccion:''})">${ico('mas', 's')} Sección completa</button></div>`;
+  box.appendChild(d);
+  d.querySelector('.esN').value = e.nombre || '';
+  ((e.opciones || []).length ? e.opciones : [{ productoId: '' }]).forEach(o => filaOpcCombo(d, o));
+}
+function seccionesProd() {
+  const l = (S._prods || []).filter(p => p.disponible !== 'eliminado'), out = [];
+  [...new Set(l.map(p => p.categoria || 'General'))].forEach(c => { out.push(c); [...new Set(l.filter(p => (p.categoria || 'General') === c).map(p => p.subcategoria).filter(Boolean))].forEach(sb => out.push(c + ' > ' + sb)); });
+  return out;
+}
+function filaOpcCombo(row, o) {
+  const d = document.createElement('div'), esSec = o.seccion !== undefined;
+  d.className = 'row ocRow'; d.style.cssText = 'gap:6px;margin-top:6px'; d.dataset.t = esSec ? 's' : 'p';
+  const prods = (S._prods || []).filter(p => p.disponible !== 'eliminado');
+  d.innerHTML = (esSec ? `<select class="i ocS" style="flex:2" onchange="ocVars(this)">${seccionesProd().map(c => `<option ${c === o.seccion ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`
+    : `<select class="i ocP" style="flex:2" onchange="ocVars(this)"><option value="">Elige un producto…</option>${prods.map(p => `<option value="${p.id}" ${p.id === o.productoId ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select>`)
+    + `<select class="i ocV" style="flex:1"></select><button class="btn sm err" onclick="this.closest('.ocRow').remove()" aria-label="Quitar">✕</button>`;
+  row.querySelector('.esOps').appendChild(d);
+  ocVars(d.firstElementChild, o.variante);
+}
+/** Tamaños que se pueden elegir: los del producto, o los de la sección (o "el más barato"). */
+function ocVars(sel, eleg) {
+  const d = sel.closest('.ocRow'), v = d.querySelector('.ocV'), l = S._prods || [];
+  if (d.dataset.t === 'p') {
+    const p = l.find(x => x.id === sel.value), nom = p ? (p.variantes || []).map(x => x.nombre) : [];
+    v.innerHTML = nom.length ? nom.map(n => `<option ${n === eleg ? 'selected' : ''}>${esc(n)}</option>`).join('') : '<option value="">Sin tamaños</option>';
+    v.disabled = !nom.length;
+  } else {
+    const k = sel.value.toLowerCase().split('>').map(x => x.trim());
+    const ps = l.filter(p => (p.categoria || 'General').toLowerCase() === k[0] && (k.length < 2 || (p.subcategoria || '').toLowerCase() === k[1]));
+    const nom = [...new Set(ps.flatMap(p => (p.variantes || []).map(x => x.nombre)))];
+    v.innerHTML = '<option value="">Tamaño más barato</option>' + nom.map(n => `<option ${n === eleg ? 'selected' : ''}>${esc(n)}</option>`).join('');
+    v.disabled = false;
+  }
+}
+function espaciosForm() {
+  return [...document.querySelectorAll('#prEsps .esRow')].map((r, i) => ({
+    nombre: r.querySelector('.esN').value.trim() || 'Paso ' + (i + 1),
+    opciones: [...r.querySelectorAll('.ocRow')].map(o => o.dataset.t === 'p' ? (o.querySelector('.ocP').value ? { productoId: o.querySelector('.ocP').value, variante: o.querySelector('.ocV').value } : null)
+      : { seccion: o.querySelector('.ocS').value, variante: o.querySelector('.ocV').value }).filter(Boolean)
+  }));
+}
 function tipoBanner(el) {
   S._promoTipo = el.dataset.t;
   document.querySelectorAll('.tipoB').forEach(o => o.classList.toggle('on', o === el));
@@ -10246,7 +10474,7 @@ function prevPromo() {
 function mecForm() {
   const m = S._promoTipo === 'anuncio' ? 'precio' : S._promoMec, v = id => ($('#' + id) || {}).value || '';
   const [lleva, paga] = m === 'nxm' ? v('prLP').split('-').map(Number) : [m === 'regalo' ? Number(v('prLleva')) || 1 : 0, 0];
-  const o = { mecanica: m, valor: Number(v('prValor')) || 0, lleva, paga, tope: m === 'primera' ? Number(v('prTope')) || 0 : 0, todo: ['pct', 'monto', 'nxm'].includes(m) && !!($('#prTodo') || {}).checked };
+  const o = { mecanica: m, valor: Number(v(m === 'combo' ? 'prCbPre' : 'prValor')) || 0, lleva, paga, tope: m === 'primera' ? Number(v('prTope')) || 0 : 0, todo: ['pct', 'monto', 'nxm'].includes(m) && !!($('#prTodo') || {}).checked };
   o.etiqueta = m === 'precio' ? '' : etiquetaPromo(o);
   return o;
 }
@@ -10257,7 +10485,8 @@ async function guardarPromoForm() {
   const l = await api('guardarPromo', {
     id: S._promoEdit.id || undefined, tipo: S._promoTipo, titulo: $('#prTit').value, descripcion: $('#prDes').value,
     ...(({ mecanica, valor, lleva, paga, tope }) => ({ mecanica, valor, lleva, paga, tope }))(mecForm()),
-    productos: mecForm().todo ? [{ productoId: '*' }] : S._promoMec === 'primera' && S._promoTipo !== 'anuncio' ? [] : productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
+    espacios: S._promoMec === 'combo' && S._promoTipo !== 'anuncio' ? espaciosForm() : undefined,
+    productos: mecForm().todo ? [{ productoId: '*' }] : ['primera', 'combo'].includes(S._promoMec) && S._promoTipo !== 'anuncio' ? [] : productosForm().map(x => ({ productoId: x.productoId, variante: x.variante, precioPromo: x.precioPromo })),
     regalos: S._promoMec === 'regalo' ? productosForm(true).map(x => ({ productoId: x.productoId, variante: x.variante })) : [],
     inicio: $('#prIni').value, fin: $('#prFin').value, dias, horaIni: conHora ? $('#prHI').value : '', horaFin: conHora ? $('#prHF').value : '',
     imagen: S._promoImg || undefined, quitarImagen: S._promoQuitar || undefined
@@ -11129,7 +11358,7 @@ function tarjetaConcursoAdmin(k) {
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
-  html(`${bannerPush()}<div class="row between"><h2>Resumen</h2>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div>
+  html(`${bannerPush()}<div class="row between"><h2>Resumen</h2><div class="row" style="gap:6px"><button class="btn sm" onclick="repetirTour()">🧭 Guía</button>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div></div>
     ${esAdminCiudad() ? `<div class="aviso info">🏙️ Eres <b>administrador de ${esc(d.pueblo || PUEBLO.nombre)}</b>: das de alta negocios (con ✉️ Invitar), fijas las tarifas de envío y das soporte en tu zona. Atiende cada solicitud antes de 24 horas. Tu tablero y comisiones están en “Mi ciudad”.</div>
       <div class="card" style="cursor:pointer" onclick="act(null,formInvitar)"><b>✉️ Invitar negocio o repartidor</b><div class="muted small">Los negocios que invites quedan a tu nombre: ganas 50% de su primer mes y 20% de cada mensualidad.</div></div>`
     : d.local ? `<div class="aviso info">🎧 Eres <b>soporte de Pídele</b> en ${esc(d.pueblo || PUEBLO.nombre)}: apruebas negocios y repartidores, atiendes pedidos, registras pagos en efectivo, ajustas las tarifas de envío y atiendes las solicitudes de ciudades nuevas.</div>` : ''}
@@ -11750,6 +11979,78 @@ function cerrarTour() {
 /** Perfil → "Ver guía otra vez". */
 function repetirTour() { iniciarTour(tourKey(), true); }
 const navBtn = n => '#nav button:nth-child(' + n + ')';
+/** Botón de la barra de abajo que lleva a una vista (si la persona la tiene). */
+const navDe = v => '#nav button[onclick="ir(\'' + v + '\')"]';
+const conCajaPlan = () => planTiene('caja'), conFidPlan = () => planTiene('fidelidad'), conFacPlan = () => planTiene('factura');
+/* ---- 2.50.1 · guías por tipo de cuenta ---- */
+function tourDueno() {
+  return [
+    { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos en unos pasos cómo dejar listo tu negocio y todo lo que trae tu plan. Puedes verla otra vez en Perfil → Ver guía de uso.' },
+    { sel: navDe('miNegocio'), titulo: '1 · Completa tu negocio', texto: 'En <b>Negocio</b>: ubicación en el mapa, horario (abre y cierra solo), logo, portada y formas de pago. Sin ubicación no apareces en la app.' },
+    { sel: navDe('menu'), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> agrega productos uno por uno, o todos con Excel en <b>✏️ Modificar</b>. Ahí mismo creas las <b>opciones de sección</b> (ej. tipo de leche en todas las bebidas): se aplican a todos los productos de esa sección.' },
+    { sel: navDe('promos'), titulo: '3 · Promociones y anuncios', texto: 'En <b>Banners</b> creas un 2x1, un descuento o un anuncio para salir en el inicio de la app. Tu plan trae un número de anuncios por día; puedes comprar extras.' },
+    { sel: navDe('negPedidos'), titulo: '4 · Pedidos de la app', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>. También capturas <b>📞 pedidos por teléfono</b>.' },
+    { sel: navDe('vender'), si: conCajaPlan, titulo: '🧾 5 · Tu caja (punto de venta)', texto: 'Con <b>Nuevo pedido</b> vendes en mostrador, en mesas o para llevar. La caja se abre y se cierra <b>paso a paso</b>: con cuánto abres, quién eres y tu código. Al cerrar: cuánto dejas, cuánto retiras y quién se lleva el retiro (con su código).' },
+    { si: conCajaPlan, titulo: '🍽️ Mesas, cocina y cuentas', texto: 'En <b>Mesas y pedidos</b> ves las cuentas abiertas. Lo nuevo se manda a cocina por rondas. Con <b>👥 Dividir cuenta</b> separas la cuenta por persona (producto por producto, o ➗ compartido), cada una con su preventa, su cliente y su cobro. Cada cobro puede pagarse en partes con varios métodos.' },
+    { si: conCajaPlan, titulo: '🔑 Tu código personal', texto: 'Para abrir y cerrar caja, autorizar cancelaciones y retiros, cada persona usa su código. Créalo en la caja → <b>🔑 Mi código</b>. Si tienes varias cajas (terraza, barra…), se configuran en ⚙️ de la caja.' },
+    { ir: 'perfil', titulo: '👥 Tu equipo', texto: 'En Perfil → <b>Mis negocios y equipo</b> invitas a tus colaboradores y eliges sus funciones: pedidos, cocina, cajero, mesero, gerente, mercadotecnia (fotos y banners)… Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
+    { si: conCajaPlan, titulo: '🕒 Asistencia, metas y reportes', texto: 'En la caja: asistencia y nómina de tu equipo, metas e incentivos del turno, y reportes de ventas por caja, día, semana, mes y año. Solo tú ves la nómina.' },
+    { si: conFidPlan, titulo: '👛 Programa de fidelidad', texto: 'En la caja → <b>👛 Monedero</b>: tus clientes acumulan cashback, recargas con bono y premios por visitas. El monedero paga el ticket <b>completo</b>; si solo quieren usarlo en parte, se divide la cuenta.' },
+    { si: conFacPlan, ir: 'perfil', titulo: '🧾 Facturación', texto: 'En Perfil → <b>Facturación</b>: tus datos fiscales y tus <b>sellos digitales (CSD)</b> del SAT (no la e.firma). Tu plan trae 50 facturas al mes y puedes comprar paquetes extra.' },
+    { ir: 'perfil', titulo: '💳 Tu suscripción', texto: () => pruebaTxt() + ' En Perfil también puedes <b>Pedir comida</b> a otros negocios.' }
+  ];
+}
+/** Guía del colaborador: solo lo que su dueño le permite hacer. */
+function tourColaborador() {
+  const n = S.negocio || {}, p = n.permisos || [], t = k => p.includes(k);
+  const funciones = p.map(k => PERM_TXT[k]).filter(Boolean);
+  const caja = (t('caja') || t('mesero') || t('gerente')) && pdvTieneAcceso();
+  return [
+    { titulo: '👋 ¡Bienvenido al equipo de ' + esc(n.nombre || 'tu negocio') + '!', texto: funciones.length ? 'Tus funciones: <b>' + esc(funciones.join(', ')) + '</b>. Te mostramos dónde está cada cosa.' : 'Aún no tienes funciones asignadas. Pídele al dueño que te las asigne.' },
+    { si: () => t('pedidos'), sel: navDe('negPedidos'), titulo: '🛎️ Pedidos', texto: 'Aquí llegan los pedidos de la app con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>; luego avisas cuando esté listo.' },
+    { si: () => t('abrir'), sel: navDe('negPedidos'), titulo: '🟢 Abrir y pausar', texto: 'Con el interruptor de arriba en Pedidos pausas el negocio si se llenó la cocina, y lo vuelves a abrir.' },
+    { si: () => t('menu') || t('agotados'), sel: navDe('menu'), titulo: t('menu') ? '🍔 El menú' : '🚫 Productos agotados', texto: t('menu') ? 'En <b>Menú</b> agregas y cambias productos, precios, fotos y opciones.' : 'En <b>Menú</b> apaga con el interruptor lo que se acabó y vuelve a encenderlo cuando lo tengas.' },
+    { si: () => t('mercadotecnia'), sel: navDe('menu'), titulo: '📣 Fotos del menú', texto: 'En <b>Menú</b> toca la foto de un producto para subirla o cambiarla.' },
+    { si: () => t('mercadotecnia'), sel: navDe('miNegocio'), titulo: '🖼️ Logo y portada', texto: 'En <b>Negocio</b> cambias el logo y la portada, y compartes el enlace y el QR del negocio.' },
+    { si: () => t('promos') || t('mercadotecnia'), sel: navDe('promos'), titulo: '🏷️ Banners', texto: 'En <b>Banners</b> creas promociones (2x1, descuentos, regalos) y anuncios para el inicio de la app, con los que incluye el plan.' },
+    { si: () => t('ajustes'), sel: navDe('miNegocio'), titulo: '⚙️ Datos del negocio', texto: 'En <b>Negocio</b> cambias horario, ubicación, formas de pago y datos.' },
+    { si: () => caja, sel: navDe('vender'), titulo: '🧾 La caja', texto: 'Con <b>Nuevo pedido</b> vendes en mostrador, mesas o para llevar. Primero crea tu <b>🔑 código personal</b> en la caja: lo usas para identificarte.' },
+    { si: () => caja && (t('caja') || t('gerente')), titulo: '🗄️ Abrir y cerrar caja', texto: 'Al abrir: con cuánto abres, quién eres y tu código. Al cerrar: cuánto dejas en caja chica, cuánto retiras, quién hace el retiro (con su código) y quién cierra.' },
+    { si: () => caja && (t('mesero') || t('caja')), titulo: '🍽️ Mesas y cuentas', texto: 'Lo nuevo se manda a cocina por rondas. Con <b>👥 Dividir cuenta</b> separas la cuenta por persona; cada una con su preventa y su cobro, que puede pagarse en partes.' },
+    { si: () => caja && t('gerente'), titulo: '👔 Gerente', texto: 'Con tu código autorizas cancelaciones, agregar cliente a un ticket ya cerrado y retiros de caja.' },
+    { si: () => t('ventas'), titulo: '📈 Ventas', texto: 'Puedes ver las ventas y los totales del negocio.' },
+    { ir: 'perfil', titulo: '⚙️ Tu perfil', texto: 'Tus datos, los negocios donde colaboras y esta guía, por si la quieres ver otra vez.' }
+  ];
+}
+function tourAdminCiudad() {
+  return [
+    { titulo: '🏙️ Administrador de ' + esc(PUEBLO.nombre), texto: 'Das de alta negocios, fijas las tarifas de envío y das soporte en tu zona. Ganas <b>50%</b> del primer mes y <b>20%</b> de cada mensualidad de los negocios que tú das de alta.' },
+    { ir: 'admin', sel: '#vista .card[onclick*="formInvitar"]', titulo: '✉️ Invita negocios', texto: 'Solo cuentan los negocios que entran con <b>tu invitación</b>. Envíasela por WhatsApp desde aquí.' },
+    { sel: navDe('adminUsuarios'), titulo: '✅ Aprueba solicitudes', texto: 'En <b>Usuarios</b> apruebas negocios y repartidores y verificas teléfonos. Cada solicitud sin atender en <b>24 horas</b> es una amonestación; con 3 en un mes se te da de baja.' },
+    { sel: navDe('adminPedidos'), titulo: '🧾 Pedidos', texto: 'Ves los pedidos de la ciudad para ayudar a negocios, repartidores y clientes.' },
+    { sel: navDe('adminCobros'), titulo: '💵 Cobros', texto: 'Registras pagos en efectivo de mensualidades. Ese efectivo se descuenta de tu comisión del mes.' },
+    { sel: navDe('adminComisiones'), titulo: '📊 Mi ciudad', texto: 'Tu tablero: solicitudes por atender con las horas que quedan, tus negocios, comisiones por mes, amonestaciones y las <b>tarifas de envío</b> de tu zona.' }
+  ];
+}
+function tourSoporte() {
+  return [
+    { titulo: '🎧 Soporte de Pídele', texto: 'Atiendes las solicitudes de ' + esc(PUEBLO.nombre) + ': altas, verificaciones, pedidos y pagos.' },
+    { sel: navDe('adminUsuarios'), titulo: '✅ Usuarios', texto: 'Aprueba negocios y repartidores y verifica teléfonos.' },
+    { sel: navDe('adminPedidos'), titulo: '🧾 Pedidos', texto: 'Ayuda con pedidos en curso.' },
+    { sel: navDe('adminCobros'), titulo: '💵 Cobros', texto: 'Registra pagos en efectivo de mensualidades.' },
+    { sel: navDe('adminComisiones'), titulo: '🛵 Tarifas', texto: 'Las tarifas de envío de la ciudad.' },
+    { sel: navDe('ciudades'), titulo: '🗺️ Ciudades', texto: 'Solicitudes para abrir Pídele en nuevas ciudades (mínimo 2 negocios y 4 repartidores).' }
+  ];
+}
+function tourAdminGeneral() {
+  return [
+    { titulo: '🛠️ Administrador general', texto: 'Un recorrido rápido por el panel de ' + esc(PUEBLO.nombre) + '. Cada ciudad tiene su propio servidor y su propio panel.' },
+    { sel: navDe('adminUsuarios'), titulo: '👥 Usuarios', texto: 'Apruebas altas, cambias planes, donas meses o facturas y verificas teléfonos.' },
+    { sel: navDe('adminPedidos'), titulo: '🧾 Pedidos', texto: 'Todos los pedidos de la ciudad.' },
+    { sel: navDe('adminCobros'), titulo: '💵 Cobros', texto: 'Pagos de mensualidades, efectivo y Google Play.' },
+    { sel: navDe('adminConfig'), titulo: '⚙️ Ajustes', texto: 'Precios de los planes, tarifas, avisos y en <b>Administrador de ciudad y soporte</b>: nombrar al administrador de la ciudad, pagar sus comisiones, quitar amonestaciones y nombrar la cuenta de soporte.' }
+  ];
+}
 const pruebaTxt = () => {
   const u = S.user || {}, sus = u.rol === 'repartidor' ? u.suscripcion : (S.negocio || {}).suscripcion;
   return textoPrueba(sus && sus.vence, true, u.rol === 'repartidor') || (sus && sus.vence ? 'Tu servicio está activo hasta el <b>' + fechaLarga(sus.vence) + '</b>. Aquí ves tus pagos y cómo renovar.' : 'Aquí ves tu fecha de pago y cómo pagar tu mensualidad.');
@@ -11770,14 +12071,9 @@ const TOURS = {
     { ir: 'inicio', sel: navBtn(3), titulo: '🧾 Sigue tu pedido', texto: 'En <b>Pedidos</b> ves si el negocio ya lo aceptó y por dónde va el repartidor en el mapa.' },
     { ir: 'inicio', sel: navBtn(4), titulo: '⚙️ Tu perfil', texto: 'Tu dirección, tu teléfono y esta guía, por si la quieres ver otra vez.' }
   ],
-  negocio: () => [
-    { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos cómo dejar listo tu negocio para recibir pedidos.' },
-    { sel: navBtn(4), titulo: '1 · Completa tu negocio', texto: 'En <b>Negocio</b>: ubicación en el mapa, horario, logo, portada y formas de pago.' },
-    { sel: navBtn(2), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> agrega tus productos uno por uno, o todos de una vez con Excel en <b>✏️ Modificar</b>.' },
-    { sel: navBtn(3), titulo: '3 · Crea una promoción', texto: 'En <b>Banners</b>: un 2x1, un descuento o un regalo para salir en el inicio de la app.' },
-    { sel: navBtn(1), titulo: '4 · Recibe pedidos', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>.' },
-    { sel: navBtn(5), titulo: '💳 Tu suscripción', texto: () => pruebaTxt() + ' En Perfil también puedes <b>Pedir comida</b> a otros negocios.' }
-  ],
+  // 2.50.1: guía del dueño (según lo que trae su plan) o del colaborador (según sus funciones)
+  negocio: () => esDueno() ? tourDueno() : tourColaborador(),
+  admin: () => esAdminCiudad() ? tourAdminCiudad() : esLocal() ? tourSoporte() : tourAdminGeneral(),
   repartidor: () => [
     { titulo: '🛵 ¡Bienvenido a Pídele!', texto: 'Te mostramos cómo empezar a repartir.' },
     { ir: 'perfil', sel: '#tarjVerif', titulo: '✅ Verifica tu número', texto: 'Toca aquí y envía el mensaje por WhatsApp.', si: () => S.user && !S.user.telVerificado },
