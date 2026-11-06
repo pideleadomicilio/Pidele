@@ -885,7 +885,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.46.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.46.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -3265,7 +3265,50 @@ function pdvDetalleVenta(id) {
     <div class="btns"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
       ${S.negocio && S.negocio.factura && v.estado !== 'cancelada' && !v.factura && pdvPuede('dcg') ? `<button class="btn pill" onclick="act(this,()=>facDesdeVenta('${v.id}'))">🧾 Facturar</button>` : ''}
       ${pdvEsTelefono() ? `<a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>` : ''}
+      ${pdvPuedeAgregarCliente(v) ? `<button class="btn pill" onclick="act(this,()=>pdvAgregarCliente('${v.id}'))">👛 Agregar cliente</button>` : ''}
       ${v.estado !== 'cancelada' ? `<button class="btn err pill" onclick="act(this,()=>pdvCancelarVenta('${v.id}'))">Cancelar venta</button>` : ''}</div>`);
+}
+/**
+ * 2.46.1 · Agregar al cliente después de cobrar (para su monedero): solo el día de la venta, dentro del turno en que se hizo,
+ * si no tenía cliente, y con el código de un gerente. Gana el cashback y la visita como si lo hubieran dado al cobrar.
+ */
+function pdvPuedeAgregarCliente(v) {
+  return !!(v && monActivo() && v.estado === 'pagada' && PDV.caja && v.cajaId === PDV.caja.id && v.dia === PDV.caja.dia
+    && !(v.cliente && v.cliente.tel) && !v.monAgregado && !(v.pagos || []).some(p => p.tel || p.monTel || p.metodo === 'monedero'));
+}
+async function pdvAgregarInfo() {
+  const e = $('#acInfo'); if (!e) return;
+  const tel = monTel(($('#acTel') || {}).value); if (tel.length !== 10) { e.textContent = ''; return; }
+  const cfg = monCfg(); let x = null; try { x = await monLeer(tel); } catch (er) { }
+  const vis = ((x && x.vis) || {})[monMes(pdvHoy())] || 0;
+  e.innerHTML = x ? `${esc(x.nombre || 'Cliente')} · saldo ${money(monSaldo(x).total)} · ${vis}/${cfg.visitas} visitas este mes${x.ultVis === pdvHoy() ? ' · ya tiene su visita de hoy' : ''}` : 'Cliente nuevo: se le abre su monedero';
+}
+async function pdvAgregarCliente(id) {
+  const v = pdvVenta(id);
+  if (!pdvPuedeAgregarCliente(v)) throw new Error('Solo se puede agregar el cliente el día de la venta, en el mismo turno y si no tenía cliente');
+  const base = pdvR((v.pagos || []).filter(p => p.metodo !== 'monedero' && p.metodo !== 'consumo').reduce((s, p) => s + p.monto, 0));
+  S._pinAntes = () => { const t = monTel(($('#acTel') || {}).value); if (t.length !== 10) { toast('El teléfono debe tener 10 dígitos', 'err'); return false; } };
+  S._pinDatos = () => ({ tel: monTel($('#acTel').value), nombre: ($('#acNom').value || '').trim().slice(0, 60) });
+  let g;
+  try {
+    g = await pdvPedirPin('👛 Agregar cliente a ' + v.folio, 'gerente', `<div class="aviso ok small" style="margin:8px 0">Ganará el cashback de ${money(base)} (sin propina ni lo pagado con monedero) y la visita de hoy, como si lo hubieran dado al cobrar.</div>
+      <label class="f">Teléfono del cliente</label><input class="i" id="acTel" inputmode="tel" maxlength="14" placeholder="10 dígitos" oninput="clearTimeout(PDV._monT);PDV._monT=setTimeout(pdvAgregarInfo,300)">
+      <div class="small muted" id="acInfo"></div>
+      <label class="f">Nombre (opcional)</label><input class="i" id="acNom" maxlength="60">`);
+  } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  finally { S._pinAntes = null; S._pinDatos = null; }
+  const { tel, nombre } = g.datos, autoriza = { uid: g.uid, nombre: g.nombre };
+  const info = await monAcumular({ tel, nombre, base, folio: v.folio, ventaId: v.id, agregado: { autoriza, ts: Date.now() } });
+  if (!info) throw new Error('El monedero no está activo');
+  const cambios = { cliente: { tel, nombre: nombre || '' }, monAgregado: { autoriza, por: pdvYo(), ts: Date.now(), cashback: info.cashback } };
+  if (v.origen !== 'cuenta') cambios.monedero = info;
+  pdvGuardar(pdvCol('ventas').doc(v.id).update(JSON.parse(JSON.stringify(cambios))));
+  Object.assign(v, cambios);
+  facTicketCliente(v, tel);
+  modal(`<div style="text-align:center"><div style="font-size:46px">👛</div><h2 style="margin:4px 0">Cliente agregado</h2>
+    <div class="muted">${esc(v.folio)} · ${tel.slice(0, 3)}…${tel.slice(-4)}</div>
+    <div class="aviso ok" style="text-align:left;margin:10px 0">${info.cashback ? 'Ganó ' + money(info.cashback) + ' (' + info.pct + '%) · ' : ''}saldo ${money(info.saldo)} · visitas del mes ${info.visitas}/${info.meta}</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();pintarCaja()">Listo</button></div></div>`);
 }
 async function pdvCancelarVenta(id) {
   const v = pdvVenta(id); if (!v || v.estado === 'cancelada') return;
@@ -3698,8 +3741,26 @@ function pdvMesasLista() {
   z.forEach(x => { for (let i = 1; i <= Math.min(60, Number(x.n) || 0); i++) l.push(x.nombre + ' ' + i); });
   return l;
 }
+/** 2.46.1: cuentas y pedidos cobrados en este turno (abiertos en él). */
+function pdvCerradas() { return PDV.ventas.filter(v => v.origen === 'cuenta' && v.estado === 'pagada').sort((a, b) => (b.cerrada || b.ts) - (a.cerrada || a.ts)); }
 function pdvVistaMesas() {
   if (!PDV.caja) return pdvSinCaja('Abre la caja para empezar a tomar órdenes.');
+  const ver = PDV.mesasVer === 'cerrados' ? 'cerrados' : 'activos', cerr = pdvCerradas();
+  const sel = `<div class="pdvTipo" style="margin:0 0 10px"><button class="${ver === 'activos' ? 'on' : ''}" onclick="PDV.mesasVer='activos';pintarCaja()">🟢 Activos (${PDV.cuentas.length})</button><button class="${ver === 'cerrados' ? 'on' : ''}" onclick="PDV.mesasVer='cerrados';pintarCaja()">✅ Cerrados (${cerr.length})</button></div>`;
+  if (ver === 'cerrados') return sel + pdvVistaCerradas(cerr);
+  return sel + pdvVistaActivas();
+}
+function pdvVistaCerradas(l) {
+  if (!l.length) return '<div class="vacio"><span class="big">✅</span>Aún no hay cuentas cobradas en este turno</div>';
+  const cli = v => v.cliente && v.cliente.tel ? v.cliente.tel : ((v.pagos || []).find(p => p.tel) || {}).tel || '';
+  return `<div class="small muted" style="margin-bottom:6px">Cuentas y pedidos que se abrieron en este turno y ya se cobraron. Toca uno para ver el detalle, reimprimir el ticket${monActivo() ? ' o agregar al cliente para su monedero' : ''}.</div>
+    <div class="tabGrid">${l.map(v => { const t = cli(v); return `<div class="tabNeg pdvVentaFila" onclick="pdvDetalleVenta('${v.id}')">
+      <div class="row between" style="gap:8px"><b style="font-size:16px">${esc(pdvEtiqueta(v))}</b><b>${money(v.total)}</b></div>
+      <div class="small muted" style="margin-top:4px">${esc(v.folio)} · ${hora(v.ts)} → ${hora(v.cerrada || v.ts)} · ${esc(((v.mesero || v.por).nombre || '').split(' ')[0])}</div>
+      <div class="small" style="margin-top:2px">${(v.pagos || []).map(p => PDV_MET[p.metodo] + ' ' + money(p.monto)).join(' · ')}${v.propina ? ' · propina ' + money(v.propina) : ''}</div>
+      ${t ? `<div class="small" style="margin-top:2px">👛 ${t.slice(0, 3)}…${t.slice(-4)}</div>` : pdvPuedeAgregarCliente(v) ? '<div class="small muted" style="margin-top:2px">Sin cliente · se puede agregar</div>' : ''}</div>`; }).join('')}</div>`;
+}
+function pdvVistaActivas() {
   const ahora = Date.now(), abiertas = PDV.cuentas;
   const porMesa = {};
   abiertas.filter(c => c.mesa).forEach(c => (porMesa[c.mesa] = porMesa[c.mesa] || []).push(c));
@@ -3927,7 +3988,7 @@ function pdvPintarCobroCuenta() {
     <div class="pdvTipo">${[['monto', '💲 Por monto'], ['productos', '🍽️ Por productos']].map(([m, t]) => `<button class="${k.modo === m ? 'on' : ''}" ${m === 'productos' && !pend.length ? 'disabled' : ''} onclick="PDV.cobro.modo='${m}';pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
     ${k.modo === 'productos' ? `<div class="small muted" style="margin:4px 0">Marca lo que paga esta persona:</div>${pend.map(x => `<div class="pdvLinea"><div class="grow">${esc(x.i.nombre)}${detalleItem(x.i) ? `<div class="small muted">${detalleItem(x.i)}</div>` : ''}<div class="small">${money(x.i.precio)} c/u · faltan ${x.resta}</div></div>
         <div class="pdvCant"><button onclick="pdvSel('${x.i.k}',-1,${x.resta})">−</button><b>${k.sel[x.i.k] || 0}</b><button onclick="pdvSel('${x.i.k}',1,${x.resta})">+</button></div></div>`).join('')}` : ''}
-    ${monCampoCobro(k.tel)}
+    ${monCampoCobro(k.tel, k.telAnt)}
     <div class="pdvMets">${pdvMetsCobro().map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="pdvGuardarCampoCobro();PDV.cobro.met='${m}';pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
     <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${k.monto != null && k.modo === 'monto' ? k.monto : monto}" ${k.modo === 'productos' ? 'readonly' : ''} oninput="pdvCambio()">
     ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[50, 100, 200, 500, 1000].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
@@ -3965,7 +4026,7 @@ async function pdvPagarCuenta() {
   consumoDescontar(p, c.folio, c.id);
   items.forEach(x => { const i = c.items.find(y => y.k === x.k); if (i) i.pagadoCant = (i.pagadoCant || 0) + x.cant; });
   c.pagado = pdvR((c.pagado || 0) + m);
-  c.pagos = (c.pagos || []).concat([Object.assign({ metodo: p.metodo, monto: m, propina: p.propina || 0, cambio: p.cambio || 0, recibe: p.recibe || 0, ts, por: p.por, pagoId: ref.id, cajaId: caja.id }, p.consumoUid ? { consumoUid: p.consumoUid, consumoNombre: p.consumoNombre } : {}, p.monTel ? { monTel: p.monTel, monNombre: p.monNombre, monDesg: p.monDesg } : {}, p.monedero ? { monedero: p.monedero } : {})]);
+  c.pagos = (c.pagos || []).concat([Object.assign({ metodo: p.metodo, monto: m, propina: p.propina || 0, cambio: p.cambio || 0, recibe: p.recibe || 0, ts, por: p.por, pagoId: ref.id, cajaId: caja.id }, telM.length === 10 ? { tel: telM } : {}, p.consumoUid ? { consumoUid: p.consumoUid, consumoNombre: p.consumoNombre } : {}, p.monTel ? { monTel: p.monTel, monNombre: p.monNombre, monDesg: p.monDesg } : {}, p.monedero ? { monedero: p.monedero } : {})]);
   c.pagoIds = (c.pagoIds || []).concat([ref.id]);
   const fin = pdvSaldo(c) <= 0;
   const ex = { pagado: c.pagado, pagos: c.pagos, pagoIds: c.pagoIds, propina: pdvR(c.pagos.reduce((s, x) => s + (x.propina || 0), 0)) };
@@ -3976,7 +4037,8 @@ async function pdvPagarCuenta() {
   pdvActualizarCuenta(c, ex);
   if (fin) PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id);
   if (fin && ((c.cliente && c.cliente.tel) || telM.length === 10)) facTicketCliente(Object.assign({}, c, ex), (c.cliente && c.cliente.tel) || telM);
-  PDV.cobro = { cuentaId: c.id, met: 'efectivo', modo: k.modo, sel: {}, tel: k.tel || '' };
+  // 2.46.1: el siguiente pago puede ser de otra persona: empieza sin teléfono (con botón para repetir el anterior)
+  PDV.cobro = { cuentaId: c.id, met: 'efectivo', modo: k.modo, sel: {}, tel: '', telAnt: telM.length === 10 ? telM : '' };
   modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Pago de ${money(m)}</h2><div class="muted">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}</div>
     ${p.monedero ? `<div class="aviso ok" style="text-align:left;margin:8px 0">👛 ${p.monedero.cashback ? 'Ganó ' + money(p.monedero.cashback) + ' (' + p.monedero.pct + '%) · ' : ''}saldo ${money(p.monedero.saldo)} · visitas del mes ${p.monedero.visitas}/${p.monedero.meta}</div>` : ''}
     ${p.cambio ? `<div class="pdvCambioG">Cambio: ${money(p.cambio)}</div>` : ''}
@@ -5085,7 +5147,7 @@ async function monAcumular(o) {
   if (cb > 0) upd.cb = { [vence]: pdvInc(cb) };
   if (visita) { upd.vis = { [mes]: firebase.firestore.FieldValue.increment(1) }; upd.ultVis = hoy; }
   pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
-  if (cb > 0) pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: nombre || (x && x.nombre) || '', tipo: 'cashback', monto: cb, pct, extra, base, vence, folio: o.folio || '', ventaId: o.ventaId || '' })));
+  if (cb > 0) pdvGuardar(monCol('movs').doc().set(monMov(Object.assign({ tel, nombre: nombre || (x && x.nombre) || '', tipo: 'cashback', monto: cb, pct, extra, base, vence, folio: o.folio || '', ventaId: o.ventaId || '' }, o.agregado ? { agregado: o.agregado } : {}))));
   const visitas = ((x && x.vis && x.vis[mes]) || 0) + (visita ? 1 : 0);
   return { tel, cashback: cb, pct, extra, vence, visita, visitas, meta: cfg.visitas, mes, saldo: pdvR(monSaldo(x, hoy).total + cb) };
 }
@@ -5102,10 +5164,12 @@ async function monDescontar(p, folio, ventaId) {
     for (const [k, v] of sal.lotes) { if (resto <= 0) break; const q = pdvR(Math.min(v, resto)); cb[k] = q; resto = pdvR(resto - q); upd['cb.' + k] = pdvR(v - q); }
     if (resto > 0) upd.rec = pdvR(sal.rec - resto);
     t.update(ref, upd);
-    return { cb, rec: pdvR(resto) };
+    return { cb, rec: pdvR(resto), queda: pdvR(sal.total - p.monto) };
   });
-  p.monDesg = desg;
-  pdvGuardar(monCol('movs').doc().set(monMov({ tel: p.monTel, nombre: p.monNombre || '', tipo: 'uso', monto: p.monto, desg, folio, ventaId, autoriza: p.monAutoriza || null })));
+  p.monDesg = { cb: desg.cb, rec: desg.rec };
+  // 2.46.1: notificación al cliente en su cuenta (y al dueño si lo autorizó un gerente sin el código del cliente)
+  api('monAviso', { negocioId: (S.negocio || {}).id, tel: p.monTel, monto: p.monto, saldo: desg.queda, folio, autoriza: p.monAutoriza || null }).catch(e => console.warn('monAviso', e));
+  pdvGuardar(monCol('movs').doc().set(monMov({ tel: p.monTel, nombre: p.monNombre || '', tipo: 'uso', monto: p.monto, desg: p.monDesg, folio, ventaId, autoriza: p.monAutoriza || null })));
 }
 /** Venta cancelada: regresa lo que se pagó con monedero y quita el cashback (y la visita) que dio esa venta. */
 async function monRevertir(v) {
@@ -5143,10 +5207,11 @@ async function monRevertir(v) {
 
 /* --- cobro con monedero --- */
 /** Teléfono del cliente para su monedero en el cobro (y lo que ganará). */
-function monCampoCobro(tel) {
+function monCampoCobro(tel, ant) {
   if (!monActivo()) return '';
+  const rep = ant && ant.length === 10 && !tel ? `<button class="btn sm" style="margin-top:6px" onclick="$('#cbCliTel').value='${ant}';monCobroTel('${ant}');this.remove()">👤 Mismo cliente que el pago anterior (${ant.slice(0, 3)}…${ant.slice(-4)})</button>` : '';
   return `<div class="monCobro"><label class="f">👛 Teléfono del cliente para su monedero (opcional)</label>
-    <input class="i" id="cbCliTel" inputmode="tel" maxlength="14" placeholder="10 dígitos" value="${esc(tel || '')}" oninput="monCobroTel(this.value)">
+    <input class="i" id="cbCliTel" inputmode="tel" maxlength="14" placeholder="${ant ? 'Teléfono de quien paga ahora' : '10 dígitos'}" value="${esc(tel || '')}" oninput="monCobroTel(this.value)">${rep}
     <div class="small muted" id="cbCliInfo"></div></div>`;
 }
 function monCobroTel(v) {
@@ -5404,7 +5469,7 @@ function monCardCliente(c) {
     ${prox ? `<div class="small muted">Próximo vencimiento: ${money(prox[1])} el ${monFecha(prox[0])}</div>` : ''}
     <div class="tot"><span>Visitas este mes</span><span>${vis} de ${cfg.visitas}${extra ? ' · ⭐ gana +' + cfg.extra + '%' : ''}</span></div>
     <div class="btns">${PDV.caja ? `<button class="btn pri pill" onclick="monFormRecarga('${c.tel}')">💳 Recargar</button>` : ''}<button class="btn pill" onclick="monFormAjuste('${c.tel}')">✍️ Ajustar saldo</button></div>
-    <details style="margin-top:8px"><summary class="small">Movimientos (${c.movs.length})</summary>${c.movs.map(m => `<div class="pdvFila g"><span>${fechaCorta(m.ts)} · ${MON_MOV[m.tipo] || m.tipo}<small>${esc(m.negocio || '')}${m.folio ? ' · ' + esc(m.folio) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}</small></span><span></span><b style="color:${monSigno(m) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(m) > 0 ? '+' : '−'}${money(m.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
+    <details style="margin-top:8px"><summary class="small">Movimientos (${c.movs.length})</summary>${c.movs.map(m => `<div class="pdvFila g"><span>${fechaCorta(m.ts)} · ${MON_MOV[m.tipo] || m.tipo}<small>${esc(m.negocio || '')}${m.folio ? ' · ' + esc(m.folio) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}${m.agregado ? ' · agregado después, autorizó ' + esc(m.agregado.autoriza.nombre.split(' ')[0]) : ''}</small></span><span></span><b style="color:${monSigno(m) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(m) > 0 ? '+' : '−'}${money(m.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
 }
 const monSigno = m => ['recarga', 'bono', 'cashback', 'devolucion', 'importado'].includes(m.tipo) || (m.tipo === 'ajuste' && m.signo > 0) ? 1 : -1;
 
@@ -5573,6 +5638,15 @@ async function vMonedero() {
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   if (!PDV.db) { PDV.db = firebase.firestore(); try { await PDV.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { } }
   const k = await api('monederoLlave');
+  if (k.telVerificado === false) {
+    // 2.46.1: el monedero se liga al teléfono solo cuando está verificado (así nadie usa el saldo de otro número)
+    if (S.vista !== 'monedero') return;
+    html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="ir('perfil')" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
+      <div class="card" style="text-align:center;margin-top:12px"><div style="font-size:42px">📱</div><h3 style="margin:4px 0">Verifica tu teléfono</h3>
+        <div class="muted" style="margin:6px 0 12px">Tu monedero va ligado a tu número <b>${esc(tel)}</b>. Para cuidar tu saldo, primero confirma que es tuyo con un mensaje de WhatsApp.</div>
+        <button class="btn pri pill full" onclick="act(this,verificarTel)">Verificar mi teléfono</button><div id="verifEstado"></div></div>`);
+    return;
+  }
   await firebase.auth().signInWithCustomToken(k.token);
   if (S.user.rol === 'negocio') ls('pdvLlaveT', Date.now());
   const db = PDV.db, l = [];
