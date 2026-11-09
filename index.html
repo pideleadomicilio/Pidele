@@ -75,6 +75,8 @@ nav button.on{color:var(--pri)}
 nav .navFab{color:var(--pri);flex:1.35;white-space:nowrap}
 nav .navFab .fab{position:relative;width:60px;height:60px;margin-top:-30px;border-radius:50%;background:var(--pri);border:4px solid var(--card);box-shadow:0 6px 16px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
 nav .navFab .fab svg{width:36px;height:36px}
+nav .navFab.conNuevos .fab::after{content:'';position:absolute;bottom:-1px;left:-1px;width:16px;height:16px;border-radius:50%;background:var(--err);border:2px solid var(--card);animation:latido 1s infinite alternate}
+@keyframes latido{from{transform:scale(.8)}to{transform:scale(1.15)}}
 nav .navFab .fab i{position:absolute;top:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:#F4EBD6;color:var(--pri);font-style:normal;font-weight:900;font-size:15px;line-height:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 nav .navFab:active .fab{transform:scale(.94)}
 /* iPhone: mientras el teclado está abierto se ocultan la barra de abajo y la del carrito (iOS las deja "flotando" a media pantalla) */
@@ -303,6 +305,8 @@ body.sinNav main{padding-bottom:96px}
 .lnk{background:none;border:0;color:var(--pri);font-weight:800;padding:4px 0;cursor:pointer}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:400;background:var(--tx);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;font-size:14px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1} #toast.err{background:var(--err)}
+.resalta{box-shadow:0 0 0 3px var(--pri,#3b5a2b);transition:box-shadow .4s}
+#toast.ir{pointer-events:auto;cursor:pointer} #toast.ir small{display:block;font-weight:600;opacity:.8;margin-top:2px}
 .parada{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}
 .parada:last-child{border-bottom:0}
 .num{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0}
@@ -967,7 +971,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.66.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.67.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1012,7 +1016,7 @@ const ACTIVOS = ['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO', 'PROGRAMADO', 'PREPARANDO
 const CATEGORIAS = ['Comida', 'Mariscos', 'Tacos', 'Hamburguesas', 'Pizza', 'Antojitos', 'Café y postres', 'Bebidas', 'Abarrotes', 'Farmacia', 'Otro'];
 const ICONO_CAT = { Promociones: '🏷️', Todos: '🍽️', Comida: '🍲', Mariscos: '🦐', Tacos: '🌮', Hamburguesas: '🍔', Pizza: '🍕', Antojitos: '🫓', 'Café y postres': '☕', Bebidas: '🥤', Abarrotes: '🛒', Farmacia: '💊', Otro: '🏪' };
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const PAGO_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', codi: 'CoDi' };
+const PAGO_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', codi: 'CoDi', monedero: 'Monedero' };
 
 /* ============ ÍCONOS ============ */
 const ICONOS = {
@@ -1067,8 +1071,16 @@ function html(h) { $('#vista').innerHTML = barraChecar() + h; }
 function iniciales(n) { return String(n || '?').split(' ').filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase(); }
 function estrellas(c, n) { return c ? `<span class="estrella">★</span> <b>${c}</b> <span class="muted small">(${n})</span>` : '<span class="tag t-pri">Nuevo</span>'; }
 function toast(msg, tipo) {
-  const t = $('#toast'); t.textContent = msg; t.className = 'on ' + (tipo || '');
+  const t = $('#toast'); t.textContent = msg; t.className = 'on ' + (tipo || ''); t.onclick = null;
   clearTimeout(t._t); t._t = setTimeout(() => t.className = '', tipo === 'err' ? 4500 : 2600);
+}
+/** 2.66.3 · aviso con la app abierta: se puede tocar para ir a donde se originó. */
+function toastIr(titulo, cuerpo, url) {
+  if (!url) { toast(titulo); return; }
+  const t = $('#toast'); t.innerHTML = esc(titulo) + '<small>' + esc(cuerpo ? cuerpo.slice(0, 90) + (cuerpo.length > 90 ? '…' : '') + ' · ' : '') + 'Toca para ver ›</small>';
+  t.className = 'on ir';
+  t.onclick = () => { t.className = ''; t.onclick = null; abrirDesdeUrl(url); };
+  clearTimeout(t._t); t._t = setTimeout(() => { t.className = ''; t.onclick = null; }, 7000);
 }
 function modal(h) { $('#modalCaja').innerHTML = h; $('#modal').classList.add('on'); }
 /** 2.43.2 · Tocar fuera de la ventana: solo cierra las que no tienen datos por escribir (para salir: Cancelar o ✕). */
@@ -1349,10 +1361,11 @@ function navRol() {
   // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
   if (r === 'negocio') {
     if (!S.negocio) l = [['perfil', 'user', 'Perfil']];
+    else if (planTiene('caja')) l = l.filter(([v]) => v !== 'negPedidos' || (!pdvTieneAcceso() && puedo('pedidos'))).map(x => x[0] === 'negPedidos' ? ['cocina', 'recibo', 'Cocina'] : x).filter(([v]) => v === 'cocina' || v === 'menu' ? (v === 'cocina' || puedo(['menu', 'agotados', 'mercadotecnia'])) : v === 'promos' ? puedo(['promos', 'mercadotecnia']) : v === 'miNegocio' ? puedo(['ajustes', 'mercadotecnia']) : true); // 2.67.1
     else l = l.filter(([v]) => v === 'negPedidos' ? puedo('pedidos') : v === 'menu' ? puedo(['menu', 'agotados', 'mercadotecnia']) : v === 'promos' ? puedo(['promos', 'mercadotecnia']) : v === 'miNegocio' ? puedo(['ajustes', 'mercadotecnia']) : true);
     // 2.38: quien puede vender tiene su pestaña "Vender" (caja sencilla); si el plan no trae caja, "Nuevo pedido" (por teléfono).
     // Con permiso de pedidos, Pedidos sigue siendo la primera (para no perder los de la app)
-    const tabV = S.negocio && pdvTieneAcceso() ? ['vender', 'fab', 'Nuevo pedido'] : S.negocio && puedo('pedidos') && S.negocio.estado === 'activo' ? ['nuevoPedido', 'fab', 'Nuevo pedido'] : null;
+    const tabV = S.negocio && pdvTieneAcceso() ? ['vender', 'fab', 'Nuevo pedido'] : S.negocio && !planTiene('caja') && puedo('pedidos') && S.negocio.estado === 'activo' ? ['nuevoPedido', 'fab', 'Nuevo pedido'] : null;
     if (tabV) l = l[0] && l[0][0] === 'negPedidos' ? [l[0], tabV].concat(l.slice(1)) : [tabV].concat(l);
     // 2.57: tareas del turno (plan Total) para el equipo; el dueño entra desde su perfil o el tablero
     if (S.negocio && !esDueno() && opDisponible()) { const ip = l.findIndex(x => x[0] === 'perfil'); l.splice(ip < 0 ? l.length : ip, 0, ['operacion', 'lista', 'Tareas']); }
@@ -1381,6 +1394,7 @@ const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago'
 /** Pantallas del pedido por teléfono; ir a cualquier otra cancela la captura (2.24.2). */
 const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
 async function ir(v, p, sinHistoria) {
+  if (v !== 'negPedidos' && v !== 'pedido') S._pedHist = false; // 2.67.1: el historial de pedidos se queda mientras se esté en él
   if (S.vista === 'cocina' && v !== 'cocina') salirCocina_();
   if (S.vista === 'caja' && v !== 'caja') pdvSalir();
   if (S.modoTel && !VISTAS_TEL.includes(v)) {
@@ -1476,7 +1490,7 @@ function menuNegocios() {
       ${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:36px;height:36px;border-radius:10px;object-fit:cover">` : '<span style="font-size:26px">🏪</span>'}
       <span class="grow"><b>${esc(n.nombre)}</b><div class="muted small">${n.estado === 'pendiente' ? '⏳ Por aprobar' : n.abierto ? '🟢 Recibiendo pedidos' : '⏸️ En pausa'} · ${n.dueno ? 'Dueño' : 'Colaborador'}</div></span>
       ${S.porNeg && S.porNeg[n.id] ? `<i class="badge" style="position:static">${S.porNeg[n.id]}</i>` : ''}${n.id === S.negActivo ? '<span class="tag t-ok">Abierto aquí</span>' : ''}</button>`).join('')}</div>
-    ${l.some(n => n.dueno) ? `<div class="btns"><button class="btn pill" onclick="cerrarModal();ir('equipo')">⚙️ Mis negocios y equipo</button></div>` : ''}`);
+    ${l.some(n => n.dueno) ? `<div class="btns"><button class="btn pill" onclick="cerrarModal();ir('equipo')">⚙️ ${equipoEnPersonal() ? 'Mis negocios y sucursales' : 'Mis negocios y equipo'}</button></div>` : ''}`);
 }
 /** Invitación a un equipo pendiente (aparece en Perfil y en Pedidos). */
 function avisoInvEquipo() {
@@ -1543,8 +1557,8 @@ function pintarNav() {
   const items = navRol().slice(), iF = items.findIndex(x => x[1] === 'fab');
   if (iF >= 0) { const f = items.splice(iF, 1)[0]; items.splice(Math.floor(items.length / 2), 0, f); }
   $('#nav').innerHTML = items.map(([v, i, t]) => {
-    if (i === 'fab') return `<button class="navFab ${raiz === v || (v === 'vender' && S.vista === 'caja' && S.params === 'simple') ? 'on' : ''}" onclick="ir('${v}')" aria-label="${t}"><span class="fab">${LOGO_PIDELE}<i>+</i></span>${t}</button>`;
-    const badge = (v === 'negPedidos' || v === 'disponibles') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
+    if (i === 'fab') return `<button class="navFab ${S.nuevos && v === 'vender' ? 'conNuevos' : ''} ${raiz === v || (v === 'vender' && S.vista === 'caja' && S.params === 'simple') ? 'on' : ''}" onclick="ir('${v}')" aria-label="${t}"><span class="fab">${LOGO_PIDELE}<i>+</i></span>${t}</button>`;
+    const badge = (v === 'negPedidos' || v === 'disponibles' || v === 'cocina') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
     return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
 }
@@ -1636,7 +1650,7 @@ function salir(silencioso) {
   quitarPush();
   if (!silencioso && S.token) api('salir', { token: S.token }).catch(() => { });
   ['token', 'user', 'negocio', 'entrega', 'modoCliente', 'modoRep', 'modoServicio'].forEach(k => ls(k, null));
-  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.negocios = []; S.negActivo = ''; S.invEquipo = []; ['negocios', 'negActivo', 'invEquipo'].forEach(k => ls(k, null)); S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
+  S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.negocios = []; S.negActivo = ''; S.invEquipo = []; ['negocios', 'negActivo', 'invEquipo', 'monCache'].forEach(k => ls(k, null)); S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
   cerrarModal();
@@ -1677,6 +1691,8 @@ const PLANES_PAGO = ['basico', 'plus', 'pro', 'ultra'];
 const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Plus', pro: 'Pro', ultra: 'Total', completo: 'Plus', '': 'Plus' };
 /** 2.47: qué trae cada plan (lo marca el administrador en Ajustes → Planes). k: caja | fidelidad | factura */
 const PLAN_DEF_FUN = { plus: { caja: 1 }, pro: { caja: 1, fidelidad: 1 }, ultra: { caja: 1, fidelidad: 1, factura: 1, facturasMes: 50 } };
+/** 2.67.2 · todos los negocios del dueño traen caja (entonces su equipo se maneja en 👥 Personal). */
+const equipoEnPersonal = l => { l = (l || S.negocios || []).filter(n => n.dueno !== false); return !!l.length && l.every(n => planTiene('caja', n.plan)); };
 function planTiene(k, plan) {
   plan = plan || (S.negocio && S.negocio.plan) || '';
   const c = planesCfg()[plan];
@@ -1870,7 +1886,7 @@ async function activarPush(pedir) {
   if (!S._onMsg) {
     S._onMsg = true;
     // con la app abierta: sonido + aviso y se actualiza la pantalla al momento
-    m.onMessage(p => { const d = p.data || {}; S._pushReciente = Date.now(); beep(); toast(d.titulo || APP); sondear(true); });
+    m.onMessage(p => { const d = p.data || {}; S._pushReciente = Date.now(); beep(); toastIr(d.titulo || APP, d.cuerpo || '', d.url || ''); sondear(true); });
   }
   pintarBannerPush();
   return true;
@@ -1929,12 +1945,50 @@ function abrirDesdeUrl(url) {
     if (!S.token) { S.despues = 'compartido'; ir('entrar'); setTimeout(() => toast('Entra a tu cuenta para enviar tu comprobante'), 400); return true; }
     ir('compartido'); return true;
   }
+  if (q.get('ir') && S.token) { irDestino(q).catch(e => { console.warn(e); toast(e.message || 'No se pudo abrir', 'err'); if (!S.vista) ir(inicioRol(), null); }); return true; }
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
+  if (ped && rolActual() === 'negocio' && conPdvPedidos() && pdvTieneAcceso()) { pdvIrPedido(ped); return true; }
   if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || (v === 'suscripcion' && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user) || (v === 'facturas' && rolActual() === 'negocio'))) ir(v); else return false;
   return true;
 }
-if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) abrirDesdeUrl(e.data.abrir); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) { cerrarModal(); abrirDesdeUrl(e.data.abrir); } });
+/** 2.67.1 · abre un pedido de la app dentro de la caja (si ya no está en curso, su pantalla normal). */
+async function pdvIrPedido(id) {
+  PDV.tab = 'mesas'; PDV.cuentaId = ''; await ir('caja');
+  for (let i = 0; i < 30 && S.vista === 'caja'; i++) {
+    if (((PDV.app && PDV.app.pedidos) || []).some(x => x.id === id && pdvAppCuentas().includes(x))) { pdvAppAbrir(id); return; }
+    if (i === 2) pdvCargarApp();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  if (S.vista === 'caja') ir('pedido', id);
+}
+/** 2.66.3 · destinos precisos de los avisos: ?ir=cortes|personal|inv|operacion|caja&n=negocio&… */
+async function irDestino(q) {
+  const d = q.get('ir'), nid = q.get('n') || '';
+  if (nid && nid !== S.negActivo) {
+    if (!(S.negocios || []).some(n => n.id === nid)) { ir(inicioRol(), null); return; }
+    S.negActivo = nid; ls('negActivo', nid); fijarSesionNeg(await api('yo')); S._prods = null; S._grupos = null; S._promosNeg = null; S.firma = ''; pintarNav();
+    toast('Ahora estás en ' + (S.negocio ? S.negocio.nombre : 'tu negocio'));
+  }
+  if (!S.negocio) { ir(inicioRol(), null); return; }
+  if (d === 'cortes') { PDV.rep = { per: 'semana', neg: S.negocio.id, vista: 'cortes' }; PDV.tab = 'cortes'; await ir('ventas'); return; }
+  if (d === 'personal') {
+    PDV.per = { sub: q.get('sub') || 'hoy', fecha: q.get('fecha') || pdvHoy() }; PDV.cuentaId = '';
+    await ir('nomina');
+    if (q.get('uid') && S.vista === 'caja') await vacFicha(q.get('uid'));
+    if (q.get('reloj')) { // 2.66.4: directo a la tarjeta del reloj (autorizar equipos)
+      for (let i = 0; i < 40; i++) { const el = $('#relojCard'); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('resalta'); setTimeout(() => el.classList.remove('resalta'), 2500); break; } await new Promise(r => setTimeout(r, 250)); }
+    }
+    return;
+  }
+  if (d === 'inv') { S._iv = { lugar: q.get('lugar') || S.negocio.id, tab: q.get('tab') || 'exist', q: '', f: q.get('f') || '' }; await ir('inventario'); return; }
+  // "¿ya no hay…?": el dueño lo confirma en Inventario; el equipo en la barra de su caja
+  if (d === 'yanohay') { if (esDueno()) { S._iv = { lugar: S.negocio.id, tab: 'exist', q: '', f: 'agot' }; await ir('inventario'); } else { PDV.tab = ''; PDV.cuentaId = ''; await ir('caja'); } return; }
+  if (d === 'operacion') { await ir('operacion'); return; }
+  if (d === 'caja') { PDV.tab = q.get('tab') || ''; PDV.cuentaId = ''; await ir('caja'); return; }
+  ir(inicioRol(), null);
+}
 
 /* ============ COMPROBANTE COMPARTIDO DESDE LA APP DEL BANCO ============ */
 async function archivoCompartido() {
@@ -2085,7 +2139,7 @@ async function sondear(forzar) {
     const masNuevos = d.nuevos > S.nuevos;
     if (d.turno && S.user.rol === 'repartidor') S.user.turno = d.turno;
     if (S.firma && Date.now() - (S._pushReciente || 0) > 20000) {
-      if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', 'Revisa la pestaña Pedidos');
+      if (S.user.rol === 'negocio' && masNuevos) avisar('🔔 Tienes pedidos por atender', conPdvPedidos() ? 'Están en Caja → Mesas y pedidos' : 'Revisa la pestaña Pedidos');
       else if (rolActual() === 'repartidor' && masNuevos && (!d.turno || d.turno.disponible)) avisar(S.modoRep ? '🧪 Pedido de muestra para entregar' : '📋 Hay pedidos disponibles', 'Abre Disponibles para tomarlos');
       else if (S.user.rol === 'comprador' && cambio) avisar('🔔 Tu pedido se actualizó');
     }
@@ -2100,6 +2154,7 @@ async function sondear(forzar) {
     const cada = S.vista === 'pedido' ? 1 : 4;
     if (S.auto && !$('#modal').classList.contains('on') && (cambio || forzar || S.ticks % cada === 0)) pintar(true);
     if (S.chat && forzar) cargarChat();
+    if (S.vista === 'caja' && (cambio || forzar || masNuevos) && typeof pdvCargarApp === 'function') pdvCargarApp(); // 2.67.1: los pedidos de la app llegan a la caja
   } catch (e) { } finally { S._sondeando = false; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) sondear(); });
@@ -2382,6 +2437,12 @@ const pdvEsTelefono = () => /Android.+Mobile|iPhone|iPod/i.test(navigator.userAg
 const pdvHoy = (ms) => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const pdvCol = c => PDV.db.collection('negocios').doc(PDV.nid).collection(c);
 const pdvYo = () => ({ uid: S.user.id, nombre: S.user.nombre });
+// 2.66.3: quién abrió / cerró la caja y en la sesión de quién
+const pdvPN = x => ((x && x.nombre) || '').split(' ')[0];
+const pdvSesionDe = x => x && x.por && x.por.uid && x.por.uid !== x.uid ? pdvPN(x.por) : '';
+const pdvQuienTxt = (c, corto) => { if (!c || !c.abre) return ''; const a = c.abre, k = c.cierre, sa = pdvSesionDe(a), sk = k ? pdvSesionDe(k) : '';
+  return 'Abrió ' + esc(pdvPN(a)) + (corto ? '' : ' ' + hora(a.ts)) + (sa && !corto ? ' <span class="muted">(sesión de ' + esc(sa) + ')</span>' : '') +
+    (k ? ' · Cerró ' + esc(pdvPN(k)) + (corto ? '' : ' ' + hora(k.ts)) + (sk && !corto ? ' <span class="muted">(sesión de ' + esc(sk) + ')</span>' : '') + (k.porOtro ? ' ⚠️' : '') : ''); };
 const pdvR = n => Math.round((Number(n) || 0) * 100) / 100;
 const PDV_MET = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', tarjeta: '💳 Tarjeta', consumo: '🎁 Consumo de personal', monedero: '👛 Monedero' };
 const PDV_MET_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', consumo: 'Consumo de personal', monedero: 'Monedero' };
@@ -2619,8 +2680,8 @@ function pintarCaja() {
   if (S.vista !== 'caja') return;
   PDV._sucio = false;
   const c = PDV.caja, cajero = pdvPuede('dc'), simple = S.params === 'simple', nomina = S.params === 'nomina', ventasM = S.params === 'ventas' && pdvPuede('d');
-  const tabs = nomina ? [] : ventasM ? [['cortes', '🧾 Cortes'], ['reportes', '📈 Reportes'], ['hoy', '📊 Hoy']] : simple ? [].concat(pdvPuede('dcm') ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas y pedidos' + ((PDV.cuentas.length + (PDV.porEntregar || []).length) ? ' (' + (PDV.cuentas.length + (PDV.porEntregar || []).length) + ')' : '')]] : [], [['ventas', '🧾 Mis ventas']]) : [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas y pedidos' + ((PDV.cuentas.length + (PDV.porEntregar || []).length) ? ' (' + (PDV.cuentas.length + (PDV.porEntregar || []).length) + ')' : '')]] : [], [['ventas', '🧾 Ventas']],
-    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('d') || (PDV.gid && pdvPuede('cg') && monCfg().activo) ? [['monedero', '👛 Monedero' + (PDV.gid ? '' : ' 🔒')]] : [], []) // 2.60: Hoy, Reportes y Personal se ven desde Inicio (📊 Ventas y 👥 Personal); // 2.38.1: solo el dueño
+  const tabs = nomina ? [] : ventasM ? [['cortes', '🧾 Cortes'], ['reportes', '📈 Reportes']] : simple ? [].concat(pdvPuede('dcm') ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas y pedidos' + ((PDV.cuentas.length + (PDV.porEntregar || []).length) ? ' (' + (PDV.cuentas.length + (PDV.porEntregar || []).length) + ')' : '')]] : [], [['ventas', '🧾 Mis ventas']]) : [].concat(cajero ? [['vender', '🛒 Vender']] : [], pdvPuede('dcm') ? [['mesas', '🍽️ Mesas y pedidos' + ((PDV.cuentas.length + (PDV.porEntregar || []).length) ? ' (' + (PDV.cuentas.length + (PDV.porEntregar || []).length) + ')' : '')]] : [], [['ventas', '🧾 Mi turno']],
+    cajero ? [['gastos', '💸 Gastos'], ['caja', '🗄️ Caja']] : [], pdvPuede('d') || (PDV.gid && pdvPuede('cg') && monCfg().activo) ? [['monedero', '👛 Lealtad' + (PDV.gid ? '' : ' 🔒')]] : [], []) // 2.60: Hoy, Reportes y Personal se ven desde Inicio (📊 Ventas y 👥 Personal); // 2.38.1: solo el dueño
   if (nomina) { PDV.tab = 'personal'; PDV.cuentaId = ''; } else if (!tabs.some(x => x[0] === PDV.tab)) PDV.tab = tabs[0][0];
   const t = PDV.tab;
   const sinRed = !navigator.onLine;
@@ -2630,7 +2691,7 @@ function pintarCaja() {
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
       ${pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}<button onclick="ir(${nomina || ventasM ? "esDuenoVarios() ? 'tablero' : inicioRol()" : "puedo('pedidos') ? 'negPedidos' : 'perfil'"})">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
-    ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código personal para abrir y cerrar caja. <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
+    ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
     ${nomina ? '' : `<div class="tabs pdvTabs">`}${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' ? ((n => n ? ' (' + n + ')' : '')(pdvVentasTurno().filter(v => v.estado !== 'cancelada' && (!simple || [v.por, v.mesero].some(x => x && x.uid === S.user.id))).length)) : ''}</button>`).join('')}${nomina ? '' : '</div>'}
     ${PDV.cuentaId ? pdvVistaCuenta() : t === 'cortes' ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'cortes', pdvVistaReportes()) : t === 'reportes' && ventasM ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'res', pdvVistaReportes()) : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : t === 'reportes' ? pdvVistaReportes() : t === 'personal' ? pdvVistaPersonal() : t === 'monedero' ? monVista() : pdvVistaCaja()}
   </div>`);
@@ -2704,7 +2765,7 @@ function pdvPanelCarrito() {
     ${its.map(x => { const det = detalleItem(x); return `<div class="pdvLinea"><div class="grow"><b>${esc(x.nombre)}</b>${det ? `<div class="small muted">${det}</div>` : ''}<div class="small">${money(x.precio)} c/u</div></div>
       <div class="pdvCant"><button onclick="pdvCant(${esc(JSON.stringify(x.key))},-1)">−</button><b>${x.cant}</b><button onclick="pdvCant(${esc(JSON.stringify(x.key))},1)">+</button></div>
       <b style="min-width:64px;text-align:right">${money(x.cant * x.precio)}</b></div>`; }).join('')}
-    <div class="pdvTipo">${[['mostrador', '🍽️ Aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${v.tipo === k ? 'on' : ''}" onclick="PDV.venta.tipo='${k}';pdvPintarCarrito()">${t}</button>`).join('')}</div>
+    <div class="pdvTipo">${[['mostrador', '🍽️ Aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${v.tipo === k ? 'on' : ''}" onclick="PDV.venta.tipo='${k}';pdvPintarCarrito()">${t}</button>`).join('')}${S.negocio && S.negocio.estado === 'activo' && puedo(['pedidos', 'caja']) ? `<button onclick="pdvDomicilio()">🛵 A domicilio</button>` : ''}</div>
     ${v.tipo === 'llevar' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" type="time" value="${esc(v.recoge)}" onchange="PDV.venta.recoge=this.value">` : ''}
     <details class="pdvCli" ${v.tel ? 'open' : ''}><summary>👤 Cliente (opcional)</summary>
       <input class="i" id="pdvTel" inputmode="tel" maxlength="14" placeholder="Teléfono a 10 dígitos" value="${esc(v.tel)}" oninput="PDV.venta.tel=this.value;pdvBuscarCliente()">
@@ -2874,7 +2935,7 @@ function pdvPintarCobro() {
     ${k.pagos.length || k.app ? '' : pdvEntregaHTML(k.ent, false)}
     ${k.app ? '' : cliCobroHTML({ tel: PDV.venta.tel, nombre: PDV.venta.nombre }, 'cliCobroVenta')}
     ${k.app ? '' : monCampoCobro(PDV.venta.tel)}
-    ${k.pagos.map((p, i) => p.anticipo ? `<div class="pdvLinea"><div class="grow">🎟️ Anticipo (${PDV_MET[p.metodo]})</div><b>${money(p.monto)}</b></div>` : `<div class="pdvLinea"><div class="grow">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}${p.cambio ? ' · cambio ' + money(p.cambio) : ''}</div><b>${money(p.monto)}</b><button class="redondo" style="width:32px;height:32px" onclick="PDV.cobro.pagos.splice(${i},1);pdvPintarCobro()" aria-label="Quitar">✕</button></div>`).join('')}
+    ${k.pagos.map((p, i) => p.anticipo ? `<div class="pdvLinea"><div class="grow">${p.etq ? esc(p.etq) : '🎟️ Anticipo (' + PDV_MET[p.metodo] + ')'}</div><b>${money(p.monto)}</b></div>` : `<div class="pdvLinea"><div class="grow">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}${p.cambio ? ' · cambio ' + money(p.cambio) : ''}</div><b>${money(p.monto)}</b><button class="redondo" style="width:32px;height:32px" onclick="PDV.cobro.pagos.splice(${i},1);pdvPintarCobro()" aria-label="Quitar">✕</button></div>`).join('')}
     ${saldo > 0 ? `<div class="pdvMets">${pdvMetsCobro().filter(([m]) => m !== 'monedero' || !k.pagos.length).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="PDV.cobro.met='${m}';pdvPintarCobro()">${t}</button>`).join('')}</div>
       ${k.met === 'monedero' ? '<div class="aviso info small" style="margin:6px 0">👛 El monedero paga el ticket <b>completo</b>. Si solo quiere usarlo en parte, cobra por separado lo que paga con monedero.</div>' : ''}
       <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${saldo}" oninput="pdvCambio()">
@@ -4361,13 +4422,13 @@ function pdvImprimirCorte(id, ciego) {
   const k = c.cierre, r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   if (ciego || !pdvVeCuentas()) {
     imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CIERRE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
-      ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
+      ${r('Abrió', esc(pdvPN(c.abre)) + ' ' + hora(c.abre.ts))}${pdvSesionDe(c.abre) ? r('&nbsp;en la sesión de', esc(pdvSesionDe(c.abre))) : ''}${r('Cerró', esc(pdvPN(k)) + ' ' + hora(k.ts))}${pdvSesionDe(k) ? r('&nbsp;en la sesión de', esc(pdvSesionDe(k))) : ''}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
       <div class="r t"><span>Retiro</span><span>${money(k.retiro)}</span></div>${k.retiroPor ? r('Retiró', esc(k.retiroPor.nombre)) : ''}${r('Deja en caja chica', money(k.fondoDeja))}${k.propinas ? r('Propinas entregadas', money(k.propinas)) : ''}${r('Gastos de hoy', money(k.gastosDia || 0))}<hr>
       <div class="c p">Firma: ____________________</div>`, 'Cierre turno ' + c.turno));
     return;
   }
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc((S.negocio || {}).nombre || '')}</div><div class="t">CORTE · TURNO ${c.turno}</div><div>${c.dia}</div></div><hr>
-    ${r('Abrió', esc(c.abre.nombre.split(' ')[0]) + ' ' + hora(c.abre.ts))}${r('Cerró', esc(k.nombre.split(' ')[0]) + ' ' + hora(k.ts))}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
+    ${r('Abrió', esc(pdvPN(c.abre)) + ' ' + hora(c.abre.ts))}${pdvSesionDe(c.abre) ? r('&nbsp;en la sesión de', esc(pdvSesionDe(c.abre))) : ''}${r('Cerró', esc(pdvPN(k)) + ' ' + hora(k.ts))}${pdvSesionDe(k) ? r('&nbsp;en la sesión de', esc(pdvSesionDe(k))) : ''}${k.porOtro ? `<div>Cerrado por otra persona: ${esc(k.notaOtro || '')}</div>` : ''}<hr>
     ${r('Ventas (' + k.n + ')', money(k.ventas))}${Object.entries(k.met).map(([m, v]) => r('&nbsp;' + PDV_MET_TXT[m], money(v))).join('')}
     ${r('Propinas tarjeta', money(k.propinas))}${k.canceladas ? r('Canceladas (' + k.canceladas + ')', money(k.montoCancelado)) : ''}<hr>
     ${k.recargas && k.recargas.n ? r('Recargas monedero (' + k.recargas.n + ')', money(k.recargas.total)) + ['efectivo', 'tarjeta', 'transferencia'].filter(m => k.recargas[m]).map(m => r('&nbsp;' + PDV_MET_TXT[m], money(k.recargas[m]))).join('') + '<hr>' : ''}
@@ -4404,7 +4465,8 @@ function pdvMesasLista() {
 /** 2.46.1: cuentas y pedidos cobrados en este turno (abiertos en él). */
 function pdvCerradas() { return PDV.ventas.filter(v => v.origen === 'cuenta' && v.estado === 'pagada').sort((a, b) => (b.cerrada || b.ts) - (a.cerrada || a.ts)); }
 function pdvVistaMesas() {
-  if (!PDV.caja) return pdvSinCaja('Abre la caja para empezar a tomar órdenes.');
+  // 2.67.1: con la caja cerrada, los pedidos de la app se siguen atendiendo aquí (cobrarlos sí necesita la caja abierta)
+  if (!PDV.caja) { pdvAppAsegurar(8000); return pdvBarraPedidos() + pdvVistaApp() + pdvSinCaja('Abre la caja para empezar a tomar órdenes' + (pdvAppCuentas().length ? ' y cobrar los pedidos.' : '.')); }
   const ver = PDV.mesasVer === 'cerrados' ? 'cerrados' : 'activos', cerr = pdvCerradas();
   const sel = `<div class="pdvTipo" style="margin:0 0 10px"><button class="${ver === 'activos' ? 'on' : ''}" onclick="PDV.mesasVer='activos';pintarCaja()">🟢 Activos (${PDV.cuentas.length})</button><button class="${ver === 'cerrados' ? 'on' : ''}" onclick="PDV.mesasVer='cerrados';pintarCaja()">✅ Cerrados (${cerr.length})</button></div>`;
   if (ver === 'cerrados') return sel + pdvVistaCerradas(cerr);
@@ -4436,8 +4498,8 @@ function pdvVistaActivas() {
       <span>${money(total)}${cs.length > 1 ? ' · ' + cs.length + ' cuentas' : ''}</span><small>${Math.round((ahora - desde) / 60000)} min · ${esc(cs[0].mesero.nombre.split(' ')[0])}</small></button>`;
   };
   const sueltas = abiertas.filter(c => !c.mesa).sort((a, b) => a.ts - b.ts);
-  pdvAppAsegurar();
-  return `${pdvVistaPorEntregar()}${pdvVistaApp()}<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'llevar')">🥡 Para llevar</button><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'libre')">➕ Cuenta sin mesa</button></div>
+  pdvAppAsegurar(8000);
+  return `${pdvBarraPedidos()}${pdvVistaPorEntregar()}${pdvVistaApp()}<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'llevar')">🥡 Para llevar</button><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'libre')">➕ Cuenta sin mesa</button></div>
     <div class="pdvMesas">${lista.map(tile).join('')}</div>
     ${sueltas.length ? `<h3>📋 Pedidos activos (para llevar y sin mesa)</h3>${sueltas.map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b>${listas.has(c.id) ? ' <span class="tag t-ok">📦 Listo</span>' : ''}<div class="small muted">${esc(c.folio)} · ${c.dia !== pdvHoy() ? '<b style="color:var(--err)">📅 ' + esc(fechaCorta(c.ts)) + '</b>' : hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}
     ${abiertas.some(c => c.dia !== pdvHoy()) ? '<div class="aviso warn small" style="margin-top:8px">📅 Hay cuentas abiertas de otro día. Ábrelas para cobrarlas, o en ⋯ → <b>Cancelar cuenta completa</b> si ya no se van a cobrar.</div>' : ''}`;
@@ -4449,19 +4511,33 @@ function pdvAppCuentas() {
   const hoy = pdvHoy();
   return ((PDV.app && PDV.app.pedidos) || []).filter(p => !p.servicio && (
     ['PREPARANDO', 'LISTO'].includes(p.estado) ||
+    p.estado === 'PAGO_ENVIADO' || // 2.67.1: un pago por confirmar (aunque sea preventa de otro día) se atiende en la caja
     (['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO'].includes(p.estado) && (!p.programado || pdvHoy(p.programado) === hoy || (p.estado === 'NUEVO' && !p.preventa))) ||
     (p.estado === 'PROGRAMADO' && pdvHoy(p.programado) === hoy) ||
     (['EN_CAMINO', 'ENTREGADO'].includes(p.estado) && !p.cobroCaja && pdvHoy(p.creado) === hoy)));
 }
 const appNombre = p => (p.comprador && p.comprador.nombre) || (p.recibe && p.recibe.nombre) || 'Cliente';
 const appCanal = p => p.porTelefono ? '☎️ Teléfono' : '📱 App';
+/** 2.67.1 · arriba de Mesas y pedidos: si se reciben pedidos (y el interruptor), preventas e historial de la app. */
+function pdvBarraPedidos() {
+  const n = PDV.appNeg || S.negocio || {};
+  if (!n.id || n.id !== PDV.nid) return '';
+  const pv = ((PDV.app && PDV.app.pedidos) || []).filter(x => x.preventa && ['POR_PAGAR', 'PROGRAMADO', 'PAGO_ENVIADO'].includes(x.estado) && pdvHoy(x.programado) !== pdvHoy()).length;
+  return `<div class="card row between pdvBarraPed" style="gap:8px;padding:8px 12px"><div class="grow"><div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo === false ? '⏸️ Pausado: no recibes pedidos de la app' : (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto || 'Recibiendo pedidos')}</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap"><button class="lnk small" onclick="S._pedHist=true;ir('negPedidos')">📋 Historial de pedidos</button>${pv ? `<button class="lnk small" onclick="act(null,()=>pvPanel())">🎟️ ${pv} preventa(s) apartada(s)</button>` : ''}</div></div>
+    ${puedo('abrir') && n.estado === 'activo' ? `<label class="sw" title="Recibir pedidos"><input type="checkbox" ${n.recibiendo !== false ? 'checked' : ''} onchange="act(null,()=>pdvAbrirCerrar(this))"><i></i></label>` : ''}</div>`;
+}
+async function pdvAbrirCerrar(chk) {
+  try { const n = await api('abrirCerrar', { abierto: chk.checked }); fijarNeg(n); PDV.appNeg = Object.assign({}, PDV.appNeg || {}, n); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintarCaja(); }
+  catch (e) { chk.checked = !chk.checked; throw e; }
+}
 function pdvVistaApp() {
   const l = pdvAppCuentas().sort((a, b) => (a.estado === 'NUEVO' ? 0 : 1) - (b.estado === 'NUEVO' ? 0 : 1) || a.creado - b.creado);
   if (!l.length) return '';
   return `<h3 style="margin:0 0 6px">📱 Pedidos de la app y teléfono (${l.length})</h3>${l.map(p => { const e = APP_EST[p.estado] || [p.estado, ''];
     return `<div class="card pdvAppC ${p.estado === 'NUEVO' ? 'nuevo' : ''}" role="button" onclick="pdvAppAbrir('${p.id}')"><div class="row between" style="gap:8px"><b><span class="tag pdvCanal">${appCanal(p)}</span> ${esc(appNombre(p))}</b><b>${money(p.subtotal)}</b></div>
       <div class="row between" style="gap:8px;margin-top:4px"><span class="small muted">${esc(p.folio)} · ${p.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${p.programado ? '<b>🗓️ ' + esc(progTxtC(p.programado)) + '</b>' : hora(p.creado)}</span>
-      <span>${p.cobroCaja ? '<span class="tag t-ok">💵 Cobrado</span> ' : ''}<span class="tag ${e[1]}">${e[0]}</span></span></div></div>`; }).join('')}`;
+      <span>${p.ubicPend ? '<span class="tag t-warn">📍 Ubicación por confirmar</span> ' : ''}${p.cobroCaja ? '<span class="tag t-ok">💵 Cobrado</span> ' : pdvAppPagoTag(p)}<span class="tag ${e[1]}">${e[0]}</span></span></div></div>`; }).join('')}`;
 }
 /** Abre el pedido dentro de caja: productos, pago y los mismos botones de Pedidos. */
 function pdvAppAbrir(id) {
@@ -4476,8 +4552,30 @@ function pdvAppAbrir(id) {
       <div class="tot"><span>Productos</span><b>${money(p.subtotal)}</b></div>${p.envio ? `<div class="tot"><span>🛵 Envío${p.envioEn === 'negocio' ? ' (para el negocio)' : ' (del repartidor)'}</span><span>${money(p.envio)}</span></div>` : ''}${p.descuento ? `<div class="tot"><span>Descuento</span><span>−${money(p.descuento)}</span></div>` : ''}
       <div class="tot g"><span>Total del cliente</span><b>${money(p.total)}</b></div>
       <div class="small muted">${PAGO_TXT[p.metodoPago] || p.metodoPago}${p.metodoPago !== 'efectivo' ? (p.pagoConfirmado ? ' · ✓ confirmada' : ' · sin confirmar') : ''}${p.notas ? ' · 📝 ' + esc(p.notas) : ''}</div></div>
-    ${pvLinea(p)}${cc ? `<div class="aviso ok small">💵 Cobrado en caja: ${money(cc.monto)} · ${esc(PDV_MET[cc.metodo] || cc.metodo)} · ${esc(cc.folio)}</div>` : ''}
-    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p)}</div>`);
+    ${pedInfoExtra(p)}${!cc ? pdvAppPagoAviso(p) : ''}${pvLinea(p)}${cc ? `<div class="aviso ok small">💵 Cobrado en caja: ${money(cc.monto)} · ${esc(PDV_MET[cc.metodo] || cc.metodo)} · ${esc(cc.folio)}</div>` : ''}
+    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p)}</div>`);
+}
+/* 2.66.1 · Pedidos ya pagados en la app (transferencia o CoDi confirmada) y pagos con monedero */
+const pdvAppTransf = p => (p.metodoPago === 'transferencia' || p.metodoPago === 'codi');
+/** Lo que el cliente ya pagó (o paga con monedero): la comida y, si va al negocio, el envío. */
+const pdvAppMontoPagado = p => pdvR((Number(p.subtotal) || 0) + (p.envioEn === 'negocio' ? Number(p.envio) || 0 : 0));
+const pdvAppPagado = p => pdvAppTransf(p) && !!p.pagoConfirmado && !p.preventa;
+function pdvAppPagoTag(p) {
+  if (p.preventa) return '';
+  if (pdvAppPagado(p)) return `<span class="tag t-ok">✅ Pagado · ${PAGO_TXT[p.metodoPago]}</span> `;
+  if (pdvAppTransf(p) && p.estado === 'PAGO_ENVIADO') return '<span class="tag t-warn">⏳ Pago por confirmar</span> ';
+  if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return '<span class="tag t-warn">⏳ Esperando su pago</span> ';
+  if (p.metodoPago === 'monedero') return '<span class="tag t-info">👛 Monedero</span> ';
+  return '';
+}
+function pdvAppPagoAviso(p) {
+  if (p.preventa) return '';
+  const env = p.envio > 0 && p.envioEn !== 'negocio' ? (p.propio ? ' · el envío (' + money(p.envio) + ') se cobra aparte' : ' · el envío (' + money(p.envio) + ') se le paga al repartidor') : '';
+  if (pdvAppPagado(p)) return `<div class="aviso ok pdvPagadoAv">✅ <b>Ya pagó ${money(pdvAppMontoPagado(p))} por ${PAGO_TXT[p.metodoPago].toLowerCase()}</b>${env}. Al entregarlo se registra solo en la caja.</div>`;
+  if (pdvAppTransf(p) && p.estado === 'PAGO_ENVIADO') return `<div class="aviso warn">⏳ <b>Mandó su comprobante:</b> confirma el pago antes de entregarlo. No lo cobres otra vez.</div>`;
+  if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return `<div class="aviso warn">⏳ Aún no paga su transferencia.</div>`;
+  if (p.metodoPago === 'monedero') return `<div class="aviso info">👛 <b>Paga con su monedero ${money(pdvAppMontoPagado(p))}</b>${env}. Se descuenta al entregarlo.</div>`;
+  return '';
 }
 /** ¿Hay que cobrarlo antes de entregarlo? */
 function pdvAppPorCobrar(id) {
@@ -4494,9 +4592,25 @@ function pdvCobrarApp(id, despues) {
   const incl = p.envio > 0 && (p.envioEn === 'negocio' || p.propio);
   pdvAppArmar(p, incl);
   const ant = p.preventa && p.pagoConfirmado ? pdvR(p.preventa.anticipo) : 0; // 2.64: el anticipo de la preventa ya se pagó
-  PDV.cobro = { total: pdvTotal(), pagos: ant ? [{ metodo: 'transferencia', monto: ant, ts: Date.now(), por: pdvYo(), anticipo: true }] : [], met: ant ? 'efectivo' : p.metodoPago === 'transferencia' || p.metodoPago === 'codi' ? 'transferencia' : 'efectivo', ent: null,
-    app: { id: p.id, folio: p.folio, canal: p.porTelefono ? 'tel' : 'app', envio: p.envio || 0, incl, despues: despues || null, anticipo: ant } };
+  // 2.66.1: ya pagado en la app (transferencia/CoDi) o con su monedero: entra como pago hecho
+  const ya = pdvAppPagado(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '✅ Pagado en la app (' + PAGO_TXT[p.metodoPago] + ')' }
+    : p.metodoPago === 'monedero' && p.monTel ? { metodo: 'monedero', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '👛 Su monedero', monTel: p.monTel, monNombre: appNombre(p) } : null;
+  PDV.cobro = { total: pdvTotal(), pagos: ant ? [{ metodo: 'transferencia', monto: ant, ts: Date.now(), por: pdvYo(), anticipo: true }] : ya ? [ya] : [], met: ant ? 'efectivo' : p.metodoPago === 'transferencia' || p.metodoPago === 'codi' ? 'transferencia' : 'efectivo', ent: null,
+    app: { id: p.id, folio: p.folio, canal: p.porTelefono ? 'tel' : 'app', envio: p.envio || 0, incl, despues: despues || null, anticipo: ant, ya: !!ya } };
+  // si ya quedó cubierto, se registra solo (sin pantalla de cobro) y sigue la entrega
+  if (ya && pdvR(PDV.cobro.total - pdvPagado()) <= 0) return pdvAppAuto(ya);
   pdvPintarCobro();
+}
+async function pdvAppAuto(ya) {
+  try { await pdvTerminarVenta(); }
+  catch (e) {
+    // el monedero ya no alcanzó (o falló): se cobra de otra forma
+    if (ya.metodo === 'monedero') { PDV.cobro.pagos = PDV.cobro.pagos.filter(x => x !== ya); PDV.cobro.app.ya = false; pdvPintarCobro(); toast('👛 ' + e.message + '. Cóbralo de otra forma.', 'err'); return; }
+    throw e;
+  }
+  const f = S._trasCobro; S._trasCobro = null; cerrarModal(); pintarCaja();
+  toast(ya.metodo === 'monedero' ? '👛 Cobrado con su monedero y registrado en caja' : '✅ Ya estaba pagado · registrado en caja');
+  if (f) setTimeout(() => act(null, f), 50);
 }
 function pdvAppArmar(p, incl) {
   const items = {};
@@ -5134,7 +5248,7 @@ async function pdvCargarApp() {
   if (!navigator.onLine) return;
   try {
     const d = await api('panelNegocio'); const antes = JSON.stringify((PDV.app && PDV.app.pedidos) || []);
-    PDV.app = { t: Date.now(), pedidos: d.pedidos }; recordar(d.pedidos || []);
+    PDV.app = { t: Date.now(), pedidos: d.pedidos }; recordar(d.pedidos || []); if (d.negocio) PDV.appNeg = d.negocio;
     if (S.vista === 'caja' && ['hoy', 'mesas'].includes(PDV.tab) && !PDV.cuentaId && antes !== JSON.stringify(d.pedidos) && !$('#modal.on')) pintarCaja();
   } catch (e) { }
 }
@@ -5235,6 +5349,12 @@ function pdvVistaReportes() {
     </div>`;
   const vis = S.params === 'ventas' ? '' : `<div class="pdvTipo" style="margin:4px 0 8px"><button class="${R.vista !== 'cortes' ? 'on' : ''}" onclick="PDV.rep.vista='res';pintarCaja()">📊 Resumen</button><button class="${R.vista === 'cortes' ? 'on' : ''}" onclick="PDV.rep.vista='cortes';pintarCaja()">🧾 Cortes</button></div>`;
   const rg = pdvRango(R.per, R.desde, R.hasta), clave = R.per + R.neg + rg.desde + rg.hasta;
+  // 2.67: lo ya consultado se muestra al instante (y se actualiza por detrás)
+  const ngsR = () => R.neg === 'todos' ? negs : negs.filter(n => n.id === R.neg).concat(negs.some(n => n.id === R.neg) ? [] : [{ id: PDV.nid, nombre: S.negocio.nombre }]);
+  if ((!R.datos || R.clave !== clave) && PDV.repCache && PDV.repCache[clave]) {
+    const c = PDV.repCache[clave]; R.datos = c.d; R.clave = clave;
+    if (Date.now() - c.t > 20e3 && R.cargando !== clave) { R.cargando = clave; pdvCargarReporte(rg, ngsR(), clave); }
+  }
   if (!R.datos || R.clave !== clave) {
     if (R.cargando !== clave) { R.cargando = clave; pdvCargarReporte(rg, R.neg === 'todos' ? negs : negs.filter(n => n.id === R.neg).concat(negs.some(n => n.id === R.neg) ? [] : [{ id: PDV.nid, nombre: S.negocio.nombre }]), clave); }
     return vis + sel + '<div class="cargando">Armando el reporte…</div>';
@@ -5252,7 +5372,7 @@ function pdvFilasCortes(D, puesto) {
     const fila = {}, sueltos = {};
     cs.forEach(c => {
       const m = c.cierre.met || {};
-      fila[c.id] = { c, n, dia: c.dia, ts: c.abre.ts, turno: turnoNom(c), cerro: (c.cierre.nombre || '').split(' ')[0], caja: pdvR(c.cierre.ventas || 0),
+      fila[c.id] = { c, n, dia: c.dia, ts: c.abre.ts, turno: turnoNom(c), cerro: pdvPN(c.cierre), abrio: pdvPN(c.abre), porOtro: !!c.cierre.porOtro, caja: pdvR(c.cierre.ventas || 0),
         ef: pdvR(m.efectivo || 0), tar: pdvR(m.tarjeta || 0), tr: pdvR(m.transferencia || 0), mon: pdvR(m.monedero || 0), cons: pdvR(m.consumo || 0),
         app: 0, appEf: 0, appTr: 0, appN: 0, retiro: pdvR(c.cierre.retiro || 0), dif: pdvR(c.cierre.diferencia || 0),
         gastos: pdvR((Number(c.cierre.gastosCaja) || 0) + (Number(c.cierre.gastosOtros) || 0) + (Number(c.cierre.provCaja) || 0)) };
@@ -5282,11 +5402,11 @@ function pdvHtmlCortes(D, puesto) {
   if (!filas.length) return '<div class="vacio">Sin cortes en el periodo</div>';
   const sum = k => pdvR(filas.reduce((s, f) => s + f[k], 0));
   const m = v => v ? money(v) : '<span class="muted">–</span>';
-  const sinApp = D.app && D.app._error ? `<div class="aviso warn small">No se pudieron traer los pedidos de Pídele (${esc(D.app._error)}). Las filas solo traen lo de caja.</div>` : !D.app ? '<div class="aviso warn small">Sin conexión: faltan los pedidos de Pídele.</div>' : '';
+  const sinApp = D.app && D.app._cargando ? '<div class="small muted">⏳ Sumando los pedidos de Pídele…</div>' : D.app && D.app._error ? `<div class="aviso warn small">No se pudieron traer los pedidos de Pídele (${esc(D.app._error)}). Las filas solo traen lo de caja.</div>` : !D.app ? '<div class="aviso warn small">Sin conexión: faltan los pedidos de Pídele.</div>' : '';
   return `${sinApp}<div class="card" style="padding:10px 12px"><div class="row between"><b>🧾 ${filas.filter(f => !f.soloApp).length} corte(s)</b><button class="lnk small" onclick="pdvCsvCortes()">⬇️ Descargar Excel</button></div>
     <div class="muted small">Venta total = lo cobrado en caja + pedidos de Pídele del turno. Toca un corte para ver el detalle.</div>
     <div class="cortesWrap"><table class="cortesT"><thead><tr><th>Corte</th><th>Venta total</th><th>Efectivo</th><th>Tarjeta</th><th>Transf.</th><th>Monedero</th><th>Pídele</th><th>Gastos</th><th>Retiro</th><th>Dif.</th></tr></thead>
-    <tbody>${filas.map((f, i) => `<tr class="${f.soloApp ? 'app' : ''}" onclick="pdvCorteDetalle(${i})"><td><b>${esc(f.dia.slice(8))}/${esc(f.dia.slice(5, 7))}</b> ${esc(f.turno)}${varios ? '<br><small class="muted">' + esc(f.n.nombre) + '</small>' : ''}${f.cerro ? '<small class="muted"> · ' + esc(f.cerro) + '</small>' : ''}</td>
+    <tbody>${filas.map((f, i) => `<tr class="${f.soloApp ? 'app' : ''}" onclick="pdvCorteDetalle(${i})"><td><b>${esc(f.dia.slice(8))}/${esc(f.dia.slice(5, 7))}</b> ${esc(f.turno)}${varios ? '<br><small class="muted">' + esc(f.n.nombre) + '</small>' : ''}${f.c ? '<br><small class="muted">' + pdvQuienTxt(f.c, true) + '</small>' : ''}</td>
       <td><b>${money(f.total)}</b></td><td>${m(f.ef)}</td><td>${m(f.tar)}</td><td>${m(f.tr)}</td><td>${m(f.mon)}</td><td>${m(f.app)}</td><td>${f.soloApp ? '' : m(f.gastos)}</td><td>${f.soloApp ? '' : m(f.retiro)}</td>
       <td style="color:${Math.abs(f.dif) < 0.5 ? 'inherit' : f.dif < 0 ? 'var(--err)' : 'var(--ok)'}">${f.soloApp ? '' : Math.abs(f.dif) < 0.5 ? '✓' : money(f.dif)}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td>Total</td><td>${money(sum('total'))}</td><td>${money(sum('ef'))}</td><td>${money(sum('tar'))}</td><td>${money(sum('tr'))}</td><td>${money(sum('mon'))}</td><td>${money(sum('app'))}</td><td>${money(sum('gastos'))}</td><td>${money(sum('retiro'))}</td><td>${money(sum('dif'))}</td></tr></tfoot></table></div></div>`;
@@ -5296,7 +5416,7 @@ function pdvCorteDetalle(i) {
   const c = f.c, ci = c ? c.cierre : null, met = ci ? ci.met || {} : {};
   const lin = (t, v, b) => `<div class="pdvFila g"><span>${t}</span><span></span>${b ? '<b>' + money(v) + '</b>' : '<span>' + money(v) + '</span>'}</div>`;
   modal(`<div class="row between"><h2 style="margin:0">${esc(f.turno)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small">${esc(f.n.nombre)} · ${esc(asisDiaTxt ? asisDiaTxt(f.dia) : f.dia)}${c ? ' · abrió ' + esc((c.abre.nombre || '').split(' ')[0]) + ' ' + hora(c.abre.ts) + ' · cerró ' + esc(f.cerro) + ' ' + hora(ci.ts) : ''}</div>
+    <div class="muted small">${esc(f.n.nombre)} · ${esc(asisDiaTxt ? asisDiaTxt(f.dia) : f.dia)}</div>${c ? '<div class="small" style="margin-top:2px">' + pdvQuienTxt(c) + '</div>' + (ci && ci.porOtro ? '<div class="small" style="color:var(--err);margin-top:2px">⚠️ Cerró otra persona' + (ci.notaOtro ? ': ' + esc(ci.notaOtro) : '') + '</div>' : '') : ''}
     <div class="pdvTabla">${lin('<b>Venta total</b>', f.total, true)}
       ${c ? lin('Caja · ' + (ci.n || 0) + ' venta(s)', f.caja) + Object.keys(met).filter(k => met[k]).map(k => lin('&nbsp;&nbsp;' + (PDV_MET[k] || k), met[k])).join('') : ''}
       ${f.app ? lin('🛵 Pídele · ' + f.appN + ' pedido(s)', f.app) + (f.appEf ? lin('&nbsp;&nbsp;💵 Efectivo', f.appEf) : '') + (f.appTr ? lin('&nbsp;&nbsp;🏦 Transferencia', f.appTr) : '') : ''}
@@ -5308,10 +5428,10 @@ function pdvCorteDetalle(i) {
 }
 function pdvCsvCortes() {
   const f = PDV.rep && PDV.rep.cortesF; if (!f) return;
-  const rows = [['Día', 'Negocio', 'Turno', 'Cerró', 'Venta total', 'Venta caja', 'Efectivo', 'Tarjeta', 'Transferencia', 'Monedero', 'Consumo personal', 'Pídele', 'Pídele efectivo', 'Pídele transferencia', 'Gastos', 'Retiro', 'Diferencia']];
-  f.forEach(x => rows.push([x.dia, x.n.nombre, x.turno, x.cerro, x.total, x.caja, x.ef, x.tar, x.tr, x.mon, x.cons, x.app, x.appEf, x.appTr, x.soloApp ? '' : x.gastos, x.soloApp ? '' : x.retiro, x.soloApp ? '' : x.dif]));
+  const rows = [['Día', 'Negocio', 'Turno', 'Abrió', 'Cerró', 'Cerró otra persona', 'Venta total', 'Venta caja', 'Efectivo', 'Tarjeta', 'Transferencia', 'Monedero', 'Consumo personal', 'Pídele', 'Pídele efectivo', 'Pídele transferencia', 'Gastos', 'Retiro', 'Diferencia']];
+  f.forEach(x => rows.push([x.dia, x.n.nombre, x.turno, x.abrio || '', x.cerro || '', x.porOtro ? 'Sí' + (x.c && x.c.cierre && x.c.cierre.notaOtro ? ': ' + x.c.cierre.notaOtro : '') : '', x.total, x.caja, x.ef, x.tar, x.tr, x.mon, x.cons, x.app, x.appEf, x.appTr, x.soloApp ? '' : x.gastos, x.soloApp ? '' : x.retiro, x.soloApp ? '' : x.dif]));
   const sum = k => pdvR(f.reduce((s, x) => s + x[k], 0));
-  rows.push(['Total', '', '', '', sum('total'), sum('caja'), sum('ef'), sum('tar'), sum('tr'), sum('mon'), sum('cons'), sum('app'), sum('appEf'), sum('appTr'), sum('gastos'), sum('retiro'), sum('dif')]);
+  rows.push(['Total', '', '', '', '', '', sum('total'), sum('caja'), sum('ef'), sum('tar'), sum('tr'), sum('mon'), sum('cons'), sum('app'), sum('appEf'), sum('appTr'), sum('gastos'), sum('retiro'), sum('dif')]);
   const rg = pdvRango(PDV.rep.per, PDV.rep.desde, PDV.rep.hasta);
   pdvDescargar('cortes-' + rg.desde + '_' + rg.hasta + '.csv', rows);
 }
@@ -5329,15 +5449,22 @@ async function pdvCargarReporte(rg, negs, clave) {
   const col = (nid, c) => PDV.db.collection('negocios').doc(nid).collection(c);
   const docs = s => s.docs.map(d => Object.assign({ id: d.id }, d.data()));
   const rango = (nid, c, campo) => col(nid, c).where(campo, '>=', rg.desde).where(campo, '<=', rg.hasta).get().then(docs).catch(() => []);
+  // 2.67: los pedidos de la app (servidor) se piden al mismo tiempo que la caja (Firebase); se pinta la caja primero
+  const appP = navigator.onLine ? api('pdvReporteApp', { negocioIds: negs.map(n => n.id), desde: rg.msDesde, hasta: rg.msHasta }).catch(e => ({ _error: e.message })) : Promise.resolve(null);
   const por = await Promise.all(negs.map(async n => {
     const [ventas, pagos, gastos, cajas, provs] = await Promise.all([rango(n.id, 'ventas', 'dia'), rango(n.id, 'pagos', 'diaVenta'), rango(n.id, 'gastos', 'dia'), rango(n.id, 'cajas', 'dia'), col(n.id, 'proveedores').get().then(docs).catch(() => [])]);
     return { n, ventas, pagos, gastos, cajas, provs };
   }));
-  let app = null;
-  if (navigator.onLine) { try { app = await api('pdvReporteApp', { negocioIds: negs.map(n => n.id), desde: rg.msDesde, hasta: rg.msHasta }); } catch (e) { app = { _error: e.message }; } }
-  const R = PDV.rep; if (!R) return;
-  R.datos = { por, app, negs }; R.clave = clave; R.cargando = '';
-  if (S.vista === 'caja' && PDV.tab === 'reportes') pintarCaja();
+  PDV.repCache = PDV.repCache || {};
+  const prev = PDV.repCache[clave] && PDV.repCache[clave].d.app;
+  const pon = (d, fin) => {
+    PDV.repCache[clave] = { d, t: Date.now() };
+    const R = PDV.rep; if (!R) return;
+    if (R.cargando === clave || R.clave === clave) { R.datos = d; R.clave = clave; if (fin && R.cargando === clave) R.cargando = ''; }
+    if (S.vista === 'caja' && ['reportes', 'cortes'].includes(PDV.tab) && R.clave === clave) pintarCaja();
+  };
+  pon({ por, app: prev && !prev._error && !prev._cargando ? prev : navigator.onLine ? { _cargando: true } : null, negs });
+  pon({ por, app: await appP, negs }, true);
 }
 /** Junta los números de uno o varios negocios. */
 function pdvCalcReporte(D) {
@@ -5424,7 +5551,7 @@ function pdvHtmlReporte(D, rg) {
   const tile = (t, v, sub, fuerte) => `<div class="pdvTile ${fuerte ? 'fuerte' : ''}"><span>${t}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
   const prods = Object.entries(r.prods).sort((a, b) => b[1].importe - a[1].importe);
   const periodo = rg.desde === rg.hasta ? nomDia(rg.desde) : nomDia(rg.desde) + ' al ' + nomDia(rg.hasta);
-  const appErr = D.app && D.app._error ? `<div class="aviso warn">No se pudieron traer los pedidos de la app: ${esc(D.app._error)}</div>` : !D.app ? '<div class="aviso warn">Sin internet: el reporte no incluye los pedidos de la app.</div>' : '';
+  const appErr = D.app && D.app._cargando ? '<div class="small muted">⏳ Sumando los pedidos de la app…</div>' : D.app && D.app._error ? `<div class="aviso warn">No se pudieron traer los pedidos de la app: ${esc(D.app._error)}</div>` : !D.app ? '<div class="aviso warn">Sin internet: el reporte no incluye los pedidos de la app.</div>' : '';
   return `<div class="muted small" style="margin:0 2px 8px">${esc(periodo)}${D.negs.length > 1 && PDV.rep.neg === 'todos' ? ' · ' + D.negs.length + ' negocios' : ''}${D.soloCaja ? ' · 🗄️ ' + esc(D.soloCaja) + ' (sin pedidos de la app)' : ''}</div>${D.soloCaja ? '' : appErr}
     <div class="pdvTiles">
       ${tile('Ventas', money(r.ventas), 'Caja ' + money(r.ventasCaja) + ' · App ' + money(r.ventasApp), 1)}
@@ -5452,7 +5579,7 @@ function pdvHtmlReporte(D, rg) {
       <div class="card"><b>Gastos por categoría</b>${pdvBarras(r.porCat)}
         <div class="small" style="margin-top:6px">De caja ${money(r.porPago.caja || 0)} · Fuera de caja ${money(r.porPago.fuera || 0)} · A crédito ${money(r.porPago.credito || 0)}</div>
         ${r.deuda ? `<div class="small" style="margin-top:4px">📒 Debes a proveedores hoy: <b>${money(r.deuda)}</b></div>` : ''}</div>
-      <div class="card"><b>Cortes de caja</b>${r.cortes.length ? `<div class="pdvTabla"><div class="pdvFila cab"><span>Turno</span><span>Retiro</span><span>Dif.</span></div>${r.cortes.sort((a, b) => (a.dia + a.turno).localeCompare(b.dia + b.turno)).map(c => `<div class="pdvFila"><span>${esc(c.dia.slice(5))} ${c.puesto && c.puesto !== 'p1' || pdvMulti() ? esc(pdvNomCaja(c)) + ' ' : ''}T${c.turno} · ${esc(c.cierre.nombre.split(' ')[0])}${D.negs.length > 1 ? ' · ' + esc(c.neg) : ''}</span><span>${money(c.cierre.retiro)}</span><span style="color:${Math.abs(c.cierre.diferencia) < 0.5 ? 'inherit' : c.cierre.diferencia < 0 ? 'var(--err)' : 'var(--ok)'}">${Math.abs(c.cierre.diferencia) < 0.5 ? '✓' : money(c.cierre.diferencia)}</span></div>`).join('')}</div>
+      <div class="card"><b>Cortes de caja</b>${r.cortes.length ? `<div class="pdvTabla"><div class="pdvFila cab"><span>Turno</span><span>Retiro</span><span>Dif.</span></div>${r.cortes.sort((a, b) => (a.dia + a.turno).localeCompare(b.dia + b.turno)).map(c => `<div class="pdvFila"><span>${esc(c.dia.slice(5))} ${c.puesto && c.puesto !== 'p1' || pdvMulti() ? esc(pdvNomCaja(c)) + ' ' : ''}T${c.turno} · ${esc(pdvPN(c.abre))}→${esc(pdvPN(c.cierre))}${c.cierre.porOtro ? ' ⚠️' : ''}${D.negs.length > 1 ? ' · ' + esc(c.neg) : ''}</span><span>${money(c.cierre.retiro)}</span><span style="color:${Math.abs(c.cierre.diferencia) < 0.5 ? 'inherit' : c.cierre.diferencia < 0 ? 'var(--err)' : 'var(--ok)'}">${Math.abs(c.cierre.diferencia) < 0.5 ? '✓' : money(c.cierre.diferencia)}</span></div>`).join('')}</div>
         <div class="small" style="margin-top:6px">Faltantes ${money(-r.cortes.reduce((s, c) => s + Math.min(0, c.cierre.diferencia), 0))} · Sobrantes ${money(r.cortes.reduce((s, c) => s + Math.max(0, c.cierre.diferencia), 0))}</div>` : '<div class="muted small">Sin cortes en el periodo</div>'}</div>
     </div>
     <div class="card"><div class="row between"><b>Gastos</b><button class="lnk small" onclick="pdvCsvGastos()">⬇️ Descargar Excel</button></div>
@@ -5560,8 +5687,28 @@ async function asisCodigoLocal(clave, ventana) {
 
 /** 2.60 · Botón grande para checar entrada/salida, arriba de la pantalla de quien es parte del equipo. */
 const VISTAS_CHECAR = ['negPedidos', 'caja', 'operacion', 'menu', 'promos', 'miNegocio', 'perfil', 'almacen', 'nuevoPedido'];
+/** 2.66.2 · ¿Esta pantalla es un reloj autorizado del negocio? (ahí el botón grande muestra el QR) */
+const relojAut = nid => ls('relojAut_' + nid) === true;
+function relojRevisar() {
+  const nid = S.negocio && S.negocio.id; if (!nid || !navigator.onLine || !(esDueno() || puedo('caja') || puedo('gerente'))) return;
+  S._relojChk = S._relojChk || {}; if (S._relojChk[nid] && Date.now() - S._relojChk[nid] < 30 * 60e3) return;
+  S._relojChk[nid] = Date.now();
+  api('asisQR', { negocioId: nid, equipo: equipoId() }).then(k => { ls('asisClave_' + nid, k); relojMarcar(nid, !!k.equipoAut); })
+    .catch(e => { if (/no está autorizado/.test(e.message)) relojMarcar(nid, false); });
+}
+function relojMarcar(nid, si) {
+  if (relojAut(nid) === si) return;
+  ls('relojAut_' + nid, si);
+  const b = $('.checar'), h = barraChecar();
+  if (b) b.outerHTML = h || ''; else if (h && $('#vista')) $('#vista').insertAdjacentHTML('afterbegin', h);
+}
 function barraChecar() {
   try {
+    if (S.user && rolActual() === 'negocio' && S.negocio) {
+      relojRevisar();
+      if (relojAut(S.negocio.id) && (VISTAS_CHECAR.includes(S.vista) || S.vista === 'tablero') && !(S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)))
+        return `<div class="checar ent reloj" role="button" onclick="act(this,asisMostrarQR)"><span style="font-size:30px">🕒</span><span class="grow"><b>Registrar ingreso</b><small>Presiona para mostrar el QR</small></span><span style="font-size:26px">🔳</span></div>`;
+    }
     if (!S.user || rolActual() !== 'negocio' || !S.negocio || esDueno() || !VISTAS_CHECAR.includes(S.vista)) return '';
     if (S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)) return '';
     const x = (ls('asisMia') || []).find(y => y.negocioId === S.negocio.id && y.hoy && y.hoy.fecha === pdvHoy());
@@ -5601,8 +5748,8 @@ async function asisMostrarQR() {
   const nid = S.negocio && S.negocio.id; if (!nid) return;
   let k = ls('asisClave_' + nid);
   if (navigator.onLine) {
-    try { k = await api('asisQR', { negocioId: nid, equipo: equipoId() }); ls('asisClave_' + nid, k); }
-    catch (e) { if (/no está autorizado/.test(e.message)) { ls('asisClave_' + nid, null); relojNoAutorizado(); return; } if (!k) throw e; }
+    try { k = await api('asisQR', { negocioId: nid, equipo: equipoId() }); ls('asisClave_' + nid, k); relojMarcar(nid, !!k.equipoAut); }
+    catch (e) { if (/no está autorizado/.test(e.message)) { ls('asisClave_' + nid, null); relojMarcar(nid, false); relojNoAutorizado(); return; } if (!k) throw e; }
   }
   if (!k) throw new Error('Necesitas internet la primera vez para mostrar el QR de asistencia');
   await cargarQR();
@@ -5735,7 +5882,7 @@ async function vOperacion() {
   opPintar();
 }
 function opCab() {
-  const O = S.op, tabs = [['tar', '✅ Tareas'], ['ped', '📦 Pedidos'], ['prog', '🧽 Limpiezas'], ['mas', '☰ Más']];
+  const O = S.op, tabs = [['tar', '✅ Tareas'], ['ped', '🚚 Surtido'], ['prog', '🧽 Limpiezas'], ['mas', '☰ Más']];
   return `<div class="titBar"><h2 style="margin:0">✅ Operación</h2><span class="esp"></span><button class="btn sm" onclick="act(this,()=>{S.op.ar=null;S.op.T=null;S.op.L=null;vOperacion()})">↻</button></div>
     <div class="tabChips">${tabs.map(([k, t]) => `<button class="${O.tab === k ? 'on' : ''}" onclick="S.op.tab='${k}';S.op.sub='';opPintar()">${t}</button>`).join('')}</div>`;
 }
@@ -6105,7 +6252,7 @@ async function opVistaPed(sinCargar) {
     <div class="small muted" style="margin-top:4px">${opFecha(p.fecha)} ${esc(p.hora)} · ${p.items.length} artículo(s) · ${esc(p.por)}${p.fesp && p.estado !== 'recibido' ? ' · llega ' + (p.fesp === P.hoy ? 'hoy' : opFecha(p.fesp)) : ''}</div>
     <div class="small" style="margin-top:4px">${p.items.slice(0, 4).map(i => esc(pedCant(i.c) + ' ' + i.u + ' ' + i.n)).join(' · ')}${p.items.length > 4 ? ' …' : ''}</div></div>`;
   html(opCab() + `<div class="btns" style="margin-top:6px"><button class="btn pri pill" onclick="pedNuevo()">➕ Hacer pedido</button>
-      <button class="btn pill" onclick="ir('inventario')">📦 Inventario</button>${P.bodegas.length ? `<button class="btn pill" onclick="ir('almacen')">🏬 Almacén · por surtir</button>` : ''}${P.dueno ? `<button class="btn pill" onclick="ir('inventarioCfg')">⚙️ Almacén y proveedores</button>` : ''}</div>
+      <button class="btn pill" onclick="ir('inventario')">📦 Inventario</button>${P.bodegas.length ? `<button class="btn pill" onclick="ir('almacen')">🏬 Almacén · por surtir</button>` : ''}${P.dueno ? `<button class="btn pill" onclick="ir('inventarioCfg')">⚙️ Catálogo</button>` : ''}</div>
     ${abiertos.length ? `<h3 style="margin:12px 0 4px">Pedidos abiertos</h3>${abiertos.map(card).join('')}` : ''}
     ${rec.length ? `<h3 style="margin:12px 0 4px">Últimos días</h3>${rec.map(card).join('')}` : ''}
     ${!P.pedidos.length ? `<div class="vacio"><span class="big">📦</span>No hay pedidos recientes.${P.destinos.length ? '' : P.dueno ? ' Primero da de alta tu almacén, proveedores y artículos en <b>⚙️ Almacén y proveedores</b>.' : ' El dueño aún no da de alta proveedores ni almacén.'}</div>` : ''}
@@ -6223,8 +6370,8 @@ function almSurtir(id) {
 async function vInventarioCfg() {
   if (!S.negocio) { ir('perfil'); return; }
   const I = S._inv = S._inv && S._inv.nid === S.negocio.id ? S._inv : { nid: S.negocio.id, tab: 'art', q: '' };
-  html('<div class="titBar"><h2>⚙️ Almacén y proveedores</h2></div><div class="cargando">Cargando…</div>');
-  try { I.C = await api('invCfg', { negocioId: I.nid }); } catch (e) { html(`<div class="titBar"><h2>⚙️ Almacén y proveedores</h2></div><div class="aviso warn">${esc(e.message)}</div>`); return; }
+  html('<div class="titBar"><h2>⚙️ Catálogo de inventario</h2></div><div class="cargando">Cargando…</div>');
+  try { I.C = await api('invCfg', { negocioId: I.nid }); } catch (e) { html(`<div class="titBar"><h2>⚙️ Catálogo de inventario</h2></div><div class="aviso warn">${esc(e.message)}</div>`); return; }
   invPintar();
 }
 function invPintar() {
@@ -6244,7 +6391,7 @@ function invPintar() {
     body = `${C.dueno ? '<div class="btns"><button class="btn pri pill" onclick="invModal(\'bod\')">➕ Almacén</button></div>' : ''}<div class="small muted" style="margin:6px 0">El almacén central (bodega) surte los pedidos internos de tus negocios. Tú y sus encargados reciben el aviso en cuanto alguien empieza un pedido.</div>
       ${C.bodegas.map(b => `<div class="card row between" style="gap:8px;cursor:pointer" onclick="invModal('bod','${b.id}')"><span><b>${esc(b.nombre)}</b><br><span class="small muted">${esc(hor(b))} · encargados: ${esc(b.encargados.map(id => (C.gente.find(p => p.id === id) || {}).nombre || '').filter(Boolean).join(', ') || 'solo tú')} · ${C.articulos.filter(a => a.surte === 'b:' + b.id).length} artículos</span></span><span>✏️</span></div>`).join('') || '<div class="small muted">Sin almacenes.</div>'}`;
   }
-  html(`<div class="titBar"><button class="btn sm" onclick="ir('operacion')">‹</button><h2 style="margin:0">⚙️ Almacén y proveedores</h2></div>
+  html(`<div class="titBar"><button class="btn sm" onclick="ir('operacion')">‹</button><h2 style="margin:0">⚙️ Catálogo de inventario</h2></div>
     <div class="tabChips">${tabs.map(([k, t]) => `<button class="${I.tab === k ? 'on' : ''}" onclick="S._inv.tab='${k}';invPintar()">${t}</button>`).join('')}</div>${body}<div style="height:20px"></div>`);
 }
 function invHorHTML(x) {
@@ -6432,7 +6579,8 @@ function invVista() {
   html(`<div class="titBar"><h2 style="margin:0">📦 Inventario</h2><span class="esp"></span><button class="btn sm" onclick="act(this,vInventario)">↻</button></div>
     ${D.lugares.length > 1 ? `<div class="tabChips">${D.lugares.map(x => `<button class="${x.id === D.lugar ? 'on' : ''}" onclick="S._iv.lugar='${x.id}';S._iv.D=null;act(this,vInventario)">${esc(x.nombre)}</button>`).join('')}</div>` : ''}
     ${D.mgr ? `<div class="row" style="gap:8px;margin:8px 0"><div class="card grow" style="margin:0;padding:10px 12px"><div class="small muted">Valor del inventario</div><b style="font-size:20px">${money(D.valor)}</b></div><div class="card grow" style="margin:0;padding:10px 12px;cursor:pointer" onclick="S._iv.tab='exist';S._iv.f='bajo';invVista()"><div class="small muted">Bajo el mínimo</div><b style="font-size:20px;${D.bajos ? 'color:var(--err)' : ''}">${D.bajos}</b></div></div>` : ''}
-    <div class="tabs">${tabs.map(([k, t]) => `<button class="${I.tab === k ? 'on' : ''}" onclick="S._iv.tab='${k}';invVista()">${t}</button>`).join('')}</div>${body}
+     <div class="tabs">${tabs.map(([k, t]) => `<button class="${I.tab === k ? 'on' : ''}" onclick="S._iv.tab='${k}';invVista()">${t}</button>`).join('')}</div>
+     ${D.mgr ? `<div class="row invLinks" style="gap:6px;flex-wrap:wrap;margin:-4px 0 10px"><button class="btn sm pill" onclick="S.op=Object.assign(S.op&&S.op.nid===S.negocio.id?S.op:{nid:S.negocio.id,filtro:''},{tab:'ped',sub:''});ir('operacion')">🚚 Surtido</button>${esDueno() ? `<button class="btn sm pill" onclick="ir('inventarioCfg')">⚙️ Catálogo: insumos, proveedores y almacenes</button>` : ''}</div>` : ''}${body}
     ${I.tab === 'exist' && D.mgr && D.cfg ? `<div class="card" style="margin-top:12px"><b>🔢 Conteos</b>
       <div class="row between" style="gap:8px;margin-top:6px"><span class="small">Inventario completo cada semana el</span><select class="i" style="width:auto" onchange="act(null,async()=>{S._iv.D=await api('invCfgGuardar',{lugar:S._iv.lugar,dia:this.value});toast('Guardado ✓');invVista()})"><option value="">No programado</option>${[1, 2, 3, 4, 5, 6, 0].map(k => `<option value="${k}" ${D.cfg.dia === k ? 'selected' : ''}>${DIAS[k]}</option>`).join('')}</select></div>
       <div class="small muted" style="margin:4px 0 6px">Además, al checar entrada a cada quien le tocan 3 insumos de su área (tiene su turno para contarlos).</div>
@@ -7139,7 +7287,7 @@ function asisVistaConfig(d) {
 }
 function asisRelojHTML(c) {
   const yo = equipoId(), l = c.relojEquipos || [], pend = c.relojPend || [];
-  return `<div class="card"><b>🔒 Reloj de asistencia</b><div class="small muted" style="margin:2px 0 8px">Para que nadie marque por otro: decide dónde se muestra el QR y desde qué teléfono marca cada quien.</div>
+  return `<div class="card" id="relojCard"><b>🔒 Reloj de asistencia</b><div class="small muted" style="margin:2px 0 8px">Para que nadie marque por otro: decide dónde se muestra el QR y desde qué teléfono marca cada quien.</div>
     <label class="pdvChk"><input type="checkbox" ${c.relojSolo ? 'checked' : ''} onchange="act(null,()=>asisReloj({accion:'opciones',relojSolo:this.checked}))"> Solo los equipos autorizados pueden mostrar el QR</label>
     ${pend.map(e => `<div class="aviso warn row between" style="gap:8px;margin:6px 0"><span>🔔 <b>${esc(e.nombre)}</b> pide permiso · ${esc(e.por)} · ${fechaCorta(e.ts)}</span><span class="row" style="gap:6px"><button class="btn sm pri" onclick="act(this,()=>asisReloj({accion:'autorizar',equipo:'${e.id}'}))">Autorizar</button><button class="btn sm" onclick="act(this,()=>asisReloj({accion:'rechazar',equipo:'${e.id}'}))">No</button></span></div>`).join('')}
     ${l.map(e => `<div class="pdvFila g"><span>🖥️ ${esc(e.nombre)}${e.id === yo ? ' <b>(este equipo)</b>' : ''}<small>Autorizado ${fechaCorta(e.ts)} · ${esc(e.por)}</small></span><span></span><button class="btn sm" onclick="act(this,()=>asisReloj({accion:'quitar',equipo:'${e.id}'}))">Quitar</button></div>`).join('') || '<div class="small muted">Ningún equipo autorizado todavía.</div>'}
@@ -7906,11 +8054,15 @@ async function monBuscar(tel) {
   if (tel.length !== 10) throw new Error('Escribe el teléfono a 10 dígitos');
   PDV.monQ = tel;
   let x = null;
-  try { x = await monLeer(tel, navigator.onLine); } catch (e) { x = await monLeer(tel).catch(() => null); }
+  // 2.67: el saldo se enseña en cuanto llega (primero lo guardado en el equipo); los movimientos después
+  const pinta = () => { if (PDV.monQ !== tel) return; const e = $('#monCli'); if (e) e.innerHTML = monCardCliente(PDV.monCli); else pintarCaja(); };
+  try { x = await monLeer(tel); } catch (e) { }
+  PDV.monCli = { tel, x, movs: [], cargando: true }; if (x || !navigator.onLine) pinta();
+  if (navigator.onLine) { try { x = await monLeer(tel, true); PDV.monCli = Object.assign({}, PDV.monCli, { x }); pinta(); } catch (e) { } }
   let movs = [];
   try { movs = (await monCol('movs').where('tel', '==', tel).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 40); } catch (e) { }
-  PDV.monCli = { tel, x, movs };
-  const e = $('#monCli'); if (e) e.innerHTML = monCardCliente(PDV.monCli); else pintarCaja();
+  if (PDV.monQ !== tel) return;
+  PDV.monCli = { tel, x, movs }; pinta();
 }
 function monCardCliente(c) {
   const cfg = monCfg(), x = c.x, hoy = pdvHoy();
@@ -7923,7 +8075,7 @@ function monCardCliente(c) {
     ${prox ? `<div class="small muted">Próximo vencimiento: ${money(prox[1])} el ${monFecha(prox[0])}</div>` : ''}
     <div class="tot"><span>Visitas este mes</span><span>${vis} de ${cfg.visitas}${extra ? ' · ⭐ gana +' + cfg.extra + '%' : ''}</span></div>
     <div class="btns">${PDV.caja ? `<button class="btn pri pill" onclick="monFormRecarga('${c.tel}')">💳 Recargar</button>` : ''}<button class="btn pill" onclick="monFormAjuste('${c.tel}')">✍️ Ajustar saldo</button></div>
-    <details style="margin-top:8px"><summary class="small">Movimientos (${c.movs.length})</summary>${c.movs.map(m => `<div class="pdvFila g"><span>${fechaCorta(m.ts)} · ${MON_MOV[m.tipo] || m.tipo}<small>${esc(m.negocio || '')}${m.folio ? ' · ' + esc(m.folio) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}${m.agregado ? ' · agregado después, autorizó ' + esc(m.agregado.autoriza.nombre.split(' ')[0]) : ''}</small></span><span></span><b style="color:${monSigno(m) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(m) > 0 ? '+' : '−'}${money(m.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
+    <details style="margin-top:8px"><summary class="small">Movimientos (${c.cargando ? '…' : c.movs.length})</summary>${c.movs.map(m => `<div class="pdvFila g"><span>${fechaCorta(m.ts)} · ${MON_MOV[m.tipo] || m.tipo}<small>${esc(m.negocio || '')}${m.folio ? ' · ' + esc(m.folio) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}${m.agregado ? ' · agregado después, autorizó ' + esc(m.agregado.autoriza.nombre.split(' ')[0]) : ''}</small></span><span></span><b style="color:${monSigno(m) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(m) > 0 ? '+' : '−'}${money(m.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
 }
 const monSigno = m => ['recarga', 'bono', 'cashback', 'devolucion', 'importado'].includes(m.tipo) || (m.tipo === 'ajuste' && m.signo > 0) ? 1 : -1;
 
@@ -8087,46 +8239,80 @@ async function monGuardarConfig() {
 
 /* --- Mi monedero (app del cliente) --- */
 async function vMonedero() {
-  html('<div class="cargando">Abriendo tu monedero…</div>');
-  const tel = monTel(S.user.telefono);
+  // 2.67: se abre al instante con el último saldo guardado en este teléfono y se actualiza por detrás
+  const tel = monTel(S.user.telefono), c = ls('monCache');
+  if (c && c.uid === S.user.id && c.tel === tel && c.l) { S._mon = { tel, l: c.l, viejo: true, t: c.t }; pintarMonedero(); }
+  else html('<div class="cargando">Abriendo tu monedero…</div>');
+  S._monListo = monRefrescar(tel, c);
+  try { await S._monListo; } catch (e) { if (S.vista !== 'monedero') return; if (S._mon && S._mon.viejo) { S._mon.err = e.message; pintarMonedero(); } else throw e; }
+}
+/** Conecta con Firebase (reusa la sesión si sigue vigente) y lee el saldo de cada monedero. Los movimientos, hasta que se abren. */
+async function monRefrescar(tel, c) {
   await pdvCargarSdk();
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   if (!PDV.db) { PDV.db = firebase.firestore(); try { await PDV.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { } }
-  const k = await api('monederoLlave');
-  if (k.telVerificado === false) {
-    // 2.46.1: el monedero se liga al teléfono solo cuando está verificado (así nadie usa el saldo de otro número)
-    if (S.vista !== 'monedero') return;
-    html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="ir('perfil')" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
+  const au = firebase.auth();
+  await new Promise(ok => { const off = au.onAuthStateChanged(() => { off(); ok(); }); });
+  let grupos = c && c.uid === S.user.id && c.tel === tel && Date.now() - (c.tg || 0) < 6 * 3600e3 ? c.grupos : null, ok = false;
+  if (grupos && au.currentUser && au.currentUser.uid === S.user.id) {
+    try { const r = await au.currentUser.getIdTokenResult(); ok = (r.claims || {}).tel === tel; } catch (e) { }
+  }
+  let tg = c && c.tg;
+  if (!ok) {
+    const k = await api('monederoLlave');
+    if (k.telVerificado === false) {
+      // 2.46.1: el monedero se liga al teléfono solo cuando está verificado (así nadie usa el saldo de otro número)
+      ls('monCache', null);
+      if (S.vista !== 'monedero') return;
+      html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="ir('perfil')" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
       <div class="card" style="text-align:center;margin-top:12px"><div style="font-size:42px">📱</div><h3 style="margin:4px 0">Verifica tu teléfono</h3>
         <div class="muted" style="margin:6px 0 12px">Tu monedero va ligado a tu número <b>${esc(tel)}</b>. Para cuidar tu saldo, primero confirma que es tuyo con un mensaje de WhatsApp.</div>
         <button class="btn pri pill full" onclick="act(this,verificarTel)">Verificar mi teléfono</button><div id="verifEstado"></div></div>`);
-    return;
+      return;
+    }
+    await au.signInWithCustomToken(k.token);
+    if (S.user.rol === 'negocio') ls('pdvLlaveT', Date.now());
+    grupos = k.grupos || []; tg = Date.now();
   }
-  await firebase.auth().signInWithCustomToken(k.token);
-  if (S.user.rol === 'negocio') ls('pdvLlaveT', Date.now());
   const db = PDV.db, l = [];
-  await Promise.all((k.grupos || []).map(async g => {
+  await Promise.all(grupos.map(async g => {
     const ref = db.collection('monederos').doc(g.gid);
     try {
       const [cs, ms] = await Promise.all([ref.get(), ref.collection('monedero').doc(tel).get()]);
       const cfg = Object.assign({}, MON_DEF, cs.exists ? cs.data() : {});
       if (!cfg.activo && !ms.exists) return;
-      let movs = [];
-      if (ms.exists) { try { movs = (await ref.collection('movs').where('tel', '==', tel).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 30); } catch (e) { } }
-      l.push({ g, cfg, x: ms.exists ? ms.data() : null, movs });
+      const x = ms.exists ? ms.data() : null; if (x) delete x.cod;
+      l.push({ g, cfg, x });
     } catch (e) { console.warn(e); }
   }));
-  if (S.vista !== 'monedero') return;
-  S._mon = { tel, l: l.sort((a, b) => (b.x ? 1 : 0) - (a.x ? 1 : 0)) };
-  pintarMonedero();
+  l.sort((a, b) => (b.x ? monSaldo(b.x, pdvHoy()).total : -1) - (a.x ? monSaldo(a.x, pdvHoy()).total : -1));
+  try { ls('monCache', JSON.parse(JSON.stringify({ uid: S.user.id, tel, grupos, tg, l, t: Date.now() }))); } catch (e) { }
+  const abiertos = S._mon && S._mon.movs ? S._mon.movs : {};
+  S._mon = { tel, l, movs: abiertos };
+  if (S.vista === 'monedero') pintarMonedero();
+}
+/** Movimientos de un monedero: solo cuando se abren. */
+async function monMovs(gid, el) {
+  if (!el.open) return;
+  const m = S._mon; m.movs = m.movs || {};
+  if (m.movs[gid]) return;
+  const box = el.querySelector('.monMovs'); if (box) box.innerHTML = '<div class="small muted">Cargando…</div>';
+  try {
+    await S._monListo;
+    const movs = (await PDV.db.collection('monederos').doc(gid).collection('movs').where('tel', '==', m.tel).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 30);
+    m.movs[gid] = movs;
+  } catch (e) { if (box) box.innerHTML = '<div class="small muted">No se pudieron cargar: ' + esc(e.message) + '</div>'; return; }
+  if (box) box.innerHTML = monMovsHTML(m.movs[gid]);
+}
+function monMovsHTML(movs) {
+  return movs.map(v => `<div class="pdvFila g"><span>${fechaCorta(v.ts)} · ${MON_MOV[v.tipo] || v.tipo}<small>${esc(v.negocio || '')}</small></span><span></span><b style="color:${monSigno(v) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(v) > 0 ? '+' : '−'}${money(v.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>';
 }
 function pintarMonedero() {
-  const m = S._mon, hoy = pdvHoy();
-  const tarjeta = ({ g, cfg, x, movs }) => {
-    const nom = g.negocios.map(n => esc(n.nombre)).join(' · ');
-    if (!x) return `<div class="card"><b>${nom}</b><div class="muted small">Da tu teléfono al pagar y gana ${cfg.cashback}% en tu monedero.</div></div>`;
+  const m = S._mon, hoy = pdvHoy(), movs = m.movs || {};
+  const nomDe = g => g.negocios.map(n => esc(n.nombre)).join(' · ');
+  const tarjeta = ({ g, cfg, x }) => {
     const s = monSaldo(x, hoy), vis = (x.vis || {})[monMes(hoy)] || 0, extra = monExtra(x, hoy, cfg), prox = s.lotes[0], faltan = Math.max(0, cfg.visitas - vis);
-    return `<div class="card"><div class="small muted">${nom}</div>
+    return `<div class="card"><div class="small muted">Sirve en: <b>${nomDe(g)}</b></div>
       <div class="row between" style="margin:4px 0"><b style="font-size:30px">${money(s.total)}</b><button class="btn pri pill" onclick="act(this,()=>monCodigo('${g.gid}'))">Pagar con mi saldo</button></div>
       <div class="tot"><span>Recargado (no vence)</span><span>${money(s.rec)}</span></div>
       <div class="tot"><span>Cashback y bonos</span><span>${money(s.cb)}</span></div>
@@ -8134,11 +8320,17 @@ function pintarMonedero() {
       <div class="aviso ${extra ? 'ok' : 'info'}" style="margin:10px 0 4px">${extra ? `⭐ Ganas <b>${pdvR(cfg.cashback + cfg.extra)}%</b> en cada compra.` : `Ganas <b>${cfg.cashback}%</b> en cada compra.`}
         ${vis >= cfg.visitas ? ` Ya llevas ${vis} visitas este mes: tienes el extra también el mes que entra.` : ` Llevas ${vis} de ${cfg.visitas} visitas este mes: ${faltan === 1 ? 'te falta 1' : 'te faltan ' + faltan} para ganar +${cfg.extra}%.`}</div>
       <div class="small muted">Una visita es una compra con tu teléfono (máximo una por día).</div>
-      <details style="margin-top:8px"><summary class="small">Movimientos</summary>${movs.map(v => `<div class="pdvFila g"><span>${fechaCorta(v.ts)} · ${MON_MOV[v.tipo] || v.tipo}<small>${esc(v.negocio || '')}</small></span><span></span><b style="color:${monSigno(v) > 0 ? 'var(--ok)' : 'inherit'}">${monSigno(v) > 0 ? '+' : '−'}${money(v.monto)}</b></div>`).join('') || '<div class="small muted">Sin movimientos</div>'}</details></div>`;
+      <details style="margin-top:8px" ${movs[g.gid] ? 'open' : ''} ontoggle="monMovs('${g.gid}',this)"><summary class="small">Movimientos</summary><div class="monMovs">${movs[g.gid] ? monMovsHTML(movs[g.gid]) : ''}</div></details></div>`;
   };
+  const con = m.l.filter(e => e.x), sin = m.l.filter(e => !e.x);
   html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="ir('perfil')" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
-    <div class="muted small" style="margin:4px 0 10px">Tu teléfono: ${esc(m.tel)}</div>
-    ${m.l.length ? m.l.map(tarjeta).join('') : '<div class="vacio"><span class="big">👛</span>Aún ningún negocio de tu ciudad tiene monedero.</div>'}`);
+    <div class="muted small" style="margin:4px 0 10px">Tu teléfono: ${esc(m.tel)}${m.viejo ? ' · <span id="monAct">⏳ actualizando…</span>' : ''}</div>
+    ${m.err ? `<div class="aviso warn small">No se pudo actualizar (${esc(m.err)}). Es tu saldo de ${esc(fechaCorta(m.t))} ${hora(m.t)}.</div>` : ''}
+    ${con.map(tarjeta).join('')}
+    ${sin.length ? `<details class="card" ${con.length ? '' : 'open'}><summary><b>${con.length ? 'Otros negocios con monedero' : 'Negocios con monedero'} (${sin.length})</b></summary>
+      <div class="small muted" style="margin:6px 0">Da tu teléfono al pagar y empieza a juntar saldo.</div>
+      ${sin.map(({ g, cfg }) => `<div class="pdvFila g"><span>${nomDe(g)}</span><span></span><span class="small">${cfg.cashback}% de regreso</span></div>`).join('')}</details>` : ''}
+    ${m.l.length ? '' : '<div class="vacio"><span class="big">👛</span>Aún ningún negocio de tu ciudad tiene monedero.</div>'}`);
 }
 /** Código de un solo uso (6 números, 10 minutos) para pagar con el saldo en la caja. */
 async function monCodigo(gid) {
@@ -8146,6 +8338,7 @@ async function monCodigo(gid) {
   const n = new Uint32Array(1); crypto.getRandomValues(n);
   const cod = String(100000 + (n[0] % 900000)), sal = Math.random().toString(36).slice(2) + Date.now().toString(36);
   const exp = Date.now() + 10 * 60000;
+  await S._monListo; // 2.67: si se abrió con el saldo guardado, espera la conexión
   await PDV.db.collection('monederos').doc(gid).collection('monedero').doc(S._mon.tel).update({ cod: { h: await pdvHash(cod, sal), s: sal, exp } });
   modal(`<div style="text-align:center"><h2 style="margin:0 0 6px">Tu código para pagar</h2><div class="muted small">Dáselo a quien te cobra en caja.</div>
     <div style="font-size:46px;font-weight:900;letter-spacing:8px;margin:14px 0">${cod.slice(0, 3)} ${cod.slice(3)}</div>
@@ -8408,6 +8601,8 @@ function btAjustesBLE(cfg, volver) {
 /* ============ MODO COCINA (2.25) ============ */
 /* Pantalla para la cocina (plan Pro): pedidos por aceptar, en preparación y listos, en letra grande y sin precios. */
 const cocTieneAcceso = () => esAdminU() || planTiene('caja');
+/** 2.67.1 · al salir de cocina: con caja, a su inicio (o a lo siguiente que tenga en su barra). */
+function cocSalir() { if (!conPdvPedidos()) { ir('negPedidos'); return; } const v = (navRol().find(x => x[0] !== 'cocina' && x[1] !== 'fab') || ['perfil'])[0]; ir(v); }
 function botonCocina() {
   if (!puedo('pedidos')) return '';
   if (cocTieneAcceso()) return `<button class="btn pri pill" style="flex:1" onclick="ir('cocina')">🍳 Modo cocina</button>`;
@@ -8522,7 +8717,7 @@ function pintarCocina() {
   const col = (t, n, h, vacio) => `<div class="cocCol"><h2>${t}<span>${n}</span></h2>${h || `<div class="cocVacio">${vacio}</div>`}</div>`;
   const y = window.scrollY;
   html(`<div class="coc"><div class="cocBar"><h1>🍳 ${esc(S.negocio ? S.negocio.nombre : 'Cocina')}</h1><span class="reloj">${hora(ahora)}</span>
-      <button onclick="act(this,async()=>{await pdvConectar();await asisMenu()})" aria-label="Asistencia">🕒</button>${S.negocio && S.negocio.operacion && S.negocio.plan === 'ultra' ? `<button onclick="S._iv={lugar:S.negocio.id,tab:'prod',q:'',f:''};ir('inventario')" aria-label="Producción">🏭</button>` : ''}<button onclick="cocAjustes()" aria-label="Ajustes">⚙️</button><button onclick="cocPantallaCompleta()" aria-label="Pantalla completa">⛶</button><button onclick="ir('negPedidos')">Salir</button></div>
+      <button onclick="act(this,async()=>{await pdvConectar();await asisMenu()})" aria-label="Asistencia">🕒</button>${S.negocio && S.negocio.operacion && S.negocio.plan === 'ultra' ? `<button onclick="S._iv={lugar:S.negocio.id,tab:'prod',q:'',f:''};ir('inventario')" aria-label="Producción">🏭</button>` : ''}<button onclick="cocAjustes()" aria-label="Ajustes">⚙️</button><button onclick="cocPantallaCompleta()" aria-label="Pantalla completa">⛶</button><button onclick="cocSalir()">Salir</button></div>
     <div class="cocCols">
       ${col('🔔 Por aceptar', nuevos.length, nuevos.map(tNuevo).join(''), 'Sin pedidos nuevos')}
       ${col('👩‍🍳 Preparando', prep.length, prep.map(tPrep).join(''), 'Nada en preparación')}
@@ -8611,21 +8806,28 @@ function imprimirPrueba() {
 
 /* ============ PEDIDOS POR TELÉFONO (2.21) ============ */
 /** El negocio registra lo que un cliente le pidió por teléfono: primero quién es, luego arma el pedido con su menú. */
-function formPedidoTel() {
+/** 2.67.1 · desde Vender: el pedido a domicilio (con dirección y repartidor) sigue con lo que ya está en la cuenta. */
+function pdvDomicilio() {
+  formPedidoTel(PDV.venta.nombre || '', monTel(PDV.venta.tel || ''), true);
+}
+function formPedidoTel(nom, tel, conservar) {
   modal(`<div class="row between"><h2 style="margin:0">📞 Pedido por teléfono</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:4px 0 8px">Registra lo que te pidió un cliente por teléfono. Le mandas por WhatsApp un enlace para que vea cómo va su pedido, y de paso conoce Pídele.</div>
-    <label class="f">Nombre del cliente</label><input class="i" id="ptNom" maxlength="60" placeholder="Ej. Doña Rosa">
-    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="ptTel" inputmode="tel" maxlength="14">
-    <div class="btns"><button class="btn pri pill full" onclick="act(this,iniciarModoTel)">Elegir productos</button></div>`);
+    <label class="f">Nombre del cliente</label><input class="i" id="ptNom" maxlength="60" placeholder="Ej. Doña Rosa" value="${esc(nom || '')}">
+    <label class="f">Teléfono (10 dígitos)</label><input class="i" id="ptTel" inputmode="tel" maxlength="14" value="${esc(tel || '')}">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>iniciarModoTel(${conservar ? 'true' : ''}))">${conservar && Object.keys(pdvCarrito().items || {}).length ? 'Seguir con la dirección' : 'Elegir productos'}</button></div>`);
 }
-function iniciarModoTel() {
+function iniciarModoTel(conservar) {
   const tel = ($('#ptTel').value || '').replace(/\D/g, ''), nombre = $('#ptNom').value.trim();
   if (nombre.length < 2) throw new Error('Escribe el nombre del cliente');
   if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
   S.modoTel = { tel, nombre }; ls('modoTel', S.modoTel);
-  Object.keys(S.carritos || {}).forEach(k => { if (k === S.negocio.id) delete S.carritos[k]; }); guardarCarritos();
+  const lleva = conservar && S.carritos && S.carritos[S.negocio.id] && Object.keys(S.carritos[S.negocio.id].items || {}).length;
+  if (!lleva) Object.keys(S.carritos || {}).forEach(k => { if (k === S.negocio.id) delete S.carritos[k]; });
+  if (lleva) { delete S.carritos[S.negocio.id].app; PDV.venta = { tipo: 'mostrador', cocina: true, tel: '', nombre: '', recoge: '' }; }
+  guardarCarritos();
   S.modoCliente = true; ls('modoCliente', 1);
-  cerrarModal(); pintarNav(); ir('negocio', S.negocio.id);
+  cerrarModal(); pintarNav(); ir(lleva ? 'carrito' : 'negocio', lleva ? undefined : S.negocio.id);
   toast('Agrega lo que pidió ' + nombre.split(' ')[0]);
 }
 /** Apaga la captura (modo cliente, carrito) sin cambiar de pantalla. */
@@ -9327,7 +9529,7 @@ function pintarTablero() {
     <div class="card"><h3 style="margin:0 0 6px">👥 Personal hoy</h3>
       <div class="tabMini"><span>🟢 <b>${n.personal.presentes}</b> trabajando</span><span>✅ <b>${n.personal.aTiempo}</b> a tiempo</span><span>🟠 <b>${n.personal.retardos}</b> tarde</span><span>⏳ <b>${n.personal.porLlegar}</b> por llegar</span><span>🔴 <b>${n.personal.faltan}</b> no han llegado</span></div>
       ${personal(n)}</div>
-    <div class="btns">${n.caja ? `<button class="btn pri pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','caja'))">🧾 Caja de ${esc(n.nombre.split(' ')[0])}</button>` : ''}<button class="btn pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">📥 Pedidos</button></div>`;
+    <div class="btns">${n.caja ? `<button class="btn pri pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','caja'))">🧾 Caja de ${esc(n.nombre.split(' ')[0])}</button>` : ''}${n.caja ? '' : `<button class="btn pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">📥 Pedidos</button>`}</div>`;
   html(`<div class="row between"><h2>🏠 Inicio</h2><button class="btn sm" onclick="act(this,vTablero)">↻ Actualizar</button></div>
     <div class="muted small" style="margin:-6px 0 10px">Hoy, ${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · se actualiza solo</div>
     ${l.length < 2 ? '' : `<div class="tabChips"><button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>`}
@@ -9352,18 +9554,18 @@ function inicioPendientes(vis, varios) {
   const de = n => varios ? ' · ' + esc(n.nombre) : '';
   vis.forEach(n => {
     const p = n.pend || {}, c = n.cajaD || {};
-    if (n.app.porAceptar) it.push(['📥', `${n.app.porAceptar} pedido(s) de la app por aceptar${de(n)}`, `tabEntrar('${n.id}','negPedidos')`, 'Ver', 'app|' + n.id + '|' + n.app.porAceptar]);
+    if (n.app.porAceptar) it.push(['📥', `${n.app.porAceptar} pedido(s) de la app por aceptar${de(n)}`, n.caja ? `tabEntrar('${n.id}','caja').then(()=>{PDV.tab='mesas';pintarCaja()})` : `tabEntrar('${n.id}','negPedidos')`, 'Ver', 'app|' + n.id + '|' + n.app.porAceptar]);
     if (p.invSem) it.push(['🔢', `Hoy toca el inventario completo${de(n)}`, `(S._iv={lugar:'${n.id}',tab:'exist',q:'',f:''},tabEntrar('${n.id}','inventario'))`, 'Contar', 'invs|' + n.id + '|' + pdvHoy()]);
     if (p.invConfirmar) it.push(['⚠️', `${p.invConfirmar} insumo(s) por confirmar si se acabaron${de(n)}`, `(S._iv={lugar:'${n.id}',tab:'exist',q:'',f:'agot'},tabEntrar('${n.id}','inventario'))`, 'Ver', 'invc|' + n.id + '|' + p.invConfirmar]);
     if (p.invBajo) it.push(['📦', `${p.invBajo} insumo(s) bajo el mínimo${de(n)}`, `(S._iv=null,tabEntrar('${n.id}','inventario'))`, 'Ver', 'inv|' + n.id + '|' + p.invBajo]);
-    if (p.anticipos) it.push(['🎟️', `${p.anticipos} anticipo(s) de preventa por confirmar${de(n)}`, `tabEntrar('${n.id}','negPedidos')`, 'Ver', 'pv|' + n.id + '|' + p.anticipos]);
+    if (p.anticipos) it.push(['🎟️', `${p.anticipos} anticipo(s) de preventa por confirmar${de(n)}`, n.caja ? `tabEntrar('${n.id}','caja').then(()=>{PDV.tab='mesas';pintarCaja()})` : `tabEntrar('${n.id}','negPedidos')`, 'Ver', 'pv|' + n.id + '|' + p.anticipos]);
     if (p.vacaciones) it.push(['🏖️', `${p.vacaciones} solicitud(es) de vacaciones${de(n)}`, `inicioPersonal('${n.id}','vac')`, 'Revisar', 'vac|' + n.id + '|' + p.vacaciones]);
     if (p.dobles) it.push(['🔁', `${p.dobles} turno(s) doble(s) por decidir${de(n)}`, `inicioPersonal('${n.id}','hoy')`, 'Decidir', 'dob|' + n.id + '|' + p.dobles]);
     (c.cortesDif || []).forEach(x => it.push(['🧾', `Corte ${x.dia === hoy ? 'de hoy' : 'de ayer'} turno ${x.turno} con diferencia de ${money(x.dif)} (${esc(x.quien)})${de(n)}`, `inicioVentas('${n.id}')`, 'Ver', 'corte|' + n.id + '|' + x.dia + '|' + x.turno]));
     if (c.sinEntregar) it.push(['💵', `${c.sinEntregar} pedido(s) pagado(s) sin entregar de otro día${de(n)}`, `tabEntrar('${n.id}','caja').then(()=>{PDV.tab='mesas';PDV.mesasVer='activos';pintarCaja()})`, 'Ver', 'sinEnt|' + n.id + '|' + c.sinEntregar]);
     const viejas = (c.lista || []).filter(x => x.dia !== hoy).length;
     if (viejas) it.push(['🍽️', `${viejas} cuenta(s) abierta(s) de otro día${de(n)}`, `tabEntrar('${n.id}','caja')`, 'Ver', 'viejas|' + n.id + '|' + viejas]);
-    if (p.reclamos) it.push(['⚠️', `${p.reclamos} cliente(s) dicen que no recibieron su pedido${de(n)}`, `tabEntrar('${n.id}','negPedidos')`, 'Ver', 'rec|' + n.id + '|' + p.reclamos]);
+    if (p.reclamos) it.push(['⚠️', `${p.reclamos} cliente(s) dicen que no recibieron su pedido${de(n)}`, `(S._pedHist=true,S.tabNeg='hoy',tabEntrar('${n.id}','negPedidos'))`, 'Ver', 'rec|' + n.id + '|' + p.reclamos]);
     if (p.reps) it.push(['🛵', `${p.reps} repartidor(es) por aprobar${de(n)}`, `tabEntrar('${n.id}','repartidores')`, 'Revisar', 'reps|' + n.id + '|' + p.reps]);
   });
   // 2.60.2: marcar como vistos (vuelven si cambia algo) y contraer la sección
@@ -9398,7 +9600,7 @@ function inicioCortes(vis) {
     const ci = c.cierre, m = ci.met || {}, peds = ((app[n.id] && app[n.id].lista) || []).filter(p => !p.caja && p.t >= c.abre.ts && p.t <= ci.ts);
     const appT = pdvR(peds.reduce((s, p) => s + p.v, 0)), appTr = pdvR(peds.filter(p => p.m === 'transferencia').reduce((s, p) => s + p.v, 0));
     const t = n.id === PDV.nid ? turnosNeg()[(Number(c.turno) || 1) - 1] : null;
-    return { c, n, dia: c.dia, ts: c.abre.ts, turno: (t ? t.nombre : 'Turno ' + c.turno), cerro: (ci.nombre || '').split(' ')[0], caja: pdvR(ci.ventas || 0),
+    return { c, n, dia: c.dia, ts: c.abre.ts, turno: (t ? t.nombre : 'Turno ' + c.turno), cerro: pdvPN(ci), abrio: pdvPN(c.abre), porOtro: !!ci.porOtro, caja: pdvR(ci.ventas || 0),
       ef: pdvR(m.efectivo || 0), tar: pdvR(m.tarjeta || 0), tr: pdvR(m.transferencia || 0), mon: pdvR(m.monedero || 0), cons: pdvR(m.consumo || 0),
       app: appT, appEf: pdvR(appT - appTr), appTr, appN: peds.length, peds, total: pdvR((ci.ventas || 0) + appT), retiro: pdvR(ci.retiro || 0), dif: pdvR(ci.diferencia || 0),
       gastos: pdvR((Number(ci.gastosCaja) || 0) + (Number(ci.gastosOtros) || 0) + (Number(ci.provCaja) || 0)), propinas: pdvR(ci.propinas || 0), canc: ci.canceladas || 0, montoCanc: pdvR(ci.montoCancelado || 0) };
@@ -9406,7 +9608,7 @@ function inicioCortes(vis) {
   const v = x => x ? money(x) : '–';
   return `<div class="card"><div class="row between"><h3 style="margin:0">🧾 Últimos cortes</h3><button class="lnk small" onclick="act(this,()=>inicioVentas(${vis.length === 1 ? `'${vis[0].id}'` : "''"}))">Ver todos los cortes →</button></div>
     ${filas.map((f, i) => `<div class="iCorte" role="button" onclick="pdvCorteDetalle(${i})">
-      <div class="row between" style="gap:8px"><b>${varios ? esc(f.n.nombre) + ' · ' : ''}${esc(f.turno)}</b><span class="small muted">${f.dia === hoy ? 'hoy' : f.dia === ayer ? 'ayer' : esc(f.dia.slice(8) + '/' + f.dia.slice(5, 7))} · ${hora(f.c.cierre.ts)} · cerró ${esc(f.cerro)}</span></div>
+      <div class="row between" style="gap:8px"><b>${varios ? esc(f.n.nombre) + ' · ' : ''}${esc(f.turno)}</b><span class="small muted">${f.dia === hoy ? 'hoy' : f.dia === ayer ? 'ayer' : esc(f.dia.slice(8) + '/' + f.dia.slice(5, 7))} · abrió ${esc(f.abrio)} · cerró ${esc(f.cerro)} ${hora(f.c.cierre.ts)}${f.porOtro ? ' ⚠️' : ''}</span></div>
       <div class="iCorteTot"><span>Venta total</span><b>${money(f.total)}</b></div>
       <div class="iCorteMet"><span>💵 ${v(f.ef)}</span><span>💳 ${v(f.tar)}</span><span>🏦 ${v(f.tr)}</span><span>👛 ${v(f.mon)}</span><span>🛵 ${d.appCortes ? v(f.app) : '…'}</span></div>
       <div class="iCorteMet g"><span>Gastos <b>${v(f.gastos)}</b></span><span>Propinas <b>${v(f.propinas)}</b></span>${f.canc ? `<span>Canceladas <b>${f.canc} (${money(f.montoCanc)})</b></span>` : ''}</div>
@@ -9461,15 +9663,13 @@ function vAdmNegocio() {
     ${fila('🏪', 'Datos, horario y ubicación', 'Horario de atención, envíos, formas de pago, compartir', "()=>ir('miNegocio')")}
     ${fila('🍔', 'Menú y precios', 'Productos, agotados y categorías', "()=>ir('menu')")}
     ${fila('📣', 'Banners y promociones', 'Anuncios en la app y promociones', "()=>ir('promos')")}
-    ${fila('👥', 'Equipo', 'Tu gente: agregar, puesto, turno, sueldo y permisos', "()=>{PDV.per={sub:'equipo',fecha:pdvHoy()};ir('nomina')}", caja)}
+    ${fila('👥', 'Equipo', 'Altas, puesto y permisos, turnos, horarios, sueldo y vacaciones', "()=>{PDV.per={sub:'equipo',fecha:pdvHoy()};ir('nomina')}", caja)}
     ${caja ? '' : fila('👥', 'Equipo y permisos', 'Agregar colaboradores y lo que cada quien puede hacer', "()=>ir('equipo')")}
-    ${fila('⏱️', 'Turnos del negocio', 'Matutino, vespertino… se usan en asistencia, caja y bonos', "()=>{PDV.per={sub:'turnos',fecha:pdvHoy()};ir('nomina')}", caja)}
     ${fila('🎟️', 'Preventas', 'Cuántas preparar, anticipos y pedidos apartados', "()=>pvPanel()")}
     ${fila('🗓️', 'Pedidos programados', n.prog && n.prog.activo ? 'Activos · hasta ' + n.prog.dias + ' día(s) antes · preparación ' + n.prog.prep + ' min' : 'Apagados', "()=>progConfig()")}
     ${fila('🛵', 'Repartidores', 'Tus repartidores, independientes y favoritos', "()=>ir('repartidores')")}
-    ${fila('📦', 'Inventario y producción', 'Existencias, entradas, mermas y producción', "()=>{S._iv={lugar:S.negocio.id,tab:'exist',q:'',f:''};ir('inventario')}", !!(n.operacion && n.plan === 'ultra'))}
-    ${fila('🏬', 'Almacén, proveedores e insumos', 'Bodegas, proveedores, insumos y preparados', "()=>ir('inventarioCfg')", !!(n.operacion && n.plan === 'ultra'))}
-    ${fila('🧾', 'Facturación', 'Datos fiscales, sellos y facturas', `()=>facIrNegocio('${n.id}')`)}
+    ${fila('📦', 'Inventario', 'Existencias, producción, costos, surtido y catálogo (insumos, proveedores y almacenes)', "()=>{S._iv={lugar:S.negocio.id,tab:'exist',q:'',f:''};ir('inventario')}", !!(n.operacion && n.plan === 'ultra'))}
+    ${fila('🧾', 'Facturar a clientes', 'Datos fiscales, sellos y facturas que emites', `()=>facIrNegocio('${n.id}')`)}
     ${fila('💳', 'Mi suscripción', 'Plan, pagos y banners', "()=>ir('suscripcion')")}
     </div>`);
 }
@@ -9492,7 +9692,7 @@ function tabAbiertasHTML(vis, varios) {
   const viejas = cs.filter(c => c.dia !== hoy).length;
   return `<div class="card"><div class="row between"><h3 style="margin:0">🍽️ Órdenes abiertas</h3>${viejas ? `<span class="tag t-err">${viejas} de otro día</span>` : ''}</div>
     ${cs.map(c => `<div class="pdvFila g"><span>${esc(c.etiqueta)}${varios ? ' · ' + esc(c.neg) : ''}<small>${c.dia !== hoy ? '<b style="color:var(--err)">📅 abierta ' + esc(fechaCorta(c.ts)) + '</b>' : 'abierta ' + hora(c.ts)} · ${money(c.saldo)} por cobrar</small></span><span></span><button class="btn sm" onclick="act(this,()=>tabIrCuenta('${c.nid}','${c.id}'))">Ver cuenta</button></div>`).join('')}
-    ${app.map(n => `<div class="pdvFila g"><span>🛵 ${n.app.activos} pedido(s) de la app en curso${varios ? ' · ' + esc(n.nombre) : ''}<small>Se atienden y cobran en Caja → Mesas y pedidos (o en Pedidos</small></span><span></span><button class="btn sm" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">Ver pedidos</button></div>`).join('')}
+    ${app.map(n => `<div class="pdvFila g"><span>🛵 ${n.app.activos} pedido(s) de la app en curso${varios ? ' · ' + esc(n.nombre) : ''}<small>${n.caja ? 'Se atienden y cobran en Caja → Mesas y pedidos' : 'Se atienden en Pedidos'}</small></span><span></span><button class="btn sm" onclick="act(this,()=>${n.caja ? `tabEntrar('${n.id}','caja').then(()=>{PDV.tab='mesas';pintarCaja()})` : `tabEntrar('${n.id}','negPedidos')`})">Ver pedidos</button></div>`).join('')}
     ${viejas ? '<div class="small muted" style="margin-top:6px">Las cuentas de otro día que ya no se van a cobrar se cancelan en la cuenta → ⋯ → Cancelar cuenta completa.</div>' : ''}</div>`;
 }
 async function tabIrCuenta(nid, cid) { S.tabNeg = 'curso'; await tabEntrar(nid, 'caja'); PDV.tab = 'mesas'; PDV.cuentaId = cid; pintarCaja(); }
@@ -11226,6 +11426,16 @@ async function vPago() {
     const conEnvio = n.envioEnTransfer && envio > 0, montoT = conEnvio ? sub + envio : sub;
     if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
     if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
+    // 2.66.1: monedero del cliente (debe cubrir todo lo que se le paga al negocio)
+    if (pg.monedero && n.monGid && S.user && S.user.rol === 'comprador') {
+      const ms = (S._monSal || {})[n.monGid];
+      if (ms === undefined) { monSaldoApp(n.monGid); ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Consultando tu saldo…', true]); }
+      else if (ms && ms.activo) {
+        if (ms.sinVerif) ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Verifica tu teléfono para pagar con tu monedero', true]);
+        else if (ms.saldo + 0.001 < montoT) ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + ': no alcanza. El monedero debe cubrir todo el pedido (' + money(montoT) + ')', true]);
+        else ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + ' · se descuentan ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' al entregarte' + (!conEnvio && envio ? '; el envío se paga al repartidor' : '')]);
+      }
+    }
     if (pg.efectivo) {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
       const rg = reglaEfectivo(sub + envio, e.tipo);
@@ -11235,7 +11445,7 @@ async function vPago() {
     }
     const disp = ops.filter(o => !o[4]);
     const m = e.metodos[c.negocioId];
-    if (!disp.some(o => o[0] === m)) e.metodos[c.negocioId] = disp.length === 1 ? disp[0][0] : (disp.find(o => o[0] === 'efectivo') || disp[0] || [''])[0];
+    if (!disp.some(o => o[0] === m)) e.metodos[c.negocioId] = disp.length === 1 ? disp[0][0] : (disp.find(o => o[0] === 'efectivo') || disp.find(o => o[0] !== 'monedero') || disp[0] || [''])[0];
     if (!disp.length) S._sinPago = true;
     return `${cs.length > 1 ? `<h3>${esc(c.negocio)}</h3>` : ''}
       ${ops.map(o => o[4] ? `<div class="opcion" style="opacity:.55;cursor:default"><span class="radio"></span><span class="ico">${ico(o[1])}</span><div class="grow"><b>${o[2]}</b><small>🔒 ${esc(o[3])}</small></div></div>`
@@ -11284,7 +11494,7 @@ function elegirMetodo(el) {
 function notaPago(neg) {
   const m = S.entrega.metodos[neg], t = S._pagoTot[neg], rec = S.entrega.tipo === 'recoger';
   const el = $('#nota_' + neg); if (!el || !t) return;
-  el.innerHTML = m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
+  el.innerHTML = m === 'monedero' ? '👛 No pagas nada ahora: se descuenta de tu monedero cuando te entreguen tu pedido.' : m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
     : 'Cuando el negocio acepte tu pedido verás sus datos para transferir ' + money(t.sub) + '.' + (t.envio ? ' El envío (' + money(t.envio) + ') se paga en efectivo al repartidor.' : '');
 }
 
@@ -11417,10 +11627,45 @@ function pvLinea(x) {
   const pag = ['PROGRAMADO', 'PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(x.estado);
   return `<div class="aviso info small pvLinea" style="margin:6px 0 0">🎟️ <b>Preventa</b> · ${pv.pct >= 100 ? 'pago total' : 'anticipo'} ${money(pv.anticipo)} ${pag ? '✓ pagado' : x.estado === 'PAGO_ENVIADO' ? '· por confirmar' : '· sin pagar'}${pv.resta > 0 ? ' · resta ' + money(pv.resta) : ''}</div>`;
 }
+/** Saldo del monedero del cliente en un grupo (dueño). Guarda el resultado en S._monSal[gid] y repinta el pago. */
+async function monSaldoApp(gid, fresco) {
+  if (!gid) return null;
+  S._monSal = S._monSal || {};
+  if (!fresco && S._monSalP && S._monSalP[gid]) return S._monSalP[gid];
+  S._monSalP = S._monSalP || {};
+  const pr = (async () => {
+    let r = { activo: false, saldo: 0 };
+    try {
+      const tel = monTel(S.user.telefono);
+      await pdvCargarSdk();
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      if (!PDV.db) { PDV.db = firebase.firestore(); try { await PDV.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { } }
+      if (!S._monK || Date.now() - S._monK.t > 50 * 60e3) { const k = await api('monederoLlave'); S._monK = { k, t: Date.now() }; if (k.telVerificado !== false) await firebase.auth().signInWithCustomToken(k.token); }
+      if (S._monK.k.telVerificado === false) r = { activo: true, sinVerif: true, saldo: 0 };
+      else {
+        const ref = PDV.db.collection('monederos').doc(gid);
+        const [cs, ms] = await Promise.all([ref.get(fresco ? { source: 'server' } : undefined), ref.collection('monedero').doc(tel).get(fresco ? { source: 'server' } : undefined)]);
+        const cfg = Object.assign({}, MON_DEF, cs.exists ? cs.data() : {});
+        r = { activo: !!cfg.activo, saldo: ms.exists ? monSaldo(ms.data()).total : 0 };
+      }
+    } catch (e) { console.warn('monedero', e); r = { activo: false, saldo: 0 }; }
+    const antes = S._monSal[gid]; S._monSal[gid] = r;
+    if (!fresco && S.vista === 'pago' && JSON.stringify(antes) !== JSON.stringify(r)) pintar(true);
+    return r;
+  })();
+  if (!fresco) S._monSalP[gid] = pr;
+  return pr;
+}
 async function confirmarPedido() {
   const e = S.entrega, cs = carritosSel();
   if (e.prog && e.prog.on && !e.prog.hora) throw new Error('Elige a qué hora lo quieres');
   if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
+  // 2.66.1: con monedero, revisa el saldo justo antes de pedir (debe cubrir todo)
+  for (const c of cs.filter(c => e.metodos[c.negocioId] === 'monedero')) {
+    const n = (S._negs || []).find(x => x.id === c.negocioId) || {}, t = S._pagoTot[c.negocioId] || { sub: 0, envio: 0 };
+    const ms = await monSaldoApp(n.monGid, true), monto = t.sub + (n.envioEnTransfer ? t.envio : 0);
+    if (!ms || !ms.activo || ms.saldo + 0.001 < monto) { pintar(true); throw new Error('Tu monedero ya no alcanza para ' + c.negocio + ' (tienes ' + money(ms ? ms.saldo : 0) + '). Elige otra forma de pago.'); }
+  }
   // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
   let gps;
   // efectivo: siempre con la ubicación actual (solo se acepta dentro de la ciudad)
@@ -11794,7 +12039,8 @@ async function vEquipo() {
   const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
   const EST = { activo: ['t-ok', 'Activo'], pendiente: ['t-warn', 'Por aprobar'], bloqueado: ['t-err', 'Suspendido'], rechazado: ['t-gray', 'No aprobado'] };
   const ESTE = { activo: ['t-ok', 'Activo'], invitado: ['t-warn', 'Invitado'], pausado: ['t-gray', 'Pausado'] };
-  html(`<div class="row between"><h2>Mis negocios y equipo</h2><button class="btn" onclick="volver('perfil')">‹ Volver</button></div>
+  const enPer = equipoEnPersonal(d.negocios);
+  html(`<div class="row between"><h2>${enPer ? 'Mis negocios y sucursales' : 'Mis negocios y equipo'}</h2><button class="btn" onclick="volver('perfil')">‹ Volver</button></div>
     <h3>🏪 Negocios y sucursales</h3>
     ${d.negocios.map(n => `<div class="card row" style="gap:10px">${n.logo ? `<img src="${esc(n.logo)}" alt="" style="width:44px;height:44px;border-radius:12px;object-fit:cover">` : '<span style="font-size:30px">🏪</span>'}
       <div class="grow" style="min-width:0"><b>${esc(n.nombre)}</b> <span class="tag ${(EST[n.estado] || EST.pendiente)[0]}">${(EST[n.estado] || [0, n.estado])[1]}</span>
@@ -11804,7 +12050,9 @@ async function vEquipo() {
     <button class="btn pri pill" onclick="formSucursal()">${ico('mas', 's')} Agregar negocio o sucursal</button>
     <div class="muted small" style="margin:6px 2px 0">Cada negocio o sucursal tiene su propio plan, horario, ubicación y menú. Los nuevos los aprueba Pídele.</div>
     <h3 style="margin-top:20px">👥 Tu equipo</h3>
-    <div class="muted small" style="margin:-4px 2px 8px">Cada colaborador entra desde su teléfono y solo ve lo que le permites. Plan, suscripción, equipo y sucursales son solo tuyos.</div>
+    ${enPer ? `<div class="card"><b>Tu equipo (${d.equipo.length}) se maneja en 👥 Personal</b><div class="muted small" style="margin:4px 0 8px">Ahí das de alta a cada persona y eliges su puesto y permisos, turno, horario, sueldo y vacaciones.</div>
+      <button class="btn pri pill full" onclick="PDV.per={sub:'equipo',fecha:pdvHoy()};ir('nomina')">👥 Abrir Personal</button></div>
+    <details class="card"><summary class="small"><b>Accesos por negocio</b> (pausar, quitar, códigos de invitación)</summary>` : `<div class="muted small" style="margin:-4px 2px 8px">Cada colaborador entra desde su teléfono y solo ve lo que le permites. Plan, suscripción, equipo y sucursales son solo tuyos.</div>`}
     ${d.equipo.length ? d.equipo.map((x, i) => `<div class="card"><div class="row between"><div style="min-width:0"><b>${esc(x.nombre)}</b><div class="muted small">${esc(x.telefono)}</div></div>
         <button class="btn sm" onclick="formColaborador(${i})">Editar</button></div>
       ${x.negocios.map((e, ei) => `<div style="padding:8px 0 0;margin-top:8px;border-top:1px solid var(--ln)"><div class="row between" style="gap:6px"><span><b class="small">${esc((N[e.negocioId] || {}).nombre || '')}</b> <span class="tag ${(ESTE[e.estado] || ESTE.invitado)[0]}">${(ESTE[e.estado] || [0, e.estado])[1]}</span></span>
@@ -11814,7 +12062,7 @@ async function vEquipo() {
         ${e.codigo && x.negocios.findIndex(y => y.codigo) === ei ? `<div class="aviso info" style="margin:6px 0 0">Aún no crea su cuenta. Código: <b>${esc(e.codigo)}</b> <button class="btn sm" onclick="compartirInvEq('${esc(e.codigo)}','${esc(x.nombre)}')">${ico('chat', 's')} Mandar invitación</button></div>`
           : e.codigo ? '' : e.estado === 'invitado' ? '<div class="muted small">Ya tiene cuenta: le llegó la invitación a su app para aceptarla.</div>' : ''}</div>`).join('')}</div>`).join('')
       : '<div class="vacio" style="padding:18px"><span class="big">👥</span>Aún no tienes colaboradores.</div>'}
-    <button class="btn pri pill" onclick="formColaborador()">${ico('mas', 's')} Invitar colaborador</button>`);
+    ${enPer ? '</details>' : `<button class="btn pri pill" onclick="formColaborador()">${ico('mas', 's')} Invitar colaborador</button>`}`);
 }
 function formColaborador(i) {
   const d = S._eq, x = i === undefined ? null : d.equipo[i];
@@ -11876,7 +12124,7 @@ async function crearSucursalForm() {
 /** En Perfil: tablero del dueño o los negocios donde colabora. */
 function bloqueMisNegocios() {
   const l = S.negocios || [], mios = l.filter(n => n.dueno), otros = l.filter(n => !n.dueno);
-  return `<div class="card"><div class="row between"><b>${mios.length ? '🏪 Mis negocios y equipo' : '👥 Negocios donde colaboras'}</b>${mios.length ? `<button class="btn sm pri" onclick="ir('equipo')">Abrir</button>` : ''}</div>
+  return `<div class="card"><div class="row between"><b>${mios.length ? (equipoEnPersonal() ? '🏪 Mis negocios y sucursales' : '🏪 Mis negocios y equipo') : '👥 Negocios donde colaboras'}</b>${mios.length ? `<button class="btn sm pri" onclick="ir('equipo')">Abrir</button>` : ''}</div>
     ${mios.length ? `<div class="muted small" style="margin-top:4px">${mios.length} negocio${mios.length > 1 ? 's' : ''}${otros.length ? ' · colaboras en ' + otros.length : ''}. Agrega sucursales y da acceso a tu equipo con los permisos que elijas.</div>` : ''}
     ${otros.map(n => `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln)"><span>${esc(n.nombre)}</span><span class="row" style="gap:6px">${n.id === S.negActivo ? '<span class="tag t-ok">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}<button class="btn sm err" onclick="act(this,()=>salirDeEquipo('${n.id}',${JSON.stringify(n.nombre).replace(/"/g, '&quot;')}))">Salir</button></span></div>`).join('')}
     ${!l.length ? '<div class="muted small" style="margin-top:4px">Aún no estás en ningún negocio. Cuando un dueño te invite, la invitación aparecerá aquí.</div>' : ''}</div>`;
@@ -11902,13 +12150,11 @@ function vPerfil() {
     ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' && !(u.suscripcion && u.suscripcion.sinCuota) ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
-    ${r === 'negocio' && S.negocio && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><b>Mi suscripción</b><span class="lnk small">Ver ›</span></div>` : ''}
-    ${r === 'negocio' && opDisponible() && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('operacion')"><div><b>✅ Operación</b><div class="muted small">Tareas de cada turno, limpiezas, fallas, entrega y cierre de turno</div></div><span class="lnk small">Abrir ›</span></div>` : ''}
     ${u.almacen ? `<div class="card row between" style="cursor:pointer" onclick="ir('almacen')"><div><b>🏬 Almacén</b><div class="muted small">Pedidos de las sucursales por surtir</div></div><span class="lnk small">Abrir ›</span></div>` : ''}
     ${tarjetaRepLigado()}
     ${esStaff() && !u.ligado ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
       : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
-    <div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Facturación</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
+    <div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Mis facturas</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
     <div class="card row between" style="cursor:pointer" onclick="ir('monedero')"><div><b>👛 Mi monedero</b><div class="muted small">Tu saldo, cashback y código para pagar en los negocios con monedero</div></div><span class="lnk small">Abrir ›</span></div>
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
       <div class="row" style="gap:8px"><button class="btn sm" style="flex:1" onclick="formAlta('negocio')">🏪 Registrar mi negocio</button>${u.repId ? '' : `<button class="btn sm" style="flex:1" onclick="act(this,formRep)">🛵 Quiero repartir</button>`}</div></div>` : ''}
@@ -12197,7 +12443,21 @@ function vPedidoOperacion(p) {
 }
 
 /* ============ NEGOCIO ============ */
+/** 2.67.1 · con punto de venta, los pedidos de la app se atienden en la caja; Pedidos queda como historial. */
+const conPdvPedidos = () => !!S.negocio && planTiene('caja');
+/** 2.67.1 · lo que Pedidos enseñaba de cada pedido (alertas, salida, repartidor, reclamos), para verlo también en la caja. */
+const pedInfoExtra = x => `    ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
+    ${x.estado === 'PREPARANDO' ? `<div class="muted small">Salida: <b>${hora(x.horaSalida)}</b> (${enMin(x.horaSalida)})${x.tipoEntrega === 'recoger' ? '' : ' · ' + (x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) : x.propio ? '🛵 Con tu repartidor' : 'Sin repartidor aún')}</div>` : ''}
+    ${x.estado === 'LISTO' && x.tipoEntrega !== 'recoger' ? `<div class="muted small">${x.repartidor ? '🛵 ' + esc(x.repartidor.nombre) + ' va por él' : x.propio ? '🛵 Listo para salir con tu repartidor' : 'Esperando repartidor'}</div>` : ''}
+    ${x.estado === 'EN_CAMINO' && x.repPropio ? `<div class="muted small">🛵 ${x.repPropio.nombre === 'Repartidor del negocio' ? 'Entregado a un repartidor de fuera' : 'Entregado a ' + esc(x.repPropio.nombre)} · venta cobrada · se cierra sola en 24 h</div>` : ''}
+    ${x.ubicPend && ACTIVOS.includes(x.estado) ? '<div class="small" style="color:var(--warn);font-weight:700">📍 Ubicación por confirmar</div>' : ''}${x.reclamo ? '<div class="aviso warn" style="margin:6px 0 0">⚠️ El cliente dice que no lo ha recibido</div>' : ''}
+    ${x.estado === 'EN_CAMINO' && x.recogidoVerif === 'sin' && !x.propio ? `<div class="aviso warn" style="margin:8px 0 0">⚠️ El repartidor lo marcó recogido sin verificar. <button class="lnk" onclick="act(this,()=>noRecogido('${x.id}'))">No lo ha recogido</button></div>` : ''}`;
 async function vNegPedidos() {
+  if (conPdvPedidos() && !S.modoTel && !S._pedHist) {
+    if (pdvTieneAcceso()) { PDV.tab = 'mesas'; PDV.cuentaId = ''; history.replaceState({ v: 'caja' }, ''); return ir('caja', undefined, true); }
+    if (puedo('pedidos') && cocTieneAcceso()) { history.replaceState({ v: 'cocina' }, ''); return ir('cocina', undefined, true); }
+  }
+  const hist = conPdvPedidos() && S._pedHist;
   const d = await api('panelNegocio'); // pedidos y datos del negocio en una sola llamada
   let l = d.pedidos; const n = d.negocio;
   fijarNeg(n);
@@ -12231,9 +12491,10 @@ async function vNegPedidos() {
   html(`${pendienteAviso()}${avisoInvEquipo()}${asisChip()}${n.estado === 'pendiente' && S.user.estado === 'activo' ? `<div class="aviso warn">⏳ <b>${esc(n.nombre)}</b> está por aprobar. Mientras, completa sus datos y su menú.</div>` : ''}${bannerPush()}${tarjetaInstalar()}
     <div class="card row between"><div class="grow"><b>${esc(n.nombre)}</b> ${n.numCalif ? `<span class="small"><span class="estrella">★</span> ${n.calif} (${n.numCalif})</span>` : ''}
       <div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo ? (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto) : '⏸️ Pausado: no recibes pedidos'}</div>
-      <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en “Mi negocio”.'}</div></div>
+      <div class="muted small">${n.horarios && n.horarios.length ? 'El horario abre y cierra solo; usa el interruptor para pausar.' : 'Configura tu horario en ⚙️ Negocio → Datos, horario y ubicación.'}</div></div>
       <label class="sw" title="${puedo('abrir') ? 'Recibir pedidos' : 'Solo el dueño o quien tenga permiso puede pausar'}"><input type="checkbox" ${n.recibiendo ? 'checked' : ''} ${n.estado !== 'activo' || !puedo('abrir') ? 'disabled' : ''} onchange="act(null,()=>abrirCerrar(this))"><i></i></label></div>
-    ${n.estado === 'activo' ? `<div class="row" style="gap:8px;margin-bottom:4px"><button class="btn pill" style="flex:1" onclick="formPedidoTel()">📞 Pedido por teléfono</button>${botonCocina()}${pdvTieneAcceso() ? `<button class="btn pri pill" style="flex:1" onclick="ir('caja')">🧾 Caja</button>` : ''}</div>` : ''}
+    ${hist ? `<div class="row between" style="gap:8px;margin-bottom:6px"><h2 style="margin:0">📋 Historial de pedidos de la app</h2><button class="btn sm" onclick="PDV.tab='mesas';ir('caja')">🧾 Ir a la caja</button></div><div class="small muted" style="margin-bottom:8px">Los pedidos nuevos se atienden y cobran en Caja → Mesas y pedidos.</div>` : ''}
+    ${n.estado === 'activo' && !hist ? `<div class="row" style="gap:8px;margin-bottom:4px"><button class="btn pill" style="flex:1" onclick="formPedidoTel()">📞 Pedido por teléfono</button>${botonCocina()}${pdvTieneAcceso() ? `<button class="btn pri pill" style="flex:1" onclick="ir('caja')">🧾 Caja</button>` : ''}</div>` : ''}
     <div class="tabs">
       <button class="${t === 'atender' ? 'on' : ''}" onclick="S.tabNeg='atender';pintar(true)">Por atender (${grupos.atender.length})</button>
       <button class="${t === 'curso' ? 'on' : ''}" onclick="S.tabNeg='curso';pintar(true)">En curso (${grupos.curso.length})</button>
@@ -13081,7 +13342,7 @@ async function vSuscripcion() {
   const P = d.planes || {}, cobro = rep ? '' : d.planSig || d.plan;
   const sinExtras = !rep && !((P[cobro] || {}).anuncios > 0), donado = !rep && d.plan === 'donado';
   const masCaros = rep || d.cambioLibre ? [] : PLANES_PAGO.filter(k => P[k] && P[k].precio > (P[cobro] || {}).precio);
-  html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
+  html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : esDueno() ? 'admNegocio' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi mensualidad' : 'Mi suscripción'}</h2><span class="esp"></span></div>
     ${prueba ? `<div class="aviso ok" id="avisoPrueba">${prueba}</div>` : ''}
     ${d.sucursal ? avisoSucursal(d.sucursal) : ''}
     ${s.vence ? `<div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
@@ -13404,11 +13665,11 @@ async function vMiNegocio() {
     return;
   }
   html(`${pendienteAviso()}<h2>Mi negocio</h2>
-    <div class="card row between" style="cursor:pointer" onclick="ir('facturas')"><div><b>🧾 Facturación</b><div class="muted small">${n.factura ? 'Activa · solicitudes de clientes y facturas emitidas' : 'Factura a tus clientes con tu RFC (CFDI 4.0)'}</div></div><span class="lnk small">Abrir ›</span></div>
+${esDueno() ? '' : `    <div class="card row between" style="cursor:pointer" onclick="ir('facturas')"><div><b>🧾 Facturación</b><div class="muted small">${n.factura ? 'Activa · solicitudes de clientes y facturas emitidas' : 'Factura a tus clientes con tu RFC (CFDI 4.0)'}</div></div><span class="lnk small">Abrir ›</span></div>
     <div class="card row between" style="cursor:pointer" onclick="ir('repartidores')"><div><b>🛵 Repartidores</b><div class="muted small">Tus repartidores, independientes y favoritos · invitar por WhatsApp</div></div><span class="lnk small">Abrir ›</span></div>
     ${su && su.vence && esDueno() ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi suscripción</b>
       <div class="muted small">${su.estado === 'suspendido' || su.estado === 'gracia' ? 'Venció el ' : 'Activa hasta el '}${fechaLarga(su.vence)}</div></div>
-      <div style="text-align:right"><span class="tag ${esu[0]}">${esu[1]}</span><div class="lnk small" style="margin-top:4px">Pagar / ver plan ›</div></div></div>` : ''}
+      <div style="text-align:right"><span class="tag ${esu[0]}">${esu[1]}</span><div class="lnk small" style="margin-top:4px">Pagar / ver plan ›</div></div></div>` : ''}`}
     <div class="card">
       <b>Imagen del negocio</b><div class="muted small">La portada es la foto grande que ven tus clientes (ej. tu platillo estrella).</div>
       <div class="nCard" style="margin:10px 0;box-shadow:none;border:1.5px solid var(--ln)"><div class="img" id="nPortPrev">${n.portada ? `<img class="portada" src="${esc(n.portada)}" alt="">` : '🖼️'}${n.logo ? `<img class="mini" id="nLogoMini" src="${esc(n.logo)}" alt="">` : ''}</div></div>
@@ -14516,15 +14777,16 @@ function tourDueno() {
     { sel: navDe('miNegocio'), titulo: '1 · Completa tu negocio', texto: 'En <b>Negocio</b>: ubicación en el mapa, horario (abre y cierra solo), logo, portada y formas de pago. Sin ubicación no apareces en la app.' },
     { sel: navDe('menu'), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> agrega productos uno por uno, o todos con Excel en <b>✏️ Modificar</b>. Ahí mismo creas las <b>opciones de sección</b> (ej. tipo de leche en todas las bebidas): se aplican a todos los productos de esa sección.' },
     { sel: navDe('promos'), titulo: '3 · Promociones y anuncios', texto: 'En <b>Banners</b> creas un 2x1, un descuento o un anuncio para salir en el inicio de la app. Tu plan trae un número de anuncios por día; puedes comprar extras.' },
-    { sel: navDe('negPedidos'), titulo: '4 · Pedidos de la app', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>. También capturas <b>📞 pedidos por teléfono</b>.' },
-    { sel: navDe('vender'), si: conCajaPlan, titulo: '🧾 5 · Tu caja (punto de venta)', texto: 'Con <b>Nuevo pedido</b> vendes en mostrador, en mesas o para llevar. La caja se abre y se cierra <b>paso a paso</b>: con cuánto abres, quién eres y tu código. Al cerrar: cuánto dejas, cuánto retiras y quién se lleva el retiro (con su código).' },
+    { sel: navDe('negPedidos'), si: () => !conCajaPlan(), titulo: '4 · Pedidos de la app', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>. También capturas <b>📞 pedidos por teléfono</b>.' },
+    { sel: navDe('vender'), si: conCajaPlan, titulo: '🧾 4 · Tu caja (punto de venta)', texto: 'Los <b>pedidos de la app</b> llegan aquí, a <b>Mesas y pedidos</b>: los aceptas, los cobras y buscas repartidor desde la caja. Con <b>Nuevo pedido</b> vendes en mostrador, en mesas o para llevar. La caja se abre y se cierra <b>paso a paso</b>: con cuánto abres, quién eres y tu código. Al cerrar: cuánto dejas, cuánto retiras y quién se lleva el retiro (con su código).' },
     { si: conCajaPlan, titulo: '🍽️ Mesas, cocina y cuentas', texto: 'En <b>Mesas y pedidos</b> ves las cuentas abiertas. Lo nuevo se manda a cocina por rondas. Con <b>👥 Dividir cuenta</b> separas la cuenta por persona (producto por producto, o ➗ compartido), cada una con su preventa, su cliente y su cobro. Cada cobro puede pagarse en partes con varios métodos.' },
     { si: conCajaPlan, titulo: '🔑 Tu código personal', texto: 'Para abrir y cerrar caja, autorizar cancelaciones y retiros, cada persona usa su código. Créalo en la caja → <b>🔑 Mi código</b>. Si tienes varias cajas (terraza, barra…), se configuran en ⚙️ de la caja.' },
-    { ir: 'perfil', titulo: '👥 Tu equipo', texto: 'En Perfil → <b>Mis negocios y equipo</b> invitas a tus colaboradores y eliges sus funciones: pedidos, cocina, cajero, mesero, gerente, mercadotecnia (fotos y banners)… Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
-    { si: conCajaPlan, titulo: '🕒 Asistencia, metas y reportes', texto: 'En la caja: asistencia y nómina de tu equipo, metas e incentivos del turno, y reportes de ventas por caja, día, semana, mes y año. Solo tú ves la nómina. Con el plan Total tienes <b>Operación</b> (en tu perfil o el tablero): actividades de cada turno con hora de corte, limpiezas programadas, fallas de equipo, entrega y cierre de turno. En <b>Personal</b> decides cómo se paga cada <b>turno doble</b> (día extra, horas extra o acuerdo por una falta) y apruebas las <b>vacaciones</b>; ahí pones cuántas personas pueden salir el mismo día, la anticipación y las fechas bloqueadas.' },
-    { si: conFidPlan, titulo: '👛 Programa de fidelidad', texto: 'En la caja → <b>👛 Monedero</b>: tus clientes acumulan cashback, recargas con bono y premios por visitas. El monedero paga el ticket <b>completo</b>; si solo quieren usarlo en parte, se divide la cuenta.' },
-    { si: conFacPlan, ir: 'perfil', titulo: '🧾 Facturación', texto: 'En Perfil → <b>Facturación</b>: tus datos fiscales y tus <b>sellos digitales (CSD)</b> del SAT (no la e.firma). Tu plan trae 50 facturas al mes y puedes comprar paquetes extra.' },
-    { ir: 'perfil', titulo: '💳 Tu suscripción', texto: () => pruebaTxt() + ' En Perfil también puedes <b>Pedir comida</b> a otros negocios.' }
+    { si: conCajaPlan, titulo: '👥 Tu equipo', texto: 'En Inicio → <b>👥 Personal</b> → ➕ Agregar colaborador das de alta a cada persona con su puesto y permisos (cajero, mesero, cocina, gerente…), turno, horario y sueldo. Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
+    { ir: 'perfil', si: () => !conCajaPlan(), titulo: '👥 Tu equipo', texto: 'En Perfil → <b>Mis negocios y equipo</b> invitas a tus colaboradores y eliges sus funciones: pedidos, cocina, cajero, mesero, gerente, mercadotecnia (fotos y banners)… Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
+    { si: conCajaPlan, titulo: '🕒 Asistencia, metas y reportes', texto: 'En la caja: asistencia y nómina de tu equipo, metas e incentivos del turno, y reportes de ventas por caja, día, semana, mes y año. Solo tú ves la nómina. Con el plan Total tienes <b>Operación</b> (desde Inicio): actividades de cada turno con hora de corte, limpiezas programadas, fallas de equipo, entrega y cierre de turno. En <b>Personal</b> decides cómo se paga cada <b>turno doble</b> (día extra, horas extra o acuerdo por una falta) y apruebas las <b>vacaciones</b>; ahí pones cuántas personas pueden salir el mismo día, la anticipación y las fechas bloqueadas.' },
+    { si: conFidPlan, titulo: '👛 Programa de fidelidad', texto: 'En la caja → <b>👛 Lealtad</b>: tus clientes acumulan cashback, recargas con bono y premios por visitas. El monedero paga el ticket <b>completo</b>; si solo quieren usarlo en parte, se divide la cuenta.' },
+    { si: conFacPlan, titulo: '🧾 Facturar a clientes', texto: 'En Inicio → <b>⚙️ Negocio → 🧾 Facturar a clientes</b>: tus datos fiscales y tus <b>sellos digitales (CSD)</b> del SAT (no la e.firma). Tu plan trae 50 facturas al mes y puedes comprar paquetes extra.' },
+    { titulo: '💳 Tu suscripción', texto: () => pruebaTxt().replace('Aquí ves', 'En Inicio → ⚙️ Negocio → 💳 Mi suscripción ves') + ' En Perfil puedes <b>Pedir comida</b> a otros negocios con tu misma cuenta.' }
   ];
 }
 /** Guía del colaborador: solo lo que su dueño le permite hacer. */
