@@ -973,7 +973,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.68.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.68.6'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1534,7 +1534,15 @@ function botonPanel() { if (S.modoTel && esStaff()) return `<button class="chipP
   if (S.modoServicio && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoServicio(false)">🛵 Servicio · Cancelar</button>`;
   return esAdminU() && (S.modoCliente || S.modoRep) ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi panel</button>` : esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
-function inicioRol() { return (navRol()[0] || ['inicio'])[0]; }
+/** 2.68.5 · ¿puede usar la pantalla de cocina? (también cajeros y dueño: antes solo se llegaba desde Pedidos y la caja la tapaba) */
+const cocDisponible = () => rolActual() === 'negocio' && !!S.negocio && puedo('pedidos') && cocTieneAcceso() && funOn('caja', 'cocina');
+function inicioRol() {
+  // el equipo que se quedó en modo cocina (la tableta de la cocina) abre directo ahí, aunque la cuenta también pueda cobrar
+  if (ls('estacion') === 'cocina' && cocDisponible()) return 'cocina';
+  return (navRol()[0] || ['inicio'])[0];
+}
+/** Salir de la caja: el dueño a su Inicio; el equipo a su Perfil (ahí está la barra con sus secciones y Cerrar sesión). */
+function pdvSalirDeCaja() { ir(esDueno() && esDuenoVarios() ? 'tablero' : 'perfil'); }
 function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
 function guardarCarritos() { Object.keys(S.carritos).forEach(k => { if (!Object.keys(S.carritos[k].items || {}).length) delete S.carritos[k]; }); ls('carritos', S.carritos); }
 function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
@@ -1578,6 +1586,38 @@ function botonSesion() { if (S.user && confirm('¿Cerrar sesión de ' + S.user.n
  * 2) UNA sola llamada al servidor ("arranque") trae configuración, sesión y catálogo actualizados;
  * 3) en reposo se precargan los menús más probables, sus fotos y la librería de mapas.
  */
+/* ---------- 2.68.6 · Actualización de la app: avisa cuando hay versión nueva publicada y la aplica con un toque ---------- */
+function verMayor(a, b) { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
+/** Versión publicada en el sitio (se lee de sw.js, que es chico, sin usar copias guardadas). */
+async function appVersionPublicada() {
+  const r = await fetch('./sw.js?_=' + Date.now(), { cache: 'no-store' }), m = (await r.text()).match(/pidele-v(\d+\.\d+\.\d+)/);
+  return m ? m[1] : '';
+}
+async function appBuscarVersion(aMano) {
+  let pub = ''; try { pub = await appVersionPublicada(); } catch (e) { if (aMano) throw new Error('No se pudo revisar. Revisa tu internet.'); return; }
+  if (pub && verMayor(pub, APP_VER)) { if (aMano) return appActualizar(); appAvisoVersion(pub); return; }
+  if (aMano) {
+    const srv = S.conf && S.conf.version;
+    if (srv && verMayor(srv, APP_VER)) modal(`<h2 style="margin:0 0 6px">La app publicada es la ${esc(pub || APP_VER)}</h2><div class="small">El servidor ya está en la <b>${esc(srv)}</b>, pero en el sitio todavía no está publicada una app más nueva que la ${esc(APP_VER)}. Falta subir <b>index.html</b> y <b>sw.js</b> al sitio (o esperar unos minutos a que se publiquen).</div><div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Entendido</button></div>`);
+    else toast('Ya tienes la versión más reciente (' + APP_VER + ')');
+  }
+}
+function appAvisoVersion(v) {
+  if (document.getElementById('appAct')) return;
+  const d = document.createElement('div'); d.id = 'appAct';
+  d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;background:#1f2a14;color:#fff;border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:14px;max-width:520px;margin:0 auto';
+  d.innerHTML = `<span style="flex:1">🔄 Hay una versión nueva de ${APP} (${esc(v)})</span><button style="background:#fff;color:#1f2a14;border:0;border-radius:10px;padding:8px 12px;font-weight:700" onclick="act(this,appActualizar)">Actualizar</button><button style="background:none;border:0;color:#fff;font-size:18px" aria-label="Después" onclick="this.parentNode.remove()">✕</button>`;
+  document.body.appendChild(d);
+}
+/** Trae la app nueva del sitio (sin copias guardadas) y recarga. Lo guardado en el equipo (sesión, carritos, ventas sin subir) no se toca. */
+async function appActualizar() {
+  if (!navigator.onLine) throw new Error('Necesitas internet para actualizar');
+  toast('Actualizando…');
+  try { await Promise.all(['./index.html', './sw.js', './manifest.json'].map(u => fetch(u, { cache: 'reload' }).catch(() => { }))); } catch (e) { }
+  try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('pidele-v')).map(k => caches.delete(k))); } } catch (e) { }
+  try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch (e) { }
+  location.reload();
+}
 async function arrancar() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => { });
@@ -1589,6 +1629,8 @@ async function arrancar() {
     });
     S._swPrevio = !!navigator.serviceWorker.controller;
   }
+  // a los pocos segundos de abrir (y cada 30 min con la app abierta, como en las tabletas de caja y cocina) se revisa si hay versión nueva
+  setTimeout(() => appBuscarVersion(false), 8000); setInterval(() => appBuscarVersion(false), 30 * 60000);
   if (!S.token || !S.user) { S.token = null; S.user = null; }
   S._catProm = refrescarArranque();
   const deUrl = location.search;
@@ -2701,7 +2743,7 @@ function pintarCaja() {
   html(`<div class="pdv">
     <div class="pdvBar"><h1>${nomina ? '👥 Personal · ' : ventasM ? '📊 Ventas · ' : simple ? '🛒 ' : '🧾 '}${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
-      ${funOn('personal', 'asistencia') && (pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}<button onclick="ir(${nomina || ventasM ? "esDuenoVarios() ? 'tablero' : inicioRol()" : "puedo('pedidos') ? 'negPedidos' : 'perfil'"})">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
+      ${funOn('personal', 'asistencia') && (pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳 Cocina</button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
     ${nomina ? '' : `<div class="tabs pdvTabs">`}${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' ? ((n => n ? ' (' + n + ')' : '')(pdvVentasTurno().filter(v => v.estado !== 'cancelada' && (!simple || [v.por, v.mesero].some(x => x && x.uid === S.user.id))).length)) : ''}</button>`).join('')}${nomina ? '' : '</div>'}
@@ -3132,7 +3174,42 @@ function pdvTrasCobro() { const f = S._trasCobro; S._trasCobro = null; cerrarMod
 function pdvVentasTurno() { return PDV.ventas.filter(v => v.estado === 'pagada' || v.estado === 'cancelada'); }
 /** Tarjeta de indicador (mismo formato del tablero del dueño). */
 const kpiHTML = (t, v, sub, ico) => `<div class="tabKpi"><div class="row between"><span>${t}</span><span style="font-size:20px">${ico}</span></div><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
-function pdvVistaVentas() {
+function pdvVistaVentas() { return facBotonOtroTicket() + pdvVistaVentas0(); }
+/** 2.68.4 · Facturar un ticket de otro turno u otro día (dueño, gerente o caja), aunque la caja ya esté cerrada. */
+function facBotonOtroTicket() {
+  if (!(S.negocio && S.negocio.factura && pdvPuede('dcg')) || S.params === 'simple') return '';
+  return `<div style="margin:0 0 10px"><button class="btn sm" onclick="act(this,()=>facOtroTicket())">🧾 Facturar un ticket de otro turno o día</button></div>`;
+}
+async function facOtroTicket(dia) {
+  const hoy = pdvHoy(); dia = /^\d{4}-\d{2}-\d{2}$/.test(dia || '') && dia <= hoy ? dia : hoy;
+  let l;
+  if (dia === hoy) l = PDV.ventasDia.slice();
+  else { if (!navigator.onLine) throw new Error('Necesitas internet para ver ventas de otros días'); l = (await pdvCol('ventas').where('dia', '==', dia).get()).docs.map(d => Object.assign({ id: d.id }, d.data())); }
+  l = l.filter(v => v.estado !== 'cancelada' && v.total > 0).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  PDV.ventasOtro = l; PDV.otroDia = dia;
+  const hora = t => t ? new Date(t).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '';
+  modal(`<div class="row between"><h2 style="margin:0">🧾 Facturar un ticket</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Ventas ya cobradas, aunque el turno esté cerrado. Elige el día y toca el ticket.</div>
+    <div data-fijo></div>
+    <input class="i" type="date" value="${dia}" max="${hoy}" onchange="act(null,()=>facOtroTicket(this.value))">
+    ${dia.slice(0, 7) !== hoy.slice(0, 7) ? '<div class="aviso warn small" style="margin-top:8px">Ese día es de otro mes. Confirma con tu contador antes de facturar ventas de meses anteriores.</div>' : ''}
+    <input class="i" id="otBus" placeholder="Buscar por folio, cliente o total" style="margin-top:8px" oninput="facOtroFiltrar()">
+    <div id="otLista" style="margin-top:8px">${facOtroLista(l, hora)}</div>`);
+}
+function facOtroLista(l, hora) {
+  hora = hora || (t => t ? new Date(t).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '');
+  if (!l.length) return '<div class="vacio"><span class="big">🧾</span>No hay ventas cobradas ese día</div>';
+  return l.slice(0, 150).map(v => `<div class="card row between" style="padding:10px;margin:6px 0"><div class="grow"><b>${esc(v.folio || '')} · ${money(v.total)}</b>
+      <div class="muted small">${hora(v.cerrada || v.ts)}${v.cliente && v.cliente.nombre ? ' · ' + esc(v.cliente.nombre) : ''}${v.mesa ? ' · ' + esc(String(v.mesa)) : ''}</div>
+      <div class="muted small">${esc((v.items || []).filter(i => !i.cancelado).slice(0, 3).map(i => i.cant + '× ' + i.nombre).join(', '))}${(v.items || []).length > 3 ? '…' : ''}</div></div>
+    ${v.factura ? `<span class="tag t-ok">Facturada ${esc(v.factura.folio || '')}</span>` : `<button class="btn pri sm" onclick="act(this,()=>facDesdeVenta('${v.id}'))">Facturar</button>`}</div>`).join('');
+}
+function facOtroFiltrar() {
+  const q = ($('#otBus').value || '').trim().toLowerCase();
+  const l = (PDV.ventasOtro || []).filter(v => !q || [v.folio, v.cliente && v.cliente.nombre, v.cliente && v.cliente.tel, String(v.total)].some(x => String(x || '').toLowerCase().includes(q)));
+  $('#otLista').innerHTML = facOtroLista(l);
+}
+function pdvVistaVentas0() {
   if (!PDV.caja) return pdvSinCaja();
   const simple = S.params === 'simple', mia = v => [v.por, v.mesero].some(x => x && x.uid === S.user.id);
   const l = pdvVentasTurno().filter(v => !simple || mia(v)), otros = simple ? [] : PDV.pagosFis.filter(p => p.cajaVenta !== PDV.caja.id && !p.anulado);
@@ -3170,7 +3247,7 @@ function pdvVistaVentas() {
     <div class="tabGrid">${vis.map(tarjeta).join('') || '<div class="muted">Sin ventas con este filtro</div>'}</div>`
     + (otros.length ? `<h3>Cobros de cuentas de otro turno</h3><div class="small muted" style="margin-bottom:6px">El efectivo entra a esta caja, pero la venta cuenta para el turno en que se abrió la cuenta.</div>${otros.map(p => `<div class="card row between small"><span>${esc(p.folio)} · ${esc(p.etiqueta)} · turno ${p.turnoVenta} · ${PDV_MET[p.metodo]}</span><b>${money(p.monto)}</b></div>`).join('')}` : '');
 }
-function pdvVenta(id) { return PDV.ventas.find(v => v.id === id) || PDV.ventasDia.find(v => v.id === id); }
+function pdvVenta(id) { return PDV.ventas.find(v => v.id === id) || PDV.ventasDia.find(v => v.id === id) || (PDV.ventasOtro || []).find(v => v.id === id); }
 /* =========================== 2.44 · FACTURACIÓN (CFDI 4.0 con Facturama) =========================== */
 const FAC_EST = { pendiente: ['t-warn', 'En revisión'], emitida: ['t-ok', 'Emitida'], rechazada: ['t-err', 'No procede'], cancelada: ['t-err', 'Cancelada'] };
 let FAC_CAT = null; // regímenes, usos y formas de pago del SAT (vienen del servidor)
@@ -8622,7 +8699,7 @@ function btAjustesBLE(cfg, volver) {
 /* Pantalla para la cocina (plan Pro): pedidos por aceptar, en preparación y listos, en letra grande y sin precios. */
 const cocTieneAcceso = () => esAdminU() || planTiene('caja');
 /** 2.67.1 · al salir de cocina: con caja, a su inicio (o a lo siguiente que tenga en su barra). */
-function cocSalir() { if (!conPdvPedidos()) { ir('negPedidos'); return; } const v = (navRol().find(x => x[0] !== 'cocina' && x[1] !== 'fab') || ['perfil'])[0]; ir(v); }
+function cocSalir() { ls('estacion', null); if (!conPdvPedidos()) { ir('negPedidos'); return; } const v = (navRol().find(x => x[0] !== 'cocina' && x[1] !== 'fab') || ['perfil'])[0]; ir(v); }
 function botonCocina() {
   if (!puedo('pedidos') || !funOn('caja', 'cocina')) return '';
   if (cocTieneAcceso()) return `<button class="btn pri pill" style="flex:1" onclick="ir('cocina')">🍳 Modo cocina</button>`;
@@ -8635,7 +8712,8 @@ function cocinaSoloPro() {
 }
 const cocCfg = () => Object.assign({ papel: 58, auto: false, sonido: true }, ls('cocina') || {});
 async function vCocina(_, silencioso) {
-  if (!cocTieneAcceso() || !puedo('pedidos')) { ir(inicioRol()); return; }
+  if (!cocTieneAcceso() || !puedo('pedidos')) { ls('estacion', null); ir(inicioRol()); return; }
+  ls('estacion', 'cocina');
   const d = await api('panelNegocio');
   if (S.vista !== 'cocina') return;
   fijarNeg(d.negocio); recordar(d.pedidos);
@@ -12284,7 +12362,8 @@ function vPerfil() {
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
     <div class="muted small" style="text-align:center;margin-bottom:6px"><a href="privacidad.html" target="_blank">Aviso de privacidad</a> · <a href="terminos.html" target="_blank">Términos</a>${r !== 'admin' && S.user.rol !== 'admin' ? ` · <a href="#" style="color:var(--err)" onclick="formEliminarCuenta();return false">Eliminar mi cuenta</a>` : ''}</div>
-    <div class="muted small" style="text-align:center">${APP} · app ${APP_VER}${S.conf ? ' · servidor ' + S.conf.version : ''}</div>`);
+    <div class="muted small" style="text-align:center">${APP} · app ${APP_VER}${S.conf ? ' · servidor ' + S.conf.version : ''}</div>
+    <div style="text-align:center;margin-top:6px"><button class="lnk small" onclick="act(this,()=>appBuscarVersion(true))">🔄 Buscar actualización de la app</button></div>`);
   if (r === 'comprador') S._selP = mapaSelector('mapaPerfil', u.lat, u.lng, (a, b) => { S._perfPos = { lat: a, lng: b }; });
   if (r === 'repartidor') cargarPuntaje('miPts');
 }

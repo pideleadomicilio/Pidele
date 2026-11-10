@@ -1,5 +1,5 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v2.68.2';
+const VERSION = 'pidele-v2.68.6';
 const COMPARTIDO = 'pidele-compartido'; // comprobante que llega desde "Compartir" de otra app
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
 
@@ -33,7 +33,8 @@ self.addEventListener('notificationclick', e => {
 
 /* ---------- Caché de la app ---------- */
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(BASE)).then(() => self.skipWaiting()));
+  // 2.68.6: al instalar una versión nueva, los archivos se piden a la red (cache:'reload'), no a la copia del navegador (que podía ser la anterior)
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(BASE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -76,7 +77,10 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (!propio) return;
-  const red = fetch(e.request).then(res => {
+  if (u.pathname.endsWith('/sw.js')) return; // la versión publicada siempre se pregunta al sitio
+  // la copia se renueva por detrás preguntando siempre al sitio (no-cache), para que la siguiente apertura ya traiga lo último
+  let pet = e.request; try { pet = e.request.mode === 'navigate' ? new Request(e.request.url, { cache: 'no-cache' }) : new Request(e.request, { cache: 'no-cache' }); } catch (err) { pet = e.request; }
+  const red = fetch(pet).then(res => {
     if (res.ok) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
     return res;
   });
