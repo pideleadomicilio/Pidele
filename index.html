@@ -547,6 +547,7 @@ body.enCaja{padding-bottom:0}
 .checar.sal{background:var(--card);border:1px solid var(--ln)}
 .checar b{display:block;font-size:17px}.checar small{display:block;font-size:12px;color:var(--tx2)}
 .checar .btn{flex:none}
+.checar.mini{width:max-content;max-width:100%;margin:0 0 8px auto;padding:5px 12px;border-radius:999px;background:var(--card);border:1px solid var(--ln);color:var(--tx2);font-size:12px;font-weight:600;gap:6px;cursor:pointer}
 .cortesWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px -4px 0;padding:0 4px}
 .cortesT{border-collapse:collapse;font-size:13px;min-width:100%;font-variant-numeric:tabular-nums}
 .cortesT th,.cortesT td{padding:8px 8px;border-bottom:1px solid var(--ln);text-align:right;white-space:nowrap}
@@ -993,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.69.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.70.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -5822,13 +5823,22 @@ function barraChecar() {
     if (S.user && rolActual() === 'negocio' && S.negocio) {
       relojRevisar();
       if (relojAut(S.negocio.id) && (VISTAS_CHECAR.includes(S.vista) || S.vista === 'tablero') && !(S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)))
+      {
+        relojPendRefrescar();
+        if (!relojGrande(S.negocio.id)) return `<div class="checar mini reloj" role="button" onclick="act(this,asisMostrarQR)" title="Mostrar el QR de asistencia">🕒 Registrar ingreso</div>`;
         return `<div class="checar ent reloj" role="button" onclick="act(this,asisMostrarQR)"><span style="font-size:30px">🕒</span><span class="grow"><b>Registrar ingreso</b><small>Presiona para mostrar el QR</small></span><span style="font-size:26px">🔳</span></div>`;
+      }
     }
     if (!S.user || rolActual() !== 'negocio' || !S.negocio || esDueno() || !VISTAS_CHECAR.includes(S.vista)) return '';
     if (S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)) return '';
     const x = (ls('asisMia') || []).find(y => y.negocioId === S.negocio.id && y.hoy && y.hoy.fecha === pdvHoy());
     if (!x || x.hoy.salida || (!x.hoy.horario && !x.hoy.entrada)) return '';
     const h = x.hoy.horario, f = `act(this,()=>asisMarcarFlujo('${x.negocioId}'))`;
+    const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+    if (!x.hoy.entrada && h && aMin(h.e) !== null && ahoraMin < aMin(h.e) - 30)
+      return `<div class="checar mini" role="button" onclick="${f}">🕒 Entras a las ${horaTxt(h.e)}</div>`;
+    if (x.hoy.entrada && h && aMin(h.s) !== null && aMin(h.s) > aMin(h.e) && ahoraMin < aMin(h.s) - 30)
+      return `<div class="checar mini" role="button" onclick="${f}">✅ Entraste ${hora(x.hoy.entrada)} · sales ${horaTxt(h.s)}</div>${invBarraEquipo(x)}`;
     if (!x.hoy.entrada) {
       const tarde = h ? Math.round((Date.now() - new Date(x.hoy.fecha + 'T' + h.e).getTime()) / 6e4) : 0;
       return `<div class="checar ent" role="button" onclick="${f}"><span style="font-size:30px">🕒</span><span class="grow"><b>Checar entrada</b><small>${h ? 'Tu turno: ' + horaTxt(h.e) + ' – ' + horaTxt(h.s) : 'Hoy'}${tarde > 0 && tarde < 600 ? ' · vas ' + (tarde < 60 ? tarde + ' min' : Math.floor(tarde / 60) + ' h ' + (tarde % 60) + ' min') + ' tarde' : ''}</small></span><button class="btn pill" style="background:#fff;color:var(--pri);font-weight:800" onclick="event.stopPropagation();${f}">📷 Checar</button></div>`;
@@ -5836,6 +5846,30 @@ function barraChecar() {
     return `<div class="checar sal"><span style="font-size:24px">✅</span><span class="grow"><b style="font-size:15px">Entraste ${hora(x.hoy.entrada)}</b><small>${h ? 'Sales a las ' + horaTxt(h.s) + ' · al terminar, checa tu salida' : 'Al terminar, checa tu salida'}</small></span><button class="btn sm" onclick="${f}">👋 Checar salida</button></div>${invBarraEquipo(x)}`;
   } catch (e) { return ''; }
 }
+/* ---------- 2.70 · el botón de asistencia se repliega cuando nadie está por entrar o salir ---------- */
+function relojPendRefrescar() {
+  const nid = S.negocio && S.negocio.id; if (!nid || !navigator.onLine) return;
+  S._relojPendT = S._relojPendT || {}; if (Date.now() - (S._relojPendT[nid] || 0) < 3 * 60000) return;
+  S._relojPendT[nid] = Date.now();
+  api('relojPendientes', { negocioId: nid }).then(r => { const antes = relojGrande(nid); ls('relojPend_' + nid, r); if (antes !== relojGrande(nid)) asisRepintarBarra(); }).catch(() => { });
+}
+/** ¿Alguien está por entrar (30 min antes, y hasta que marque) o por salir (30 min antes)? Sin datos, se queda grande. */
+function relojGrande(nid) {
+  const d = ls('relojPend_' + nid); if (!d || d.fecha !== pdvHoy()) return true;
+  const ahora = new Date().getHours() * 60 + new Date().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+  return (d.lista || []).some(x => {
+    const e = aMin(x.e); let sa = aMin(x.s); if (e !== null && sa !== null && sa <= e) sa += 1440;
+    if (!x.ent) return e === null ? false : ahora >= e - 30 && (sa === null || ahora <= sa);
+    if (!x.sal) return sa === null ? true : ahora >= sa - 30;
+    return false;
+  });
+}
+function asisRepintarBarra() {
+  if ($('#modal.on')) return;
+  const b = $('.checar'), h = barraChecar();
+  if (b && b.tagName) { if (b.outerHTML !== h) b.outerHTML = h || ''; } else if (h && $('#vista') && (VISTAS_CHECAR.includes(S.vista) || S.vista === 'tablero')) $('#vista').insertAdjacentHTML('afterbegin', h);
+}
+setInterval(() => { try { if (S.user && rolActual() === 'negocio' && S.negocio) asisRepintarBarra(); } catch (e) { } }, 60000);
 /** Recordatorio en Pedidos para quien trabaja hoy y no ha marcado (2.60: lo reemplaza el botón de arriba). */
 function asisChip() {
   if (barraChecar()) return '';
@@ -9906,7 +9940,27 @@ function tabElegirNomina() {
   if (l.length === 1) { act(null, () => tabEntrar(l[0].id, 'nomina')); return; }
   if (!l.length) { toast('Personal y nómina vienen en los planes ' + planesCon('caja'), 'err'); return; }
   modal(`<div class="row between"><h2 style="margin:0">👥 ¿De qué negocio?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="btns">${l.map(n => `<button class="btn pill full" onclick="cerrarModal();act(this,()=>tabEntrar('${n.id}','nomina'))">${esc(n.nombre)} · ${n.personal.presentes}/${n.personal.total} trabajando</button>`).join('')}</div>`);
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,tabPersonalTodos)">👥 Todo mi personal · ${l.length} negocios en una pantalla</button>${l.map(n => `<button class="btn pill full" onclick="cerrarModal();act(this,()=>tabEntrar('${n.id}','nomina'))">${esc(n.nombre)} · ${n.personal.presentes}/${n.personal.total} trabajando</button>`).join('')}</div>`);
+}
+/** 2.70 · Todo el personal de sus negocios en una sola pantalla (cómo va hoy cada quien). */
+async function tabPersonalTodos(filtro) {
+  const d = S._perTodos && Date.now() - S._perTodos.t < 60000 && filtro ? S._perTodos : Object.assign(await api('personalTodos'), { t: Date.now() });
+  S._perTodos = d; filtro = filtro || 'todos';
+  const dentro = x => x.entrada && !x.salida, falta = x => ['sin_decidir', 'falta'].includes(x.estado) && !x.entrada;
+  const pasa = x => filtro === 'todos' || (filtro === 'dentro' ? dentro(x) : filtro === 'faltan' ? falta(x) || x.estado === 'por_llegar' : true);
+  const tot = d.negocios.reduce((s, g) => s + g.personas.length, 0), nD = d.negocios.reduce((s, g) => s + g.personas.filter(dentro).length, 0), nF = d.negocios.reduce((s, g) => s + g.personas.filter(x => falta(x) || x.estado === 'por_llegar').length, 0);
+  const fila = x => {
+    const e = ASIS_EST[x.estado] || ['', x.estado], est = dentro(x) ? ['🟢', 'Trabajando desde ' + hora(x.entrada)] : x.salida ? ['👋', 'Salió ' + hora(x.salida)] : e;
+    return `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln)"><div class="grow"><b>${esc(x.nombre)}</b>${x.varios ? ' <span class="tag">varios negocios</span>' : ''}
+      <div class="muted small">${esc(x.puesto || 'Sin puesto')} · ${x.horario ? horaTxt(x.horario.e) + ' – ' + horaTxt(x.horario.s) : 'hoy no trabaja'}</div></div>
+      <span class="small" style="text-align:right;white-space:nowrap">${est[0]} ${esc(est[1])}${x.minRetardo > 0 && x.entrada ? '<br><span class="muted">' + x.minRetardo + ' min tarde</span>' : ''}</span></div>`;
+  };
+  modal(`<div class="row between"><h2 style="margin:0">👥 Todo mi personal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:2px 0 8px">Hoy · ${tot} personas en ${d.negocios.length} negocios</div>
+    <div class="tabChips">${[['todos', 'Todos · ' + tot], ['dentro', '🟢 Trabajando · ' + nD], ['faltan', '🕗 Faltan por llegar · ' + nF]].map(([k, t]) => `<button class="${k === filtro ? 'on' : ''}" onclick="act(this,()=>tabPersonalTodos('${k}'))">${t}</button>`).join('')}</div>
+    ${d.negocios.map(g => { const l = g.personas.filter(pasa); return `<div class="card" style="padding:12px;margin:10px 0"><div class="row between"><b>${esc(g.nombre)}</b><button class="lnk small" onclick="cerrarModal();act(this,()=>tabEntrar('${g.id}','nomina'))">Abrir personal y nómina ›</button></div>
+      <div class="muted small">${g.personas.filter(dentro).length} de ${g.personas.length} trabajando</div>
+      ${l.length ? l.map(fila).join('') : `<div class="muted small" style="padding:8px 0">${g.personas.length ? 'Nadie en este filtro' : 'Aún no das de alta personal en este negocio'}</div>`}</div>`; }).join('')}`);
 }
 async function tabReportes() {
   const sel = S._tab.negocios.find(n => n.id === S._tabSel), base = sel && sel.caja ? sel : S._tab.negocios.find(n => n.caja && n.id === S.negActivo) || S._tab.negocios.find(n => n.caja);
