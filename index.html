@@ -787,7 +787,7 @@ function lsDe(id, k, v) {
 }
 /** Cambiar de municipio: se recarga la app conectada al servidor de ese municipio. */
 function cambiarPueblo(id, query) {
-  try { localStorage.setItem('pe_pueblo', id); } catch (e) { }
+  try { localStorage.setItem('pe_pueblo', id); if (S._paraCuenta) localStorage.setItem('pe_trasCiudad', 'registro'); } catch (e) { }
   location.href = location.pathname + (query ? '?' + query : '');
 }
 /*
@@ -842,8 +842,26 @@ const esAdminU = () => !!(S.user && S.user.rol === 'admin');
 /** ¿Ya sabemos tu ciudad? Las cuentas que ya usaban la app la conservan sin volver a preguntar. */
 function ciudadDefinida() {
   if (lsG('casa')) return true;
-  if (S.token && S.user) { lsG('casa', PUEBLO.id); return true; }
+  if (S.token && S.user) {
+    lsG('casa', PUEBLO.id);
+    if (S.explora && !esStaff() && !esAdminU()) { lsG('sinUbic', '1'); lsG('fuera', '1'); S.fueraZona = true; }
+    S.explora = false;
+    return true;
+  }
   return false;
+}
+/** 2.69 · ¿Está recorriendo la app sin cuenta y sin ciudad confirmada? (no se le pide ubicación hasta que quiera crear su cuenta) */
+const explorando = () => PUEBLOS.length > 1 && !lsG('casa') && !(S.token && S.user) && !PUEBLO_INV;
+/** Al crear cuenta: ahora sí se pide la ubicación (define su ciudad y habilita el efectivo). */
+function ubicacionParaCuenta() {
+  if (!explorando()) return;
+  S._paraCuenta = true; S._ubicTocado = false; S._ubicando = false;
+  bloqueoUbicacion('', 'inicio');
+}
+/** El visitante cambia de ciudad a mano mientras explora. */
+function elegirCiudadExplora() {
+  modal(`<div class="row between"><h2 style="margin:0">📍 ¿Qué ciudad quieres ver?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="btns" style="flex-direction:column">${PUEBLOS.map(x => `<button class="btn ${x.id === PUEBLO.id ? 'pri' : ''} pill full" onclick="${x.id === PUEBLO.id ? 'cerrarModal()' : `cambiarPueblo('${x.id}')`}">${esc(x.nombre)}${x.id === PUEBLO.id ? ' ✓' : ''}</button>`).join('')}</div>`);
 }
 async function permisoUbicacion() {
   try { const r = await navigator.permissions.query({ name: 'geolocation' }); return r.state; } catch (e) { return 'prompt'; }
@@ -855,6 +873,8 @@ async function ubicarAlAbrir() {
   try {
     const primera = !ciudadDefinida();
     const perm = await permisoUbicacion();
+    // 2.69 · primera visita sin cuenta: recorre la app libre (la ubicación se pide al crear la cuenta). Si ya dio permiso antes, se ubica sin preguntar.
+    if (primera && !S._paraCuenta && perm !== 'granted') { S.explora = true; return; }
     // sin preguntar de más a quien ya tiene su ciudad (salvo quien entró sin ubicación y aún no la ha negado)
     if (!primera && perm !== 'granted' && !(lsG('sinUbic') && perm === 'prompt' && !navegadorDeApp())) return;
     if (primera) {
@@ -910,8 +930,8 @@ function bloqueoUbicacion(msg, tipo) {
       <button class="btn pri pill full" onclick="copiarEnlaceApp(this)">📋 Copiar enlace</button>
       <button class="btn full" style="margin-top:10px" onclick="reintentarUbicacion()">Intentar aquí de todos modos</button>${sinUbic}`;
   } else if (tipo === 'inicio') {
-    cuerpo = `<h2>Activa tu ubicación</h2>
-      <p class="muted">Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.</p>
+    cuerpo = `<h2>${S._paraCuenta ? 'Para crear tu cuenta, activa tu ubicación' : 'Activa tu ubicación'}</h2>
+      <p class="muted">${S._paraCuenta ? 'Así tu cuenta queda en tu ciudad, tus pedidos llegan a donde estás y puedes pagar en efectivo.' : 'Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.'}</p>
       <button class="btn pri pill full" onclick="reintentarUbicacion()">Activar ubicación</button>${sinUbic}`;
   } else {
     cuerpo = `<h2>${tipo === 'apagada' ? 'No encontramos tu ubicación' : tipo === 'sin' ? 'Ubicación no disponible' : 'La ubicación está bloqueada'}</h2>
@@ -938,7 +958,7 @@ function continuarSinUbicacion() {
 }
 function entrarSinUbicacion(id) {
   lsG('casa', id); lsG('sinUbic', '1'); lsG('fuera', '1'); S.fueraZona = true;
-  if (id === PUEBLO.id) { quitarBloqueoUbicacion(); setTimeout(() => iniciarTour(), 500); }
+  if (id === PUEBLO.id) { quitarBloqueoUbicacion(); if (!S._paraCuenta) setTimeout(() => iniciarTour(), 500); }
   else cambiarPueblo(id);
 }
 function quitarBloqueoUbicacion() { const d = $('#bloqueoUbic'); if (d) d.remove(); document.documentElement.classList.remove('sinScroll'); }
@@ -973,7 +993,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.68.6'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.69.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1637,6 +1657,7 @@ async function arrancar() {
   // la entrada base del historial es el inicio, para que "volver" funcione al llegar por un enlace
   history.replaceState({ v: inicioRol() }, '', location.pathname);
   if (!abrirDesdeUrl(deUrl)) ir(inicioRol(), null);
+  try { if (localStorage.getItem('pe_trasCiudad')) { localStorage.removeItem('pe_trasCiudad'); if (!S.token) { ir('entrar'); setTimeout(() => vRegistro(), 0); } } } catch (e) { }
   quitarSplash();
   await S._catProm.catch(() => { });
   S._catProm = null;
@@ -1714,7 +1735,7 @@ function vLogin() {
   html(`<div class="entrar">
     <button class="redondo" onclick="ir('inicio')" aria-label="Volver">${ico('atras')}</button>
     <div class="marca"><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
-    ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}${esAdminU() ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
+    ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}${esAdminU() ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : explorando() ? '<button class="lnk small" onclick="elegirCiudadExplora()">¿Tu cuenta es de otra ciudad?</button>' : ''}</div>` : ''}
     <div class="card">
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
@@ -1788,6 +1809,7 @@ function eligePlanHTML() {
 }
 function vRegistro(rol) {
   rol = rol || 'comprador';
+  if (explorando() && !$('#bloqueoUbic')) setTimeout(ubicacionParaCuenta, 0);
   if (rol === 'repartidor') rol = 'comprador'; // 2.36: los repartidores entran por invitación de un negocio
   const R = [['comprador', '🙋', 'Soy cliente'], ['negocio', '🏪', 'Tengo un negocio']];
   html(`<div class="entrar">
@@ -10788,17 +10810,17 @@ async function vInicio(p, silencioso) {
       <div class="u" onclick="${u ? "ir('perfil')" : "ir('entrar')"}">
         <b>${ico('pin', 's')} Tu ubicación ${ico('abajo', 's')}</b>
         <small>${u && u.direccion ? esc(u.direccion) : u ? 'Toca para guardar tu dirección' : esc(PUEBLO.nombre) + ', Sin.'}</small></div>
-      ${botonPanel() || (PUEBLOS.length > 1 ? `<span class="chipPueblo" style="cursor:default">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))}</span>` : '')}
+      ${botonPanel() || (PUEBLOS.length > 1 ? (explorando() ? `<button class="chipPueblo" style="cursor:pointer;border:0" onclick="elegirCiudadExplora()">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))} ▾</button>` : `<span class="chipPueblo" style="cursor:default">📍 ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))}</span>`) : '')}
       <button class="redondo" onclick="ir('buscar')" aria-label="Buscar">${ico('search')}</button>
       ${botonCarrito()}
     </div>
     ${bannerPush()}
-    ${tarjetaInstalar()}
     <h1>¿Qué se te antoja hoy?</h1>
     <div class="buscar" onclick="ir('buscar')">${ico('search', 's')}<span>Busca tu comida favorita…</span></div>
     <div id="promoBanner"></div>
     <div class="catFila" id="catFila"></div>
     <div id="listaNeg"></div>
+    ${u ? tarjetaInstalar() : ''}
     <div class="compartirCard" onclick="compartirApp(this)"><span class="avatar" style="width:44px;height:44px">${ico('compartir')}</span>
       <div class="grow"><b>¿Te gusta Pídele?</b><div class="muted small">Compártelo con tu familia y amigos de ${esc(PUEBLO.nombre.replace('La Cruz de Elota', 'La Cruz'))}</div></div>${ico('atras', 's').replace('M15 5l-7 7 7 7', 'M9 5l7 7-7 7')}</div>
     ${barraCarrito()}`);
