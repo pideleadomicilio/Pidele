@@ -749,7 +749,7 @@ const PUEBLO = (() => {
     const guardado = localStorage.getItem('pe_pueblo') || '';
     id = guardado || param;
     // invitación del administrador: el municipio es el del enlace y no se cambia por ubicación
-    if ((qs.get('inv') || qs.get('seguir') || qs.get('oferta') || qs.get('fac')) && PUEBLOS.some(x => x.id === (param || PUEBLOS[0].id))) {
+    if ((qs.get('inv') || qs.get('seguir') || qs.get('oferta') || qs.get('fac') || qs.get('cli')) && PUEBLOS.some(x => x.id === (param || PUEBLOS[0].id))) {
       PUEBLO_INV = qs.get('inv') || ''; id = param || PUEBLOS[0].id;
       localStorage.setItem('pe_casa', id); localStorage.removeItem('pe_fuera');
     } else if (param && param !== guardado && PUEBLOS.some(x => x.id === param)) {
@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.75.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.77.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1410,13 +1410,13 @@ const VISTAS = {
   ventas: () => vVentas(), admNegocio: () => vAdmNegocio(),
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
-  operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, facLink: vFacLink, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
+  operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
 const AUTO = ['tablero', 'inicio', 'pedidos', 'pedido', 'negPedidos', 'cocina', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
 // pantallas a pantalla completa (sin barra inferior)
-const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'facLink', 'capturaTel', 'cocina', 'caja', 'oferta'];
+const SIN_NAV = ['entrar', 'nuevaClave', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'facLink', 'cliInv', 'capturaTel', 'cocina', 'caja', 'oferta'];
 
 /** Pantallas del pedido por teléfono; ir a cualquier otra cancela la captura (2.24.2). */
 const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
@@ -1708,7 +1708,12 @@ function guardarSesion(d) {
   if (destino === 'compartido') history.replaceState({ v: inicioRol() }, '', location.pathname);
   S.despues = null;
   if (oferta) { ir('oferta', oferta); iniciarSondeo(); return; }
+  // 2.76: entró desde el link de su ticket: regresa a pedir su factura (el ticket se liga solo al abrirlo)
+  const flv = S._flVolver; S._flVolver = '';
+  if (flv && !S.user.cambiarPass) { S._fl = null; ir('facLink', flv); setTimeout(pedirAviso, 1200); return; }
   ir(destino); // el inicio ya está cargado desde que se abrió la pantalla de entrar: aparece al instante
+  if (ls('facTkPend')) setTimeout(() => ticketLigarPend(false), 600); // 2.76: abrió el link de su ticket antes de entrar
+  if (ls('cliTkPend')) setTimeout(cliLigarPend, 900); // 2.77: abrió la invitación de la caja antes de entrar
   if (destino !== 'nuevaClave') setTimeout(pedirAviso, 1200);
   iniciarSondeo();
   if (S.user.rol === 'repartidor') iniciarGPS();
@@ -1839,8 +1844,10 @@ function vRegistro(rol) {
 async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
   if (rol === 'negocio' && !(await avisoPlanFactura(S._plan || 'plus'))) return;
-  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', aparato: aparatoId() });
-  toast('¡Bienvenido a ' + APP + '!');
+  const ci = rol === 'comprador' ? ls('cliTkPend') : null;
+  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', aparato: aparatoId(), cliTk: ci && ci.token ? ci.token : '' });
+  if (ci && d.usuario && d.usuario.telVerificado) { ls('cliTkPend', null); toast('¡Bienvenido a ' + APP + '! Tu número ya quedó verificado ✅'); }
+  else toast('¡Bienvenido a ' + APP + '!');
   guardarSesion(d);
 }
 
@@ -2011,6 +2018,7 @@ function abrirDesdeUrl(url) {
   if (neg) { ir('negocio', neg); return true; }
   if (q.get('seguir')) { ir('seguir', q.get('seguir')); return true; }
   if (q.get('fac')) { ir('facLink', q.get('fac')); return true; }
+  if (q.get('cli')) { ls('cliTkPend', { token: q.get('cli'), t: Date.now() }); ir('cliInv', q.get('cli')); return true; }
   if (q.get('oferta')) { ir('oferta', q.get('oferta')); return true; }
   if (q.get('inv')) {
     if (S.token) { ir(inicioRol(), null); setTimeout(() => toast('Esa invitación es para crear una cuenta nueva: cierra tu sesión para usarla'), 500); }
@@ -2952,6 +2960,32 @@ async function pdvPcBuscar() {
   w.style.display = '';
   if (x && x.nombre) { nom.value = x.nombre; info.innerHTML = `⭐ <b>${esc(x.nombre)}</b> · ${x.visitas || 0} visita(s)`; }
   else { info.innerHTML = '🆕 Cliente nuevo: escribe su nombre para registrarlo.'; }
+  info.insertAdjacentHTML('beforeend', ` <a class="lnk" id="pcInvA" target="_blank" href="#" onclick="return pdvPcInvitar(this)">📲 Invitar a Pídele por WhatsApp</a>`);
+}
+/** 2.77 · Invitación a Pídele ligada a ese número: al crear su cuenta desde el link queda verificada (monedero listo). */
+function pdvPcInvitar(a) {
+  const tel = ($('#pcTel').value || '').replace(/\D/g, ''), nombre = ($('#pcNom').value || '').trim();
+  if (tel.length !== 10) { toast('Escribe el teléfono a 10 dígitos', 'err'); return false; }
+  a.href = waLink(tel, cliInvTexto(tel, nombre)); // se arma al tocar: el WhatsApp del celular se abre con este mismo toque
+  return true;
+}
+function cliInvTexto(tel, nombre) {
+  const n = S.negocio.nombre, m = monActivo() ? monCfg() : null;
+  return `Hola${nombre ? ' ' + nombre.split(' ')[0] : ''} 👋 Te invitamos a Pídele de parte de ${n}.\n\n${m ? '👛 Tu monedero: ganas ' + m.cashback + '% de cada compra para usarlo en tus siguientes visitas.\n' : ''}🛵 Pide a domicilio o para recoger y ve tus compras.\n\nCrea tu cuenta con este mismo número, ya queda verificado:\n${urlApp('cli=' + cliInvTk(tel, nombre))}`;
+}
+/** Token de invitación para un número (se reutiliza 14 días en este aparato); el servidor lo registra en segundo plano. */
+function cliInvTk(tel, nombre) {
+  tel = String(tel || '').replace(/\D/g, '').slice(-10); if (tel.length !== 10 || !S.negocio) return '';
+  const m = ls('cliTks') || {}, k = S.negocio.id + tel, y = m[k];
+  if (y && Date.now() - y.t < 14 * 86400000) { cliInvSubir(y.tk, tel, nombre); return y.tk; }
+  const tk = Array.from(crypto.getRandomValues(new Uint8Array(22)), b => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[b % 56]).join('');
+  Object.keys(m).forEach(x => { if (Date.now() - m[x].t > 14 * 86400000) delete m[x]; });
+  m[k] = { tk, t: Date.now() }; ls('cliTks', m);
+  cliInvSubir(tk, tel, nombre); return tk;
+}
+function cliInvSubir(tk, tel, nombre) {
+  S._cliSub = S._cliSub || {}; if (S._cliSub[tk]) return; S._cliSub[tk] = 1;
+  api('cliInvitar', { negocioId: S.negocio.id, tel, nombre: nombre || '', token: tk }).catch(() => { S._cliSub[tk] = 0; });
 }
 function pdvPcFin(con) {
   const k = S._pc; if (!k) return;
@@ -3185,7 +3219,7 @@ function pdvVentaHecha(v) {
     ${cambio ? `<div class="pdvCambioG">Cambio: ${money(cambio)}</div>` : ''}
     ${v.monedero ? `<div class="aviso ok" style="text-align:left;margin:8px 0">👛 ${v.monedero.cashback ? 'Ganó ' + money(v.monedero.cashback) + ' (' + v.monedero.pct + '%) · ' : ''}saldo ${money(v.monedero.saldo)} · visitas del mes ${v.monedero.visitas}/${v.monedero.meta}</div>` : ''}
     <div class="btns" style="justify-content:center"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
-      <a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a></div>
+      <a class="btn pill" id="waV${v.id}" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a></div>
     <div class="btns">${v.pedidoId ? `<button class="btn pri pill full" style="font-size:18px" onclick="pdvTrasCobro()">${S._trasCobro ? 'Continuar con la entrega' : 'Listo'}</button>` : `<button class="btn pri pill full" style="font-size:18px" onclick="cerrarModal();pintarCaja()">Nueva venta</button>`}</div></div>`);
   if (pdvCfg().autoTicket) pdvImprimirVenta(v.id);
   pintarCaja();
@@ -3344,7 +3378,21 @@ function facTicketCliente(v, tel) {
   if (!S.negocio || !S.negocio.factura || String(tel || '').length !== 10) return;
   const pg = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto)[0] || {};
   const items = (v.items || []).filter(i => !i.cancelado).map(i => ({ nombre: i.nombre + (i.variante ? ' ' + i.variante : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
-  api('ticketCliente', { negocioId: S.negocio.id, ventaId: v.id, folio: v.folio, dia: v.dia, total: v.total, tel, items, forma: FAC_FORMA_DE[pg.metodo] || '01' }).catch(() => { });
+  const token = v.facTk || Array.from(crypto.getRandomValues(new Uint8Array(22)), b => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'[b % 56]).join('');
+  api('ticketCliente', { negocioId: S.negocio.id, ventaId: v.id, folio: v.folio, dia: v.dia, total: v.total, tel, items, forma: FAC_FORMA_DE[pg.metodo] || '01', token, nombre: (v.cliente && v.cliente.nombre) || '' }).then(r => {
+    if (!r || !r.token || v.facTk === r.token) return;
+    // 2.76: el ticket ya tiene su link de factura; va en el WhatsApp del ticket
+    v.facTk = r.token;
+    [PDV._ultimaVenta].concat(PDV.ventas || [], PDV.ventasDia || []).forEach(x => { if (x && x.id === v.id) x.facTk = r.token; });
+    pdvGuardar(pdvCol('ventas').doc(v.id).set({ facTk: r.token }, { merge: true }));
+    const a = document.getElementById('waV' + v.id); if (a) a.href = pdvWaVenta(Object.assign({}, pdvVenta(v.id) || v, { facTk: r.token }));
+  }).catch(() => { });
+}
+/** Abre WhatsApp con un botón (un toque del usuario abre el WhatsApp del celular; window.open tras una espera lo manda al navegador). */
+function waModal(link, titulo, nota) {
+  modal(`<div style="text-align:center"><div style="font-size:42px">💬</div><h2 style="margin:4px 0">${titulo}</h2>${nota ? `<div class="muted small">${nota}</div>` : ''}
+    <div class="btns"><a class="btn pri pill full" href="${esc(link)}" target="_blank" onclick="setTimeout(cerrarModal,400)">${ico('chat', 's')} Enviar por WhatsApp</a></div>
+    <button class="lnk small" onclick="cerrarModal()">Cerrar</button></div>`);
 }
 function facLeerReceptor(p) {
   p = p || 'fr'; const v = k => (($('#' + p + k) || {}).value || '').trim();
@@ -3387,6 +3435,7 @@ async function facAbrir() {
     ${f && (d.tickets || []).filter(t => !t.factura).length ? `<h3 style="margin:14px 0 4px">Mis compras de este mes</h3>${d.tickets.filter(t => !t.factura).map(t => `<div class="card row between" style="margin:8px 0;padding:12px"><div class="grow"><b>${esc(t.negocio)} · ${money(t.total)}</b>
       <div class="muted small">🧾 Ticket ${esc(t.folio)} · ${esc(t.dia)}</div><div class="muted small">${esc(t.items.slice(0, 3).map(i => i.cant + '× ' + i.nombre).join(', '))}${t.items.length > 3 ? '…' : ''}</div></div>
       <button class="btn pri sm" onclick="act(this,()=>facPedirTicket('${t.id}','${t.negocioId}'))">Facturar este ticket</button></div>`).join('')}` : ''}
+    ${f && !S.user.telVerificado && !(d.tickets || []).length ? `<div class="aviso small" style="margin-top:10px">📱 ¿Diste tu teléfono al pagar? <b>Verifica tu número</b> y tus compras aparecen aquí solas, sin escribir el folio. <button class="lnk" onclick="cerrarModal();act(this,verificarTel)">Verificar por WhatsApp</button></div>` : ''}
     ${d.facturas.length ? `<h3 style="margin:14px 0 4px">Mis facturas</h3>${d.facturas.map(x => facTarjeta(x, true)).join('')}` : ''}`);
 }
 function facFormMisDatos() {
@@ -3625,10 +3674,32 @@ function facFormEmitir(id) {
         <label class="f">Total del ticket (con IVA)</label><input class="i" id="feTot" inputmode="decimal" value="${f.totalVenta}">`}
     ${f.origen === 'app' || f.conTicket ? facModoSelect(f.modo || S._facNeg.config.concepto) : ''}
     ${f.modo ? `<div class="muted small">El cliente la pidió ${f.modo === 'consumo' ? 'por consumo' : 'desglosada'}.</div>` : ''}
-    ${facFormaSelect(f.origen === 'app' ? '03' : '01')}
+    <div id="feTk"></div>
+    ${facFormaSelect(f.forma || (f.origen === 'app' ? '03' : '01'))}
+    ${f.forma ? '<div class="muted small">Forma de pago tomada del ticket.</div>' : ''}
     <div id="feIsr" data-total="${f.totalVenta}"></div>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facEmitirSolicitud('${f.id}'))">Timbrar factura</button></div>`);
+  // 2.76: ¿el mismo cliente ya pidió o tiene otra factura por el mismo total ese día? (folio mal escrito, pedida dos veces)
+  const dup = S._facNeg.pendientes.concat(S._facNeg.recientes).filter(x => x.id !== f.id && ['pendiente', 'emitida'].includes(x.estado) && (x.receptor || {}).rfc === r.rfc && x.dia === f.dia && Math.abs((x.estado === 'emitida' ? x.total || x.totalVenta : x.totalVenta) - f.totalVenta) < 0.011);
+  if (dup.length) $('#feTk').innerHTML = `<div class="aviso err small" style="margin:8px 0">⚠️ <b>Posible factura repetida.</b> ${esc(r.nombre)} ${dup.map(x => x.estado === 'emitida' ? 'ya tiene la factura ' + esc(x.serie + x.folio) + ' (ticket ' + esc(x.ref) + ')' : 'también pidió factura del ticket ' + esc(x.ref)).join(' y ')} por el mismo total ese día. Revisa que no sea la misma compra antes de timbrar.</div>`;
+  if (f.origen === 'caja' && !f.forma) facRevisarFolio(f).catch(() => { });
   const c = S._facNeg.config; if (c.regimen === '626' && String(r.rfc || '').length === 12) $('#feIsr').innerHTML = `<div class="aviso warn small" style="margin:8px 0 0">RESICO a persona moral: el cliente debe retener <b>1.25% de ISR</b> (Art. 113-J de la LISR) para que su factura sea deducible. El cliente te paga el total menos esa retención.</div>`;
+}
+/** 2.76 · Solicitud con folio escrito a mano: se busca el ticket en las ventas; si existe se toma su total y forma de pago, si no se avisa. */
+async function facRevisarFolio(f) {
+  if (!navigator.onLine || !modOn('caja')) return;
+  await pdvConectar();
+  const l = (await pdvCol('ventas').where('dia', '==', f.dia).get()).docs.map(d => Object.assign({ id: d.id }, d.data())).filter(v => v.estado !== 'cancelada');
+  const box = $('#feTk'); if (!box || !box.tagName || !$('#feFor')) return;
+  const limpio = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), v = l.find(x => limpio(x.folio) === limpio(f.ref));
+  if (!v) {
+    const cerca = l.filter(x => Math.abs(x.total - f.totalVenta) < 0.011).slice(0, 3);
+    box.innerHTML += `<div class="aviso err small" style="margin:8px 0">⚠️ <b>No hay ningún ticket con el folio ${esc(f.ref)}</b> el ${esc(f.dia)}. Puede estar mal escrito.${cerca.length ? ' Con ese total están: ' + cerca.map(x => '<b>' + esc(x.folio) + '</b>').join(', ') + '.' : ''} Si no procede, usa “No procede”.</div>`;
+    return;
+  }
+  const pg = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto)[0] || {}, forma = FAC_FORMA_DE[pg.metodo] || '01';
+  $('#feFor').value = forma; if ($('#feTot')) $('#feTot').value = v.total;
+  box.innerHTML += `<div class="aviso ${Math.abs(v.total - f.totalVenta) < 0.011 ? 'ok' : 'warn'} small" style="margin:8px 0">✓ Ticket <b>${esc(v.folio)}</b> encontrado: ${money(v.total)}, pagado con <b>${esc((PDV_MET_TXT[pg.metodo] || 'efectivo').toLowerCase())}</b>.${Math.abs(v.total - f.totalVenta) < 0.011 ? '' : ' El cliente escribió ' + money(f.totalVenta) + '; se usa el total del ticket.'} Ya pusimos su forma de pago.</div>`;
 }
 async function facEmitirSolicitud(id) {
   const f = S._facNeg.pendientes.find(x => x.id === id), d = { negocioId: S.negocio.id, facturaId: id, formaPago: $('#feFor').value };
@@ -3643,17 +3714,41 @@ function facFormRechazar(id) {
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn err pill" onclick="act(this,async()=>{await api('facturaRechazar',{negocioId:S.negocio.id,facturaId:'${id}',motivo:$('#frMot').value});cerrarModal();toast('Le avisamos al cliente');await facPintar();})">Enviar</button></div>`);
 }
 function facFormCancelar(id) {
-  modal(`<h2 style="margin:0 0 4px">Cancelar factura ante el SAT</h2><div class="aviso warn small">Se cancela con el motivo 02 (comprobante emitido con errores sin relación). Si es para corregirla, después emite una nueva. No se puede deshacer.</div>
-    <label class="f">Nota interna</label><input class="i" id="fxMot" placeholder="Ej. RFC equivocado">
-    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Volver</button><button class="btn err pill" onclick="act(this,async()=>{await api('facturaCancelar',{negocioId:S.negocio.id,facturaId:'${id}',motivo:$('#fxMot').value});cerrarModal();toast('Factura cancelada');await facPintar();})">Cancelar factura</button></div>`);
+  const f = S._facNeg.recientes.find(x => x.id === id); if (!f) return;
+  const otras = S._facNeg.recientes.filter(x => x.id !== id && x.estado === 'emitida' && (x.receptor || {}).rfc === (f.receptor || {}).rfc);
+  modal(`<h2 style="margin:0 0 4px">Cancelar factura ${esc(f.serie + f.folio)}</h2>
+    <div class="muted small">${esc((f.receptor || {}).nombre || '')} · ${money(f.total || f.totalVenta)}${f.ref ? ' · ticket ' + esc(f.ref) : ''}</div>
+    <div class="aviso warn small" style="margin:8px 0">Se cancela ante el SAT y no se puede deshacer. Pide el código de un gerente o del dueño.</div>
+    <div data-fijo></div>
+    <label class="f">Motivo ante el SAT</label><select class="i" id="fxSat" onchange="$('#fxSusBox').style.display=this.value==='01'?'':'none'">
+      <option value="02">02 · Tiene errores (después emites la correcta)</option>
+      ${otras.length ? '<option value="01">01 · Tiene errores y ya emití la factura correcta</option>' : ''}
+      <option value="03">03 · La venta no se llevó a cabo</option></select>
+    <div id="fxSusBox" style="display:none"><label class="f">Factura correcta que la sustituye</label><select class="i" id="fxSus">${otras.map(x => `<option value="${x.id}">${esc(x.serie + x.folio)} · ${money(x.total || x.totalVenta)}${x.ref ? ' · ticket ' + esc(x.ref) : ''}</option>`).join('')}</select></div>
+    <label class="f">Nota interna</label><input class="i" id="fxMot" maxlength="120" placeholder="Ej. se facturó en efectivo y pagó con tarjeta">
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Volver</button><button class="btn err pill" onclick="act(this,()=>facCancelar('${id}'))">Continuar</button></div>`);
+}
+async function facCancelar(id) {
+  const d = { negocioId: S.negocio.id, facturaId: id, motivoSat: $('#fxSat').value, sustituye: $('#fxSat').value === '01' ? $('#fxSus').value : '', motivo: $('#fxMot').value.trim() };
+  if (d.motivo.length < 4) throw new Error('Escribe en la nota por qué se cancela');
+  const f = S._facNeg.recientes.find(x => x.id === id) || {};
+  await pdvConectar();
+  if (!Object.keys(PDV.personal || {}).length) { PDV.personal = {}; (await pdvCol('personal').get()).docs.forEach(x => { PDV.personal[x.id] = x.data(); }); }
+  let g;
+  try { g = await pdvPedirPin('🔑 Cancelar factura ' + (f.serie || '') + (f.folio || ''), 'gerente', `<div class="aviso warn small" style="margin:8px 0">Motivo ${esc(d.motivoSat)} · ${esc(d.motivo)}</div>`); }
+  catch (e) { if (e.message !== 'Cancelado') throw e; return; }
+  d.autoriza = g.nombre;
+  await api('facturaCancelar', d);
+  cerrarModal(); toast('Factura cancelada ante el SAT'); await facPintar();
 }
 /* ============ 2.53 · LINK DE FACTURA (el cliente sube sus datos sin iniciar sesión) ============ */
 async function vFacLink(token) {
-  if (!S._fl || S._fl.token !== token) S._fl = { token, paso: 'tel', d: null, info: null, otros: false, cuenta: false };
+  if (!S._fl || S._fl.token !== token) S._fl = { token, paso: 'tel', d: null, info: null, otros: false, cuenta: false, tel: '' };
   const k = S._fl;
+  if (!k.lig) { k.lig = true; ls('facTkPend', { token, t: Date.now() }); if (S.token && S.user) ticketLigarPend(true); }
   if (!k.d) {
     html('<div class="cargando">Cargando…</div>');
-    try { k.d = await api('facLinkVer', { token }); FAC_CAT = Object.assign({}, FAC_CAT || {}, { regimenes: k.d.regimenes, usos: k.d.usos }); }
+    try { k.d = await api('facLinkVer', { token }); FAC_CAT = Object.assign({}, FAC_CAT || {}, { regimenes: k.d.regimenes, usos: k.d.usos }); if (k.d.info && k.paso === 'tel') { k.info = k.d.info; k.paso = 'datos'; } } // 2.76: el link llegó a su WhatsApp; ya no se le pide el teléfono
     catch (e) { html(`<div class="entrar" style="padding-top:24px"><div class="card" style="text-align:center"><div style="font-size:44px">🧾</div><h2>No se pudo abrir</h2><div class="muted">${esc(e.message)}</div></div></div>`); return; }
   }
   const d = k.d;
@@ -3674,7 +3769,7 @@ async function vFacLink(token) {
       <div class="muted small" style="text-align:center">Puedes facturar hasta el ${esc(fechaLarga(d.vence))}.</div></div>`;
   } else {
     const g = k.info.guardados;
-    cuerpo = `${g && !k.otros ? `<div class="card"><b>📋 Tus datos guardados en Pídele</b>
+    cuerpo = `${k.info.cuenta && !S.token ? `<div class="aviso small" style="margin-bottom:10px">👤 Ya tienes cuenta en Pídele con este teléfono. <button class="lnk" onclick="S.despues=null;S._flVolver=S._fl.token;ir('entrar');setTimeout(()=>{const t=$('#lTel');if(t&&t.tagName)t.focus()},300)">Entra a tu cuenta</button> y este ticket queda guardado ahí, con tu monedero.</div>` : ''}${g && !k.otros ? `<div class="card"><b>📋 Tus datos guardados en Pídele</b>
         <div style="margin:6px 0"><b>${esc(g.nombre)}</b><div class="muted small">RFC ${esc(g.rfc)} · ${esc(g.email)}</div></div>
         <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>flEnviar(true))">Pedir factura con estos datos</button></div>
         <button class="lnk small" onclick="S._fl.otros=true;pintar(true)">Usar otros datos</button></div>`
@@ -3718,6 +3813,68 @@ function visorPdf(r) {
   const b = atob(r.b64 || ''), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
   window.open(URL.createObjectURL(new Blob([u], { type: 'application/pdf' })), '_blank');
 }
+/** 2.77 · Pantalla que abre el cliente desde la invitación de la caja. */
+async function vCliInv(token) {
+  html('<div class="cargando" style="margin-top:40px">Abriendo tu invitación…</div>');
+  let d; try { d = await api('cliInvVer', { token }); } catch (e) { d = { valida: false }; }
+  S._ci = Object.assign({ token }, d);
+  if (S.token && S.user) {
+    const r = await api('cliLigar', { token }).catch(() => ({}));
+    if (r.ligado) { ls('cliTkPend', null); if (!S.user.telVerificado) { S.user.telVerificado = true; ls('user', S.user); } }
+    history.replaceState(null, '', location.pathname); ir(inicioRol(), null);
+    setTimeout(() => toast(r.ligado ? (r.recienVerificado ? '✅ Tu número quedó verificado: ya puedes usar tu monedero' : '👛 Listo, tu cuenta ya está ligada') : r.otroTel ? 'Esa invitación es para otro número' : 'Ya tienes tu cuenta lista'), 500);
+    return;
+  }
+  const cab = `<div style="text-align:center">${d.logo ? `<img src="${esc(d.logo)}" alt="" style="width:72px;height:72px;border-radius:20px;object-fit:cover">` : '<div style="font-size:52px">👛</div>'}</div>`;
+  if (!d.valida) {
+    html(`<div class="entrar" style="padding-top:24px">${cab}<div class="card" style="text-align:center"><h2>${d.usada ? 'Esta invitación ya se usó' : 'Esta invitación ya no es válida'}</h2>
+      <div class="muted">${d.usada ? 'Entra con tu número y contraseña.' : 'Puedes crear tu cuenta de todos modos; pide en el negocio una invitación nueva si quieres que tu número quede verificado al instante.'}</div>
+      <div class="btns"><button class="btn pri pill full" onclick="ls('cliTkPend',null);history.replaceState(null,'',location.pathname);${d.usada ? 'vLogin()' : "vRegistro('comprador')"}">${d.usada ? 'Entrar' : 'Crear mi cuenta'}</button></div></div></div>`);
+    return;
+  }
+  html(`<div class="entrar" style="padding-top:16px">${cab}
+    <h1 style="text-align:center;margin:8px 0 2px">Hola${d.nombre ? ' ' + esc(d.nombre.split(' ')[0]) : ''} 👋</h1>
+    <div class="muted" style="text-align:center;margin-bottom:12px"><b>${esc(d.negocio)}</b> te invitó a Pídele</div>
+    <div class="card">
+      <div style="margin:4px 0">👛 Ve tu monedero y úsalo al pagar</div><div style="margin:4px 0">🧾 Tus compras y facturas en un solo lugar</div><div style="margin:4px 0">🛵 Pide a domicilio o para recoger</div>
+      <div class="aviso ok small" style="margin-top:10px">📱 Tu número ${esc(d.telMask)} queda <b>verificado</b> al ${d.cuenta ? 'entrar' : 'crear tu cuenta'} desde aquí.</div>
+      ${d.cuenta ? `<div class="aviso small" style="margin-top:10px">Ya tienes cuenta con este número.</div><div class="btns"><button class="btn pri pill full" onclick="cliInvEntrar()">Entrar a mi cuenta</button></div>`
+        : `<div class="btns"><button class="btn pri pill full" onclick="cliInvCrear()">Crear mi cuenta</button></div><div style="text-align:center"><button class="lnk small" onclick="cliInvEntrar()">Ya tengo cuenta</button></div>`}
+    </div></div>`);
+}
+function cliInvCrear() {
+  const c = S._ci || {}; history.replaceState(null, '', location.pathname);
+  vRegistro('comprador');
+  setTimeout(() => { const n = $('#rNom'), t = $('#rTel'); if (n && n.tagName && c.nombre && !n.value) n.value = c.nombre; if (t && t.tagName && c.tel) t.value = c.tel; const p = $(c.nombre ? '#rPass' : '#rNom'); if (p && p.tagName) p.focus(); }, 80);
+}
+function cliInvEntrar() {
+  const c = S._ci || {}; history.replaceState(null, '', location.pathname);
+  ir('entrar'); setTimeout(() => { const t = $('#lTel'); if (t && t.tagName && c.tel) { t.value = c.tel; const p = $('#lPass'); if (p && p.tagName) p.focus(); } }, 300);
+}
+async function cliLigarPend() {
+  const p = ls('cliTkPend'); if (!p || !p.token || !S.token) return;
+  if (Date.now() - (p.t || 0) > 20 * 86400000) { ls('cliTkPend', null); return; }
+  try {
+    const r = await api('cliLigar', { token: p.token });
+    if (r.otroTel) return;
+    ls('cliTkPend', null);
+    if (r.ligado && S.user && !S.user.telVerificado) { S.user.telVerificado = true; ls('user', S.user); }
+    if (r.ligado && r.recienVerificado) toast('✅ Tu número quedó verificado: ya puedes usar tu monedero');
+  } catch (e) { }
+}
+/** 2.76 · Si el cliente abrió el link de su ticket (WhatsApp) y tiene sesión con ese teléfono:
+ *  el ticket queda en su cuenta y su teléfono verificado (ve sus compras y usa su monedero sin esperar). */
+async function ticketLigarPend(callado) {
+  const p = ls('facTkPend'); if (!p || !p.token || !S.token) return;
+  if (Date.now() - (p.t || 0) > 40 * 86400000) { ls('facTkPend', null); return; }
+  try {
+    const r = await api('ticketLigar', { token: p.token });
+    if (r.otroTel) return; // otra cuenta (otro teléfono): se deja por si entra con la suya
+    ls('facTkPend', null);
+    if (r.ligado && S.user && !S.user.telVerificado) { S.user.telVerificado = true; ls('user', S.user); }
+    if (r.ligado && !callado) toast(r.recienVerificado ? '✅ Tu ticket quedó en tu cuenta y tu teléfono verificado' : '🧾 Tu ticket quedó en tu cuenta');
+  } catch (e) { }
+}
 /** Guarda la sesión nueva sin cambiar de pantalla (el cliente sigue viendo la confirmación). */
 function guardarSesionSinIr(d) { S.token = d.token; S.user = d.usuario; ls('token', S.token); ls('user', S.user); if (d.config) { S.conf = d.config; ls('conf', S.conf); } }
 
@@ -3733,8 +3890,9 @@ async function facMandarLink(id) {
   const r = await api('facLinkCrear', { negocioId: S.negocio.id, ventaId: v.id, folio: v.folio, dia: v.dia, total: v.total, tel, nombre, forma: FAC_FORMA_DE[(pg[0] || {}).metodo] || '01',
     items: v.items.filter(i => !i.cancelado).map(i => ({ nombre: i.nombre, cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio })) });
   const url = urlApp('fac=' + r.token);
-  window.open(waLink(tel, `🧾 *${S.negocio.nombre}*\nHola ${nombre.split(' ')[0]}, para tu factura del ticket ${v.folio} por ${money(v.total)} entra aquí y sube tus datos o tu constancia de situación fiscal:\n${url}\n\nPuedes pedirla hasta el ${fechaLarga(r.vence)}.`), '_blank');
-  cerrarModal(); toast('Link enviado. Cuando el cliente mande sus datos te llega un aviso para timbrar ✓');
+  v.facTk = r.token;
+  waModal(waLink(tel, `🧾 *${S.negocio.nombre}*\nHola ${nombre.split(' ')[0]}, para tu factura del ticket ${v.folio} por ${money(v.total)} entra aquí y sube tus datos o tu constancia de situación fiscal:\n${url}\n\nPuedes pedirla hasta el ${fechaLarga(r.vence)}.`),
+    'Link de factura listo', `Para ${esc(nombre.split(' ')[0])} · ticket ${esc(v.folio)}. Ya va ligado a su ticket y a su forma de pago; cuando mande sus datos te llega un aviso para timbrar.`);
 }
 /** Comparte el PDF y el XML de la factura (celular o tableta); en computadora, los descarga y abre el chat del cliente. */
 async function facWhatsApp(facturaId, tel, folio) {
@@ -3744,8 +3902,7 @@ async function facWhatsApp(facturaId, tel, folio) {
   const files = [archivo(pdf), archivo(xml)];
   if (navigator.canShare && navigator.canShare({ files })) { try { await navigator.share({ files, text: txt }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); });
-  window.open(tel ? waLink(tel, txt + '\n(adjunto el PDF)') : 'https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
-  toast('Descargamos el PDF y el XML: adjúntalos en el chat de WhatsApp');
+  waModal(tel ? waLink(tel, txt + '\n(adjunto el PDF)') : 'https://wa.me/?text=' + encodeURIComponent(txt), 'Factura descargada', 'Descargamos el PDF y el XML: adjúntalos en el chat de WhatsApp.');
 }
 function facListaModal(v, r, tel) {
   modal(`<div style="text-align:center"><div style="font-size:46px">✅</div><h2 style="margin:4px 0">Factura ${esc(r.serie + r.folio)} timbrada</h2>
@@ -3843,7 +4000,7 @@ function pdvDetalleVenta(id) {
     ${v.factura ? `<div class="aviso ok small row between" style="margin:8px 0 0"><span>🧾 Facturada · ${esc(v.factura.folio || '')}</span>${v.factura.id ? `<button class="btn sm" onclick="act(this,()=>facWhatsApp('${v.factura.id}','${esc(v.factura.tel || (v.cliente && v.cliente.tel) || '')}','${esc(v.factura.folio || '')}'))">${ico('chat', 's')} Enviar</button>` : ''}</div>` : ''}
     <div class="btns"><button class="btn pill" onclick="pdvImprimirVenta('${v.id}')">🖨️ Ticket</button>
       ${S.negocio && S.negocio.factura && v.estado !== 'cancelada' && !v.factura && pdvPuede('dcg') ? `<button class="btn pill" onclick="act(this,()=>facDesdeVenta('${v.id}'))">🧾 Facturar</button>` : ''}
-      <a class="btn pill" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>
+      <a class="btn pill" id="waV${v.id}" href="${esc(pdvWaVenta(v))}" target="_blank">${ico('chat', 's')} WhatsApp</a>
       ${pdvPuedeAgregarCliente(v) ? `<button class="btn pill" onclick="act(this,()=>pdvAgregarCliente('${v.id}'))">👛 Agregar cliente</button>` : ''}
       ${v.estado !== 'cancelada' && pdvPagosCambiables(v).length ? `<button class="btn pill" onclick="act(this,()=>pdvCambiarPago('${v.id}'))">💳 Cambiar forma de pago</button>` : ''}
       ${v.estado !== 'cancelada' ? `<button class="btn err pill" onclick="act(this,()=>pdvCancelarVenta('${v.id}'))">Cancelar venta</button>` : ''}</div>
@@ -4527,7 +4684,7 @@ function pdvWaVenta(v) {
   const txt = `🧾 *${n.nombre || ''}* · Ticket ${v.folio}\n${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}\n\n` +
     v.items.filter(i => !i.cancelado).map(i => `${i.cant} x ${i.nombre} — ${money(i.importe != null ? i.importe : i.cant * i.precio)}${pdvTxtDet(i) ? '\n   ' + pdvTxtDet(i) : ''}`).join('\n') +
     `\n\n*Total: ${money(v.total)}*\n` + v.pagos.map(p => `${PDV_MET_TXT[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' (cambio ' + money(p.cambio) + ')' : ''}`).join('\n') +
-    `\n${v.monedero ? '\n👛 ' + monTicket(v.monedero).map(([a, b]) => a + ': ' + b).join('\n') + '\n' : ''}\n¡Gracias por tu compra! 🙌\nLa próxima vez pide a domicilio en ${urlApp('')}`;
+    `\n${v.monedero ? '\n👛 ' + monTicket(v.monedero).map(([a, b]) => a + ': ' + b).join('\n') + '\n' : ''}${v.facTk && n.factura && v.estado !== 'cancelada' ? '\n🧾 ¿Necesitas factura? Pídela aquí, ya va ligada a este ticket:\n' + urlApp('fac=' + v.facTk) + '\n' : ''}\n¡Gracias por tu compra! 🙌\n${v.cliente && v.cliente.tel && v.estado !== 'cancelada' ? '👛 Crea tu cuenta en Pídele con este número para ver tu monedero y pedir a domicilio (tu número ya queda verificado):\n' + urlApp('cli=' + cliInvTk(v.cliente.tel, v.cliente.nombre)) : 'La próxima vez pide a domicilio en ' + urlApp('')}`;
   return v.cliente && v.cliente.tel ? waLink(v.cliente.tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
 }
 function pdvImprimirCorte(id, ciego) {
@@ -8289,7 +8446,7 @@ async function monGuardarCliente() {
   if (!(x && x.nombre)) upd.nombre = nombre;
   pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
   const cfg = monCfg(), neg = S.negocio.nombre;
-  const txt = `Hola ${nombre.split(' ')[0]} 👋 Ya tienes tu monedero en ${neg}: ganas ${cfg.cashback}% de cada compra para usarlo en tus siguientes visitas${cfg.vigencia ? ' (vence en ' + cfg.vigencia + ' días)' : ''}. Solo da tu teléfono al pagar.\n\nVe tu saldo y tus visitas en Pídele, entrando con este mismo número (${tel}): ${urlApp('v=monedero')}`;
+  const txt = `Hola ${nombre.split(' ')[0]} 👋 Ya tienes tu monedero en ${neg}: ganas ${cfg.cashback}% de cada compra para usarlo en tus siguientes visitas${cfg.vigencia ? ' (vence en ' + cfg.vigencia + ' días)' : ''}. Solo da tu teléfono al pagar.\n\nCrea tu cuenta en Pídele con este mismo número (ya queda verificado) y ve tu saldo y tus visitas: ${urlApp('cli=' + cliInvTk(tel, nombre))}`;
   modal(`<div style="text-align:center"><div style="font-size:46px">👛</div><h2 style="margin:4px 0">${x ? esc(x.nombre || nombre) + ' ya tenía monedero' : esc(nombre) + ' ya tiene monedero'}</h2>
     <div class="muted" style="margin:6px 0 12px">Mándale el aviso para que descargue Pídele y vea su saldo.</div>
     <div class="btns"><a class="btn pri pill full" href="${esc(waLink(tel, txt))}" target="_blank" onclick="setTimeout(cerrarModal,400)">${ico('chat', 's')} Mandar por WhatsApp</a><button class="btn pill full" onclick="cerrarModal()">Listo</button></div></div>`);
