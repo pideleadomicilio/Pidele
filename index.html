@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.74.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.75.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -7005,7 +7005,12 @@ function pdvVistaPersonal() {
   const P = PDV.per = PDV.per || { sub: 'hoy', fecha: pdvHoy() };
   const subs = [['equipo', '👥 Equipo'], ['hoy', '🕒 Asistencia hoy', 'asistencia'], ['semana', '📅 Semana'], ['vac', '🏖️ Vacaciones', 'vacaciones'], ['nomina', '💵 Nómina', 'nomina'], ['metas', '🎯 Bonos y metas', 'bonos'], ['turnos', '⏱️ Turnos'], ['config', '⚙️ Reglas y horarios'], ['consumo', '🎁 Consumo', 'consumo']].filter(x => !x[2] || funOn('personal', x[2])); // 2.68: solo las funciones prendidas
   if (!subs.some(x => x[0] === P.sub)) P.sub = 'equipo';
-  const cab = `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="muted small">Tu gente, asistencia, vacaciones, nómina y bonos</span><button class="btn sm pri" onclick="act(this,altaColab)">➕ Agregar colaborador</button></div><div class="tabChips perSubs">${subs.map(([k, t]) => `<button class="${P.sub === k ? 'on' : ''}" onclick="PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()">${t}</button>`).join('')}</div>`;
+  if (P.todos) { // 2.75: toda su gente, de todos sus negocios, en esta misma pantalla
+    if (!navigator.onLine) return perNegChips() + '<div class="aviso warn">📴 Necesitas internet para ver a todo tu personal.</div>';
+    if (!S._perTodos || Date.now() - S._perTodos.t > 60000) { if (!P.todosCarga) { P.todosCarga = true; perTodosCargar(true).catch(e => { S._perTodos = { negocios: [], t: Date.now(), _error: e.message }; }).finally(() => { P.todosCarga = false; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); }); } if (!S._perTodos) return perNegChips() + '<div class="cargando">Cargando…</div>'; }
+    return perNegChips() + (S._perTodos._error ? `<div class="aviso err">${esc(S._perTodos._error)}</div>` : perTodosHTML(S._perTodos, P.todosF, true)) + '<div class="muted small" style="margin-top:8px">Para asistencia, vacaciones, nómina o editar a alguien, elige arriba el negocio.</div>';
+  }
+  const cab = perNegChips() + `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="muted small">Tu gente, asistencia, vacaciones, nómina y bonos</span><button class="btn sm pri" onclick="act(this,altaColab)">➕ Agregar colaborador</button></div><div class="tabChips perSubs">${subs.map(([k, t]) => `<button class="${P.sub === k ? 'on' : ''}" onclick="PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()">${t}</button>`).join('')}</div>`;
   if (P.sub === 'metas') return cab + asisVistaMetas();
   if (P.sub === 'turnos') return cab + asisVistaTurnos();
   if (P.sub === 'consumo') return cab + asisVistaConsumo();
@@ -7274,6 +7279,7 @@ function vacVistaPanel(d) {
       <div class="small muted">Le quedan ${v.disponibles} días${v.nota ? ' · “' + esc(v.nota) + '”' : ''}</div>
       <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,()=>vacDecidirP('${v.id}',true))">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,()=>vacDecidirP('${v.id}',false))">No aprobar</button></div></div>`).join('')
     : '<div class="aviso ok" style="margin-top:8px">No hay solicitudes de vacaciones por aprobar.</div>'}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,vacDarForm)">🏖️ Dar vacaciones a un colaborador</button></div>
     <div class="card"><b>📅 Próximas vacaciones</b>${Object.keys(prox).length ? Object.keys(prox).map(f => `<div class="tot"><span>${dd(f)}</span><span>${prox[f].map(esc).join(', ')}</span></div>`).join('') : '<div class="small muted">Nadie tiene vacaciones programadas.</div>'}</div>
     <div class="card"><b>Reglas de vacaciones</b>${d.dueno ? '' : ' <span class="small muted">(solo el dueño las cambia)</span>'}
       <div class="asisCfg"><label>Anticipación (días)<input class="i" id="vrAnt" inputmode="numeric" value="${d.anticipo}" ${d.dueno ? '' : 'disabled'}></label>
@@ -7282,6 +7288,50 @@ function vacVistaPanel(d) {
       <hr class="hr"><b>🔒 Fechas bloqueadas</b><div class="small muted" style="margin:2px 0 6px">Días importantes: nadie los puede pedir desde la app; quien los quiera lo habla contigo en persona.</div>
       ${d.bloqueadas.map(b => `<div class="pdvFila g"><span>🔒 ${dd(b.f)}<small>${esc(b.motivo || '')}</small></span><span></span>${d.dueno ? `<button class="btn sm" onclick="act(this,()=>vacReglasP({desbloquear:'${b.f}'}))">Quitar</button>` : ''}</div>`).join('') || '<div class="small muted">Ninguna.</div>'}
       ${d.dueno ? `<div class="row" style="gap:6px;margin-top:8px"><input class="i" type="date" id="vrF" min="${pdvHoy()}" style="flex:1"><input class="i" id="vrM" maxlength="60" placeholder="Motivo (ej. Fiestas)" style="flex:1"><button class="btn sm pri" onclick="act(this,()=>{if(!$('#vrF').value)throw new Error('Elige la fecha');return vacReglasP({bloquear:$('#vrF').value,motivo:$('#vrM').value})})">Bloquear</button></div>` : ''}</div>`;
+}
+/* ---------- 2.75 · Dar vacaciones directo (las pidió en persona): colaborador y fechas ---------- */
+async function vacDarForm() {
+  const d = await api('personalLista', { negocioId: S.negocio.id });
+  const l = d.equipo.filter(x => x.alta); if (!l.length) throw new Error('Primero ponle puesto y turno a tu gente (pestaña Equipo)');
+  S._vd = { equipo: l };
+  const hoy = pdvHoy();
+  modal(`<div class="row between"><h2 style="margin:0">🏖️ Dar vacaciones</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0">Para cuando te las piden en persona. Quedan registradas y se le avisa al colaborador.</div>
+    <label class="f">Colaborador</label><select class="i" id="vdQuien" onchange="vacDarPrev()"><option value="">Elige…</option>${l.map(x => `<option value="${x.usuarioId}">${esc(x.nombre)}</option>`).join('')}</select>
+    <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Del día</label><input class="i" type="date" id="vdDe" min="${hoy}" onchange="if(!$('#vdA').value||$('#vdA').value<this.value)$('#vdA').value=this.value;vacDarPrev()"></div>
+      <div style="flex:1"><label class="f">Al día</label><input class="i" type="date" id="vdA" min="${hoy}" onchange="vacDarPrev()"></div></div>
+    <label class="row" style="gap:8px;margin-top:8px;align-items:center"><input type="checkbox" id="vdDesc" checked onchange="vacDarPrev()"><span class="small">No contar sus días de descanso</span></label>
+    <div id="vdPrev" class="aviso small" style="margin-top:10px">Elige al colaborador y las fechas.</div>
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,vacDarGuardar)">Dar vacaciones</button></div>`);
+}
+/** Días del rango que cuentan (sin sus descansos, si así se pide). */
+function vacDarFechas() {
+  const uid = $('#vdQuien').value, de = $('#vdDe').value, a = $('#vdA').value || de, x = (S._vd.equipo || []).find(y => y.usuarioId === uid);
+  if (!x || !de) return { x, fechas: [] };
+  const fechas = [], sinDesc = $('#vdDesc').checked, f = new Date(de + 'T12:00'), fin = new Date(a + 'T12:00');
+  for (let i = 0; i < 60 && f <= fin; i++, f.setDate(f.getDate() + 1)) {
+    const h = (x.horario || {})[f.getDay()];
+    if (sinDesc && !(h && h.e && h.s)) continue;
+    fechas.push(f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0'));
+  }
+  return { x, fechas };
+}
+function vacDarPrev() {
+  const { x, fechas } = vacDarFechas(), box = $('#vdPrev'); if (!box || !box.tagName) return;
+  if (!x || !$('#vdDe').value) { box.className = 'aviso small'; box.textContent = 'Elige al colaborador y las fechas.'; return; }
+  const quedan = Math.max(0, (x.vacaciones || 0) - (x.vacUsadas || 0)), pasa = fechas.length > quedan;
+  box.className = 'aviso small ' + (pasa ? 'warn' : fechas.length ? 'ok' : 'warn');
+  box.innerHTML = fechas.length ? `<b>${fechas.length} día${fechas.length > 1 ? 's' : ''}</b>: ${fechas.map(vacDD).join(', ')}<br>${esc(x.nombre.split(' ')[0])} tiene ${quedan} día${quedan === 1 ? '' : 's'} disponible${quedan === 1 ? '' : 's'}.${pasa ? ' <b>Le faltan ' + (fechas.length - quedan) + '</b>: al guardar se los sumamos a sus días asignados.' : ''}` : 'En esas fechas no trabaja ningún día.';
+}
+async function vacDarGuardar() {
+  const { x, fechas } = vacDarFechas();
+  if (!x) throw new Error('Elige al colaborador'); if (!fechas.length) throw new Error('Elige las fechas');
+  const quedan = Math.max(0, (x.vacaciones || 0) - (x.vacUsadas || 0)), o = { negocioId: S.negocio.id, usuarioId: x.usuarioId, fechas };
+  // si le faltan días, el dueño se los está dando: se suben sus días asignados lo justo
+  if (fechas.length > quedan) { if (!esDueno()) throw new Error(x.nombre + ' solo tiene ' + quedan + ' día(s) disponibles. El dueño puede darle más.'); o.saldo = { vacaciones: (x.vacaciones || 0) + (fechas.length - quedan), vacReinicio: x.vacReinicio || '', vacSuma: x.vacSuma || 0 }; }
+  await api('vacAsignar', o);
+  cerrarModal(); toast('Vacaciones registradas: ' + fechas.length + ' día' + (fechas.length > 1 ? 's' : '') + ' para ' + x.nombre.split(' ')[0]);
+  if (PDV.per) { PDV.per.datos = null; PDV.per.clave = ''; } pintarCaja();
 }
 /* ---------- 2.65.1 · Vacaciones de una persona (desde su ficha) ---------- */
 async function vacFicha(uid) {
@@ -9995,24 +10045,44 @@ function tabElegirNomina() {
     <div class="btns"><button class="btn pri pill full" onclick="act(this,tabPersonalTodos)">👥 Todo mi personal · ${l.length} negocios en una pantalla</button>${l.map(n => `<button class="btn pill full" onclick="cerrarModal();act(this,()=>tabEntrar('${n.id}','nomina'))">${esc(n.nombre)} · ${n.personal.presentes}/${n.personal.total} trabajando</button>`).join('')}</div>`);
 }
 /** 2.70 · Todo el personal de sus negocios en una sola pantalla (cómo va hoy cada quien). */
-async function tabPersonalTodos(filtro) {
-  const d = S._perTodos && Date.now() - S._perTodos.t < 60000 && filtro ? S._perTodos : Object.assign(await api('personalTodos'), { t: Date.now() });
-  S._perTodos = d; filtro = filtro || 'todos';
+async function perTodosCargar(forzar) {
+  if (!forzar && S._perTodos && Date.now() - S._perTodos.t < 60000) return S._perTodos;
+  return S._perTodos = Object.assign(await api('personalTodos'), { t: Date.now() });
+}
+/** Lista de toda la gente, por negocio. enPantalla: dentro de Personal (los filtros y "abrir" no usan ventana). */
+function perTodosHTML(d, filtro, enPantalla) {
+  filtro = filtro || 'todos';
   const dentro = x => x.entrada && !x.salida, falta = x => ['sin_decidir', 'falta'].includes(x.estado) && !x.entrada;
   const pasa = x => filtro === 'todos' || (filtro === 'dentro' ? dentro(x) : filtro === 'faltan' ? falta(x) || x.estado === 'por_llegar' : true);
   const tot = d.negocios.reduce((s, g) => s + g.personas.length, 0), nD = d.negocios.reduce((s, g) => s + g.personas.filter(dentro).length, 0), nF = d.negocios.reduce((s, g) => s + g.personas.filter(x => falta(x) || x.estado === 'por_llegar').length, 0);
   const fila = x => {
-    const e = ASIS_EST[x.estado] || ['', x.estado], est = dentro(x) ? ['🟢', 'Trabajando desde ' + hora(x.entrada)] : x.salida ? ['👋', 'Salió ' + hora(x.salida)] : e;
+    const e = x.estado === 'sin_turno' ? ['', 'Sin turno'] : ASIS_EST[x.estado] || ['', x.estado], est = dentro(x) ? ['🟢', 'Trabajando desde ' + hora(x.entrada)] : x.salida ? ['👋', 'Salió ' + hora(x.salida)] : e;
     return `<div class="row between" style="padding:8px 0;border-top:1px solid var(--ln)"><div class="grow"><b>${esc(x.nombre)}</b>${x.varios ? ' <span class="tag">varios negocios</span>' : ''}
-      <div class="muted small">${esc(x.puesto || 'Sin puesto')} · ${x.horario ? horaTxt(x.horario.e) + ' – ' + horaTxt(x.horario.s) : 'hoy no trabaja'}</div></div>
+      <div class="muted small">${esc(x.puesto || 'Sin puesto')} · ${x.estado === 'sin_turno' ? 'aún sin turno' : x.horario ? horaTxt(x.horario.e) + ' – ' + horaTxt(x.horario.s) : 'hoy no trabaja'}</div></div>
       <span class="small" style="text-align:right;white-space:nowrap">${est[0]} ${esc(est[1])}${x.minRetardo > 0 && x.entrada ? '<br><span class="muted">' + x.minRetardo + ' min tarde</span>' : ''}</span></div>`;
   };
-  modal(`<div class="row between"><h2 style="margin:0">👥 Todo mi personal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted small" style="margin:2px 0 8px">Hoy · ${tot} personas en ${d.negocios.length} negocios</div>
-    <div class="tabChips">${[['todos', 'Todos · ' + tot], ['dentro', '🟢 Trabajando · ' + nD], ['faltan', '🕗 Faltan por llegar · ' + nF]].map(([k, t]) => `<button class="${k === filtro ? 'on' : ''}" onclick="act(this,()=>tabPersonalTodos('${k}'))">${t}</button>`).join('')}</div>
-    ${d.negocios.map(g => { const l = g.personas.filter(pasa); return `<div class="card" style="padding:12px;margin:10px 0"><div class="row between"><b>${esc(g.nombre)}</b><button class="lnk small" onclick="cerrarModal();act(this,()=>tabEntrar('${g.id}','nomina'))">Abrir personal y nómina ›</button></div>
+  const fF = k => enPantalla ? `PDV.per.todosF='${k}';pintarCaja()` : `act(this,()=>tabPersonalTodos('${k}'))`;
+  return `<div class="muted small" style="margin:2px 0 8px">Hoy · ${tot} personas en ${d.negocios.length} negocios</div>
+    <div class="tabChips">${[['todos', 'Todos · ' + tot], ['dentro', '🟢 Trabajando · ' + nD], ['faltan', '🕗 Faltan por llegar · ' + nF]].map(([k, t]) => `<button class="${k === filtro ? 'on' : ''}" onclick="${fF(k)}">${t}</button>`).join('')}</div>
+    ${d.negocios.map(g => { const l = g.personas.filter(pasa); return `<div class="card" style="padding:12px;margin:10px 0"><div class="row between"><b>${esc(g.nombre)}</b><button class="lnk small" onclick="${enPantalla ? `act(this,()=>perCambiarNeg('${g.id}'))` : `cerrarModal();act(this,()=>tabEntrar('${g.id}','nomina'))`}">${enPantalla ? 'Ver este negocio ›' : 'Abrir personal y nómina ›'}</button></div>
       <div class="muted small">${g.personas.filter(dentro).length} de ${g.personas.length} trabajando</div>
-      ${l.length ? l.map(fila).join('') : `<div class="muted small" style="padding:8px 0">${g.personas.length ? 'Nadie en este filtro' : 'Aún no das de alta personal en este negocio'}</div>`}</div>`; }).join('')}`);
+      ${l.length ? l.map(fila).join('') : `<div class="muted small" style="padding:8px 0">${g.personas.length ? 'Nadie en este filtro' : 'Aún no das de alta personal en este negocio'}</div>`}</div>`; }).join('')}`;
+}
+async function tabPersonalTodos(filtro) {
+  const d = await perTodosCargar(!filtro);
+  modal(`<div class="row between"><h2 style="margin:0">👥 Todo mi personal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>${perTodosHTML(d, filtro)}`);
+}
+/** 2.75 · En Personal: cambiar de negocio (o verlos todos) sin salir de la pantalla. */
+function perNegChips() {
+  const l = (S.negocios || []).filter(x => x.dueno); if (l.length < 2) return '';
+  const P = PDV.per || {};
+  return `<div class="tabChips" style="margin-bottom:8px"><button class="${P.todos ? 'on' : ''}" onclick="PDV.per.todos=true;pintarCaja()">👥 Todos</button>${l.map(x => `<button class="${!P.todos && S.negocio && x.id === S.negocio.id ? 'on' : ''}" onclick="act(this,()=>perCambiarNeg('${x.id}'))">${esc(x.nombre)}</button>`).join('')}</div>`;
+}
+async function perCambiarNeg(id) {
+  const sub = (PDV.per && PDV.per.sub) || 'equipo';
+  if (S.negocio && id === S.negocio.id) { PDV.per.todos = false; pintarCaja(); return; }
+  PDV.per = { sub, fecha: pdvHoy() };
+  await tabEntrar(id, 'nomina');
 }
 async function tabReportes() {
   const sel = S._tab.negocios.find(n => n.id === S._tabSel), base = sel && sel.caja ? sel : S._tab.negocios.find(n => n.caja && n.id === S.negActivo) || S._tab.negocios.find(n => n.caja);
