@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.77.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.78.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1039,10 +1039,11 @@ const ACTIVOS = ['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO', 'PROGRAMADO', 'PREPARANDO
 const CATEGORIAS = ['Comida', 'Mariscos', 'Tacos', 'Hamburguesas', 'Pizza', 'Antojitos', 'Café y postres', 'Bebidas', 'Abarrotes', 'Farmacia', 'Otro'];
 const ICONO_CAT = { Promociones: '🏷️', Todos: '🍽️', Comida: '🍲', Mariscos: '🦐', Tacos: '🌮', Hamburguesas: '🍔', Pizza: '🍕', Antojitos: '🫓', 'Café y postres': '☕', Bebidas: '🥤', Abarrotes: '🛒', Farmacia: '💊', Otro: '🏪' };
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const PAGO_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', codi: 'CoDi', monedero: 'Monedero' };
+const PAGO_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', codi: 'CoDi', monedero: 'Monedero', mp: 'Tarjeta en línea' };
 
 /* ============ ÍCONOS ============ */
 const ICONOS = {
+  tarjeta: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   recibo: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
@@ -2029,6 +2030,11 @@ function abrirDesdeUrl(url) {
   if (q.get('compartido')) {
     if (!S.token) { S.despues = 'compartido'; ir('entrar'); setTimeout(() => toast('Entra a tu cuenta para enviar tu comprobante'), 400); return true; }
     ir('compartido'); return true;
+  }
+  // 2.78: regreso de Mercado Pago al conectar la cuenta del negocio
+  if (q.get('code') && /^MP/.test(q.get('state') || '')) {
+    if (!S.token) { toast('Entra con tu cuenta de dueño para terminar de conectar Mercado Pago', 'err'); return false; }
+    mpConectarFin(q.get('code'), q.get('state')); return true;
   }
   if (q.get('ir') && S.token) { irDestino(q).catch(e => { console.warn(e); toast(e.message || 'No se pudo abrir', 'err'); if (!S.vista) ir(inicioRol(), null); }); return true; }
   if (!S.token || (!ped && !v)) return false;
@@ -4829,7 +4835,7 @@ function pdvAppAbrir(id) {
     <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p)}</div>`);
 }
 /* 2.66.1 · Pedidos ya pagados en la app (transferencia o CoDi confirmada) y pagos con monedero */
-const pdvAppTransf = p => (p.metodoPago === 'transferencia' || p.metodoPago === 'codi');
+const pdvAppTransf = p => (p.metodoPago === 'transferencia' || p.metodoPago === 'codi' || p.metodoPago === 'mp');
 /** Lo que el cliente ya pagó (o paga con monedero): la comida y, si va al negocio, el envío. */
 const pdvAppMontoPagado = p => pdvR((Number(p.subtotal) || 0) + (p.envioEn === 'negocio' ? Number(p.envio) || 0 : 0));
 const pdvAppPagado = p => pdvAppTransf(p) && !!p.pagoConfirmado && !p.preventa;
@@ -4837,14 +4843,14 @@ function pdvAppPagoTag(p) {
   if (p.preventa) return '';
   if (pdvAppPagado(p)) return `<span class="tag t-ok">✅ Pagado · ${PAGO_TXT[p.metodoPago]}</span> `;
   if (pdvAppTransf(p) && p.estado === 'PAGO_ENVIADO') return '<span class="tag t-warn">⏳ Pago por confirmar</span> ';
-  if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return '<span class="tag t-warn">⏳ Esperando su pago</span> ';
+  if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return p.metodoPago === 'mp' ? '<span class="tag t-warn">⏳ Pagando con tarjeta</span> ' : '<span class="tag t-warn">⏳ Esperando su pago</span> ';
   if (p.metodoPago === 'monedero') return '<span class="tag t-info">👛 Monedero</span> ';
   return '';
 }
 function pdvAppPagoAviso(p) {
   if (p.preventa) return '';
   const env = p.envio > 0 && p.envioEn !== 'negocio' ? (p.propio ? ' · el envío (' + money(p.envio) + ') se cobra aparte' : ' · el envío (' + money(p.envio) + ') se le paga al repartidor') : '';
-  if (pdvAppPagado(p)) return `<div class="aviso ok pdvPagadoAv">✅ <b>Ya pagó ${money(pdvAppMontoPagado(p))} por ${PAGO_TXT[p.metodoPago].toLowerCase()}</b>${env}. Al entregarlo se registra solo en la caja.</div>`;
+  if (pdvAppPagado(p)) return `<div class="aviso ok pdvPagadoAv">✅ <b>Ya pagó ${money(pdvAppMontoPagado(p))} por ${PAGO_TXT[p.metodoPago].toLowerCase()}</b>${env}. Al entregarlo se registra solo en la caja.${p.mp && p.mp.comision && p.mp.comision.mp !== undefined ? `<div class="small muted">💳 ${esc(p.mp.comision.tarjeta || 'Tarjeta')} · comisión Mercado Pago ${money(p.mp.comision.mp)}${p.mp.comision.pidele ? ' · Pídele ' + money(p.mp.comision.pidele) : ''}${p.mp.comision.neto ? ' · recibes ' + money(p.mp.comision.neto) : ''}</div>` : ''}</div>`;
   if (p.pagoPrimero && (['POR_PAGAR', 'PAGO_ENVIADO'].includes(p.estado) || p.pagoPend)) return pagoNoConfHTML(p);
   if (pdvAppTransf(p) && p.estado === 'PAGO_ENVIADO') return `<div class="aviso warn">⏳ <b>Mandó su comprobante:</b> confirma el pago antes de entregarlo. No lo cobres otra vez.</div>`;
   if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return `<div class="aviso warn">⏳ Aún no paga su transferencia.</div>`;
@@ -4868,7 +4874,7 @@ function pdvCobrarApp(id, despues) {
   const ant = p.preventa && p.pagoConfirmado ? pdvR(p.preventa.anticipo) : 0; // 2.64: el anticipo de la preventa ya se pagó
   // 2.66.1: ya pagado en la app (transferencia/CoDi) o con su monedero: entra como pago hecho
   const ya = p.pagoPend && pdvAppTransf(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '⏳ Transferencia pendiente' + (p.garantia > 0 ? ' (con garantía de monedero)' : '') }
-    : pdvAppPagado(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '✅ Pagado en la app (' + PAGO_TXT[p.metodoPago] + ')' }
+    : pdvAppPagado(p) ? { metodo: p.metodoPago === 'mp' ? 'tarjeta' : 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '✅ Pagado en la app (' + PAGO_TXT[p.metodoPago] + ')' }
     : p.metodoPago === 'monedero' && p.monTel ? { metodo: 'monedero', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '👛 Su monedero', monTel: p.monTel, monNombre: appNombre(p) } : null;
   PDV.cobro = { total: pdvTotal(), pagos: ant ? [{ metodo: 'transferencia', monto: ant, ts: Date.now(), por: pdvYo(), anticipo: true }] : ya ? [ya] : [], met: ant ? 'efectivo' : p.metodoPago === 'transferencia' || p.metodoPago === 'codi' ? 'transferencia' : 'efectivo', ent: null,
     app: { id: p.id, folio: p.folio, canal: p.porTelefono ? 'tel' : 'app', envio: p.envio || 0, incl, despues: despues || null, anticipo: ant, ya: !!ya } };
@@ -10139,6 +10145,34 @@ const MOD_INFO = [
   ['inventario', '📦', 'Inventario y recetas', 'Existencias de insumos', [['recetas', 'Descontar por recetas', 'cada venta descuenta sus insumos'], ['conteos', 'Conteos', '3 al azar en cada entrada y el inventario semanal'], ['alertas', 'Alertas de "se terminó"', 'avisa y marca agotados los productos'], ['produccion', 'Producción', 'preparados (salsas, masas…) con su merma']]],
   ['preventas', '🎟️', 'Preventas', 'Vender por adelantado para una fecha (con anticipo)', []]
 ];
+/** 2.78 · Pagos con tarjeta en línea: el dueño conecta SU cuenta de Mercado Pago. */
+function modTarjetaHTML() {
+  const m = (modsNeg() || {}).tarjeta, mp = S.negocio.mp || {};
+  if (!m) return '';
+  const com = mp.comision || 0;
+  const expl = `<div class="small muted" style="margin-top:6px">Tus clientes pagan con tarjeta en la app y el dinero <b>cae directo en tu cuenta de Mercado Pago</b> (Pídele no lo toca). Mercado Pago te cobra su comisión${com ? `, y Pídele ${com}% por el servicio (en un pedido de $400 son ${money(Math.round(400 * com) / 100)})` : ''}; ambas se descuentan solas y las ves por separado en cada pago. Por ley no se le puede cobrar un cargo extra al cliente por pagar con tarjeta.</div>`;
+  if (!mp.disponible) return `<div class="card modCard"><b>💳 Pagos con tarjeta en línea</b><div class="small muted">Muy pronto en tu ciudad.</div></div>`;
+  if (!mp.conectado) return `<div class="card modCard"><div class="row between" style="gap:8px"><div class="grow"><b>💳 Pagos con tarjeta en línea</b><div class="small muted">Conecta tu cuenta de Mercado Pago</div></div></div>${expl}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,mpConectarIr)">Conectar con Mercado Pago</button></div></div>`;
+  return `<div class="card modCard ${m.on ? 'on' : ''}"><div class="row between" style="gap:8px"><div class="grow"><b>💳 Pagos con tarjeta en línea</b><div class="small muted">✅ Conectado${mp.cuenta ? ' a <b>' + esc(mp.cuenta) + '</b>' : ''}</div></div><label class="sw"><input type="checkbox" ${m.on ? 'checked' : ''} onchange="act(null,()=>modGuardar('tarjeta','',this.checked)).catch(()=>{})"><i></i></label></div>${expl}
+    <button class="lnk small" onclick="act(this,mpDesconectarPreg)">Desconectar mi cuenta</button></div>`;
+}
+async function mpConectarIr() {
+  const r = await api('mpConectarIniciar', { negocioId: S.negocio.id, volver: location.origin + location.pathname });
+  location.href = r.url;
+}
+async function mpConectarFin(code, state) {
+  try {
+    history.replaceState({ v: 'admNegocio' }, '', location.pathname);
+    const n = await api('mpConectar', { code, state });
+    fijarNeg(n); toast('Mercado Pago conectado ✓ Tus clientes ya pueden pagar con tarjeta');
+    await ir('admNegocio'); modulosVer();
+  } catch (e) { toast(e.message, 'err'); ir(inicioRol(), null); }
+}
+function mpDesconectarPreg() {
+  modal(`<h3 style="margin-top:0">¿Desconectar Mercado Pago?</h3><div class="muted small">Tus clientes ya no podrán pagar con tarjeta en la app. Los pedidos ya pagados no cambian.</div>
+    <div class="btns"><button class="btn" onclick="modulosVer()">No</button><button class="btn pri" onclick="act(this,async()=>{fijarNeg(await api('mpDesconectar',{negocioId:S.negocio.id}));toast('Desconectado');modulosVer()})">Sí, desconectar</button></div>`);
+}
 const MOD_REQ = { personal: 'caja', lealtad: 'caja' };
 function modulosVer() {
   const m = modsNeg();
@@ -10157,6 +10191,7 @@ function modulosVer() {
   modal(`<div class="row between"><h2 style="margin:0">🧩 Módulos</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small" style="margin:4px 0 10px">Prende solo lo que usas en <b>${esc(S.negocio.nombre)}</b>; lo apagado se esconde para ti y tu equipo. Puedes volver a prenderlo cuando quieras: no se borra nada.</div>
     ${filas}
+    ${modTarjetaHTML()}
     <div class="card modCard ${pg.activo ? 'on' : ''}"><div class="row between" style="gap:8px"><div class="grow"><b>🗓️ Pedidos programados</b><div class="small muted">${pg.activo ? 'Activos · hasta ' + pg.dias + ' día(s) antes' : 'Apagados'}</div></div><button class="btn sm" onclick="progConfig()">Ajustar</button></div></div>`);
 }
 async function modGuardar(k, f, on) {
@@ -12038,6 +12073,7 @@ async function vPago() {
     S._pagoTot[c.negocioId].puedeEnv = puedeEnv; S._pagoTot[c.negocioId].montoTr = montoTr; S._pagoTot[c.negocioId].nombre = n.nombre || c.negocio;
     if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Transfieres ' + money(montoTr) + (puedeEnv && !envEfe ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y subes tu comprobante']);
     if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
+    if (pg.mp) ops.push(['mp', 'tarjeta', 'Tarjeta de crédito o débito', 'Pagas ' + money(montoTr) + (puedeEnv && !envEfe ? ' (comida y envío)' : '') + ' en línea con Mercado Pago, directo a ' + (n.nombre || c.negocio) + '. Se confirma al instante']); // 2.78
     // 2.66.1: monedero del cliente (debe cubrir todo lo que se le paga al negocio)
     if (pg.monedero && n.monGid && S.user && rolActual() === 'comprador') {
       const ms = (S._monSal || {})[n.monGid];
@@ -12125,7 +12161,8 @@ function elegirEnvioPago(neg, v) {
 function notaPago(neg) {
   const m = S.entrega.metodos[neg], t = S._pagoTot[neg], rec = S.entrega.tipo === 'recoger';
   const el = $('#nota_' + neg); if (!el || !t) return;
-  el.innerHTML = m === 'monedero' ? '👛 No pagas nada ahora: se descuenta de tu monedero cuando te entreguen tu pedido.' : m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
+  el.innerHTML = m === 'mp' ? '💳 Al confirmar te llevamos a la página segura de Mercado Pago para pagar <b>' + money(t.montoTr || t.sub) + '</b>. El dinero va directo a ' + esc(t.nombre || 'el negocio') + ' y tu pedido se prepara en cuanto se apruebe.' + (t.envio && (t.montoTr || t.sub) === t.sub ? ' El envío (' + money(t.envio) + ') lo pagas en efectivo al repartidor.' : '')
+    : m === 'monedero' ? '👛 No pagas nada ahora: se descuenta de tu monedero cuando te entreguen tu pedido.' : m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
     : (S.entrega.prog && S.entrega.prog.on) ? 'Cuando el negocio confirme tu pedido programado verás sus datos para transferir ' + money(t.montoTr || t.sub) + '.' + (t.envio && (t.montoTr || t.sub) === t.sub ? ' El envío (' + money(t.envio) + ') se paga en efectivo al repartidor.' : '')
     : 'Al confirmar verás la cuenta de ' + esc(t.nombre || 'el negocio') + ' para transferir <b>' + money(t.montoTr || t.sub) + '</b> y subir tu comprobante. Tu pedido se atiende en cuanto se confirme tu pago.' + (t.envio && (t.montoTr || t.sub) === t.sub ? ' El envío (' + money(t.envio) + ') lo pagas en efectivo al repartidor.' : '');
 }
@@ -12307,7 +12344,7 @@ async function confirmarPedido() {
   try {
     // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
     r = await api('crearPedidos', {
-      tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas,
+      tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas, volver: location.origin + location.pathname,
       recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, guardarDireccion: true, gps, muestra: muestra ? 1 : '',
       practicaRep: muestra && $('#pPracRep') ? $('#pPracRep').value : '', sinNegocio: muestra && $('#pSinNeg') && $('#pSinNeg').checked ? 1 : '',
       programado: e.prog && e.prog.on && e.prog.hora ? progMs(e.prog.dia, e.prog.hora) : '',
@@ -12333,6 +12370,9 @@ async function confirmarPedido() {
   guardarCarritos();
   history.replaceState({ v: 'inicio' }, '');
   const pp = r.filter(x => x.pagoPrimero);
+  // 2.78: tarjeta: directo a la página de pago de Mercado Pago (regresa sola al pedido)
+  const mpx = pp.find(x => x.metodoPago === 'mp' && x.mpUrl);
+  if (mpx) { ls('mpPend', { id: mpx.id, t: Date.now() }); if (r.length > 1) toast('Primero pagas este pedido; los demás están en Mis pedidos.'); location.href = mpx.mpUrl; return; }
   if (pp.length) { S._abrirPago = pp[0].id; if (r.length > 1) toast('Enviamos ' + r.length + ' pedidos. Empieza por pagar este; los demás están en Mis pedidos.'); ir('pedido', pp[0].id); return; }
   ir('listo');
 }
@@ -12380,6 +12420,9 @@ async function verAntiguos() {
 
 /* ============ SEGUIMIENTO (cliente) ============ */
 async function vPedido(id, silencioso) {
+  // 2.78: regresó de la página de pago de Mercado Pago: se pregunta por el pago antes de mostrar
+  const mpP = ls('mpPend');
+  if (!silencioso && mpP && mpP.id === id) { ls('mpPend', null); try { await api('mpVerificar', { id }); } catch (e) { } }
   const p = await api('pedido', { id });
   recordar([p]); S._ped = p;
   // un pedido que el negocio o repartidor hizo como cliente se ve como cliente
@@ -12488,6 +12531,28 @@ function moverTrk(p) {
 }
 
 /** El cliente puede pagarle el envío al repartidor por transferencia (si el repartidor registró su cuenta). */
+/** 2.78 · pedido con tarjeta: botón a Mercado Pago (se confirma solo) */
+function bloquePagoMp(p) {
+  if (p.mp && p.mp.reembolso && /devuelto/.test(p.mp.reembolso)) return '<div class="aviso info">↩️ Tu pago con tarjeta se devolvió. Puede tardar unos días en verse en tu estado de cuenta.</div>';
+  if (p.estado !== 'POR_PAGAR') return p.mp && p.mp.pagado ? '<div class="aviso ok">💳 <b>Pagado con tarjeta.</b> El pago ya está con el negocio.</div>' : '';
+  const monto = p.montoTransferencia || p.subtotal, lim = p.pago && p.pago.limite;
+  return `<div class="card" style="border:2px solid var(--pri)">
+    <h3 style="margin-top:0">${ico('tarjeta', 's')} Paga ${money(monto)} con tarjeta</h3>
+    <div class="muted small">Pagas en la página segura de Mercado Pago y el dinero va directo a ${esc(p.negocio.nombre)}. En cuanto se apruebe, tu pedido se empieza a preparar.${lim ? ' Tienes hasta las <b>' + hora(lim) + '</b>.' : ''}</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>mpIrPagar('${p.id}'))">💳 Pagar con tarjeta</button></div>
+    <div class="row" style="justify-content:center"><button class="lnk small" onclick="act(this,()=>mpYaPague('${p.id}'))">Ya pagué · revisar</button></div></div>`;
+}
+async function mpIrPagar(id) {
+  const r = await api('mpPagar', { id, volver: location.origin + location.pathname });
+  if (r.pagado) { toast('Tu pago ya está aprobado ✓'); pintar(true); return; }
+  ls('mpPend', { id, t: Date.now() }); location.href = r.url;
+}
+async function mpYaPague(id) {
+  const p = await api('mpVerificar', { id });
+  if (p.estado === 'POR_PAGAR') toast('Aún no vemos tu pago aprobado. Si ya pagaste, espera unos segundos y vuelve a revisar.', 'err');
+  else toast('¡Pago aprobado! 💳');
+  pintar(true);
+}
 function bloquePagoEnvio(p) {
   const g = p.repartidor && p.repartidor.pagoEnvio;
   if (!g || !['PREPARANDO', 'LISTO', 'EN_CAMINO'].includes(p.estado)) return '';
@@ -12543,6 +12608,7 @@ async function pagoCambiar(id, metodo) {
 }
 /** Bloque de transferencia o CoDi cuando el negocio ya aceptó. */
 function bloquePago(p) {
+  if (p.metodoPago === 'mp') return bloquePagoMp(p); // 2.78
   if (p.estado === 'PAGO_ENVIADO' || p.pagoPend === 2) return `<div class="aviso info">🔎 Enviaste tu comprobante. El negocio está verificando el pago${p.pagoPrimero && !p.prepYa && !p.pagoPend ? '; en cuanto lo confirme empieza a preparar tu pedido' : ''}.</div>`;
   if ((p.estado !== 'POR_PAGAR' && !(p.pagoPend === 1 && p.estado !== 'CANCELADO')) || !p.pago) return '';
   const g = p.pago, codi = p.metodoPago === 'codi', monto = p.montoTransferencia || p.subtotal;
@@ -15205,7 +15271,7 @@ const GRUPOS_CFG = [
   ['✅ Funciones de operación', ['operacionModo', 'operacionNegocios']]
 ];
 async function vAdminConfig() {
-  const l = await api('adminConfig');
+  const [l, mpa] = await Promise.all([api('adminConfig'), api('mpAdminVer').catch(() => null)]);
   S._cfgOrig = Object.fromEntries(l.map(c => [c.clave, String(c.valor)]));
   // los ajustes de la espera por nivel (antes de 2.22) ya no se usan: no se muestran
   const usados = new Set(GRUPOS_CFG.flatMap(g => g[1]).concat(['planes', 'rankingNivelAlto', 'rankingNivelMedio', 'rankingEsperaMedioMin', 'rankingEsperaBajoMin']));
@@ -15220,10 +15286,21 @@ async function vAdminConfig() {
     <div class="buscar">${ico('search', 's')}<input id="cfgQ" placeholder="Buscar un ajuste (ej. envío, efectivo, cuota)" oninput="filtrarCfg()"></div>
     <div class="muted small" style="margin:6px 2px 10px">Toca una categoría para abrirla. Lo que cambies se marca y se guarda con el botón de abajo.</div>
     ${cPlanes ? editorPlanes() : ''}
+    ${mpa ? mpAdminCard(mpa) : ''}
     ${grupos.map(([t, cs]) => `<details class="card cfgG"><summary class="row between" style="cursor:pointer;list-style:none"><b>${t}</b><span class="muted small"><span class="cfgN"></span>${cs.length} ajuste${cs.length > 1 ? 's' : ''} ›</span></summary>
       <div style="margin-top:4px">${cs.map(campo).join('')}</div></details>`).join('')}
     <div style="position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5"><button class="btn pri pill full" id="cfgGuardar" onclick="act(this,guardarConfig)">Guardar ajustes</button></div>
     <div style="height:20px"></div>`);
+}
+/** 2.78 · credenciales de la aplicación Pídele en Mercado Pago (se guardan en el servidor, fuera de la hoja; el secreto no se vuelve a mostrar). */
+function mpAdminCard(m) {
+  const volver = m.volver || (location.origin + location.pathname);
+  return `<details class="card cfgG"><summary class="row between" style="cursor:pointer;list-style:none"><b>💳 Pagos con tarjeta (Mercado Pago)</b><span class="muted small">${m.clientId && m.conSecreto ? '✅ Activo' : 'Sin configurar'} ›</span></summary>
+    <div class="muted small" style="margin:6px 0">Datos de <b>tu aplicación Pídele</b> en Mercado Pago Developers. Cada negocio conecta su propia cuenta y cobra directo; Pídele solo recibe su comisión (ajuste <b>mpComision</b>, hoy ${m.comision}%).</div>
+    <label class="f">Client ID</label><input class="i" id="mpCid" value="${esc(m.clientId || '')}" inputmode="numeric">
+    <label class="f">Client Secret ${m.conSecreto ? '<span class="muted small">(guardado · escribe uno nuevo solo para cambiarlo)</span>' : ''}</label><input class="i" id="mpSec" type="password" autocomplete="off" placeholder="${m.conSecreto ? '••••••••' : ''}">
+    <label class="f">URL de redirección (la misma que registras en Mercado Pago)</label><input class="i" id="mpVol" value="${esc(volver)}">
+    <div class="btns"><button class="btn pri" onclick="act(this,async()=>{const r=await api('mpAdminGuardar',{clientId:$('#mpCid').value.trim(),clientSecret:$('#mpSec').value.trim(),volver:$('#mpVol').value.trim()});toast(r.clientId&&r.conSecreto?'Mercado Pago listo ✓':'Guardado');$('#mpSec').value=''})">Guardar Mercado Pago</button></div></details>`;
 }
 /** Editor de los cuatro planes (precio, categorías, anuncios, fijo semanal, visibilidad y segundos). */
 const CAMPOS_PLAN = [['precio', 'Precio al mes ($)'], ['categorias', 'Categorías'], ['anuncios', 'Anuncios por día'], ['visibilidad', 'Visibilidad (x)'], ['segundos', 'Segundos en pantalla']];
