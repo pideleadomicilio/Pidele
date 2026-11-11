@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.78.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.78.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -15300,7 +15300,8 @@ function mpAdminCard(m) {
     <label class="f">Client ID</label><input class="i" id="mpCid" value="${esc(m.clientId || '')}" inputmode="numeric">
     <label class="f">Client Secret ${m.conSecreto ? '<span class="muted small">(guardado · escribe uno nuevo solo para cambiarlo)</span>' : ''}</label><input class="i" id="mpSec" type="password" autocomplete="off" placeholder="${m.conSecreto ? '••••••••' : ''}">
     <label class="f">URL de redirección (la misma que registras en Mercado Pago)</label><input class="i" id="mpVol" value="${esc(volver)}">
-    <div class="btns"><button class="btn pri" onclick="act(this,async()=>{const r=await api('mpAdminGuardar',{clientId:$('#mpCid').value.trim(),clientSecret:$('#mpSec').value.trim(),volver:$('#mpVol').value.trim()});toast(r.clientId&&r.conSecreto?'Mercado Pago listo ✓':'Guardado');$('#mpSec').value=''})">Guardar Mercado Pago</button></div></details>`;
+    <label class="opc" style="margin-top:8px"><input type="checkbox" id="mpPkce" ${m.pkce !== false ? 'checked' : ''}> <span>Usar PKCE al conectar <small class="muted">· debe coincidir con "¿Usas el flujo… con PKCE?" de tu aplicación en Mercado Pago</small></span></label>
+    <div class="btns"><button class="btn pri" onclick="act(this,async()=>{const r=await api('mpAdminGuardar',{clientId:$('#mpCid').value.trim(),clientSecret:$('#mpSec').value.trim(),volver:$('#mpVol').value.trim(),pkce:$('#mpPkce').checked});toast(r.clientId&&r.conSecreto?'Mercado Pago listo ✓':'Guardado');$('#mpSec').value=''})">Guardar Mercado Pago</button></div></details>`;
 }
 /** Editor de los cuatro planes (precio, categorías, anuncios, fijo semanal, visibilidad y segundos). */
 const CAMPOS_PLAN = [['precio', 'Precio al mes ($)'], ['categorias', 'Categorías'], ['anuncios', 'Anuncios por día'], ['visibilidad', 'Visibilidad (x)'], ['segundos', 'Segundos en pantalla']];
