@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.70.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.74.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -4629,7 +4629,8 @@ function pdvAppCuentas() {
     p.estado === 'PAGO_ENVIADO' || // 2.67.1: un pago por confirmar (aunque sea preventa de otro día) se atiende en la caja
     (['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO'].includes(p.estado) && (!p.programado || pdvHoy(p.programado) === hoy || (p.estado === 'NUEVO' && !p.preventa))) ||
     (p.estado === 'PROGRAMADO' && pdvHoy(p.programado) === hoy) ||
-    (['EN_CAMINO', 'ENTREGADO'].includes(p.estado) && !p.cobroCaja && pdvHoy(p.creado) === hoy)));
+    (['EN_CAMINO', 'ENTREGADO'].includes(p.estado) && !p.cobroCaja && pdvHoy(p.creado) === hoy) ||
+    (p.pagoPend && ['EN_CAMINO', 'ENTREGADO'].includes(p.estado)))); // 2.74: sigue a la vista hasta que se confirme o se cobre su pago
 }
 const appNombre = p => (p.comprador && p.comprador.nombre) || (p.recibe && p.recibe.nombre) || 'Cliente';
 const appCanal = p => p.porTelefono ? '☎️ Teléfono' : '📱 App';
@@ -4687,6 +4688,7 @@ function pdvAppPagoAviso(p) {
   if (p.preventa) return '';
   const env = p.envio > 0 && p.envioEn !== 'negocio' ? (p.propio ? ' · el envío (' + money(p.envio) + ') se cobra aparte' : ' · el envío (' + money(p.envio) + ') se le paga al repartidor') : '';
   if (pdvAppPagado(p)) return `<div class="aviso ok pdvPagadoAv">✅ <b>Ya pagó ${money(pdvAppMontoPagado(p))} por ${PAGO_TXT[p.metodoPago].toLowerCase()}</b>${env}. Al entregarlo se registra solo en la caja.</div>`;
+  if (p.pagoPrimero && (['POR_PAGAR', 'PAGO_ENVIADO'].includes(p.estado) || p.pagoPend)) return pagoNoConfHTML(p);
   if (pdvAppTransf(p) && p.estado === 'PAGO_ENVIADO') return `<div class="aviso warn">⏳ <b>Mandó su comprobante:</b> confirma el pago antes de entregarlo. No lo cobres otra vez.</div>`;
   if (pdvAppTransf(p) && p.estado === 'POR_PAGAR') return `<div class="aviso warn">⏳ Aún no paga su transferencia.</div>`;
   if (p.metodoPago === 'monedero') return `<div class="aviso info">👛 <b>Paga con su monedero ${money(pdvAppMontoPagado(p))}</b>${env}. Se descuenta al entregarlo.</div>`;
@@ -4708,7 +4710,8 @@ function pdvCobrarApp(id, despues) {
   pdvAppArmar(p, incl);
   const ant = p.preventa && p.pagoConfirmado ? pdvR(p.preventa.anticipo) : 0; // 2.64: el anticipo de la preventa ya se pagó
   // 2.66.1: ya pagado en la app (transferencia/CoDi) o con su monedero: entra como pago hecho
-  const ya = pdvAppPagado(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '✅ Pagado en la app (' + PAGO_TXT[p.metodoPago] + ')' }
+  const ya = p.pagoPend && pdvAppTransf(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '⏳ Transferencia pendiente' + (p.garantia > 0 ? ' (con garantía de monedero)' : '') }
+    : pdvAppPagado(p) ? { metodo: 'transferencia', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '✅ Pagado en la app (' + PAGO_TXT[p.metodoPago] + ')' }
     : p.metodoPago === 'monedero' && p.monTel ? { metodo: 'monedero', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '👛 Su monedero', monTel: p.monTel, monNombre: appNombre(p) } : null;
   PDV.cobro = { total: pdvTotal(), pagos: ant ? [{ metodo: 'transferencia', monto: ant, ts: Date.now(), por: pdvYo(), anticipo: true }] : ya ? [ya] : [], met: ant ? 'efectivo' : p.metodoPago === 'transferencia' || p.metodoPago === 'codi' ? 'transferencia' : 'efectivo', ent: null,
     app: { id: p.id, folio: p.folio, canal: p.porTelefono ? 'tel' : 'app', envio: p.envio || 0, incl, despues: despues || null, anticipo: ant, ya: !!ya } };
@@ -7360,9 +7363,10 @@ function asisVistaSemana(d) {
   if (!d.personas.length) return '<div class="vacio"><span class="big">👥</span>Aún no hay personal dado de alta.</div>';
   return `<div class="row" style="gap:8px;align-items:center;margin:8px 0"><button class="btn sm" onclick="PDV.per.fecha='${pdvHoy(new Date(d.dias[0] + 'T12:00').getTime() - 7 * 864e5)}';asisRecargar()">‹ Anterior</button>
       <b class="grow" style="text-align:center">${asisDiaTxt(d.dias[0])} al ${asisDiaTxt(d.dias[6])}</b><button class="btn sm" onclick="PDV.per.fecha='${pdvHoy(new Date(d.dias[0] + 'T12:00').getTime() + 7 * 864e5)}';asisRecargar()">Siguiente ›</button></div>
-    <div class="row between" style="gap:8px;margin-bottom:6px"><span class="small muted">Toca un día para cambiar su horario (turnos mixtos), darle descanso o vacaciones.</span>${d.personas.some(p => p.descansoTipo === 'rotativo') ? '<button class="btn sm" onclick="act(this,asisDescansosModal)">🗓️ Descansos próxima semana</button>' : ''}</div>
+    <div class="row between" style="gap:8px;margin-bottom:6px"><span class="small muted">Toca un día para cambiar su horario (turnos mixtos), darle descanso o vacaciones.</span><button class="btn sm pri" onclick="asisCubrirForm()">🔁 Cubrir o cambiar turno</button>${d.personas.some(p => p.descansoTipo === 'rotativo') ? '<button class="btn sm" onclick="act(this,asisDescansosModal)">🗓️ Descansos próxima semana</button>' : ''}</div>
     <div class="asisSemana"><div class="asisSemFila cab"><span></span>${d.dias.map(f => `<span class="${f === hoy ? 'hoy' : ''}">${asisDiaTxt(f)}</span>`).join('')}</div>
-      ${d.personas.map(p => `<div class="asisSemFila"><span class="nom">${esc(p.nombre.split(' ')[0])}${p.descansoTipo === 'rotativo' ? ' <small>🔄</small>' : ''}</span>${p.dias.map(x => `<button class="asisCel ${x.estado}" onclick="asisCambiarDia('${p.usuarioId}','${x.fecha}',${esc(JSON.stringify(p.nombre))},${esc(JSON.stringify(x.horario || null))})">${x.horario ? `<b>${x.horario.e}</b><small>${x.horario.s}</small>` : '<b>—</b><small>Desc.</small>'}<i>${(ASIS_EST[x.estado] || [''])[0]}</i></button>`).join('')}</div>`).join('')}</div>
+      ${d.personas.map(p => `<div class="asisSemFila"><span class="nom">${esc(p.nombre.split(' ')[0])}${p.descansoTipo === 'rotativo' ? ' <small>🔄</small>' : ''}</span>${p.dias.map(x => `<button class="asisCel ${x.estado}" onclick="asisCambiarDia('${p.usuarioId}','${x.fecha}',${esc(JSON.stringify(p.nombre))},${esc(JSON.stringify(x.horario || null))})">${x.horario ? `<b>${x.horario.e}</b><small>${x.horario.s}</small>` : '<b>—</b><small>Desc.</small>'}<i>${x.turnoNota ? '🔁' : ''}${(ASIS_EST[x.estado] || [''])[0]}</i></button>`).join('')}</div>`).join('')}</div>
+    <div class="small muted" style="margin-top:4px">🔁 = cambio de turno o cubre a un compañero (toca el día para ver el detalle).</div>
     ${asisResumenSemana(d)}`;
 }
 /** Resumen de la semana por persona (2.40). */
@@ -7382,12 +7386,49 @@ function asisResumenSemana(d) {
 function asisCambiarDia(uid, fecha, nombre, h) {
   modal(`<div class="row between"><h2 style="margin:0">${esc(nombre)} · ${asisDiaTxt(fecha)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small" style="margin:6px 0">Solo cambia este día; su horario normal sigue igual.</div>
+    ${(() => { const pp = ((PDV.per.datos || {}).personas || []).find(y => y.usuarioId === uid), dd = pp && pp.dias.find(y => y.fecha === fecha); return dd && dd.turnoNota ? `<div class="aviso ok small">🔁 ${esc(dd.turnoNota)}</div>` : ''; })()}
     <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:4px">${turnoBotones('asisDiaTurno')}</div>
     <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Entra</label><input class="i" type="time" id="cdE" value="${h ? h.e : turnosNeg()[0].e}"></div><div style="flex:1"><label class="f">Sale</label><input class="i" type="time" id="cdS" value="${h ? h.s : turnosNeg()[0].s}"></div></div>
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>asisGuardarDia('${uid}','${fecha}','horario'))">Guardar este horario</button>
       <button class="btn pill full" onclick="act(this,()=>asisGuardarDia('${uid}','${fecha}','descanso'))">😴 Que descanse este día</button>
       <button class="btn pill full" onclick="act(this,()=>asisGuardarDia('${uid}','${fecha}','vacaciones'))">🏖️ Vacaciones este día</button>
       <button class="lnk small" onclick="act(this,()=>asisGuardarDia('${uid}','${fecha}','quitar'))">Volver a su horario normal</button></div>`);
+}
+/** 2.71 · El encargado registra que alguien cubre a un compañero o que intercambian turno. */
+function asisCubrirForm(fecha, falta) {
+  const d = PDV.per.datos || {}, P = d.personas || [], hoy = pdvHoy();
+  fecha = fecha || (d.dias && d.dias.includes(hoy) ? hoy : (d.dias || [hoy])[0]);
+  const op = (sel) => '<option value="">Elige…</option>' + P.map(p => `<option value="${p.usuarioId}" ${p.usuarioId === sel ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('');
+  modal(`<div class="row between"><h2 style="margin:0">🔁 Cubrir o cambiar turno</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0">Para cuando alguien no puede venir y un compañero toma su turno. Se puede registrar antes o el mismo día.</div>
+    <label class="f">¿Qué día?</label><input class="i" type="date" id="cuF" value="${fecha}" onchange="asisCubrirInfo()">
+    <label class="f">¿Quién no viene? (su turno es el que se cubre)</label><select class="i" id="cuA" onchange="asisCubrirInfo()">${op(falta || '')}</select>
+    <label class="f">¿Quién lo cubre?</label><select class="i" id="cuB" onchange="asisCubrirInfo()">${op('')}</select>
+    <div id="cuInfo" class="small muted" style="margin-top:6px"></div>
+    <label class="f">¿Cómo queda?</label>
+    <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="extra" checked onchange="asisCubrirInfo()"><span><b>Turno extra</b><br><span class="muted small">Quien cubre trabaja de más. Al checar su entrada te aparece en “Turnos dobles por decidir” para elegir cómo se paga (día extra, horas extra o a cuenta de una falta).</span></span></label>
+    <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="cambio" onchange="asisCubrirInfo()"><span><b>Intercambian turno</b><br><span class="muted small">Nadie trabaja de más: se cambian el horario ese día, o quien no vino le regresa el turno otro día.</span></span></label>
+    <div id="cuCambio" style="display:none"><label class="f">¿Qué día le regresa el turno? (déjalo igual si solo cambian de horario el mismo día)</label><input class="i" type="date" id="cuF2" value="${fecha}"></div>
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,asisCubrirGuardar)">Guardar</button></div>`);
+  asisCubrirInfo();
+}
+function asisCubrirInfo() {
+  const f = $('#cuF').value, modo = (document.querySelector('input[name=cuM]:checked') || {}).value;
+  let d = PDV.per.datos || {};
+  if (f && !(d.dias || []).includes(f)) { // el día es de otra semana: se trae esa semana para mostrar los horarios
+    if (S._cuSem && S._cuSem.dias.includes(f)) d = S._cuSem;
+    else if (S._cuSemF !== f) { S._cuSemF = f; api('asisSemana', { negocioId: S.negocio.id, fecha: f }).then(r => { S._cuSem = r; if ($('#cuF')) asisCubrirInfo(); }).catch(() => { }); }
+  }
+  $('#cuCambio').style.display = modo === 'cambio' ? '' : 'none';
+  const hor = uid => { const p = (d.personas || []).find(x => x.usuarioId === uid), x = p && p.dias.find(y => y.fecha === f); return !p ? '' : !x ? '(otra semana)' : x.horario ? horaTxt(x.horario.e) + ' – ' + horaTxt(x.horario.s) : 'descansa'; };
+  const a = $('#cuA').value, b = $('#cuB').value;
+  $('#cuInfo').innerHTML = [a ? 'Turno que se cubre: <b>' + hor(a) + '</b>' : '', b ? 'Quien cubre ese día: <b>' + hor(b) + '</b>' : ''].filter(Boolean).join(' · ');
+}
+async function asisCubrirGuardar() {
+  const modo = document.querySelector('input[name=cuM]:checked').value, a = $('#cuA').value, b = $('#cuB').value, f = $('#cuF').value;
+  if (!a || !b) throw new Error('Elige a quién se cubre y quién lo cubre');
+  PDV.per.datos = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' ? $('#cuF2').value : '' });
+  PDV.per.fecha = f; cerrarModal(); toast(modo === 'cambio' ? 'Cambio de turno registrado ✓ · se les avisó' : 'Registrado ✓ · se les avisó'); pintarCaja();
 }
 function asisDiaTurno(e, s) { $('#cdE').value = e; $('#cdS').value = s; }
 async function asisGuardarDia(uid, fecha, tipo) {
@@ -7877,7 +7918,9 @@ function monSaldo(x, hoy) {
   hoy = hoy || pdvHoy();
   const lotes = Object.entries((x && x.cb) || {}).map(([k, v]) => [k, pdvR(v)]).filter(([k, v]) => k >= hoy && v > 0).sort((a, b) => a[0] < b[0] ? -1 : 1);
   const rec = pdvR(x && x.rec), cb = pdvR(lotes.reduce((s, l) => s + l[1], 0));
-  return { rec, cb, total: pdvR(rec + cb), lotes };
+  // 2.73: lo apartado como garantía de un pedido por transferencia no se puede gastar mientras tanto
+  const ret = pdvR(Object.values((x && x.ret) || {}).reduce((s, v) => s + (Number(v) || 0), 0));
+  return { rec, cb, ret, total: pdvR(Math.max(0, rec + cb - ret)), lotes };
 }
 /** ¿Gana el extra hoy? Si llegó a la meta el mes pasado o ya llegó este mes (antes de esta compra). */
 function monExtra(x, dia, cfg) { const v = (x && x.vis) || {}; return (v[monMesAnt(dia)] || 0) >= cfg.visitas || (v[monMes(dia)] || 0) >= cfg.visitas; }
@@ -8774,7 +8817,7 @@ async function vCocina(_, silencioso) {
   if (S.vista !== 'cocina') return;
   fijarNeg(d.negocio); recordar(d.pedidos);
   const antes = S._coc ? new Set(S._coc.pedidos.filter(x => x.estado === 'NUEVO').map(x => x.id)) : null;
-  S._coc = d;
+  S._coc = d; try { recordar(d.pedidos || []); } catch (e) { }
   // pedido nuevo mientras la pantalla está abierta: suena (el sondeo general ya avisa, aquí se insiste hasta aceptarlo)
   if (antes && d.pedidos.some(x => x.estado === 'NUEVO' && !antes.has(x.id)) && cocCfg().sonido) beep();
   pintarCocina();
@@ -8838,7 +8881,8 @@ function pintarCocina() {
   if (S.vista !== 'cocina' || !S._coc || $('#modal').classList.contains('on') && $('#cocCfg')) return;
   const l = S._coc.pedidos, ahora = Date.now(), cfg = cocCfg();
   const nuevos = l.filter(x => x.estado === 'NUEVO').sort((a, b) => a.creado - b.creado);
-  const pago = l.filter(x => ['POR_PAGAR', 'PAGO_ENVIADO'].includes(x.estado));
+  const pago = l.filter(x => ['POR_PAGAR', 'PAGO_ENVIADO'].includes(x.estado) && !x.pagoPrimero);
+  const pagoP = l.filter(x => ['POR_PAGAR', 'PAGO_ENVIADO'].includes(x.estado) && x.pagoPrimero).sort((a, b) => a.creado - b.creado);
   const prep = l.filter(x => x.estado === 'PREPARANDO').sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
   const listos = l.filter(x => x.estado === 'LISTO').sort((a, b) => (a.listo || 0) - (b.listo || 0));
   // ventas de la caja (mostrador y para llevar): ya están pagadas, entran directo a preparación
@@ -8866,6 +8910,13 @@ function pintarCocina() {
       ${x.bandas || ''}<div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}${x.horaSalida ? ' · sale ' + hora(x.horaSalida) : ''}</div>` : ''}${cocItems(x, !x._pdv)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
       <div class="pie"><button class="bImp" onclick="${x._kom ? `pdvImprimirComandaK('${x.id}')` : x._pdv ? `pdvImprimirComandaCaja('${x.id}')` : `imprimirComanda('${x.id}')`}" aria-label="Imprimir">🖨️</button><button class="bListo ${cocTodoHecho(x) ? 'todo' : x._pdv ? '' : 'dim'}" onclick="${x._kom ? `pdvComandaLista('${x.id}')` : x._pdv ? `pdvCocinaListo('${x.id}')` : `act(this,()=>cocListo('${x.id}'))`}">✅ Listo</button></div></div>`;
   };
+  // 2.72: pedido por transferencia aún sin confirmar: se ve completo para irlo conociendo, con la banda de pago no confirmado
+  const tPagoP = x => `<div class="cTarj nuevo" id="ct_${x.id}"><div class="cab"><span class="folio">${esc(x.folio)}</span><span class="tipo">${cocTipo(x)}</span>
+      <span class="tiempo" style="font-size:15px">hace ${Math.max(0, Math.round((ahora - x.creado) / 60000))} min</span></div>
+    <div class="cBanda corr" style="background:${x.prepYa ? '#1E6B3A' : x.estado === 'PAGO_ENVIADO' ? '#B26A00' : '#B3261E'};color:#fff">${x.prepYa ? '✅ YA PUEDES PREPARARLO · PAGO PENDIENTE' + (x.estado === 'PAGO_ENVIADO' ? ' · REVISA EL COMPROBANTE' : '') : x.estado === 'PAGO_ENVIADO' ? '🔎 PAGO POR CONFIRMAR · REVISA EL COMPROBANTE' : '💳 PAGO NO CONFIRMADO · AÚN NO PREPARAR'}</div>
+    <div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
+    <div class="info">${x.prepYa ? esc(prepMotivoTxt(x)) + ' ' : ''}${x.estado === 'PAGO_ENVIADO' ? 'El cliente ya subió su comprobante.' : 'Transferencia de ' + money(x.montoTransferencia) + ': esperando el comprobante del cliente.'}</div>
+    <div class="pie">${x.estado === 'PAGO_ENVIADO' ? `<button class="bListo todo" onclick="act(this,()=>pagoRevisar('${x.id}'))">🏦 Revisar pago</button>` : x.prepYa ? `<button class="bListo todo" onclick="pagoListoPregunta('${x.id}')">📦 Ya está listo</button>` : ''}<button class="bRech" onclick="act(this,()=>cancelar('${x.id}','Rechazar'))">Rechazar</button></div></div>`;
   const tPago = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.estado === 'PAGO_ENVIADO' ? '🔎 Revisando pago' : '💳 Esperando pago'}</span></div>`;
   const tListo = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.tipoEntrega === 'recoger' ? 'Espera al cliente' : x.repartidor ? '🛵 ' + esc(x.repartidor.nombre.split(' ')[0]) : 'Espera repartidor'}</span></div>`;
   const col = (t, n, h, vacio) => `<div class="cocCol"><h2>${t}<span>${n}</span></h2>${h || `<div class="cocVacio">${vacio}</div>`}</div>`;
@@ -8873,7 +8924,7 @@ function pintarCocina() {
   html(`<div class="coc"><div class="cocBar"><h1>🍳 ${esc(S.negocio ? S.negocio.nombre : 'Cocina')}</h1><span class="reloj">${hora(ahora)}</span>
       ${funOn('personal', 'asistencia') ? `<button onclick="act(this,async()=>{await pdvConectar();await asisMenu()})" aria-label="Asistencia">🕒</button>` : ''}${S.negocio && funOn('inventario', 'produccion') && S.negocio.plan === 'ultra' ? `<button onclick="S._iv={lugar:S.negocio.id,tab:'prod',q:'',f:''};ir('inventario')" aria-label="Producción">🏭</button>` : ''}<button onclick="cocAjustes()" aria-label="Ajustes">⚙️</button><button onclick="cocPantallaCompleta()" aria-label="Pantalla completa">⛶</button><button onclick="cocSalir()">Salir</button></div>
     <div class="cocCols">
-      ${col('🔔 Por aceptar', nuevos.length, nuevos.map(tNuevo).join(''), 'Sin pedidos nuevos')}
+      ${col('🔔 Por aceptar', nuevos.length + pagoP.length, nuevos.map(tNuevo).join('') + pagoP.map(tPagoP).join(''), 'Sin pedidos nuevos')}
       ${col('👩‍🍳 Preparando', prep.length, prep.map(tPrep).join(''), 'Nada en preparación')}
       ${col('📦 Listos y en espera', listos.length + pago.length, listos.map(tListo).join('') + (pago.length ? `<div class="small" style="margin:10px 4px 6px;opacity:.75">Aceptados, esperando que el cliente pague:</div>${pago.map(tPago).join('')}` : ''), 'Nada en espera')}
     </div></div>`);
@@ -9388,6 +9439,7 @@ async function cancelar(id, palabra) {
   await accion('cancelarPedido', { id, motivo: motivo || 'Sin motivo' }, 'Pedido cancelado');
 }
 async function confirmarPago(id) {
+  const pp = (S._pedidosVistos || {})[id]; if (pp && pp.pagoPrimero) return pagoRevisar(id);
   if (!confirm('¿Confirmas que el dinero YA está en tu cuenta? Revisa tu app del banco antes de confirmar.')) return;
   await accion('confirmarPago', { id }, 'Pago confirmado, ¡a preparar!');
 }
@@ -10363,7 +10415,84 @@ function copiarUbicacion(id) {
   const txt = `${p.recibe ? p.recibe.nombre + ' · ' + p.recibe.telefono + '\n' : ''}${p.direccion}${p.referencia ? ' (' + p.referencia + ')' : ''}\nhttps://maps.google.com/?q=${p.lat},${p.lng}`;
   copiar(txt, 'Ubicación');
 }
-function recordar(lista) { S._pedidosVistos = S._pedidosVistos || {}; lista.forEach(p => S._pedidosVistos[p.id] = p); }
+function recordar(lista) { S._pedidosVistos = S._pedidosVistos || {}; lista.forEach(p => S._pedidosVistos[p.id] = p); try { if (S.user && rolActual() === 'negocio') setTimeout(() => pagoRevisarAuto(lista), 400); } catch (e) { } }
+/* ---------- 2.72 · Transferencias: el pedido se paga primero; el negocio lo ve desde el inicio y revisa el comprobante ---------- */
+/** Aviso visible en Pedidos, Cocina y Caja mientras el pago no está confirmado. */
+function pagoNoConfHTML(p, corto) {
+  if (!p || !p.pagoPrimero) return '';
+  // 2.74: ya salió (o se entregó) con la transferencia pendiente
+  if (p.pagoPend && p.estado !== 'CANCELADO') {
+    const comp = p.pagoPend === 2;
+    return `<div class="aviso ${comp ? 'warn' : 'err'}" style="margin:8px 0 0">⏳ <b>${p.estado === 'ENTREGADO' ? 'Entregado sin pago confirmado' : 'Enviado con el pago pendiente'}</b> · transferencia de ${money(p.montoTransferencia)}.${comp ? ' El cliente ya subió su comprobante.' : ''}${p.garantia > 0 ? ' Tiene ' + money(p.garantia) + ' de su monedero como garantía.' : ''}
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn sm pri" onclick="event.stopPropagation();act(this,()=>pagoRevisar('${p.id}'))">${comp ? 'Revisar pago' : 'Ya me pagó'}</button>${p.estado === 'ENTREGADO' && p.garantia > 0 ? `<button class="btn sm" onclick="event.stopPropagation();garantiaUsar('${p.id}')">👛 Usar su monedero como pago</button>` : ''}</div></div>`;
+  }
+  if (!['POR_PAGAR', 'PAGO_ENVIADO'].includes(p.estado)) return '';
+  if (p.estado === 'PAGO_ENVIADO') return `<div class="aviso warn" style="margin:8px 0 0">🔎 <b>Pago por confirmar.</b> El cliente ya subió su comprobante${corto ? '' : ': revísalo en tu banco y confirma para empezar a preparar'}. <button class="btn sm pri" onclick="event.stopPropagation();act(this,()=>pagoRevisar('${p.id}'))">Revisar pago</button></div>`;
+  if (p.prepYa) return `<div class="aviso ok" style="margin:8px 0 0">💳 <b>PAGO PENDIENTE · YA PUEDES PREPARARLO.</b> ${esc(prepMotivoTxt(p))}${corto ? '' : ' En cuanto suba su comprobante te lo mostramos para confirmarlo.'}
+    <div style="margin-top:6px"><button class="btn sm pri" onclick="event.stopPropagation();pagoListoPregunta('${p.id}')">📦 Ya está listo</button></div></div>`;
+  return `<div class="aviso err" style="margin:8px 0 0">💳 <b>PAGO NO CONFIRMADO</b> · pedido por ${PAGO_TXT[p.metodoPago].toLowerCase()} de ${money(p.montoTransferencia)}.${corto ? '' : ' Aún no lo prepares: en cuanto el cliente suba su comprobante te lo mostramos aquí para revisarlo.'}</div>`;
+}
+/** Por qué se puede preparar sin pago confirmado: cliente frecuente y/o garantía apartada en su monedero. */
+function prepMotivoTxt(p) {
+  const m = String(p.prepMotivo || ''), f = m.match(/frecuente:(\d+)/), out = [];
+  if (f) out.push('Cliente frecuente (' + f[1] + ' pedidos recibidos)');
+  if (p.garantia > 0) out.push('tiene ' + money(p.garantia) + ' en su monedero como garantía');
+  return out.length ? out.join(' · ') + '.' : '';
+}
+/** 2.74 · El pedido está listo y el cliente aún no confirma su transferencia: ¿mandarlo con su monedero como garantía? */
+function pagoListoPregunta(id) {
+  const p = (S._pedidosVistos || {})[id]; if (!p) return;
+  if (p.estado === 'PAGO_ENVIADO') { act(null, () => pagoRevisar(id)); return; }
+  const g = p.garantia > 0;
+  modal(`<div data-fijo></div><div style="text-align:center"><div style="font-size:40px">📦</div><h2 style="margin:4px 0">${esc(p.folio)} está listo</h2></div>
+    <div class="aviso warn" style="margin:10px 0 0">El cliente aún no confirma su transferencia de <b>${money(p.montoTransferencia)}</b> y el pedido está listo.</div>
+    <p style="margin:12px 0 4px"><b>${g ? '¿Deseas mandarlo y usar su monedero como garantía del pago?' : '¿Deseas mandarlo aunque aún no paga?'}</b></p>
+    <div class="muted small">${g ? 'Cuenta con <b>' + money(p.garantia) + '</b> de saldo en su monedero. Si el pedido se entrega y no llega el pago, podrás usar su monedero como pago.' : 'Es cliente frecuente, pero no tiene saldo en su monedero como garantía: si no paga, tendrás que cobrarle directamente.'}</div>
+    <div class="btns" style="flex-direction:column"><button class="btn pri pill full" onclick="act(this,async()=>{cerrarModal();await accion('garantiaEnviar',{id:'${id}'},'Pedido listo: sale con el pago pendiente')})">${g ? 'Sí, mandarlo con la garantía' : 'Sí, mandarlo'}</button>
+      <button class="btn pill full" onclick="cerrarModal()">Esperar el pago</button></div>`);
+}
+/** Ya se entregó y la transferencia no llegó: usar el saldo de su monedero como pago. */
+function garantiaUsar(id) {
+  const p = (S._pedidosVistos || {})[id]; if (!p) return;
+  modal(`<div data-fijo></div><div style="text-align:center"><div style="font-size:40px">👛</div><h2 style="margin:4px 0">Usar su monedero como pago</h2></div>
+    <div class="small" style="margin:10px 0">El pedido <b>${esc(p.folio)}</b> ya se entregó y no has recibido la transferencia de ${money(p.montoTransferencia)}. Se descontarán <b>${money(p.garantia)}</b> del monedero de ${esc((p.comprador || {}).nombre || 'el cliente')} y el pedido quedará pagado. Le avisaremos al cliente.</div>
+    <div class="aviso warn small">Antes revisa tu banco: si la transferencia sí llegó, mejor toca “Ya me pagó”. Esto no se puede deshacer.</div>
+    <div class="btns" style="flex-direction:column"><button class="btn pri pill full" onclick="act(this,async()=>{cerrarModal();await accion('garantiaCobrar',{id:'${id}'},'Pedido pagado con su monedero')})">Sí, cobrar ${money(p.garantia)} de su monedero</button>
+      <button class="btn pill full" onclick="cerrarModal()">Cancelar</button></div>`);
+}
+/** En cuanto llega un comprobante se abre solo para revisarlo (una vez por comprobante y por equipo). */
+function pagoRevisarAuto(lista) {
+  if (!S.user || rolActual() !== 'negocio' || !puedo('pedidos') || $('#modal.on') || document.hidden) return;
+  const vistos = ls('pagoVisto') || {}, x = (lista || []).find(p => (p.estado === 'PAGO_ENVIADO' || p.pagoPend === 2) && p.pagoPrimero && vistos[p.id] !== (p.pagoEnviado || 1));
+  if (!x) return;
+  vistos[x.id] = x.pagoEnviado || 1; const ks = Object.keys(vistos); if (ks.length > 80) ks.slice(0, ks.length - 80).forEach(k => delete vistos[k]); ls('pagoVisto', vistos);
+  pagoRevisar(x.id).catch(() => { });
+}
+async function pagoRevisar(id) {
+  const p = (S._pedidosVistos || {})[id]; if (!p) return;
+  const ops = [5, 10, 15, 20, 30, 45, 60, 90], sug = p.minutosPrep || p.minutosSugeridos || (S.negocio && S.negocio.tiempoPrep) || 20, t = ops.find(m => m >= sug) || 90;
+  const incl = p.envio > 0 && p.envioEn === 'negocio';
+  modal(`<div data-fijo></div><div class="row between"><h2 style="margin:0">🏦 Revisa el pago · ${esc(p.folio)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:2px 0 8px">${esc((p.comprador || {}).nombre || 'Cliente')} dice que ya transfirió. <b>Confirma solo si el dinero ya está en tu cuenta.</b></div>
+    <div class="card" style="padding:12px"><div class="row between"><span>Debes haber recibido</span><b style="font-size:20px">${money(p.montoTransferencia)}</b></div>
+      <div class="muted small">${incl ? 'Incluye el envío (' + money(p.envio) + '): se lo pagas en efectivo al repartidor.' : p.envio > 0 ? 'Solo la comida. El envío (' + money(p.envio) + ') lo paga el cliente en efectivo al repartidor.' : p.tipoEntrega === 'recoger' ? 'Recoge en el negocio.' : ''}</div></div>
+    <div id="prComp" style="text-align:center;margin:10px 0;min-height:60px"><div class="muted small">${p.comprobanteId ? 'Cargando comprobante…' : 'Sin imagen de comprobante (pedido de muestra)'}</div></div>
+    <label class="f" ${p.pagoPend ? 'style="display:none"' : ''}>¿En cuánto estará listo?</label><select class="i" id="prMin" ${p.pagoPend ? 'style="display:none"' : ''}>${ops.map(m => `<option value="${m}" ${m === t ? 'selected' : ''}>${m} min</option>`).join('')}</select>
+    <div class="btns" style="flex-direction:column"><button class="btn ok pill full" onclick="act(this,()=>pagoConfirmar('${id}'))">✅ Pago recibido${p.pagoPend ? '' : p.prepYa ? ' · seguir preparando' : ' · empezar a preparar'}</button>
+      <button class="btn err pill full" onclick="act(this,async()=>{cerrarModal();await noRecibido('${id}')})">No lo veo reflejado</button>
+      <button class="btn pill full" onclick="cerrarModal()">Revisar después</button></div>`);
+  if (!p.comprobanteId) return;
+  try {
+    const d = await api('imagen', { pedidoId: id, fileId: p.comprobanteId }), box = $('#prComp'); if (!box || !box.tagName) return;
+    if (/^data:application\/pdf/.test(d)) { const url = URL.createObjectURL(await (await fetch(d)).blob()); box.innerHTML = `<a class="btn pill" href="${url}" target="_blank" download="comprobante-${esc(p.folio)}.pdf">📄 Abrir comprobante (PDF)</a>`; }
+    else box.innerHTML = `<img src="${d}" alt="Comprobante" style="max-width:100%;max-height:55vh;border-radius:12px;border:1px solid var(--ln)">`;
+  } catch (e) { const box = $('#prComp'); if (box && box.tagName) box.innerHTML = `<button class="btn" onclick="act(this,()=>verImagen('${id}','${p.comprobanteId}'))">🧾 Ver comprobante</button>`; }
+}
+async function pagoConfirmar(id) {
+  const minutos = +$('#prMin').value || 20;
+  cerrarModal();
+  await accion('confirmarPago', { id, minutos }, 'Pago confirmado, ¡a preparar!');
+}
 
 /* ============ CHAT ============ */
 async function abrirChat(pid) {
@@ -10927,7 +11056,7 @@ function pintarNegocios() {
   pintarBanner(cat);
   const box = $('#listaNeg'); if (!box) return;
   if (cat === 'Promociones') { box.innerHTML = listaPromos(); return; }
-  const propio = esStaff() && S.negocio ? S.negocio.id : ''; // en "Pedir comida" no se muestra su propio negocio
+  const propio = esStaff() && esDueno() && S.negocio ? S.negocio.id : ''; // 2.72: el equipo sí puede pedir donde trabaja; al dueño no se le muestra su propio negocio
   const l = (S._negs || []).filter(n => (cat === 'Todos' || catsDe(n).includes(cat)) && n.id !== propio);
   box.innerHTML = `<div class="secHead"><h3>${cat === 'Todos' ? 'Restaurantes cerca de ti' : ICONO_CAT[cat] + ' ' + esc(cat)}</h3>${cat !== 'Todos' ? '<button onclick="verTodos()">Ver todos</button>' : ''}</div>` +
     (l.length ? `<div class="grid2">${l.map(tarjetaNegocio).join('')}</div>`
@@ -11676,11 +11805,14 @@ async function vPago() {
     subT += sub; envT += envio;
     S._pagoTot[c.negocioId] = { sub, envio, desc: ds.total };
     const ops = [];
-    const conEnvio = n.envioEnTransfer && envio > 0, montoT = conEnvio ? sub + envio : sub;
-    if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Pagas ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y adjuntas tu comprobante']);
+    // 2.72: si el negocio recibe el envío por transferencia, el cliente elige: transferir todo o pagar el envío en efectivo
+    const puedeEnv = !!n.envioEnTransfer && envio > 0, envEfe = puedeEnv && (e.envioPago || {})[c.negocioId] === 'efectivo';
+    const conEnvio = puedeEnv, montoT = conEnvio ? sub + envio : sub, montoTr = puedeEnv && !envEfe ? sub + envio : sub;
+    S._pagoTot[c.negocioId].puedeEnv = puedeEnv; S._pagoTot[c.negocioId].montoTr = montoTr; S._pagoTot[c.negocioId].nombre = n.nombre || c.negocio;
+    if (pg.transferencia) ops.push(['transferencia', 'banco', 'Transferencia bancaria', 'Transfieres ' + money(montoTr) + (puedeEnv && !envEfe ? ' (comida y envío)' : '') + ' directo a ' + (n.nombre || c.negocio) + ' y subes tu comprobante']);
     if (pg.codi) ops.push(['codi', 'qr', 'CoDi / Dimo', 'Escaneas el QR del negocio desde tu app del banco']);
     // 2.66.1: monedero del cliente (debe cubrir todo lo que se le paga al negocio)
-    if (pg.monedero && n.monGid && S.user && S.user.rol === 'comprador') {
+    if (pg.monedero && n.monGid && S.user && rolActual() === 'comprador') {
       const ms = (S._monSal || {})[n.monGid];
       if (ms === undefined) { monSaldoApp(n.monGid); ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Consultando tu saldo…', true]); }
       else if (ms && ms.activo) {
@@ -11705,6 +11837,7 @@ async function vPago() {
         : `<div class="opcion ${o[0] === e.metodos[c.negocioId] ? 'on' : ''}" data-n="${c.negocioId}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
         <div class="grow"><b>${o[2]}</b><small>${o[3]}</small></div></div>`).join('')}
       ${n.abierto === false && !(e.prog && e.prog.on) ? `<div class="aviso warn">${esc(c.negocio)}: ${esc(n.estadoTexto || 'no recibe pedidos ahora')}${pedible(n) ? ' · prográmalo arriba 🗓️' : ''}</div>` : ''}
+      <div id="envOp_${c.negocioId}">${envioPagoHTML(c.negocioId)}</div>
       <div class="muted small" id="nota_${c.negocioId}" style="margin:-2px 0 6px"></div>`;
   }).join('');
   ls('entrega', e);
@@ -11742,13 +11875,32 @@ function elegirMetodo(el) {
   const neg = el.dataset.n;
   S.entrega.metodos[neg] = el.dataset.m; ls('entrega', S.entrega);
   document.querySelectorAll('.opcion[data-n="' + neg + '"]').forEach(o => o.classList.toggle('on', o === el));
+  const eo = $('#envOp_' + neg); if (eo && eo.tagName) eo.innerHTML = envioPagoHTML(neg);
+  notaPago(neg);
+}
+/** 2.72 · Con transferencia: ¿el envío va en la misma transferencia o se paga en efectivo al repartidor? */
+function envioPagoHTML(neg) {
+  const e = S.entrega, t = (S._pagoTot || {})[neg], m = e.metodos[neg];
+  if (!t || !t.puedeEnv || !['transferencia', 'codi'].includes(m) || (e.prog && e.prog.on)) return '';
+  const efe = (e.envioPago || {})[neg] === 'efectivo';
+  const op = (v, on, tit, sub) => `<div class="opcion ${on ? 'on' : ''}" style="margin-left:22px" onclick="elegirEnvioPago('${neg}','${v}')"><span class="radio"></span><div class="grow"><b>${tit}</b><small>${sub}</small></div></div>`;
+  return `<div class="muted small" style="margin:2px 0 2px 22px">¿Cómo pagas el envío (${money(t.envio)})?</div>
+    ${op('transferencia', !efe, 'Transferir todo: ' + money(t.sub + t.envio), 'Comida y envío en una sola transferencia')}
+    ${op('efectivo', efe, 'Transferir ' + money(t.sub) + ' y pagar el envío en efectivo', money(t.envio) + ' en efectivo al repartidor al recibir')}`;
+}
+function elegirEnvioPago(neg, v) {
+  const e = S.entrega; e.envioPago = e.envioPago || {}; e.envioPago[neg] = v; ls('entrega', e);
+  const t = S._pagoTot[neg]; t.montoTr = v === 'efectivo' ? t.sub : t.sub + t.envio;
+  $('#envOp_' + neg).innerHTML = envioPagoHTML(neg);
+  const o = document.querySelector('.opcion[data-n="' + neg + '"][data-m="transferencia"] small'); if (o) o.textContent = 'Transfieres ' + money(t.montoTr) + (v === 'efectivo' ? '' : ' (comida y envío)') + ' directo a ' + t.nombre + ' y subes tu comprobante';
   notaPago(neg);
 }
 function notaPago(neg) {
   const m = S.entrega.metodos[neg], t = S._pagoTot[neg], rec = S.entrega.tipo === 'recoger';
   const el = $('#nota_' + neg); if (!el || !t) return;
   el.innerHTML = m === 'monedero' ? '👛 No pagas nada ahora: se descuenta de tu monedero cuando te entreguen tu pedido.' : m === 'efectivo' ? (rec ? 'Pagas ' + money(t.sub) + ' en efectivo al recoger.' : 'Ten listo ' + money(t.sub + t.envio) + ' en efectivo para el repartidor.')
-    : 'Cuando el negocio acepte tu pedido verás sus datos para transferir ' + money(t.sub) + '.' + (t.envio ? ' El envío (' + money(t.envio) + ') se paga en efectivo al repartidor.' : '');
+    : (S.entrega.prog && S.entrega.prog.on) ? 'Cuando el negocio confirme tu pedido programado verás sus datos para transferir ' + money(t.montoTr || t.sub) + '.' + (t.envio && (t.montoTr || t.sub) === t.sub ? ' El envío (' + money(t.envio) + ') se paga en efectivo al repartidor.' : '')
+    : 'Al confirmar verás la cuenta de ' + esc(t.nombre || 'el negocio') + ' para transferir <b>' + money(t.montoTr || t.sub) + '</b> y subir tu comprobante. Tu pedido se atiende en cuanto se confirme tu pago.' + (t.envio && (t.montoTr || t.sub) === t.sub ? ' El envío (' + money(t.envio) + ') lo pagas en efectivo al repartidor.' : '');
 }
 
 /* ---------- 2.63 · ¿Cuándo lo quieres? (lo antes posible o programado) ---------- */
@@ -11933,7 +12085,7 @@ async function confirmarPedido() {
       practicaRep: muestra && $('#pPracRep') ? $('#pPracRep').value : '', sinNegocio: muestra && $('#pSinNeg') && $('#pSinNeg').checked ? 1 : '',
       programado: e.prog && e.prog.on && e.prog.hora ? progMs(e.prog.dia, e.prog.hora) : '',
       pedidos: cs.map(c => ({
-        negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
+        negocioId: c.negocioId, metodoPago: e.metodos[c.negocioId], envioPago: (e.envioPago || {})[c.negocioId] || '', subtotalEsperado: subtotalCarrito(c), descuentoEsperado: descCarrito(c).total,
         items: Object.values(c.items).map(itemPedido)
       }))
     });
@@ -11953,6 +12105,8 @@ async function confirmarPedido() {
   r.forEach(x => { sumarPref(x.negocioId, 3); if (S._primera) S._primera[x.negocioId] = false; delete S.carritos[x.negocioId]; delete (S.sel || {})[x.negocioId]; });
   guardarCarritos();
   history.replaceState({ v: 'inicio' }, '');
+  const pp = r.filter(x => x.pagoPrimero);
+  if (pp.length) { S._abrirPago = pp[0].id; if (r.length > 1) toast('Enviamos ' + r.length + ' pedidos. Empieza por pagar este; los demás están en Mis pedidos.'); ir('pedido', pp[0].id); return; }
   ir('listo');
 }
 
@@ -12000,7 +12154,7 @@ async function verAntiguos() {
 /* ============ SEGUIMIENTO (cliente) ============ */
 async function vPedido(id, silencioso) {
   const p = await api('pedido', { id });
-  recordar([p]);
+  recordar([p]); S._ped = p;
   // un pedido que el negocio o repartidor hizo como cliente se ve como cliente
   if (p.esMio && esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
   if (rolActual() !== 'comprador') { vPedidoOperacion(p); return; }
@@ -12020,7 +12174,7 @@ async function vPedido(id, silencioso) {
       ${p.estado !== 'CANCELADO' ? pasos4(p) : ''}
       ${bloqueCodigo(p)}
     </div>
-    ${bloquePago(p)}
+    ${bloquePago(p)}${(() => { if (S._abrirPago === p.id) { S._abrirPago = ''; if (p.estado === 'POR_PAGAR' && p.pago) setTimeout(() => pagoVentana(p.id), 50); } return ''; })()}
     ${bloquePagoEnvio(p)}
     ${bloqueNoRecibido(p)}
     ${bloqueRecibido(p)}
@@ -12031,7 +12185,7 @@ async function vPedido(id, silencioso) {
       ${p.notas ? `<div class="aviso info" style="margin:10px 0 0">📝 ${esc(p.notas)}</div>` : ''}</div>
     <div class="btns" style="margin-bottom:20px">
       <button class="btn" onclick="abrirChat('${p.id}')">${ico('chat', 's')} Mensajes</button>
-      ${['NUEVO', 'POR_PAGAR'].includes(p.estado) || (p.estado === 'PROGRAMADO' && p.metodoPago === 'efectivo') ? `<button class="btn err" onclick="act(this,()=>cancelar('${p.id}'))">Cancelar pedido</button>` : ''}</div>`);
+      ${(['NUEVO', 'POR_PAGAR'].includes(p.estado) && !(p.estado === 'POR_PAGAR' && p.prepYa)) || (p.estado === 'PROGRAMADO' && p.metodoPago === 'efectivo') ? `<button class="btn err" onclick="act(this,()=>cancelar('${p.id}'))">Cancelar pedido</button>` : ''}</div>`);
   if (p.estado !== 'CANCELADO') dibujarTrk(p);
 }
 
@@ -12116,21 +12270,67 @@ function bloquePagoEnvio(p) {
     <div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b></div></details>`;
 }
 
+/** 2.72 · Ventana de pago por transferencia: cuenta del negocio, monto exacto y subir el comprobante para continuar. */
+function pagoVentana(id) {
+  const p = S._ped && S._ped.id === id ? S._ped : null; if (!p || !p.pago) return;
+  const g = p.pago, monto = p.montoTransferencia || p.subtotal, cta = g.clabe || g.tarjeta, envEfe = p.envio > 0 && p.envioEn !== 'negocio';
+  modal(`<div data-fijo></div><div style="text-align:center"><div style="font-size:40px">🏦</div><h2 style="margin:2px 0">Transfiere ${money(monto)}</h2>
+      <div class="muted small">a ${esc(p.negocio.nombre)} · pedido ${esc(p.folio)}</div></div>
+    ${p.envio > 0 ? `<div class="aviso info small" style="margin:10px 0 0">${envEfe ? 'Comida ' + money(p.subtotal) + ' por transferencia. <b>El envío (' + money(p.envio) + ') lo pagas en efectivo</b> al repartidor.' : 'Incluye tu comida (' + money(p.subtotal) + ') y el envío (' + money(p.envio) + ').'}</div>` : ''}
+    ${g.clabe ? `<div class="copiar"><div><div class="muted small">CLABE${g.banco ? ' · ' + esc(g.banco) : ''}</div><div class="v">${esc(g.clabe)}</div></div><button class="btn sm pri" onclick="copiar('${esc(g.clabe)}','CLABE')">${ico('copiar', 's')} Copiar</button></div>` : ''}
+    ${g.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta${g.banco ? ' · ' + esc(g.banco) : ''}</div><div class="v">${esc(g.tarjeta)}</div></div><button class="btn sm ${g.clabe ? '' : 'pri'}" onclick="copiar('${esc(g.tarjeta)}','Tarjeta')">${ico('copiar', 's')} Copiar</button></div>` : ''}
+    <div class="copiar"><div><div class="muted small">Monto exacto</div><div class="v">${money(monto)}</div></div><button class="btn sm" onclick="copiar('${monto}','Monto')">${ico('copiar', 's')} Copiar</button></div>
+    ${g.titular ? `<div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${esc(p.folio)}</b></div>` : ''}
+    ${g.qrId ? `<div class="btns"><button class="btn" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} Pagar con CoDi (ver QR)</button></div>` : ''}
+    ${!cta && !g.qrId ? '<div class="aviso warn small">El negocio aún no registra su cuenta. Escríbele por Mensajes.</div>' : ''}
+    <div class="aviso ok small" style="margin:10px 0 0">${p.prepYa || p.pagoPend ? '✅ <b>Tu pedido ya ' + (p.pagoPend ? 'va en camino' : 'se está preparando') + '.</b> Cuando hagas tu transferencia, sube aquí la captura de pantalla o el PDF de tu comprobante.' : '✅ <b>Tu pedido será atendido en cuanto confirmemos tu transferencia.</b> Cuando la hagas, sube aquí la captura de pantalla o el PDF de tu comprobante.'}</div>
+    <div class="btns" style="flex-direction:column"><label class="btn pri pill full">📎 Subir mi comprobante<input type="file" accept="image/*,application/pdf" hidden onchange="pagoVentanaSubir('${p.id}',this)"></label>
+      ${p.muestra ? `<button class="btn pill full" onclick="act(this,async()=>{await api('subirComprobante',{pedidoId:'${p.id}',simulado:1});cerrarModal();toast('Comprobante simulado ✓');pintar(true)})">🧪 Simular comprobante</button>` : ''}
+      <button class="btn pill full" onclick="cerrarModal()">Lo subo después</button></div>
+    ${g.limite ? `<div class="muted small" style="text-align:center">Tienes hasta las <b>${hora(g.limite)}</b>; después el pedido se cancela solo.</div>` : ''}
+    ${pagoOtroBtn(p)}`);
+}
+async function pagoVentanaSubir(id, inp) {
+  const f = inp.files[0]; if (!f) return;
+  toast('Subiendo comprobante…');
+  try { await enviarComprobante(id, f); cerrarModal(); toast('Comprobante enviado ✓ El negocio lo está revisando'); pintar(true); }
+  catch (e) { toast(e.message, 'err'); }
+}
+/** 2.74 · ¿Tocó transferencia por error o no pudo hacerla? Puede pagar de otra forma (mientras el pago no esté confirmado). */
+function pagoOtroBtn(p) {
+  if (!p.pagoPrimero || p.preventa || !(p.estado === 'POR_PAGAR' || (p.pagoPend === 1 && ['LISTO', 'EN_CAMINO'].includes(p.estado)))) return '';
+  return `<div style="text-align:center;margin-top:10px"><button class="lnk" onclick="pagoOtroForma('${p.id}')">¿No puedes transferir? Pagar de otra forma</button></div>`;
+}
+function pagoOtroForma(id) {
+  const p = S._ped && S._ped.id === id ? S._ped : null; if (!p) return;
+  const dom = p.tipoEntrega === 'domicilio', total = p.subtotal + (p.envio || 0);
+  modal(`<div class="row between"><h2 style="margin:0">Pagar de otra forma</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">Tu pedido ${esc(p.folio)} sigue igual; solo cambia cómo lo pagas.</div>
+    <div class="opcion" onclick="act(this,()=>pagoCambiar('${id}','efectivo'))"><span class="ico">${ico('efectivo')}</span><div class="grow"><b>Efectivo</b><small>${dom ? 'Pagas ' + money(total) + ' al repartidor al recibir' : 'Pagas ' + money(p.subtotal) + ' al recoger'}</small></div></div>
+    <div class="opcion" onclick="act(this,()=>pagoCambiar('${id}','monedero'))"><span class="ico">${ico('tienda')}</span><div class="grow"><b>👛 Mi monedero</b><small>Se descuenta de tu saldo en ${esc(p.negocio.nombre)} al entregarte</small></div></div>
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal();pagoVentana('${id}')">Mejor sí transfiero</button></div>`);
+}
+async function pagoCambiar(id, metodo) {
+  await api('cambiarMiPago', { id, metodo });
+  cerrarModal(); toast(metodo === 'efectivo' ? 'Listo: pagas en efectivo' : 'Listo: se paga con tu monedero'); pintar(true);
+}
 /** Bloque de transferencia o CoDi cuando el negocio ya aceptó. */
 function bloquePago(p) {
-  if (p.estado === 'PAGO_ENVIADO') return `<div class="aviso info">🔎 Enviaste tu comprobante. El negocio está verificando el pago.</div>`;
-  if (p.estado !== 'POR_PAGAR' || !p.pago) return '';
+  if (p.estado === 'PAGO_ENVIADO' || p.pagoPend === 2) return `<div class="aviso info">🔎 Enviaste tu comprobante. El negocio está verificando el pago${p.pagoPrimero && !p.prepYa && !p.pagoPend ? '; en cuanto lo confirme empieza a preparar tu pedido' : ''}.</div>`;
+  if ((p.estado !== 'POR_PAGAR' && !(p.pagoPend === 1 && p.estado !== 'CANCELADO')) || !p.pago) return '';
   const g = p.pago, codi = p.metodoPago === 'codi', monto = p.montoTransferencia || p.subtotal;
   return `<div class="card" style="border:2px solid var(--pri)">
     <h3 style="margin-top:0">${ico(codi ? 'qr' : 'banco', 's')} ${p.preventa ? (p.preventa.pct >= 100 ? 'Asegura tu preventa: paga ' : 'Asegura tu preventa: anticipo de ') : 'Paga '}${money(monto)} a ${esc(p.negocio.nombre)}</h3>
-    <div class="muted small">El pago va directo al negocio, sin comisiones${p.envioEn === 'negocio' ? '. Incluye el envío (' + money(p.envio) + ')' : ''}. Tienes hasta ${p.preventa ? 'el <b>' + esc(pvFecha(g.limite)) + '</b>' : 'las <b>' + hora(g.limite) + '</b>'}.</div>
+    <div class="muted small">El pago va directo al negocio, sin comisiones${p.envioEn === 'negocio' ? '. Incluye el envío (' + money(p.envio) + ')' : ''}. ${g.limite ? 'Tienes hasta ' + (p.preventa ? 'el <b>' + esc(pvFecha(g.limite)) + '</b>' : 'las <b>' + hora(g.limite) + '</b>') + '.' : ''}</div>
     ${codi && g.qrId ? `<div class="btns"><button class="btn pri" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} Ver QR CoDi</button></div>` : ''}
     <div class="copiar"><div><div class="muted small">Monto exacto</div><div class="v">${money(monto)}</div></div><button class="btn sm" onclick="copiar('${monto}','Monto')">${ico('copiar', 's')}</button></div>
     ${g.clabe ? `<div class="copiar"><div><div class="muted small">CLABE · ${esc(g.banco)}</div><div class="v">${esc(g.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(g.clabe)}','CLABE')">${ico('copiar', 's')}</button></div>` : ''}
     ${g.tarjeta ? `<div class="copiar"><div><div class="muted small">Tarjeta · ${esc(g.banco)}</div><div class="v">${esc(g.tarjeta)}</div></div><button class="btn sm" onclick="copiar('${esc(g.tarjeta)}','Tarjeta')">${ico('copiar', 's')}</button></div>` : ''}
     ${g.titular ? `<div class="muted small">A nombre de <b>${esc(g.titular)}</b> · Concepto: <b>${p.folio}</b></div>` : ''}
     ${!codi && g.qrId ? `<div class="btns"><button class="btn" onclick="act(this,()=>verImagen('${p.id}','${g.qrId}'))">${ico('qr', 's')} También puedes pagar con CoDi</button></div>` : ''}
-    <div class="btns"><label class="btn pri pill full">📎 Adjuntar comprobante<input type="file" accept="image/*,application/pdf" hidden onchange="subirComprobante('${p.id}',this)"></label></div>
+    ${p.pagoPrimero ? `<div class="aviso ok small" style="margin:8px 0 0">${p.prepYa || p.pagoPend ? '✅ Tu pedido ya ' + (p.pagoPend ? 'va en camino' : 'se está preparando') + '. Sube tu comprobante en cuanto hagas tu transferencia.' : '✅ Tu pedido será atendido en cuanto confirmemos tu transferencia.'}</div>` : ''}
+    <div class="btns"><label class="btn pri pill full">📎 ${p.pagoPrimero ? 'Subir mi comprobante' : 'Adjuntar comprobante'}<input type="file" accept="image/*,application/pdf" hidden onchange="subirComprobante('${p.id}',this)"></label></div>
+    ${pagoOtroBtn(p)}
     ${p.muestra ? `<div class="btns"><button class="btn pill full" onclick="act(this,async()=>{await api('subirComprobante',{pedidoId:'${p.id}',simulado:1});toast('Comprobante simulado ✓');pintar(true)})">🧪 Simular comprobante</button></div>` : ''}</div>`;
 }
 
@@ -12668,6 +12868,7 @@ function vPedidoOperacion(p) {
     ${p.servicio && r === 'negocio' && p.estado === 'NUEVO' ? `<div class="aviso info">🛵 ${esc((p.repartidor || {}).nombre || 'Un repartidor')} pide esto para un cliente suyo. Dile en cuánto tiempo estará listo: pasa a recogerlo y paga en efectivo.</div>` : ''}
     ${p.asignadoPor && r !== 'comprador' ? `<div class="muted small" style="margin-bottom:8px">🎧 Repartidor asignado por ${esc(p.asignadoPor)}</div>` : ''}
     ${p.estado === 'CANCELADO' ? `<div class="aviso err">✖️ Cancelado${p.motivo ? ': ' + esc(p.motivo) : ''}</div>` : ''}
+    ${r === 'negocio' ? pagoNoConfHTML(p) : ''}
     ${p.alerta ? `<div class="aviso warn">⏰ ${esc(p.alerta)}</div>` : ''}
     ${bloqueVerif(p, r)}
     ${p.seguir && p.telCliente ? `<div class="card row between"><div><b>📞 Pedido por teléfono</b><div class="muted small">${esc(p.comprador.nombre)} · ${esc(p.telCliente)}</div></div>
@@ -12730,6 +12931,7 @@ async function vNegPedidos() {
   const card = x => `<div class="card">
     <div class="row between" onclick="ir('pedido','${x.id}')" style="cursor:pointer"><div><b>${x.folio}</b> · ${esc(x.comprador.nombre)} ${x.porTelefono ? '<span class="tag t-info">📞 Por teléfono</span>' : ''} ${ACTIVOS.includes(x.estado) && !x.servicio && !x.porTelefono ? chipCliente(x.comprador) : ''}
       <div class="muted small">${hora(x.creado)} · ${money(x.subtotal)} · ${x.servicio ? '🛵 Lo recoge el repartidor' : x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${PAGO_TXT[x.metodoPago]}</div></div>${etiqueta(x.estado, x)}</div>
+    ${pagoNoConfHTML(x)}
     ${pvLinea(x)}${x.programado && ACTIVOS.includes(x.estado) && !x.preventa ? `<div class="aviso info" style="margin:8px 0 0">🗓️ <b>Programado para ${esc(progTxtC(x.programado))}</b>${x.estado === 'PROGRAMADO' ? ' · entra a cocina solo a su hora' : x.estado === 'NUEVO' ? ' · confírmalo' : ''}</div>` : ''}
     ${x.alerta ? `<div class="aviso warn" style="margin:8px 0 0">⏰ ${esc(x.alerta)}</div>` : ''}
     <div style="margin-top:6px">${x.items.map(i => { const d = detalleItem(i); return `<div class="small"><b>${i.cant}×</b> ${esc(i.nombre)}${d ? ` <span class="detalle">· ${d}</span>` : ''}</div>`; }).join('')}</div>
