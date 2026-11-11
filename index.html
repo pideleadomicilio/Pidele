@@ -994,7 +994,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.78.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.78.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -7620,6 +7620,7 @@ function asisCubrirForm(fecha, falta) {
     <div id="cuInfo" class="small muted" style="margin-top:6px"></div>
     <label class="f">¿Cómo queda?</label>
     <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="extra" checked onchange="asisCubrirInfo()"><span><b>Turno extra</b><br><span class="muted small">Quien cubre trabaja de más. Al checar su entrada te aparece en “Turnos dobles por decidir” para elegir cómo se paga (día extra, horas extra o a cuenta de una falta).</span></span></label>
+    <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="mover" onchange="asisCubrirInfo()"><span><b>Cubre en otro turno</b><br><span class="muted small">Ese día trabaja el turno de quien falta <b>en lugar del suyo</b>. No es extra: su turno habitual queda libre ese día.</span></span></label>
     <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="cambio" onchange="asisCubrirInfo()"><span><b>Intercambian turno</b><br><span class="muted small">Nadie trabaja de más: se cambian el horario ese día, o quien no vino le regresa el turno otro día.</span></span></label>
     <div id="cuCambio" style="display:none"><label class="f">¿Qué día le regresa el turno? (déjalo igual si solo cambian de horario el mismo día)</label><input class="i" type="date" id="cuF2" value="${fecha}"></div>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,asisCubrirGuardar)">Guardar</button></div>`);
@@ -7641,7 +7642,7 @@ async function asisCubrirGuardar() {
   const modo = document.querySelector('input[name=cuM]:checked').value, a = $('#cuA').value, b = $('#cuB').value, f = $('#cuF').value;
   if (!a || !b) throw new Error('Elige a quién se cubre y quién lo cubre');
   PDV.per.datos = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' ? $('#cuF2').value : '' });
-  PDV.per.fecha = f; cerrarModal(); toast(modo === 'cambio' ? 'Cambio de turno registrado ✓ · se les avisó' : 'Registrado ✓ · se les avisó'); pintarCaja();
+  PDV.per.fecha = f; cerrarModal(); toast(modo === 'cambio' ? 'Cambio de turno registrado ✓ · se les avisó' : modo === 'mover' ? 'Listo ✓ · cubre en ese turno (sin extra) · se les avisó' : 'Registrado ✓ · se les avisó'); pintarCaja();
 }
 function asisDiaTurno(e, s) { $('#cdE').value = e; $('#cdS').value = s; }
 async function asisGuardarDia(uid, fecha, tipo) {
