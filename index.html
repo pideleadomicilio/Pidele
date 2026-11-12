@@ -452,6 +452,13 @@ body.enCaja{padding-bottom:0}
 .tabKpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
 @media(min-width:760px){.tabKpis{grid-template-columns:repeat(4,1fr)}.tabGrid{grid-template-columns:repeat(2,1fr)!important}}
 .tabKpi{background:var(--card,#fff);border-radius:16px;padding:12px 14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.tabKpi.btnK{cursor:pointer;border:0;text-align:left;font:inherit;color:inherit;width:100%;transition:transform .1s}.tabKpi.btnK:active{transform:scale(.97)}
+.tabKpi .verK{font-size:12px;font-weight:800;color:var(--pri);margin-top:6px;display:block;text-transform:none;letter-spacing:0}
+.tdFila{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line,#eee)}.tdFila:last-child{border-bottom:0}
+.tdFila .tdI{font-size:20px;line-height:1.2}.tdFila .grow small{display:block;color:var(--tx2,#666)}
+.tdFila details summary{cursor:pointer;color:var(--pri);font-size:12px;font-weight:700}.tdAcc{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tdGrupo{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--tx2,#666);margin:12px 0 2px}
+.tdChips{display:flex;gap:6px;margin:8px 0}.tdChips button{border:1px solid var(--line,#ddd);background:none;border-radius:99px;padding:5px 12px;font:inherit;font-size:13px;font-weight:700}.tdChips button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
 .tabKpi span{font-size:12px;font-weight:800;color:var(--tx2,#666);text-transform:uppercase;letter-spacing:.3px}
 .tabKpi b{display:block;font-size:26px;margin-top:4px;line-height:1.1}.tabKpi small{display:block;color:var(--tx2,#666);font-weight:600;margin-top:2px}
 .tabGrid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -553,7 +560,8 @@ body.enCaja{padding-bottom:0}
 .checar.sal{background:var(--card);border:1px solid var(--ln)}
 .checar b{display:block;font-size:17px}.checar small{display:block;font-size:12px;color:var(--tx2)}
 .checar .btn{flex:none}
-.checar.mini{width:max-content;max-width:100%;margin:0 0 8px auto;padding:5px 12px;border-radius:999px;background:var(--card);border:1px solid var(--ln);color:var(--tx2);font-size:12px;font-weight:600;gap:6px;cursor:pointer}
+.checar.mini{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;width:46px;height:46px;margin:0;padding:0;border-radius:50%;background:var(--card);border:1px solid var(--ln);box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:22px;justify-content:center;align-items:center;cursor:pointer}
+.coc.barra .bListo,.coc.barra .bRech{display:none}
 .cortesWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px -4px 0;padding:0 4px}
 .cortesT{border-collapse:collapse;font-size:13px;min-width:100%;font-variant-numeric:tabular-nums}
 .cortesT th,.cortesT td{padding:8px 8px;border-bottom:1px solid var(--ln);text-align:right;white-space:nowrap}
@@ -1016,7 +1024,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.82.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.84.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1194,7 +1202,7 @@ const API_RAPIDA = new Set(['panelNegocio', 'pedidosNegocio', 'misPedidos', 'mis
   'adminResumen', 'adminUsuarios', 'adminPedidos', 'adminConfig', 'adminPromos', 'adminComisiones', 'adminInvitaciones', 'adminEstadisticas', 'adminCobros', 'adminVerificaciones', 'adminAlertas',
   'misEntregas', 'historialRepartidor', 'miPuntaje', 'directorioRepartidores', 'repDirectorio', 'misGrupos', 'modAtencion', 'modRepartidores', 'pdvReporteApp', 'disponibles', 'catalogo', 'negocios', 'menus']);
 // lecturas que no cambian nada (las demás acciones borran lo guardado)
-const API_LECTURA = new Set(['higVer', 'higCurso', 'higExpediente', 'higArchivo', 'adminLlave', 'asisMia', 'tableroDueno', 'pdvLlave', 'monederoLlave', 'repDirectorio', 'verOferta', 'repLicencia', 'pdvVerComprobante', 'pdvReporteApp', 'seguirPedido', 'miEquipo', 'adminSucursales', 'configPublica', 'arranque', 'catalogo', 'yo', 'negocios', 'menu', 'menus', 'buscar', 'misPedidos', 'misPedidosAnteriores', 'pedido', 'mensajes', 'imagen',
+const API_LECTURA = new Set(['dispLista', 'higVer', 'higCurso', 'higExpediente', 'higArchivo', 'adminLlave', 'asisMia', 'tableroDueno', 'pdvLlave', 'monederoLlave', 'repDirectorio', 'verOferta', 'repLicencia', 'pdvVerComprobante', 'pdvReporteApp', 'seguirPedido', 'miEquipo', 'adminSucursales', 'configPublica', 'arranque', 'catalogo', 'yo', 'negocios', 'menu', 'menus', 'buscar', 'misPedidos', 'misPedidosAnteriores', 'pedido', 'mensajes', 'imagen',
   'miNegocio', 'misProductos', 'pedidosNegocio', 'panelNegocio', 'misPromos', 'miSuscripcion', 'adminCobros', 'adminVerificaciones', 'adminAlertas', 'disponibles', 'misEntregas', 'historialRepartidor', 'miPuntaje', 'directorioRepartidores', 'misGrupos', 'sondeo', 'primeraCompra',
   'adminResumen', 'adminUsuarios', 'adminPedidos', 'adminConfig', 'adminPromos', 'adminComisiones', 'adminInvitaciones', 'invitacion', 'adminEstadisticas', 'modAtencion', 'modRepartidores', 'avisoCiudad']);
 const API_CACHE = new Map(), API_FRESCO = 4000;
@@ -1560,6 +1568,9 @@ const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
 const esPC = () => window.matchMedia && matchMedia('(min-width:1024px)').matches;
 function esStaff() { return !!S.user && (S.user.rol === 'negocio' || S.user.rol === 'repartidor'); }
+/** 2.83 · ¿Esta sesión es una cuenta de equipo del negocio (Caja, Cocina, Mesas o Barra)? */
+const esDisp = () => !!(S.user && S.user.equipoDe);
+const DISP_TIPO = { caja: ['🧾', 'Caja', 'Cobrar, pedidos de la app, cortes y gastos'], cocina: ['👩‍🍳', 'Cocina', 'Solo la pantalla de comandas'], mesas: ['🍽️', 'Mesas', 'Tomar órdenes y mandarlas a cocina, sin cobrar'], barra: ['🍹', 'Barra', 'Comandas solo de lo que se prepara en barra'] };
 function modoCliente(on) {
   if ($('#modal').classList.contains('on')) cerrarModal(); // el recorrido simulado sigue aunque se cierre su panel
   S.modoCliente = !!on; ls('modoCliente', S.modoCliente ? 1 : null);
@@ -1578,11 +1589,14 @@ function modoRepartidor(on) {
 }
 function botonPanel() { if (S.modoTel && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="preguntarSalirTel()">📞 ${esc(S.modoTel.nombre.split(' ')[0])} · Cancelar</button>`;
   if (S.modoServicio && esStaff()) return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoServicio(false)">🛵 Servicio · Cancelar</button>`;
+  if (esStaff() && !esDisp() && !S.modoCliente && !S.modoTel && !S.modoServicio && S.user.rol === 'negocio') return `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(true);ir('inicio')">🛍️ Pedir</button>`;
   return esAdminU() && (S.modoCliente || S.modoRep) ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi panel</button>` : esStaff() && S.modoCliente ? `<button class="chipPueblo" style="background:var(--pri);color:#fff" onclick="modoCliente(false)">← Mi ${S.user.rol === 'negocio' ? 'negocio' : 'panel'}</button>` : ''; }
 function esCliente() { return rolActual() === 'comprador' || rolActual() === 'invitado'; }
 /** 2.68.5 · ¿puede usar la pantalla de cocina? (también cajeros y dueño: antes solo se llegaba desde Pedidos y la caja la tapaba) */
 const cocDisponible = () => rolActual() === 'negocio' && !!S.negocio && puedo('pedidos') && cocTieneAcceso() && funOn('caja', 'cocina');
 function inicioRol() {
+  // 2.83: la cuenta de equipo abre directo en lo suyo
+  if (esDisp()) { const t = S.user.equipoTipo; if (t === 'cocina' || t === 'barra') { ls('estacion', t === 'barra' ? 'barra' : 'cocina'); return 'cocina'; } return 'caja'; }
   // el equipo que se quedó en modo cocina (la tableta de la cocina) abre directo ahí, aunque la cuenta también pueda cobrar
   if (ls('estacion') === 'cocina' && cocDisponible()) return 'cocina';
   return (navRol()[0] || ['inicio'])[0];
@@ -1785,11 +1799,24 @@ function vLogin() {
       <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
       <div style="text-align:center;margin-top:10px"><button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button></div>
     </div>
+    <div class="card row between" style="cursor:pointer" onclick="dispEntrarModal()"><div><b>🖥️ Entrar como equipo del negocio</b><div class="muted small">Caja, cocina, mesas o barra: con el código que te da el dueño</div></div><span class="lnk small">›</span></div>
     <div class="vacio" style="padding:10px">¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button><br><br>
       <button class="lnk" onclick="ir('inicio')">Ver negocios sin cuenta</button></div>
   </div>`);
 }
 
+function dispEntrarModal() {
+  modal(`<div class="row between"><h2 style="margin:0">🖥️ Equipo del negocio</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:6px 0 10px">El dueño entra a <b>Mi equipo → 🖥️ Equipos del negocio</b>, toca <b>Conectar</b> en este equipo y te da un código de 6 dígitos (vale 10 minutos).</div>
+    <input class="i" id="dispCod" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;font-size:26px;letter-spacing:8px" onkeydown="if(event.key==='Enter')$('#bDisp').click()">
+    <div class="btns"><button class="btn pri pill full" id="bDisp" onclick="act(this,dispEntrarCod)">Conectar este equipo</button></div>
+    <div class="muted small">La sesión se queda abierta en este equipo. Cada persona se identifica con su código de caja al cobrar, cerrar o autorizar.</div>`);
+  setTimeout(() => { const i = $('#dispCod'); if (i) i.focus(); }, 200);
+}
+async function dispEntrarCod() {
+  const d = await api('dispEntrar', { codigo: $('#dispCod').value, aparato: aparatoId() });
+  cerrarModal(); guardarSesion(d); toast('Equipo conectado: ' + d.usuario.nombre + ' ✓');
+}
 async function entrar() {
   const pass = $('#lPass').value;
   const d = await api('login', { telefono: $('#lTel').value, pass, aparato: aparatoId() });
@@ -2579,7 +2606,12 @@ const pdvTieneAcceso = () => cocTieneAcceso() && !!S.negocio && (puedo('caja') |
 const pdvEsTelefono = () => /Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent || '') && !/iPad|Tablet/i.test(navigator.userAgent || '');
 const pdvHoy = (ms) => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const pdvCol = c => PDV.db.collection('negocios').doc(PDV.nid).collection(c);
-const pdvYo = () => ({ uid: S.user.id, nombre: S.user.nombre });
+const pdvYo = () => esDisp() && S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? { uid: S._oper.uid, nombre: S._oper.nombre, equipo: S.user.nombre } : { uid: S.user.id, nombre: S.user.nombre };
+/** 2.83 · En un equipo del negocio: quién atiende ahora (se elige con su código; queda hasta que otro se identifique). */
+async function pdvOperElegir() {
+  const r = await pdvPedirPin('👤 ¿Quién atiende en ' + S.user.nombre + '?', S.user.equipoTipo === 'mesas' ? 'mesero' : 'caja');
+  S._oper = { uid: r.uid, nombre: r.nombre, ts: Date.now() }; cerrarModal(); toast('Atiende: ' + r.nombre.split(' ')[0]); pintarCaja();
+}
 // 2.66.3: quién abrió / cerró la caja y en la sesión de quién
 const pdvPN = x => ((x && x.nombre) || '').split(' ')[0];
 const pdvSesionDe = x => x && x.por && x.por.uid && x.por.uid !== x.uid ? pdvPN(x.por) : '';
@@ -2651,6 +2683,7 @@ async function pdvPinOk(uid, pin) {
 function pdvGente(rol) { return Object.entries(PDV.personal).filter(([uid, p]) => p.pin && (rol === 'dueno' ? uid === PDV.gid : p[rol] || (rol === 'caja' && p.gerente))).map(([uid, p]) => ({ uid, nombre: p.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)); }
 /** 2.43.1 · Si mi código se creó con otros permisos (versión anterior o me cambiaron el rol), se corrige solo. */
 function pdvPersonalAlDia() {
+  if (esDisp()) return;
   const p = PDV.personal[S.user.id]; if (!p || !p.pin || PDV._alDia === PDV.nid + PDV.letras) return;
   const f = { caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), dueno: pdvPuede('d') };
   PDV._alDia = PDV.nid + PDV.letras;
@@ -2682,10 +2715,10 @@ async function pdvGuardarPin() {
 function pdvPedirPin(titulo, rol, extra) {
   return new Promise((ok, mal) => {
     const g = pdvGente(rol);
-    if (!g.length && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { mal(new Error('Cancelado')); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return; }
+    if (!g.length && !esDisp() && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { mal(new Error('Cancelado')); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return; }
     if (!g.length) { mal(new Error(rol === 'dueno' ? 'El dueño aún no crea su código. Lo hace en Caja → 🔑 Mi código.' : rol === 'gerente' ? 'Ningún gerente tiene código todavía. El dueño o un gerente lo crea en Caja → 🔑 Mi código.' : 'Nadie tiene código de caja todavía. Créalo en 🔑 Mi código.')); return; }
     S._pinCb = { ok, mal };
-    const yoPuedo = rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'), yoTengo = g.some(x => x.uid === S.user.id);
+    const yoPuedo = !esDisp() && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg')), yoTengo = g.some(x => x.uid === S.user.id);
     modal(`<div class="row between"><h2 style="margin:0">${titulo}</h2><button class="redondo" onclick="S._pinCb.mal(new Error('Cancelado'));cerrarModal()" aria-label="Cerrar">✕</button></div>
       ${yoPuedo && !yoTengo ? `<div class="aviso warn" style="margin:8px 0">🔑 Tú no apareces porque aún no creas tu código en <b>${esc(S.negocio.nombre)}</b> (es uno por negocio). <button class="lnk" onclick="S._pinCb.mal(new Error('Cancelado'));pdvFormPin()">Crear mi código</button></div>` : ''}
       ${extra || ''}
@@ -2702,6 +2735,7 @@ async function pdvValidarPin() {
   if (!(await pdvPinOk(uid, pin))) { $('#pinVal').value = ''; throw new Error('Código incorrecto'); }
   const cb = S._pinCb; S._pinCb = null;
   const datos = S._pinDatos ? S._pinDatos() : null;
+  if (esDisp()) S._oper = { uid, nombre: PDV.personal[uid].nombre, ts: Date.now() }; // 2.83: queda como quien atiende en el equipo
   cb.ok(Object.assign({ uid, nombre: PDV.personal[uid].nombre }, datos ? { datos } : {}));
 }
 
@@ -2832,9 +2866,10 @@ function pintarCaja() {
   html(`<div class="pdv">
     <div class="pdvBar"><h1>${nomina ? '👥 Personal · ' : ventasM ? '📊 Ventas · ' : simple ? '🛒 ' : '🧾 '}${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
-      ${funOn('personal', 'asistencia') && (pdvPuede('dgc') || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳 Cocina</button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
+      ${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${esDisp() ? '' : `<button onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️</button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳 Cocina</button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
-    ${!(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
+    ${esDisp() ? `<div class="aviso info row between" style="margin:0 0 10px;gap:8px"><span>🖥️ <b>${esc(S.user.nombre)}</b> · atiende: <b>${S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? esc(S._oper.nombre.split(' ')[0]) : 'nadie'}</b></span><button class="btn sm" onclick="act(this,pdvOperElegir)">👤 ${S._oper ? 'Cambiar' : '¿Quién atiende?'}</button></div>`
+      : !(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
     ${nomina ? '' : `<div class="tabs pdvTabs">`}${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' ? ((n => n ? ' (' + n + ')' : '')(pdvVentasTurno().filter(v => v.estado !== 'cancelada' && (!simple || [v.por, v.mesero].some(x => x && x.uid === S.user.id))).length)) : ''}</button>`).join('')}${nomina ? '' : '</div>'}
     ${PDV.cuentaId ? pdvVistaCuenta() : t === 'cortes' ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'cortes', pdvVistaReportes()) : t === 'reportes' && ventasM ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'res', pdvVistaReportes()) : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : t === 'reportes' ? pdvVistaReportes() : t === 'personal' ? pdvVistaPersonal() : t === 'monedero' ? monVista() : pdvVistaCaja()}
   </div>`);
@@ -3241,7 +3276,7 @@ async function pdvTerminarVenta() {
     v.cocina = { estado: 'enviada', comandaId: kref.id, salida, recoge: rec };
     pdvGuardar(kref.set(JSON.parse(JSON.stringify({ ventaId: ref.id, folio: v.folio, etiqueta: (v.tipo === 'llevar' || ent ? '🥡 Para llevar' : '🧾 Mostrador') + (rec ? ' · ' + horaTxt(rec) : ''), tipo: v.tipo, ronda: 1, origen: 'caja',
       pagado: !!ent, entrega: ent ? { nombre: ent.nombre, hora: ent.hora } : null,
-      dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(), cliente: v.cliente, items: items.map(i => ({ nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) }))));
+      dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(), cliente: v.cliente, items: items.map(i => ({ id: i.id || '', nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) }))));
   }
   // JSON limpio (Firestore no acepta undefined)
   const limpio = JSON.parse(JSON.stringify(v));
@@ -4497,12 +4532,12 @@ function pdvPasoCancelar() { PDV._ab = null; PDV._ci = null; cerrarModal(); }
 /** Personas con código para un rol; si no hay, explica qué hacer (igual que al pedir código). */
 function pdvGenteOk(rol) {
   const g = pdvGente(rol);
-  if (!g.length && (rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { pdvPasoCancelar(); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return null; }
+  if (!g.length && !esDisp() && (rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { pdvPasoCancelar(); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return null; }
   if (!g.length) throw new Error(rol === 'gerente' ? 'Ningún gerente tiene código todavía. El dueño o un gerente lo crea en Caja → 🔑 Mi código.' : 'Nadie tiene código de caja todavía. Créalo en 🔑 Mi código.');
   return g;
 }
 const pdvBotonesGente = (g, fn) => `<div class="pdvPersonas">${g.map(x => `<button class="btn pill" onclick="${fn}('${esc(x.uid)}')">👤 ${esc(x.nombre.split(' ').slice(0, 2).join(' '))}</button>`).join('')}</div>`;
-const pdvAvisoSinCodigo = rol => { const yo = rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'); return yo && !pdvGente(rol).some(x => x.uid === S.user.id) ? `<div class="aviso warn" style="margin:8px 0">🔑 Tú no apareces porque aún no creas tu código en <b>${esc(S.negocio.nombre)}</b>. <button class="lnk" onclick="pdvPasoCancelar();pdvFormPin()">Crear mi código</button></div>` : ''; };
+const pdvAvisoSinCodigo = rol => { const yo = !esDisp() && (rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg')); return yo && !pdvGente(rol).some(x => x.uid === S.user.id) ? `<div class="aviso warn" style="margin:8px 0">🔑 Tú no apareces porque aún no creas tu código en <b>${esc(S.negocio.nombre)}</b>. <button class="lnk" onclick="pdvPasoCancelar();pdvFormPin()">Crear mi código</button></div>` : ''; };
 const pdvInputPin = () => `<input class="i pdvNumG" id="pinVal" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••">`;
 async function pdvPinPaso(uid) {
   const v = ($('#pinVal') || {}).value || '';
@@ -5149,7 +5184,7 @@ async function pdvEnviarRonda(id) {
   if (c.tipo === 'llevar' && c.recoge) { const [h, mi] = c.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() > ts) salida = d.getTime(); }
   nuevos.forEach(i => { i.ronda = r; });
   const k = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: r, agregado: r > 1, dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(),
-    items: nuevos.map(i => ({ k: i.k, nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) };
+    items: nuevos.map(i => ({ k: i.k, id: i.id || '', nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) };
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(k))));
   PDV.comandas.push(Object.assign({ id: ref.id }, k));
   pdvActualizarCuenta(c);
@@ -5212,7 +5247,7 @@ function pdvCorrCocina(c, i, tipo, antes, despues, nuevo) {
   if (!nuevo || !nuevo.preparar) return; // ya salió y solo se bajó o se quitó: no hay nada que preparar
   const ref = pdvCol('comandas').doc(), ts = Date.now();
   const kk = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: i.ronda, agregado: false, correccion: true, corr: [banda], dia: pdvHoy(), ts, salida: ts + (Number(S.negocio.tiempoPrep) || 15) * 60000, estado: 'preparando', mesero: pdvYo(),
-    items: [{ k: i.k, nombre: i.nombre, cant: nuevo.preparar, variante: i.variante || '', extras: i.extras || [], sin: i.sin || [], nota: i.nota || '', mods: i.mods || [], partes: i.partes || null }] };
+    items: [{ k: i.k, id: i.id || '', nombre: i.nombre, cant: nuevo.preparar, variante: i.variante || '', extras: i.extras || [], sin: i.sin || [], nota: i.nota || '', mods: i.mods || [], partes: i.partes || null }] };
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(kk))));
   PDV.comandas.push(Object.assign({ id: ref.id }, kk));
 }
@@ -6122,7 +6157,7 @@ function pdvImprimirComandaCaja(id) {
  * Dueño y gerente: pestaña 👥 Personal (hoy, semana, configurar). Nómina: solo el dueño.
  */
 const ASIS_EST = { presente: ['✅', 'A tiempo'], retardo: ['⏰', 'Retardo'], falta: ['❌', 'Falta'], permiso_goce: ['🟦', 'Permiso con goce'], permiso_sin: ['🟨', 'Permiso sin goce'],
-  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['❓', 'No llegó · sin decidir'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Compensado'] };
+  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['❓', 'No llegó · sin decidir'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Compensado'], cambio: ['🔄', 'Cambio de turno'] };
 const DIAS_C = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const asisHora = ms => ms ? hora(ms) : '';
 const asisDiaTxt = f => { const d = new Date(f + 'T12:00'); return DIAS_C[d.getDay()] + ' ' + d.getDate(); };
@@ -6137,7 +6172,7 @@ const VISTAS_CHECAR = ['negPedidos', 'caja', 'operacion', 'menu', 'promos', 'miN
 /** 2.66.2 · ¿Esta pantalla es un reloj autorizado del negocio? (ahí el botón grande muestra el QR) */
 const relojAut = nid => ls('relojAut_' + nid) === true;
 function relojRevisar() {
-  const nid = S.negocio && S.negocio.id; if (!nid || !navigator.onLine || !(esDueno() || puedo('caja') || puedo('gerente'))) return;
+  const nid = S.negocio && S.negocio.id; if (!nid || !navigator.onLine || !(esDisp() || esDueno() || puedo('caja') || puedo('gerente'))) return;
   S._relojChk = S._relojChk || {}; if (S._relojChk[nid] && Date.now() - S._relojChk[nid] < 30 * 60e3) return;
   S._relojChk[nid] = Date.now();
   api('asisQR', { negocioId: nid, equipo: equipoId() }).then(k => { ls('asisClave_' + nid, k); relojMarcar(nid, !!k.equipoAut); })
@@ -6154,23 +6189,24 @@ function barraChecar() {
     if (S.negocio && !funOn('personal', 'asistencia')) return ''; // 2.68
     if (S.user && rolActual() === 'negocio' && S.negocio) {
       relojRevisar();
-      if (relojAut(S.negocio.id) && (VISTAS_CHECAR.includes(S.vista) || S.vista === 'tablero') && !(S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)))
+      if (relojAut(S.negocio.id) && (VISTAS_CHECAR.includes(S.vista) || S.vista === 'tablero' || (esDisp() && S.vista === 'cocina')) && !(S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)))
       {
         relojPendRefrescar();
-        if (!relojGrande(S.negocio.id)) return `<div class="checar mini reloj" role="button" onclick="act(this,asisMostrarQR)" title="Mostrar el QR de asistencia">🕒 Registrar ingreso</div>`;
+        if (!relojGrande(S.negocio.id)) return `<div class="checar mini reloj" role="button" onclick="act(this,asisMostrarQR)" title="Mostrar el QR de asistencia" aria-label="Mostrar el QR de asistencia">🕒</div>`;
         return `<div class="checar ent reloj" role="button" onclick="act(this,asisMostrarQR)"><span style="font-size:30px">🕒</span><span class="grow"><b>Registrar ingreso</b><small>Presiona para mostrar el QR</small></span><span style="font-size:26px">🔳</span></div>`;
       }
     }
-    if (!S.user || rolActual() !== 'negocio' || !S.negocio || esDueno() || !VISTAS_CHECAR.includes(S.vista)) return '';
+    if (!S.user || rolActual() !== 'negocio' || !S.negocio || esDueno() || esDisp() || !VISTAS_CHECAR.includes(S.vista)) return '';
     if (S.vista === 'caja' && ['nomina', 'ventas'].includes(S.params)) return '';
     const x = (ls('asisMia') || []).find(y => y.negocioId === S.negocio.id && y.hoy && y.hoy.fecha === pdvHoy());
     if (!x || x.hoy.salida || (!x.hoy.horario && !x.hoy.entrada)) return '';
     const h = x.hoy.horario, f = `act(this,()=>asisMarcarFlujo('${x.negocioId}'))`;
     const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+    // 2.83: fuera de la hora de checar, se recoge en un icono pequeño (leer el QR del equipo de la caja)
     if (!x.hoy.entrada && h && aMin(h.e) !== null && ahoraMin < aMin(h.e) - 30)
-      return `<div class="checar mini" role="button" onclick="${f}">🕒 Entras a las ${horaTxt(h.e)}</div>`;
+      return `<div class="checar mini" role="button" onclick="${f}" title="Entras a las ${horaTxt(h.e)} · leer QR" aria-label="Checar entrada (entras a las ${horaTxt(h.e)})">🕒</div>`;
     if (x.hoy.entrada && h && aMin(h.s) !== null && aMin(h.s) > aMin(h.e) && ahoraMin < aMin(h.s) - 30)
-      return `<div class="checar mini" role="button" onclick="${f}">✅ Entraste ${hora(x.hoy.entrada)} · sales ${horaTxt(h.s)}</div>${invBarraEquipo(x)}`;
+      return `<div class="checar mini" role="button" onclick="${f}" title="Entraste ${hora(x.hoy.entrada)} · sales ${horaTxt(h.s)}" aria-label="Checar salida (sales a las ${horaTxt(h.s)})">🕒</div>${invBarraEquipo(x)}`;
     if (!x.hoy.entrada) {
       const tarde = h ? Math.round((Date.now() - new Date(x.hoy.fecha + 'T' + h.e).getTime()) / 6e4) : 0;
       return `<div class="checar ent" role="button" onclick="${f}"><span style="font-size:30px">🕒</span><span class="grow"><b>Checar entrada</b><small>${h ? 'Tu turno: ' + horaTxt(h.e) + ' – ' + horaTxt(h.s) : 'Hoy'}${tarde > 0 && tarde < 600 ? ' · vas ' + (tarde < 60 ? tarde + ' min' : Math.floor(tarde / 60) + ' h ' + (tarde % 60) + ' min') + ' tarde' : ''}</small></span><button class="btn pill" style="background:#fff;color:var(--pri);font-weight:800" onclick="event.stopPropagation();${f}">📷 Checar</button></div>`;
@@ -6255,6 +6291,11 @@ async function asisMostrarQR() {
 /* ---------- colaborador: marcar entrada / salida ---------- */
 /** Este equipo no puede mostrar el reloj: puede pedirle permiso al dueño. */
 function relojNoAutorizado() {
+  modal(`<div style="text-align:center"><div style="font-size:46px">🔒</div><h2 style="margin:4px 0">Aquí no se muestra el QR</h2>
+    <div class="muted" style="margin:6px 0 10px">El QR de asistencia solo aparece en los <b>equipos del negocio</b> (Caja, Cocina, Mesas o Barra) que crea el dueño en Mi equipo → 🖥️ Equipos del negocio. Desde tu celular, usa <b>📷 Leer QR</b> para checar.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Entendido</button></div></div>`);
+}
+function relojNoAutorizadoAnterior() {
   modal(`<div style="text-align:center"><div style="font-size:46px">🔒</div><h2 style="margin:4px 0">Equipo no autorizado</h2>
     <div class="muted" style="margin:6px 0 10px">El dueño eligió en qué equipos se muestra el reloj de asistencia. Pídele que autorice este.</div></div>
     <label class="f">Nombre de este equipo</label><input class="i" id="rlNom" maxlength="40" value="${esc(equipoNombreSug())}">
@@ -7833,19 +7874,22 @@ function asisVistaHoy(d) {
       ${d.fecha === hoy ? '<span class="small muted">Hoy</span>' : `<button class="lnk small" onclick="PDV.per.fecha='${hoy}';asisRecargar()">Ir a hoy</button>`}<span class="grow"></span><button class="btn sm" onclick="act(this,asisMostrarQR)">🔳 Mostrar QR</button></div>
     ${(d.dobles || []).length ? `<div class="card" style="border-color:var(--warn)"><b>🔁 Turnos dobles por decidir</b>${d.dobles.map((x, i) => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--ln)"><span><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)}<br><span class="small muted">${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Dobló turno para apoyar'}${x.minutos ? ' · ' + Math.round(x.minutos / 6) / 10 + ' h de más' : ''}</span></span><button class="btn sm pri" onclick="asisDobleDecidirModal(${i})">Decidir</button></div>`).join('')}</div>` : ''}
     ${d.vacPendientes ? `<div class="aviso info row between" style="gap:8px"><span>🏖️ ${d.vacPendientes} solicitud${d.vacPendientes > 1 ? 'es' : ''} de vacaciones por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='vac';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
+    ${tabDeudasHTML(d.deudas)}
     ${(d.rotPendientes || []).length ? `<div class="aviso warn row between" style="gap:8px"><span>🗓️ Falta definir el descanso de la próxima semana de <b>${d.rotPendientes.map(esc).join(', ')}</b>.</span><button class="btn sm pri" onclick="act(this,asisDescansosModal)">Definir</button></div>` : ''}
     ${d.personas.slice().sort((a, b) => ((a.horario || {}).e || '99').localeCompare((b.horario || {}).e || '99')).map(p => `<div class="card asisFila"><div class="grow"><b>${esc(p.nombre)}</b><div class="small muted">${p.horario ? (turnoDe(p.horario) ? '⏱️ ' + esc(turnoDe(p.horario).nombre) + ' · ' : 'Horario ') + p.horario.e + '–' + p.horario.s + (p.horario.cambio ? ' (cambiado)' : '') : 'Sin horario este día'}</div>
         <div class="small">${p.entrada ? 'Entró ' + asisHora(p.entrada) + (p.minRetardo ? ' (' + p.minRetardo + ' min tarde)' : '') : ''}${p.salida ? ' · salió ' + asisHora(p.salida) + (p.extraMin ? ' · ' + p.extraMin + ' min extra' : '') : ''}${p.metodo === 'encargado' ? ' · lo registró ' + esc(p.por) : ''}${p.decide ? ' · decidió ' + esc(p.decide) : ''}${p.salMetodo === 'olvido' ? ' · 🙈 olvidó checar salida' : ''}${p.doble ? ' · 🔁 ' + (p.cubreNombre ? 'cubrió a ' + esc(p.cubreNombre) : 'turno doble') + (p.dobleEstado === 'decidido' ? ' (' + ({ dia: 'día extra', horas: 'horas extra', falta_pasada: 'compensa falta', falta_futura: 'día a favor' }[p.doblePago] || '') + ')' : ' · por decidir') : ''}${p.cubiertoPor ? ' · lo cubrió ' + esc(p.cubiertoPor) : ''}${p.diasFavor ? ' · ' + p.diasFavor + ' día(s) a favor' : ''}</div></div>
       <div style="text-align:right">${chip(p.estado)}
-        ${['sin_decidir', 'falta', 'permiso_goce', 'permiso_sin', 'vacaciones', 'compensado'].includes(p.estado) && !p.entrada ? `<div class="asisAcc">${[['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce']].concat(p.vacRestan > 0 || p.estado === 'vacaciones' ? [['vacaciones', '🏖️ Vacaciones (' + Math.max(0, p.vacRestan) + ')']] : []).concat(p.diasFavor > 0 && pdvPuede('d') ? [['compensado', '🔁 Usar día a favor (' + p.diasFavor + ')']] : []).concat([['falta', 'Falta'], ['descanso', 'Descansó']]).filter(([k]) => k !== p.estado).map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>asisDecidir('${p.usuarioId}','${d.fecha}','${k}'))">${t}</button>`).join('')}</div>` : ''}
+        ${p.estado === 'cambio' && p.cambioCon ? `<div class="small muted">Lo cubrió ${esc(p.cambioCon)}</div>` : ''}
+        ${['sin_decidir', 'falta', 'permiso_goce', 'permiso_sin', 'vacaciones', 'compensado', 'cambio'].includes(p.estado) && !p.entrada ? `<div class="asisAcc">${[['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce']].concat(p.vacRestan > 0 || p.estado === 'vacaciones' ? [['vacaciones', '🏖️ Vacaciones (' + Math.max(0, p.vacRestan) + ')']] : []).concat(p.diasFavor > 0 && pdvPuede('d') ? [['compensado', '🔁 Usar día a favor (' + p.diasFavor + ')']] : []).concat([['falta', 'Falta'], ['descanso', 'Descansó']]).filter(([k]) => k !== p.estado).map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>asisDecidir('${p.usuarioId}','${d.fecha}','${k}'))">${t}</button>`).join('')}</div>` : ''}
         ${d.fecha === hoy && p.estado !== 'descanso' && !p.salida ? `<div class="asisAcc"><button class="btn sm" onclick="asisEncargado('${p.usuarioId}','${p.entrada ? 'salida' : 'entrada'}',${esc(JSON.stringify(p.nombre))})">✍️ Registrar ${p.entrada ? 'salida' : 'entrada'}</button></div>` : ''}</div></div>`).join('')}`;
 }
-function asisDobleDecidirModal(i) {
-  const x = PDV.per.datos.dobles[i]; S._dd = x;
+function asisDobleDecidirModal(i, x0) {
+  const x = x0 || PDV.per.datos.dobles[i]; S._dd = x;
   const h = Math.round(x.minutos / 6) / 10;
   modal(`<div class="row between"><h2 style="margin:0">🔁 Turno doble</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:6px 0 10px"><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)} · ${x.cubreNombre ? 'cubrió a ' + esc(x.cubreNombre) : 'dobló turno para apoyar'}<br>${x.entrada ? 'Entró ' + asisHora(x.entrada) : ''}${x.salida ? ' · salió ' + asisHora(x.salida) : ' · aún no checa salida'}${x.horario ? ' · su horario: ' + x.horario.e + '–' + x.horario.s : ' · era su descanso'}</div>
     <div class="small muted">¿Cómo se le paga?</div>
+    ${x.cubreNombre ? `<button class="btn pill full ok" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('cambio'))">🔄 Fue cambio de turno (no cobra extra; ${esc(x.cubreNombre)} le debe un turno)</button>` : ''}
     <button class="btn pill full" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('dia'))">📅 Día extra en la nómina (un día de sueldo)</button>
     <button class="btn pill full" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('horas'))">⏱️ Horas extra${x.salida ? ' · ' + h + ' h' + (x.extraHora ? ' × ' + money(x.extraHora) + ' = ' + money(pdvR(h * x.extraHora)) : ' (ponle precio por hora en su ficha)') : ''}</button>
     ${x.faltas.length ? `<label class="f">Acuerdo por una falta pasada</label><div class="row" style="gap:6px"><select class="i" id="ddFalta" style="flex:1">${x.faltas.map(f => `<option value="${f.fecha}">${asisDiaTxt(f.fecha)} · ${(ASIS_EST[f.estado] || ['', f.estado])[1]}</option>`).join('')}</select><button class="btn sm" onclick="act(this,()=>asisDobleOk('falta_pasada'))">Compensar</button></div>` : '<div class="small muted" style="margin-top:8px">No tiene faltas recientes para compensar.</div>'}
@@ -7853,8 +7897,10 @@ function asisDobleDecidirModal(i) {
 }
 async function asisDobleOk(pago) {
   const x = S._dd;
-  await api('asisDobleDecidir', { negocioId: S.negocio.id, usuarioId: x.usuarioId, fecha: x.fecha, pago, faltaFecha: pago === 'falta_pasada' ? $('#ddFalta').value : '' });
-  cerrarModal(); toast('Turno doble decidido ✓'); asisRecargar();
+  const r = await api('asisDobleDecidir', { negocioId: x.negocioId || S.negocio.id, usuarioId: x.usuarioId, fecha: x.fecha, pago, faltaFecha: pago === 'falta_pasada' ? $('#ddFalta').value : '' });
+  cerrarModal(); toast(pago === 'cambio' ? 'Cambio de turno registrado ✓' : 'Turno doble decidido ✓');
+  if (x.alVolver) return x.alVolver(r);
+  asisRecargar();
 }
 /* ---------- 2.56 · vacaciones: panel del dueño o gerente ---------- */
 function vacVistaPanel(d) {
@@ -8045,7 +8091,7 @@ function asisCubrirForm(fecha, falta) {
     <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="extra" checked onchange="asisCubrirInfo()"><span><b>Turno extra</b><br><span class="muted small">Quien cubre trabaja de más. Al checar su entrada te aparece en “Turnos dobles por decidir” para elegir cómo se paga (día extra, horas extra o a cuenta de una falta).</span></span></label>
     <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="mover" onchange="asisCubrirInfo()"><span><b>Cubre en otro turno</b><br><span class="muted small">Ese día trabaja el turno de quien falta <b>en lugar del suyo</b>. No es extra: su turno habitual queda libre ese día.</span></span></label>
     <label class="card" style="display:flex;gap:10px;padding:10px;margin:6px 0;cursor:pointer"><input type="radio" name="cuM" value="cambio" onchange="asisCubrirInfo()"><span><b>Intercambian turno</b><br><span class="muted small">Nadie trabaja de más: se cambian el horario ese día, o quien no vino le regresa el turno otro día.</span></span></label>
-    <div id="cuCambio" style="display:none"><label class="f">¿Qué día le regresa el turno? (déjalo igual si solo cambian de horario el mismo día)</label><input class="i" type="date" id="cuF2" value="${fecha}"></div>
+    <div id="cuCambio" style="display:none"><label class="f">¿Qué día le regresa el turno? (déjalo igual si solo cambian de horario el mismo día)</label><input class="i" type="date" id="cuF2" value="${fecha}"><label class="row" style="gap:8px;margin-top:8px;font-size:14px"><input type="checkbox" id="cuDesp"> Aún no saben qué día: queda como turno que se debe</label></div>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,asisCubrirGuardar)">Guardar</button></div>`);
   asisCubrirInfo();
 }
@@ -8064,7 +8110,8 @@ function asisCubrirInfo() {
 async function asisCubrirGuardar() {
   const modo = document.querySelector('input[name=cuM]:checked').value, a = $('#cuA').value, b = $('#cuB').value, f = $('#cuF').value;
   if (!a || !b) throw new Error('Elige a quién se cubre y quién lo cubre');
-  PDV.per.datos = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' ? $('#cuF2').value : '' });
+  const desp = modo === 'cambio' && $('#cuDesp') && $('#cuDesp').checked;
+  PDV.per.datos = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' && !desp ? $('#cuF2').value : '', regresa: desp ? 'despues' : '' });
   PDV.per.fecha = f; cerrarModal(); toast(modo === 'cambio' ? 'Cambio de turno registrado ✓ · se les avisó' : modo === 'mover' ? 'Listo ✓ · cubre en ese turno (sin extra) · se les avisó' : 'Registrado ✓ · se les avisó'); pintarCaja();
 }
 function asisDiaTurno(e, s) { $('#cdE').value = e; $('#cdS').value = s; }
@@ -8110,7 +8157,7 @@ function asisVistaConfig(d) {
         <label>Turno doble después de (h)<input class="i" id="acDbl" inputmode="numeric" value="${c.dobleHoras || 3}" ${du ? '' : 'disabled'}><small>Si pasan sin checar salida, se pregunta</small></label></div>
       <label class="pdvChk"><input type="checkbox" id="acExt" ${c.extras ? 'checked' : ''} ${du ? '' : 'disabled'}> Pagar horas extra (a quien se le activen)</label>
       ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisGuardarCfg)">Guardar reglas</button></div>' : ''}</div>
-    ${du && c.relojEquipos ? asisRelojHTML(c) : ''}
+    ${du ? asisRelojHTML(c) : ''}
     <h3>Personal</h3><div class="small muted" style="margin-bottom:8px">Aquí aparece tu equipo de Pídele (invita a cada persona en <b>Mi equipo</b> para que tenga su cuenta).</div>
     ${d.equipo.map(p => `<div class="card row between" style="cursor:pointer" onclick='asisFormPersona(${JSON.stringify(p).replace(/'/g, "&#39;")})'><div><b>${esc(p.nombre)}</b>
         <div class="small muted">${p.alta ? Object.keys(p.horario).sort().map(k => DIAS_C[k] + ' ' + p.horario[k].e + '–' + p.horario[k].s).join(' · ') : 'No está dado de alta en la asistencia'}</div>
@@ -8118,12 +8165,12 @@ function asisVistaConfig(d) {
 }
 function asisRelojHTML(c) {
   const yo = equipoId(), l = c.relojEquipos || [], pend = c.relojPend || [];
-  return `<div class="card" id="relojCard"><b>🔒 Reloj de asistencia</b><div class="small muted" style="margin:2px 0 8px">Para que nadie marque por otro: decide dónde se muestra el QR y desde qué teléfono marca cada quien.</div>
-    <label class="pdvChk"><input type="checkbox" ${c.relojSolo ? 'checked' : ''} onchange="act(null,()=>asisReloj({accion:'opciones',relojSolo:this.checked}))"> Solo los equipos autorizados pueden mostrar el QR</label>
-    ${pend.map(e => `<div class="aviso warn row between" style="gap:8px;margin:6px 0"><span>🔔 <b>${esc(e.nombre)}</b> pide permiso · ${esc(e.por)} · ${fechaCorta(e.ts)}</span><span class="row" style="gap:6px"><button class="btn sm pri" onclick="act(this,()=>asisReloj({accion:'autorizar',equipo:'${e.id}'}))">Autorizar</button><button class="btn sm" onclick="act(this,()=>asisReloj({accion:'rechazar',equipo:'${e.id}'}))">No</button></span></div>`).join('')}
+  return `<div class="card" id="relojCard"><b>🔒 Reloj de asistencia</b><div class="small muted" style="margin:2px 0 8px">El QR solo se muestra en los <b>equipos del negocio</b> (Caja, Cocina, Mesas o Barra) que creas en Mi equipo → 🖥️ Equipos del negocio. Nadie lo puede mostrar en su celular.</div>
+    <button class="btn sm pri" onclick="ir('equipo')">🖥️ Equipos del negocio</button>
+    ${(l.length ? '<div class="small muted" style="margin-top:8px">Equipos autorizados antes (siguen funcionando):</div>' : '') + [].map(e => `<div class="aviso warn row between" style="gap:8px;margin:6px 0"><span>🔔 <b>${esc(e.nombre)}</b> pide permiso · ${esc(e.por)} · ${fechaCorta(e.ts)}</span><span class="row" style="gap:6px"><button class="btn sm pri" onclick="act(this,()=>asisReloj({accion:'autorizar',equipo:'${e.id}'}))">Autorizar</button><button class="btn sm" onclick="act(this,()=>asisReloj({accion:'rechazar',equipo:'${e.id}'}))">No</button></span></div>`).join('')}
     ${l.map(e => `<div class="pdvFila g"><span>🖥️ ${esc(e.nombre)}${e.id === yo ? ' <b>(este equipo)</b>' : ''}<small>Autorizado ${fechaCorta(e.ts)} · ${esc(e.por)}</small></span><span></span><button class="btn sm" onclick="act(this,()=>asisReloj({accion:'quitar',equipo:'${e.id}'}))">Quitar</button></div>`).join('') || '<div class="small muted">Ningún equipo autorizado todavía.</div>'}
-    ${l.some(e => e.id === yo) ? '' : `<div class="row" style="gap:6px;margin-top:6px"><input class="i" id="rlNomYo" maxlength="40" value="${esc(equipoNombreSug())}" style="flex:1"><button class="btn sm pri" onclick="act(this,()=>asisReloj({accion:'autorizar',equipo:equipoId(),nombre:$('#rlNomYo').value}))">➕ Autorizar este equipo</button></div>`}
-    <div class="small muted" style="margin-top:4px">En la tableta de la caja: toca 🕒 → Mostrar QR → <b>Pedir autorización</b>, y apruébala aquí desde tu teléfono.</div>
+    ${true ? '' : `<div class="row" style="gap:6px;margin-top:6px"><input class="i" id="rlNomYo" maxlength="40" value="${esc(equipoNombreSug())}" style="flex:1"><button class="btn sm pri" onclick="act(this,()=>asisReloj({accion:'autorizar',equipo:equipoId(),nombre:$('#rlNomYo').value}))">➕ Autorizar este equipo</button></div>`}
+
     <hr class="hr"><label class="pdvChk"><input type="checkbox" ${c.telFijo ? 'checked' : ''} onchange="act(null,()=>asisReloj({accion:'opciones',telFijo:this.checked}))"> Cada persona solo marca desde su propio teléfono</label>
     <div class="small muted">Se registra el primer teléfono con el que marca. Si cambia de celular, lo liberas en su ficha.</div></div>`;
 }
@@ -8180,7 +8227,7 @@ function asisVistaNomina(d) {
   const per = PDV.per.nomPer || 'semana';
   const sel = `<select class="i" style="margin:8px 0" onchange="PDV.per.nomPer=this.value;asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const l = d.personas, tot = pdvR(l.reduce((s, p) => s + p.total, 0)), pend = l.filter(p => !p.pagado);
-  return sel + `<div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días · sueldo diario = sueldo ÷ ${d.dias}${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''}</div>
+  return sel + tabDeudasHTML(d.deudas) + `<div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días · sueldo diario = sueldo ÷ ${d.dias}${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''}</div>
     ${!l.length ? `<div class="vacio"><span class="big">💵</span>Nadie cobra ${d.periodo === 'semanal' ? 'por semana' : 'por quincena'}.</div>` : `
     ${!metasVisibles() && l.some(p => p.incentivos) ? '<div class="aviso info small" style="margin-top:8px">🎯 Los bonos se calculan pero son <b>no visibles al personal</b>. Actívalo en 🎯 Bonos y metas cuando estés seguro.</div>' : ''}
     <div class="card" style="margin-top:10px;padding:8px 12px"><div class="nomTabla"><div class="nomFila cab"><span>Nombre</span><span>Días laborados</span><span>Bonos</span><span>Descuentos</span><span>Total</span></div>
@@ -8216,7 +8263,7 @@ function asisRecibo(uid) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid); if (!p) return;
   const r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(d.negocio)}</div><div class="t">RECIBO DE NÓMINA</div><div>${esc(p.nombre)}</div><div>${d.desde} al ${d.hasta}</div></div><hr>
-    ${r('Sueldo del periodo', money(p.sueldo))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}
+    ${r('Sueldo del periodo', money(p.sueldo))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}${p.cambios ? r('Lo cubrieron por cambio de turno (se paga normal)', p.cambios) : ''}${p.doblesCambio ? r('Cubrió por cambio de turno (sin extra)', p.doblesCambio) : ''}
     ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}<hr>
     <div class="r t"><span>TOTAL</span><span>${money(p.total)}</span></div>${p.pagado ? `<div>Pagado ${fechaCorta(p.pagado.fecha)} · ${esc(p.pagado.forma)}</div>` : ''}<hr>
     <div class="c p">Recibí de conformidad</div><div class="c p" style="margin-top:14mm">______________________</div>`, 'Recibo ' + p.nombre));
@@ -8248,12 +8295,12 @@ function asisCsvNom() {
 }
 /** Menú 🕒 de la caja y la cocina: mostrar el QR (pantalla del negocio) o marcar mi asistencia. */
 async function asisMenu() {
-  const puedeQR = pdvPuede('dgc'), mia = (ls('asisMia') || []).find(x => x.negocioId === S.negocio.id);
+  const puedeQR = esDisp() || relojAut(S.negocio.id), mia = !esDisp() && (ls('asisMia') || []).find(x => x.negocioId === S.negocio.id); // 2.83: el QR solo en los equipos del negocio
   if (puedeQR && !mia) return asisMostrarQR();
   if (!puedeQR && mia) return asisMarcarFlujo(S.negocio.id);
   modal(`<div class="row between"><h2 style="margin:0">🕒 Asistencia</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="btns">${puedeQR ? '<button class="btn pri pill full" onclick="act(this,asisMostrarQR)">🔳 Mostrar QR en esta pantalla</button>' : ''}
-      ${mia ? `<button class="btn pill full" onclick="cerrarModal();act(this,()=>asisMarcarFlujo('${S.negocio.id}'))">📷 Marcar mi asistencia</button>` : ''}</div>`);
+      ${mia ? `<button class="btn pill full" onclick="cerrarModal();act(this,()=>asisMarcarFlujo('${S.negocio.id}'))">📷 Leer QR para checar</button>` : ''}</div>`);
 }
 
 /* ============ METAS, INCENTIVOS Y BONOS DE CONSUMO (2.30) ============ */
@@ -9455,7 +9502,8 @@ function cocinaSoloPro() {
 const cocCfg = () => Object.assign({ papel: 58, auto: false, sonido: true }, ls('cocina') || {});
 async function vCocina(_, silencioso) {
   if (!cocTieneAcceso() || !puedo('pedidos')) { ls('estacion', null); ir(inicioRol()); return; }
-  ls('estacion', 'cocina');
+  if (!esBarra()) ls('estacion', 'cocina');
+  if (!S._cocMenu && S.negocio) { S._cocMenu = menuLocal(S.negocio.id); if (!S._cocMenu) api('menu', { negocioId: S.negocio.id }).then(m => { S._cocMenu = m; pintarCocina(); }).catch(() => { }); }
   const d = await api('panelNegocio');
   if (S.vista !== 'cocina') return;
   fijarNeg(d.negocio); recordar(d.pedidos);
@@ -9492,10 +9540,19 @@ function cocTipo(x) {
   if (x.tipoTxt) return x.tipoTxt;
   return x.servicio ? '🛵 Servicio repartidor' : x.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio';
 }
+/* 2.83 · Barra: las categorías del menú que se preparan ahí */
+const esBarra = () => ls('estacion') === 'barra';
+function cocCatDe(i) {
+  if (i.est) return i.est;
+  const m = S._cocMenu || menuLocal(S.negocio && S.negocio.id) || {}, p = (m.productos || []).find(x => x.id === i.id || x.id === i.productoId);
+  return p ? (((S.negocio && S.negocio.barraCats) || []).includes(p.categoria) ? 'barra' : '') : '';
+}
 function cocItems(x, marcar) {
-  const loc = !x._kom && !x._pdv ? ((ls('cocHechos') || {})[x.id] || []) : null;
+  const loc = !x._kom && !x._pdv ? ((ls('cocHechos') || {})[x.id] || []) : null, barra = esBarra(), conBarra = ((S.negocio && S.negocio.barraCats) || []).length > 0;
   return x.items.map((i, n) => {
-    const d = detalleItem(i), h = marcar && (loc ? loc.includes(n) : !!i.hecho);
+    const est = conBarra ? cocCatDe(i) : '';
+    if (barra && est !== 'barra') return '';
+    const d = (detalleItem(i) || '') + (!barra && est === 'barra' ? (detalleItem(i) ? ' · ' : '') + '🍹 Barra' : ''), h = marcar && (loc ? loc.includes(n) : !!i.hecho);
     if (i.quitado) return `<div class="it quit"><span class="grow"><b class="cant">${i.cant}×</b>${esc(i.nombre)} <b class="qTag">QUITADO</b></span></div>`;
     return `<div class="it ${marcar ? 'marca' : ''} ${h ? 'h' : ''} ${i.corr ? 'corr' : ''}" ${marcar ? `role="button" onclick="cocHecho('${x._kom ? 'kom' : 'app'}','${x.id}',${n})"` : ''}>${marcar ? `<span class="ck">${h ? '✓' : ''}</span>` : ''}<span class="grow"><b class="cant">${i.cant}×</b>${esc(i.nombre)}${d ? `<span class="det">${d}</span>` : ''}</span></div>`;
   }).join('');
@@ -9535,6 +9592,10 @@ function pintarCocina() {
   prep.push(...koms);
   const caja = (S._cocPdv || []).map(v => ({ _pdv: 1, id: v.id, folio: v.folio, tipoTxt: v.tipo === 'llevar' ? '🥡 Para llevar' : '🧾 Mostrador', comprador: v.cliente ? { nombre: v.cliente.nombre } : null, horaSalida: v.cocina.salida, items: v.items, notas: v.cocina.recoge ? 'Pasa a las ' + v.cocina.recoge : '' }));
   prep.push(...caja); prep.sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
+  if (esBarra()) { // 2.83: la barra solo ve lo suyo, ya aceptado; aceptar y marcar listo es de la cocina
+    const suyos = prep.filter(x => (x.items || []).some(i => !i.quitado && cocCatDe(i) === 'barra'));
+    nuevos.length = 0; pago.length = 0; pagoP.length = 0; listos.length = 0; prep.length = 0; prep.push(...suyos);
+  }
   const quien = x => esc(String((x.comprador && x.comprador.nombre) || '').split(' ')[0]);
   const ops = [10, 15, 20, 30, 45];
   const tNuevo = x => {
@@ -9564,7 +9625,7 @@ function pintarCocina() {
   const tListo = x => `<div class="cListo"><span>${esc(x.folio)} · ${cocTipo(x)}</span><span style="opacity:.8">${x.tipoEntrega === 'recoger' ? 'Espera al cliente' : x.repartidor ? '🛵 ' + esc(x.repartidor.nombre.split(' ')[0]) : 'Espera repartidor'}</span></div>`;
   const col = (t, n, h, vacio) => `<div class="cocCol"><h2>${t}<span>${n}</span></h2>${h || `<div class="cocVacio">${vacio}</div>`}</div>`;
   const y = window.scrollY;
-  html(`<div class="coc"><div class="cocBar"><h1>🍳 ${esc(S.negocio ? S.negocio.nombre : 'Cocina')}</h1><span class="reloj">${hora(ahora)}</span>
+  html(`<div class="coc ${esBarra() ? 'barra' : ''}"><div class="cocBar"><h1>${esBarra() ? '🍹 Barra · ' : '🍳 '}${esc(S.negocio ? S.negocio.nombre : 'Cocina')}</h1><span class="reloj">${hora(ahora)}</span>
       ${funOn('personal', 'asistencia') ? `<button onclick="act(this,async()=>{await pdvConectar();await asisMenu()})" aria-label="Asistencia">🕒</button>` : ''}${S.negocio && funOn('inventario', 'produccion') && modDisp('inventario') ? `<button onclick="S._iv={lugar:S.negocio.id,tab:'prod',q:'',f:''};ir('inventario')" aria-label="Producción">🏭</button>` : ''}<button onclick="cocAjustes()" aria-label="Ajustes">⚙️</button><button onclick="cocPantallaCompleta()" aria-label="Pantalla completa">⛶</button><button onclick="cocSalir()">Salir</button></div>
     <div class="cocCols">
       ${col('🔔 Por aceptar', nuevos.length + pagoP.length, nuevos.map(tNuevo).join('') + pagoP.map(tPagoP).join(''), 'Sin pedidos nuevos')}
@@ -9596,11 +9657,20 @@ function cocAjustes() {
     <div class="row" style="gap:8px">${[58, 80].map(w => `<div class="opcion ${c.papel === w ? 'on' : ''}" style="flex:1" onclick="cocGuardar({papel:${w}});cocAjustes()"><span class="radio"></span><b>${w} mm</b></div>`).join('')}</div>
     <div class="opcion ${c.auto ? 'on' : ''}" style="margin-top:10px" onclick="cocGuardar({auto:${!c.auto}});cocAjustes()"><span class="radio"></span><div class="grow"><b>Imprimir la comanda al aceptar</b><div class="muted small">Sale sola cada vez que aceptas un pedido aquí.</div></div></div>
     <div class="opcion ${c.sonido ? 'on' : ''}" onclick="cocGuardar({sonido:${!c.sonido}});cocAjustes()"><span class="radio"></span><div class="grow"><b>Sonido de pedidos nuevos</b><div class="muted small">Suena hasta que el pedido se acepta.</div></div></div>
+    ${cocBarraHTML()}
     ${btAjustesHTML('cocAjustes')}
     <div class="btns"><button class="btn pill full" onclick="imprimirPrueba()">🖨️ Imprimir prueba</button><button class="btn pill full" onclick="beep()">🔔 Probar sonido</button></div>
     <div class="muted small" style="margin-top:10px">Sin impresora Bluetooth vinculada se usa la impresión del sistema: en computadora, cualquier impresora instalada; en iPhone, impresoras AirPrint.</div></div>`);
 }
 function cocGuardar(c) { ls('cocina', Object.assign(cocCfg(), c)); }
+/** 2.83 · Qué categorías del menú se preparan en barra (lo eligen dueño, gerente o quien edita el menú). */
+function cocBarraHTML() {
+  if (!(esDueno() || puedo('gerente') || puedo('menu'))) return esBarra() ? '<div class="aviso info small" style="margin-top:10px">🍹 Pantalla de barra: solo ves lo que se prepara aquí.</div>' : '';
+  const m = S._cocMenu || menuLocal(S.negocio.id) || {}, cats = [...new Set((m.productos || []).map(p => p.categoria).filter(Boolean))], sel = S.negocio.barraCats || [];
+  return `<label class="f">🍹 ¿Qué se prepara en barra?</label><div class="muted small" style="margin-bottom:4px">La cocina lo ve marcado con 🍹 y la pantalla de barra solo ve esto.</div>
+    ${cats.map(c => `<label class="pdvChk"><input type="checkbox" class="cocBarCat" value="${esc(c)}" ${sel.includes(c) ? 'checked' : ''}> ${esc(c)}</label>`).join('') || '<div class="small muted">Aún no hay categorías en el menú.</div>'}
+    ${cats.length ? `<div class="btns"><button class="btn sm pri" onclick="act(this,async()=>{S.negocio.barraCats=await api('cocBarraGuardar',{negocioId:S.negocio.id,categorias:[...document.querySelectorAll('.cocBarCat:checked')].map(x=>x.value)});ls('negocio',S.negocio);toast('Guardado ✓');cocAjustes()})">Guardar barra</button></div>` : ''}`;
+}
 /** Comanda para impresora de tickets (sin precios). */
 function htmlComanda(x, min) {
   const n = S.negocio || {}, papel = cocCfg().papel, ancho = papel === 80 ? 72 : 48;
@@ -10339,7 +10409,11 @@ async function tabCaja(ids) {
       const cortesDif = cjs.docs.map(d => d.data()).filter(c => c.dia >= ayer && c.cierre && Math.abs(c.cierre.diferencia || 0) >= 1).map(c => ({ dia: c.dia, turno: c.turno, dif: pdvR(c.cierre.diferencia), quien: (c.cierre.nombre || '').split(' ')[0] }));
       const sinEntregar = pe.docs.map(d => d.data()).filter(v => v.dia !== hoy).length;
       const [pTurnos, pCaja] = await pasoP;
-      out[id] = { pTurnos, pCaja, cortesDif, sinEntregar, ultCortes, gastosHoy, gastosTurno, ventas: pdvR(x.ventas), tickets: Math.round(x.n || 0), abiertas: ab.docs.length, abiertasMonto: pdvR(ab.docs.reduce((s, d) => { const c = d.data(); return s + (pdvTotalCuenta(c) - (c.pagado || 0)); }, 0)), lista };
+      const turnosL = await neg.collection('estado').doc('turnos').get().then(d => d.exists ? (d.data() || {}).lista || [] : []).catch(() => []);
+      const gastosL = gs.docs.map(d => d.data()).filter(g => !g.anulado && g.estado !== 'cancelado' && g.auto !== 'propinas' && g.pago !== 'credito').map(g => ({ ts: g.ts, concepto: g.concepto || g.categoria || 'Gasto', monto: Number(g.monto) || 0, pago: g.pago || '', por: (g.por || {}).nombre || '', cajaId: g.cajaId || '' }))
+        .concat(pp.docs.map(d => d.data()).filter(p => !p.anulado).map(p => ({ ts: p.ts, concepto: 'Pago a ' + (p.proveedor || 'proveedor'), monto: Number(p.monto) || 0, pago: p.desde || '', por: (p.por || {}).nombre || '', cajaId: p.cajaId || '' })))
+        .map(g => { const c = cajasHoy[g.cajaId]; return Object.assign(g, { turno: c ? nomT('T' + c.turno) : 'Fuera de caja' }); }).sort((a, b) => b.ts - a.ts);
+      out[id] = { dia: x, turnosL, gastosL, pTurnos, pCaja, cortesDif, sinEntregar, ultCortes, gastosHoy, gastosTurno, ventas: pdvR(x.ventas), tickets: Math.round(x.n || 0), abiertas: ab.docs.length, abiertasMonto: pdvR(ab.docs.reduce((s, d) => { const c = d.data(); return s + (pdvTotalCuenta(c) - (c.pagado || 0)); }, 0)), lista };
     }));
     return out;
   } catch (e) { console.warn(e); return {}; }
@@ -10366,7 +10440,7 @@ function pintarTablero() {
   const l = d.negocios, sel = l.find(n => n.id === S._tabSel) || (l.length === 1 ? l[0] : null);
   const vis = sel ? [sel] : l;
   const sum = k => vis.reduce((s, n) => s + n[k], 0), per = k => vis.reduce((s, n) => s + n.personal[k], 0);
-  const kpi = (t, v, sub, ico) => `<div class="tabKpi"><div class="row between"><span>${t}</span><span style="font-size:20px">${ico}</span></div><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const kpi = (t, v, sub, ico, k) => `<button class="tabKpi btnK" onclick="act(this,()=>tabVer('${k}'))"><div class="row between"><span>${t}</span><span style="font-size:20px">${ico}</span></div><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}<span class="verK">Ver detalle ›</span></button>`;
   const EST = { presente: ['🟢', 'Llegó a tiempo'], retardo: ['🟠', 'Llegó tarde'], por_llegar: ['⏳', 'Por llegar'], sin_decidir: ['🔴', 'No ha llegado'], falta: ['🔴', 'Falta'], descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], permiso_goce: ['📝', 'Permiso'], permiso_sin: ['📝', 'Permiso'] };
   const personal = n => n.personal.lista.length ? n.personal.lista.map(p => { const [i, t] = EST[p.estado] || ['•', p.estado];
     return `<div class="pdvFila g"><span>${i} ${esc(p.nombre)}<small>${p.salida ? 'Salió ' + hora(p.salida) : p.entrada ? 'Entró ' + hora(p.entrada) + (p.minRetardo ? ' · ' + p.minRetardo + ' min tarde' : '') : t}${p.horario && !p.entrada ? ' · entra ' + horaTxt(p.horario.e) : ''}</small></span><span></span><span class="small">${p.salida ? 'Salió' : t}</span></div>`; }).join('')
@@ -10393,10 +10467,10 @@ function pintarTablero() {
     <div class="muted small" style="margin:-6px 0 10px">Hoy, ${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · se actualiza solo</div>
     ${l.length < 2 ? '' : `<div class="tabChips"><button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>`}
     <div class="tabKpis">
-      ${kpi('Ventas de hoy', money(sum('ventas')), sel ? '' : 'En ' + l.length + ' negocios', '💵')}
-      ${kpi('Órdenes completadas', sum('completadas'), 'Caja y app', '🧾')}
-      ${kpi('Órdenes abiertas', sum('abiertas'), 'Mesas y pedidos en curso', '🍽️')}
-      ${kpi('Personal activo', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥')}
+      ${kpi('Ventas de hoy', money(sum('ventas')), sel ? '' : 'En ' + l.length + ' negocios', '💵', 'ventas')}
+      ${kpi('Órdenes completadas', sum('completadas'), 'Caja y app', '🧾', 'completadas')}
+      ${kpi('Órdenes abiertas', sum('abiertas'), 'Mesas y pedidos en curso', '🍽️', 'abiertas')}
+      ${kpi('Personal activo', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥', 'personal')}
     </div>
     ${inicioPasos(vis)}
     ${inicioGastos(vis, l.length > 1)}
@@ -10407,6 +10481,204 @@ function pintarTablero() {
     ${sel ? detalle(sel) : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
     `);
 }
+/* ============ 2.84 · INICIO DEL DUEÑO: cada burbuja abre su detalle ============ */
+const TAB_MET = { efectivo: '💵 Efectivo', tarjeta: '💳 Tarjeta', mp: '💳 Tarjeta', transferencia: '🏦 Transferencia', monedero: '👛 Monedero', consumo: '🎁 Consumo de personal', mixto: '🔀 Mixto', otro: '• Otro' };
+/** Lo que se ve arriba: todos los negocios o el elegido. */
+function tabVis() {
+  const d = S._tab || { negocios: [] }, l = d.negocios, sel = l.find(n => n.id === S._tabSel) || (l.length === 1 ? l[0] : null);
+  return { l, vis: sel ? [sel] : l, varios: !sel && l.length > 1 };
+}
+const tabCab = (t, sub) => `<div class="row between"><h2 style="margin:0">${t}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>${sub ? `<div class="muted small" style="margin:4px 0 8px">${sub}</div>` : ''}`;
+function tabSubVis() { const { vis, varios } = tabVis(); return varios ? 'Hoy · todos tus negocios' : 'Hoy · ' + esc((vis[0] || {}).nombre || ''); }
+async function tabVer(k) {
+  if (!S._tab) return;
+  if (k === 'ventas') return tabVerVentas();
+  if (k === 'gastos') return tabVerGastos();
+  if (k === 'personal') return tabVerPersonal();
+  modal(tabCab(k === 'abiertas' ? '🍽️ Órdenes abiertas' : '🧾 Órdenes completadas', tabSubVis()) + '<div class="vacio"><span class="big">⏳</span>Cargando…</div>');
+  await tabCargarOrdenes(k === 'completadas');
+  if (k === 'abiertas') tabPintarAbiertas(); else tabPintarCompletadas();
+}
+/* ---------- 💵 ventas ---------- */
+function tabMetDe(n) {
+  const o = {}, ad = (k, v) => { v = Number(v) || 0; if (!v) return; k = k === 'mp' ? 'tarjeta' : k; o[k] = pdvR((o[k] || 0) + v); };
+  const x = (n.cajaD || {}).dia || {};
+  Object.keys(x).filter(k => k.indexOf('met_') === 0).forEach(k => ad(k.slice(4), x[k]));
+  Object.keys((n.app || {}).met || {}).forEach(k => ad(k, n.app.met[k]));
+  return o;
+}
+const tabMetHTML = o => Object.keys(o).sort((a, b) => o[b] - o[a]).map(k => `<div class="tot"><span>${TAB_MET[k] || esc(k)}</span><b>${money(o[k])}</b></div>`).join('') || '<div class="small muted">Sin cobros todavía.</div>';
+function tabVerVentas() {
+  const { vis, varios } = tabVis(), tot = {};
+  vis.forEach(n => { const m = tabMetDe(n); Object.keys(m).forEach(k => { tot[k] = pdvR((tot[k] || 0) + m[k]); }); });
+  const totV = pdvR(vis.reduce((s, n) => s + n.ventas, 0));
+  const ord = n => n.completadas + ((n.app || {}).enCamino || 0);
+  const nOrd = vis.reduce((s, n) => s + ord(n), 0);
+  const neg = n => {
+    const c = n.cajaD || {}, dia = c.dia || {}, prop = Number(dia.propinas) || 0, desc = (n.app || {}).descEfe || 0;
+    return `<div class="card"><div class="row between"><b style="font-size:16px">${esc(n.nombre)}</b><b style="font-size:18px">${money(n.ventas)}</b></div>
+      ${n.caja ? `<div class="tot"><span>🧾 Caja (mostrador y mesas)</span><b>${money(c.ventas || 0)} · ${c.tickets || 0} tickets</b></div>` : ''}
+      <div class="tot"><span>🛵 App${n.caja ? ' (no cobrado en caja)' : ''}</span><b>${money(n.app.ventas)} · ${n.app.pedidos + (n.app.enCamino || 0)} pedidos</b></div>
+      ${ord(n) ? `<div class="tot"><span>🎟️ Ticket promedio</span><b>${money(pdvR(n.ventas / ord(n)))}</b></div>` : ''}
+      ${prop ? `<div class="tot"><span>🤲 Propinas</span><b>${money(prop)}</b></div>` : ''}
+      ${desc ? `<div class="tot"><span>💵 Descuentos por pagar en efectivo</span><b>−${money(desc)}</b></div>` : ''}
+      <div class="tdGrupo">Por forma de pago</div>${tabMetHTML(tabMetDe(n))}</div>`;
+  };
+  modal(tabCab('💵 Ventas de hoy', tabSubVis()) + `
+    <div class="card" style="background:var(--pri);color:#fff"><div class="row between"><span>Total vendido</span><b style="font-size:24px">${money(totV)}</b></div>
+      <div class="small" style="opacity:.9">${nOrd} órdenes${nOrd ? ' · ticket promedio ' + money(pdvR(totV / nOrd)) : ''}</div></div>
+    ${varios ? `<div class="card"><div class="tdGrupo" style="margin-top:0">Todos los negocios · por forma de pago</div>${tabMetHTML(tot)}</div>` : ''}
+    ${vis.map(neg).join('')}
+    <div class="small muted">Los pedidos de la app que se cobran en caja ya vienen dentro de la caja. Se cuentan desde el inicio del día.</div>`);
+}
+/* ---------- 🧾 completadas y 🍽️ abiertas ---------- */
+async function tabCargarOrdenes(conCaja) {
+  const { vis } = tabVis(), hoy = pdvHoy();
+  const app = await api('tabDetalle', { negocioIds: vis.map(n => n.id) }).catch(e => ({ error: e.message, completados: [], abiertos: [] }));
+  let caja = [], errCaja = '';
+  if (conCaja && vis.some(n => n.caja)) {
+    try {
+      if (!PDV.db) await tabCaja(vis.filter(n => n.caja).map(n => n.id));
+      const r = await Promise.all(vis.filter(n => n.caja).map(n => PDV.db.collection('negocios').doc(n.id).collection('ventas').where('dia', '==', hoy).get().then(q => q.docs.map(d => Object.assign({ id: d.id, nid: n.id, neg: n.nombre }, d.data())))));
+      caja = [].concat(...r).filter(v => v.estado === 'pagada');
+    } catch (e) { console.warn(e); errCaja = 'No se pudieron leer las ventas de caja. Revisa tu internet.'; }
+  }
+  S._td = { app, caja, errCaja, f: (S._td && S._td.f) || 'todas' };
+}
+const tabNegDe = id => ((S._tab || {}).negocios || []).find(n => n.id === id) || {};
+const tabItemsHTML = l => (l || []).length ? `<details><summary>${l.length} producto${l.length === 1 ? '' : 's'}</summary><div class="small">${l.map(i => esc((i.c || i.cant || 1) + ' × ' + (i.n || i.nombre || ''))).join('<br>')}</div></details>` : '';
+function tabPintarCompletadas() {
+  const T = S._td, { varios } = tabVis(), f = T.f;
+  const caja = T.caja.map(v => ({ t: v.ts, ico: v.origen === 'app' ? '🛵' : '🧾', org: v.origen === 'app' ? 'App · cobrado en caja' : ({ mostrador: 'Mostrador', llevar: 'Para llevar', mesa: 'Mesa' }[v.tipo] || 'Caja'), folio: v.pedidoFolio || v.folio || '', neg: v.neg, total: v.total,
+    met: [...new Set((v.pagos || []).map(p => p.metodo))], quien: ((v.por || {}).nombre || '').split(' ')[0], cli: (v.cliente || {}).nombre || '', items: v.items, tipoF: 'caja' }));
+  const app = T.app.completados.filter(p => !(p.cobroCaja && tabNegDe(p.negocioId).caja)).map(p => ({ t: p.entregado || p.creado, ico: '🛵', org: 'App · ' + (p.tipo === 'domicilio' ? 'a domicilio' : 'para recoger') + (p.estado === 'EN_CAMINO' ? ' · salió' : ''),
+    folio: p.folio, neg: tabNegDe(p.negocioId).nombre || '', total: p.subtotal, met: [p.metodo], quien: '', cli: p.cliente, items: p.items, tipoF: 'app' }));
+  const todas = caja.concat(app).sort((a, b) => b.t - a.t), l = todas.filter(x => f === 'todas' || x.tipoF === f);
+  const tot = pdvR(l.reduce((s, x) => s + (Number(x.total) || 0), 0));
+  modal(tabCab('🧾 Órdenes completadas', tabSubVis()) + `
+    <div class="tdChips">${[['todas', 'Todas', todas.length], ['caja', '🧾 Caja', caja.length], ['app', '🛵 App', app.length]].map(([k, t, nn]) => `<button class="${f === k ? 'on' : ''}" onclick="S._td.f='${k}';tabPintarCompletadas()">${t} (${nn})</button>`).join('')}</div>
+    ${T.errCaja ? `<div class="aviso warn small">${T.errCaja}</div>` : ''}
+    <div class="card"><div class="row between"><span>${l.length} órdenes</span><b>${money(tot)}</b></div></div>
+    <div class="card" style="padding:4px 14px">${l.length ? l.map(x => `<div class="tdFila"><span class="tdI">${x.ico}</span><div class="grow"><b>${x.folio ? '#' + esc(String(x.folio)) + ' · ' : ''}${esc(x.org)}</b>
+        <small>${hora(x.t)}${varios ? ' · ' + esc(x.neg) : ''}${x.cli ? ' · ' + esc(x.cli) : ''}${x.quien ? ' · atendió ' + esc(x.quien) : ''}</small>
+        <small>${x.met.map(m => TAB_MET[m] || esc(m)).join(' + ') || ''}</small>${tabItemsHTML(x.items)}</div><b>${money(x.total)}</b></div>`).join('') : '<div class="vacio" style="padding:20px 0">Todavía no hay órdenes completadas.</div>'}</div>`);
+}
+function tabPintarAbiertas() {
+  const T = S._td, { vis, varios } = tabVis(), hoy = pdvHoy();
+  const cs = [].concat(...vis.map(n => ((n.cajaD || {}).lista || []).map(c => Object.assign({ neg: n.nombre }, c)))).sort((a, b) => a.ts - b.ts);
+  const ap = T.app.abiertos;
+  const espC = pdvR(cs.reduce((s, c) => s + (c.saldo || 0), 0)), espA = pdvR(ap.reduce((s, p) => s + (p.subtotal || 0), 0));
+  const COL = { NUEVO: 't-err', POR_PAGAR: 't-warn', PAGO_ENVIADO: 't-warn', PREPARANDO: 't-info', LISTO: 't-ok', EN_CAMINO: 't-ok' };
+  const irApp = p => tabNegDe(p.negocioId).caja ? `tabEntrar('${p.negocioId}','caja').then(()=>{PDV.tab='mesas';pintarCaja()})` : `tabEntrar('${p.negocioId}','negPedidos')`;
+  const mapa = p => p.lat && p.lng ? `<a class="btn sm" href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 Mapa</a>` : '';
+  modal(tabCab('🍽️ Órdenes abiertas', tabSubVis()) + `
+    <div class="card" style="background:var(--pri);color:#fff"><div class="row between"><span>Ingreso esperado</span><b style="font-size:24px">${money(pdvR(espC + espA))}</b></div>
+      <div class="small" style="opacity:.9">${cs.length ? cs.length + ' cuenta(s) en caja · ' + money(espC) + ' por cobrar' : ''}${cs.length && ap.length ? ' · ' : ''}${ap.length ? ap.length + ' pedido(s) de la app · ' + money(espA) + ' (sin envío)' : ''}${!cs.length && !ap.length ? 'No hay órdenes abiertas' : ''}</div></div>
+    ${T.app.error ? `<div class="aviso warn small">${esc(T.app.error)}</div>` : ''}
+    ${cs.length ? `<div class="tdGrupo">🧾 En caja</div><div class="card" style="padding:4px 14px">${cs.map(c => `<div class="tdFila"><span class="tdI">🍽️</span><div class="grow"><b>${esc(c.etiqueta)}</b>
+        <small>${c.dia !== hoy ? '<b style="color:var(--err)">📅 abierta desde ' + esc(fechaCorta(c.ts)) + '</b>' : 'Abierta desde las ' + hora(c.ts)}${varios ? ' · ' + esc(c.neg) : ''}</small>
+        <div class="tdAcc"><button class="btn sm" onclick="cerrarModal();act(this,()=>tabIrCuenta('${c.nid}','${c.id}'))">Ir a la cuenta</button></div></div><b>${money(c.saldo)}</b></div>`).join('')}</div>` : ''}
+    ${ap.length ? `<div class="tdGrupo">🛵 Pedidos de la app</div><div class="card" style="padding:4px 14px">${ap.map(p => `<div class="tdFila"><span class="tdI">${p.tipo === 'domicilio' ? '🛵' : '🥡'}</span><div class="grow">
+        <b>#${esc(String(p.folio))} · ${esc(p.cliente)}</b> <span class="tag ${COL[p.estado] || 't-gray'}">${esc(p.estadoTxt)}</span>
+        <small>Pidió a las ${hora(p.creado)}${varios ? ' · ' + esc(tabNegDe(p.negocioId).nombre || '') : ''} · ${TAB_MET[p.metodo] || esc(p.metodo)}</small>
+        <small>${p.tipo === 'domicilio' ? '📍 ' + esc(p.direccion || 'Sin dirección escrita') + (p.referencia ? ' · ' + esc(p.referencia) : '') : '🥡 Pasa a recoger'}${p.repartidor ? ' · 🛵 ' + esc(p.repartidor) : ''}</small>
+        ${tabItemsHTML(p.items)}
+        <div class="tdAcc">${mapa(p)}${p.tel ? `<a class="btn sm" href="tel:${esc(p.tel)}">📞 Llamar</a>` : ''}<button class="btn sm" onclick="cerrarModal();act(this,()=>${irApp(p)})">Ir al pedido</button></div></div><b>${money(p.subtotal)}</b></div>`).join('')}</div>` : ''}`);
+}
+/* ---------- 💸 gastos ---------- */
+function tabVerGastos() {
+  const { vis, varios } = tabVis();
+  const l = [].concat(...vis.map(n => ((n.cajaD || {}).gastosL || []).map(g => Object.assign({ neg: n.nombre }, g)))).sort((a, b) => b.ts - a.ts);
+  const tot = pdvR(l.reduce((s, g) => s + g.monto, 0));
+  const porT = vis.filter(n => n.cajaD && (n.cajaD.gastosTurno || []).length);
+  modal(tabCab('💸 Gastos de hoy', tabSubVis()) + `
+    <div class="card"><div class="row between"><span>Total</span><b style="font-size:22px">${money(tot)}</b></div>
+      ${porT.map(n => n.cajaD.gastosTurno.map(g => `<div class="tot"><span>${varios ? esc(n.nombre) + ' · ' : ''}${esc(g.nombre)}</span><b>${money(g.monto)}</b></div>`).join('')).join('')}</div>
+    <div class="card" style="padding:4px 14px">${l.length ? l.map(g => `<div class="tdFila"><span class="tdI">💸</span><div class="grow"><b>${esc(g.concepto)}</b>
+      <small>${hora(g.ts)} · ${esc(g.turno)}${varios ? ' · ' + esc(g.neg) : ''}${g.por ? ' · registró ' + esc(g.por.split(' ')[0]) : ''}</small></div><b>${money(g.monto)}</b></div>`).join('') : '<div class="vacio" style="padding:20px 0">Sin gastos hoy.</div>'}</div>
+    <div class="small muted">No incluye compras a crédito (se ven en Proveedores) ni las propinas entregadas.</div>`);
+}
+/* ---------- 👥 personal: quién está, a qué hora llegó y decisiones ahí mismo ---------- */
+function tabDeudasHTML(l) {
+  if (!(l || []).length) return '';
+  return `<div class="aviso info small" style="margin:8px 0">🔄 <b>Turnos que se deben por cambios</b><br>${l.map(x => `${esc(x.debeNombre)} le debe ${x.turnos} turno${x.turnos === 1 ? '' : 's'} a ${esc(x.aNombre)}`).join('<br>')}</div>`;
+}
+async function tabVerPersonal() {
+  const { vis } = tabVis(), l = vis.filter(n => n.caja && n.modPersonal !== false);
+  modal(tabCab('👥 Personal de hoy', tabSubVis()) + '<div class="vacio"><span class="big">⏳</span>Cargando…</div>');
+  S._tp = S._tp || {};
+  await Promise.all(l.map(n => api('asisDia', { negocioId: n.id, fecha: pdvHoy() }).then(r => { S._tp[n.id] = r; }).catch(() => { S._tp[n.id] = null; })));
+  tabPintarPersonal();
+}
+function tabPintarPersonal() {
+  const { vis, varios } = tabVis(), l = vis.filter(n => n.caja && n.modPersonal !== false);
+  const hor = h => h ? horaTxt(h.e) + ' – ' + horaTxt(h.s) : '';
+  const nomTurno = (n, h) => { const t = h && (((n.cajaD || {}).turnosL || []).length ? n.cajaD.turnosL : TURNOS_DEF).find(x => x.e === h.e && x.s === h.s); return t ? t.nombre + ' · ' : ''; };
+  const persona = (n, p, puede) => {
+    const est = (ASIS_EST[p.estado] || ['•', p.estado]);
+    let sub = '';
+    if (p.entrada) sub = 'Llegó a las ' + asisHora(p.entrada) + (p.minRetardo ? ' · <b style="color:var(--err)">' + p.minRetardo + ' min tarde</b>' : ' · a tiempo') + (p.salida ? ' · salió ' + asisHora(p.salida) : '');
+    else if (p.horario && ['por_llegar', 'programado', 'sin_decidir'].includes(p.estado)) sub = 'Entra a las ' + horaTxt(p.horario.e);
+    else sub = est[1];
+    const notas = [p.horario ? '⏱️ ' + nomTurno(n, p.horario) + hor(p.horario) + (p.horario.cambio ? ' (cambiado hoy)' : '') : '', p.cambioCon ? '🔄 Lo cubrió ' + esc(p.cambioCon) : p.cubiertoPor ? '🔁 Lo cubre ' + esc(p.cubiertoPor) : '', p.turnoNota && !(p.horario || {}).cambio ? esc(p.turnoNota) : ''].filter(Boolean).join(' · ');
+    const dec = puede && p.estado === 'sin_decidir' && !p.entrada ? [['presente', '✅ Sí vino'], ['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['falta', '❌ Falta']]
+      .concat(p.vacRestan > 0 ? [['vacaciones', '🏖️ Vacaciones (' + p.vacRestan + ')']] : []).concat([['descanso', '😴 Descanso']]) : [];
+    const cambio = puede && p.horario && !p.salida && !['falta', 'permiso_goce', 'permiso_sin', 'vacaciones', 'descanso', 'cambio', 'compensado'].includes(p.estado);
+    return `<div class="tdFila"><span class="tdI">${est[0]}</span><div class="grow"><b>${esc(p.nombre)}</b><small>${sub}</small>${notas ? `<small>${notas}</small>` : ''}
+      ${dec.length || cambio ? `<div class="tdAcc">${dec.map(([k, t]) => `<button class="btn sm${k === 'presente' ? ' ok' : ''}" onclick="act(this,()=>tabAsisDecidir('${n.id}','${p.usuarioId}','${k}'))">${t}</button>`).join('')}${cambio ? `<button class="btn sm" onclick="tabCambioTurno('${n.id}','${p.usuarioId}')">🔄 Cambió su turno</button>` : ''}</div>` : ''}</div></div>`;
+  };
+  const GR = [['🟢 Trabajando', p => p.entrada && !p.salida], ['👋 Ya salieron', p => p.entrada && p.salida], ['🔴 No han llegado', p => !p.entrada && p.estado === 'sin_decidir'],
+    ['⏳ Por llegar', p => !p.entrada && ['por_llegar', 'programado'].includes(p.estado)], ['😴 No vienen hoy', p => !p.entrada && !['sin_decidir', 'por_llegar', 'programado'].includes(p.estado)]];
+  const negHTML = n => {
+    const d = S._tp[n.id];
+    if (!d) { // sin permiso para decidir: solo la lista del tablero
+      return `<div class="card">${varios ? `<b>${esc(n.nombre)}</b>` : ''}${(n.personal.lista || []).map(p => `<div class="tdFila"><span class="tdI">${(ASIS_EST[p.estado] || ['•'])[0]}</span><div class="grow"><b>${esc(p.nombre)}</b><small>${p.entrada ? 'Llegó a las ' + hora(p.entrada) + (p.minRetardo ? ' · ' + p.minRetardo + ' min tarde' : '') : (ASIS_EST[p.estado] || ['', p.estado])[1]}</small></div></div>`).join('') || '<div class="small muted">Sin personal registrado.</div>'}</div>`;
+    }
+    const ps = d.personas.slice().sort((a, b) => (a.entrada || 9e15) - (b.entrada || 9e15) || ((a.horario || {}).e || '99').localeCompare((b.horario || {}).e || '99'));
+    const dob = (d.dobles || []), vac = (d.vacLista || []);
+    S._tpDob = S._tpDob || {}; dob.forEach((x, i) => { S._tpDob[n.id + i] = Object.assign({}, x, { negocioId: n.id, alVolver: r => { S._tp[n.id] = r; tabPintarPersonal(); } }); });
+    return `<div class="card">${varios ? `<div class="row between"><b style="font-size:16px">${esc(n.nombre)}</b><span class="small muted">${n.personal.presentes} de ${n.personal.total} trabajando</span></div>` : ''}
+      ${dob.length ? `<div class="tdGrupo">🔁 Turnos dobles por decidir</div>${dob.map((x, i) => `<div class="tdFila"><span class="tdI">🔁</span><div class="grow"><b>${esc(x.nombre)}</b><small>${asisDiaTxt(x.fecha)} · ${x.cubreNombre ? 'cubrió a ' + esc(x.cubreNombre) : 'se quedó a apoyar'}</small>
+        <div class="tdAcc">${n.dueno ? `<button class="btn sm pri" onclick="asisDobleDecidirModal(null,S._tpDob['${n.id + i}'])">Decidir</button>` : '<span class="small muted">Lo decide el dueño</span>'}</div></div></div>`).join('')}` : ''}
+      ${vac.length ? `<div class="tdGrupo">🏖️ Vacaciones por aprobar</div>${vac.map(v => `<div class="tdFila"><span class="tdI">🏖️</span><div class="grow"><b>${esc(v.nombre)}</b><small>${v.fechas.map(asisDiaTxt).join(', ')} · ${v.fechas.length} día${v.fechas.length === 1 ? '' : 's'}${v.nota ? ' · “' + esc(v.nota) + '”' : ''}</small>
+        <div class="tdAcc"><button class="btn sm ok" onclick="act(this,()=>tabVacDecidir('${n.id}','${v.id}',true))">Aprobar</button><button class="btn sm" onclick="act(this,()=>tabVacDecidir('${n.id}','${v.id}',false))">No aprobar</button></div></div></div>`).join('')}` : ''}
+      ${tabDeudasHTML(d.deudas)}
+      ${GR.map(([t, fn]) => { const g = ps.filter(fn); return g.length ? `<div class="tdGrupo">${t} (${g.length})</div>` + g.map(p => persona(n, p, true)).join('') : ''; }).join('')}
+      ${!ps.length ? '<div class="small muted">Sin personal registrado. Se da de alta en 👥 Personal → ➕ Agregar colaborador.</div>' : ''}</div>`;
+  };
+  modal(tabCab('👥 Personal de hoy', tabSubVis()) + (l.length ? l.map(negHTML).join('') : '<div class="vacio"><span class="big">👥</span>La asistencia viene con el punto de venta y el módulo Personal.</div>')
+    + `<div class="btns"><button class="btn pill full" onclick="cerrarModal();act(this,()=>inicioPersonal(${l.length === 1 ? `'${l[0].id}'` : "''"},'hoy'))">Abrir Personal y nómina</button></div>`);
+}
+async function tabRecargarTablero() { try { await vTablero(); } catch (e) { console.warn(e); } }
+async function tabAsisDecidir(nid, uid, estado) {
+  S._tp[nid] = await api('asisDecidir', { negocioId: nid, usuarioId: uid, fecha: pdvHoy(), estado });
+  toast('Guardado ✓'); tabPintarPersonal(); tabRecargarTablero().then(() => { if ($('#modal').classList.contains('on')) tabPintarPersonal(); });
+}
+async function tabVacDecidir(nid, id, aprobar) {
+  await api('vacDecidir', { negocioId: nid, id, aprobar });
+  S._tp[nid] = await api('asisDia', { negocioId: nid, fecha: pdvHoy() });
+  toast(aprobar ? 'Vacaciones aprobadas 🏖️' : 'Solicitud no aprobada'); tabPintarPersonal();
+}
+/** Cambio simple de turno de hoy (mañana ↔ tarde): no es extra ni deuda; el sistema lo espera en el nuevo horario. */
+function tabCambioTurno(nid, uid) {
+  const n = tabNegDe(nid), p = ((S._tp[nid] || {}).personas || []).find(x => x.usuarioId === uid) || {};
+  const ts = (n.cajaD || {}).turnosL && n.cajaD.turnosL.length ? n.cajaD.turnosL : TURNOS_DEF;
+  const h = p.horario || {};
+  modal(tabCab('🔄 Cambió su turno', `<b>${esc(p.nombre || '')}</b> · hoy. No es turno extra ni le debe nada a nadie: el sistema lo espera en el nuevo horario${p.entrada ? ' y su retardo se mide contra él' : ''}.`) + `
+    <div class="tdGrupo">Su turno de hoy</div>
+    <div class="btns" style="flex-direction:column">${ts.map(t => `<button class="btn pill full${t.e === h.e && t.s === h.s ? ' pri' : ''}" onclick="act(this,()=>tabCambioGuardar('${nid}','${uid}','${t.e}','${t.s}'))">${esc(t.nombre)} · ${horaTxt(t.e)} – ${horaTxt(t.s)}</button>`).join('')}</div>
+    <div class="tdGrupo">Otro horario</div>
+    <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Entra</label><input class="i" type="time" id="tcE" value="${h.e || ts[0].e}"></div><div style="flex:1"><label class="f">Sale</label><input class="i" type="time" id="tcS" value="${h.s || ts[0].s}"></div></div>
+    <div class="btns"><button class="btn pill" onclick="tabPintarPersonal()">← Volver</button><button class="btn pri pill" onclick="act(this,()=>tabCambioGuardar('${nid}','${uid}',$('#tcE').value,$('#tcS').value))">Guardar</button></div>
+    ${h.cambio ? `<button class="lnk small" onclick="act(this,()=>tabCambioGuardar('${nid}','${uid}','',''))">Volver a su horario normal</button>` : ''}`);
+}
+async function tabCambioGuardar(nid, uid, e, s) {
+  if (e && s && e === s) throw new Error('La entrada y la salida no pueden ser iguales');
+  S._tp[nid] = await api('turnoGuardar', { negocioId: nid, usuarioId: uid, fecha: pdvHoy(), tipo: e ? 'horario' : 'quitar', e, s, cambio: !!e, vuelta: 'dia' });
+  toast(e ? 'Turno cambiado ✓ · se le avisó' : 'Vuelve a su horario normal ✓'); tabPintarPersonal();
+  tabRecargarTablero().then(() => { if ($('#modal').classList.contains('on')) tabPintarPersonal(); });
+}
+
 /* ============ 2.60 · INICIO DEL DUEÑO: pendientes y secciones ============ */
 /** Todo lo que espera al dueño, de todos sus negocios, con su botón para resolverlo. */
 function inicioPendientes(vis, varios) {
@@ -10445,7 +10717,7 @@ function pendContraer() { ls('pendCerrado', ls('pendCerrado') ? 0 : 1); pintarTa
 function inicioGastos(vis, varios) {
   const l = vis.filter(n => n.cajaD && n.cajaD.gastosTurno); if (!l.length) return '';
   const tot = pdvR(l.reduce((s, n) => s + (n.cajaD.gastosHoy || 0), 0));
-  return `<div class="card inicioGastos"><div class="row between"><b>💸 Gastos de hoy</b><b style="font-size:18px">${money(tot)}</b></div>
+  return `<div class="card inicioGastos" style="cursor:pointer" onclick="act(this,()=>tabVer('gastos'))"><div class="row between"><b>💸 Gastos de hoy</b><b style="font-size:18px">${money(tot)}</b></div><div class="small" style="color:var(--pri);font-weight:800;margin:-2px 0 4px">Ver cada gasto ›</div>
     ${l.map(n => `<div class="iGasN">${varios ? `<span class="small" style="font-weight:800">${esc(n.nombre)}</span>` : ''}<div class="iCorteMet">${n.cajaD.gastosTurno.length ? n.cajaD.gastosTurno.map(g => `<span>${esc(g.nombre)} <b>${money(g.monto)}</b></span>`).join('') : '<span class="muted">Sin gastos</span>'}</div></div>`).join('')}</div>`;
 }
 /** 2.60.2 · Los últimos 4 cortes (de lo que se ve arriba: todos o un negocio), con ingresos, gastos, retiro y diferencia. */
@@ -11920,7 +12192,7 @@ function pintarNegocios() {
   pintarBanner(cat);
   const box = $('#listaNeg'); if (!box) return;
   if (cat === 'Promociones') { box.innerHTML = listaPromos(); return; }
-  const propio = esStaff() && esDueno() && S.negocio ? S.negocio.id : ''; // 2.72: el equipo sí puede pedir donde trabaja; al dueño no se le muestra su propio negocio
+  const propio = ''; // 2.83: todos ven todos los negocios, también el suyo
   const l = (S._negs || []).filter(n => (cat === 'Todos' || catsDe(n).includes(cat)) && n.id !== propio);
   box.innerHTML = `<div class="secHead"><h3>${cat === 'Todos' ? (EN_SECCION ? 'Tiendas cerca de ti' : 'Restaurantes cerca de ti') : ICONO_CAT[cat] + ' ' + esc(cat)}</h3>${cat !== 'Todos' ? '<button onclick="verTodos()">Ver todos</button>' : ''}</div>` +
     (l.length ? `<div class="grid2">${l.map(tarjetaNegocio).join('')}</div>`
@@ -13447,6 +13719,7 @@ function avisoSucursal(si) {
 const PRESETS_EQ = [['Encargado de turno', ['pedidos', 'abrir', 'agotados', 'caja']], ['Cajero / mostrador', ['pedidos', 'caja']], ['Mesero / vendedor', ['mesero']], ['Cocina', ['pedidos', 'agotados']], ['Mercadotecnia', ['mercadotecnia']], ['Gerente', ['pedidos', 'abrir', 'agotados', 'menu', 'promos', 'mercadotecnia', 'ventas', 'ajustes', 'caja', 'mesero', 'gerente']]];
 async function vEquipo() {
   const d = S._eq = await api('miEquipo');
+  setTimeout(() => d.negocios.filter(n => n.estado === 'activo').forEach(n => dispCargar(n.id, n.nombre)), 0);
   const N = Object.fromEntries(d.negocios.map(n => [n.id, n]));
   const EST = { activo: ['t-ok', 'Activo'], pendiente: ['t-warn', 'Por aprobar'], bloqueado: ['t-err', 'Suspendido'], rechazado: ['t-gray', 'No aprobado'] };
   const ESTE = { activo: ['t-ok', 'Activo'], invitado: ['t-warn', 'Invitado'], pausado: ['t-gray', 'Pausado'] };
@@ -13460,6 +13733,9 @@ async function vEquipo() {
       ${n.id === S.negActivo ? '<span class="tag t-info">Abierto</span>' : `<button class="btn sm" onclick="act(this,()=>elegirNegocio('${n.id}'))">Entrar</button>`}</div>`).join('')}
     <button class="btn pri pill" onclick="formSucursal()">${ico('mas', 's')} Agregar negocio o sucursal</button>
     <div class="muted small" style="margin:6px 2px 0">Cada negocio o sucursal tiene su propio plan, horario, ubicación y menú. Los nuevos los aprueba Pídele.</div>
+    <h3 style="margin-top:20px">🖥️ Equipos del negocio</h3>
+    <div class="muted small" style="margin:-4px 2px 8px">Cuentas para la tableta de la caja, la cocina, las mesas o la barra: sin teléfono, siempre abiertas. Cada persona se identifica con su código de caja, y solo en estos equipos aparece el QR de asistencia.</div>
+    ${d.negocios.filter(n => n.estado === 'activo').map(n => `<div class="card" id="disp_${n.id}"><b>${esc(n.nombre)}</b><div class="cargando" style="padding:8px">Cargando…</div></div>`).join('')}
     <h3 style="margin-top:20px">👥 Tu equipo</h3>
     ${enPer ? `<div class="card"><b>Tu equipo (${d.equipo.length}) se maneja en 👥 Personal</b><div class="muted small" style="margin:4px 0 8px">Ahí das de alta a cada persona y eliges su puesto y permisos, turno, horario, sueldo y vacaciones.</div>
       <button class="btn pri pill full" onclick="PDV.per={sub:'equipo',fecha:pdvHoy()};ir('nomina')">👥 Abrir Personal</button></div>
@@ -13512,6 +13788,35 @@ async function estadoColab(equipoId, estado) {
   S._eq = await api('estadoColaborador', { equipoId, estado });
   toast(estado === 'quitado' ? 'Acceso quitado' : estado === 'pausado' ? 'Acceso en pausa' : 'Acceso reactivado'); pintar(true);
 }
+/* ---------- 2.83 · cuentas de equipo del negocio ---------- */
+async function dispCargar(nid, nom) {
+  const box = $('#disp_' + nid); if (!box || !box.tagName) return;
+  let l; try { l = await api('dispLista', { negocioId: nid }); } catch (e) { box.innerHTML = `<b>${esc(nom)}</b><div class="small muted">${esc(e.message)}</div>`; return; }
+  (S._disp = S._disp || {})[nid] = { l, nom };
+  box.innerHTML = `<b>${esc(nom)}</b>${l.map(x => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--ln);margin-top:6px">
+      <div style="min-width:0"><b>${DISP_TIPO[x.tipo][0]} ${esc(x.nombre)}</b><div class="small muted">${DISP_TIPO[x.tipo][1]} · ${x.conectado ? '🟢 conectado desde ' + fechaCorta(x.desde) : '⚪ sin conectar'}</div></div>
+      <span class="row" style="gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm pri" onclick="act(this,()=>dispConectar('${nid}','${x.id}'))">Conectar</button>${x.conectado ? `<button class="btn sm" onclick="act(this,()=>dispDesc('${nid}','${x.id}'))">Desconectar</button>` : ''}<button class="btn sm" onclick="dispForm('${nid}','${x.id}')" aria-label="Editar">✏️</button><button class="btn sm err" onclick="act(this,()=>dispQuitarP('${nid}','${x.id}'))" aria-label="Quitar">✕</button></span></div>`).join('')}
+    <button class="btn sm" style="margin-top:8px" onclick="dispForm('${nid}')">${ico('mas', 's')} Agregar equipo</button>`;
+}
+function dispForm(nid, id) {
+  const x = id ? S._disp[nid].l.find(y => y.id === id) : null;
+  S._dispT = x ? x.tipo : 'caja';
+  const pintarT = () => Object.keys(DISP_TIPO).map(k => `<div class="opcion ${S._dispT === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._dispT='${k}';$('#dispTipos').innerHTML=dispTiposHTML()"><span class="radio"></span><div class="grow"><b>${DISP_TIPO[k][0]} ${DISP_TIPO[k][1]}</b><small>${DISP_TIPO[k][2]}</small></div></div>`).join('');
+  window.dispTiposHTML = pintarT;
+  modal(`<div class="row between"><h2 style="margin:0">🖥️ ${x ? 'Editar equipo' : 'Nuevo equipo'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Nombre</label><input class="i" id="dispNom" maxlength="30" value="${esc(x ? x.nombre : '')}" placeholder="Ej. Caja 1, Cocina, Barra">
+    <label class="f">¿Para qué es?</label><div id="dispTipos">${pintarT()}</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{await api('dispGuardar',{negocioId:'${nid}',id:'${x ? x.id : ''}',nombre:$('#dispNom').value,tipo:S._dispT});cerrarModal();toast('Guardado ✓');dispCargar('${nid}',S._disp['${nid}'].nom)})">Guardar</button></div>`);
+}
+async function dispConectar(nid, id) {
+  const r = await api('dispCodigo', { negocioId: nid, id });
+  modal(`<div style="text-align:center"><div style="font-size:44px">${DISP_TIPO[r.tipo][0]}</div><h2 style="margin:4px 0">Conectar “${esc(r.nombre)}”</h2>
+    <div class="muted" style="margin:6px 0 12px">En la tableta o computadora: abre Pídele → <b>Entrar</b> → <b>🖥️ Entrar como equipo del negocio</b> y escribe:</div>
+    <div style="font-size:42px;font-weight:900;letter-spacing:10px">${r.codigo}</div><div class="small muted" style="margin-top:6px">Vale 10 minutos y una sola vez.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();dispCargar('${nid}',S._disp['${nid}'].nom)">Listo</button></div></div>`);
+}
+async function dispDesc(nid, id) { if (!confirm('¿Cerrar la sesión de este equipo? Tendrás que conectarlo de nuevo con un código.')) return; await api('dispDesconectar', { negocioId: nid, id }); toast('Desconectado'); dispCargar(nid, S._disp[nid].nom); }
+async function dispQuitarP(nid, id) { if (!confirm('¿Quitar este equipo? Se cierra su sesión.')) return; await api('dispQuitar', { negocioId: nid, id }); toast('Equipo quitado'); dispCargar(nid, S._disp[nid].nom); }
 function formSucursal() {
   const d = S._eq, P = planesCfg();
   modal(`<div class="row between"><h2 style="margin:0">Nuevo negocio o sucursal</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -13563,10 +13868,11 @@ function vPerfil() {
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${u.almacen ? `<div class="card row between" style="cursor:pointer" onclick="ir('almacen')"><div><b>🏬 Almacén</b><div class="muted small">Pedidos de las sucursales por surtir</div></div><span class="lnk small">Abrir ›</span></div>` : ''}
     ${tarjetaRepLigado()}
-    ${esStaff() && !u.ligado ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
-      : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🍔 Pedir comida</b><div class="muted small">Pide a otros negocios con esta misma cuenta</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
-    <div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Mis facturas</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
-    <div class="card row between" style="cursor:pointer" onclick="ir('monedero')"><div><b>👛 Mi monedero</b><div class="muted small">Tu saldo, cashback y código para pagar en los negocios con monedero</div></div><span class="lnk small">Abrir ›</span></div>
+    ${esStaff() && !u.ligado && !esDisp() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
+      : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🛍️ Pedir</b><div class="muted small">A cualquier negocio, también al tuyo (con tu monedero)</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
+    ${esDisp() ? `<div class="card"><b>🖥️ ${esc(u.nombre)}</b><div class="muted small">Equipo del negocio (${esc((DISP_TIPO[u.equipoTipo] || DISP_TIPO.caja)[1])}). La sesión se queda abierta; el dueño lo desconecta desde Mi equipo.</div></div>` : ''}
+    ${esDisp() ? '' : `<div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Mis facturas</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
+    <div class="card row between" style="cursor:pointer" onclick="ir('monedero')"><div><b>👛 Mi monedero</b><div class="muted small">Tu saldo, cashback y código para pagar en los negocios con monedero</div></div><span class="lnk small">Abrir ›</span></div>`}
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
       <div class="row" style="gap:8px"><button class="btn sm" style="flex:1" onclick="formAlta('negocio')">🏪 Registrar mi negocio</button>${u.repId ? '' : `<button class="btn sm" style="flex:1" onclick="act(this,formRep)">🛵 Quiero repartir</button>`}</div></div>` : ''}
     <div class="card"><b>Mis datos</b>
