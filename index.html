@@ -25,14 +25,15 @@
 <link rel="preconnect" href="https://lh3.googleusercontent.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet"></noscript>
 <!-- Mapas (Leaflet) y Firebase ya no frenan la primera pantalla: se cargan cuando hacen falta -->
 <script>
 /* 2.85 · Demo para negocios: con ?demo=… (o si esta pestaña ya está en demo) se carga la copia de simulación (demo.js) */
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.85.2"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.86.0"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -90,6 +91,7 @@ nav .navFab .fab i{position:absolute;top:-3px;right:-3px;width:20px;height:20px;
 nav .navFab:active .fab{transform:scale(.94)}
 /* iPhone: mientras el teclado está abierto se ocultan la barra de abajo y la del carrito (iOS las deja "flotando" a media pantalla) */
 body.teclado nav,body.teclado .barra{display:none!important}
+#actz{position:fixed;top:calc(6px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-60px);z-index:95;background:rgba(44,69,33,.92);color:#fff;font-size:12px;font-weight:800;padding:5px 12px;border-radius:99px;transition:transform .25s;pointer-events:none}#actz.on{transform:translate(-50%,0)}
 nav .badge,.badgeC{position:absolute;top:-4px;right:calc(50% - 22px);background:var(--pri);color:#fff;border:2px solid var(--card);border-radius:999px;font-size:10px;font-weight:800;min-width:19px;height:19px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 
 /* tipografía y bloques */
@@ -1034,7 +1036,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.85.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.86.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1044,6 +1046,9 @@ const APP_VER = '2.85.3'; // versión de esta pantalla (index.html); el servidor
     const tecladoAbierto = (vv && vv.height < window.innerHeight * 0.78) || (escribe() && window.matchMedia && matchMedia('(pointer:coarse)').matches);
     document.body.classList.toggle('teclado', !!tecladoAbierto);
   };
+  // 2.86: si la pantalla cambió con un campo enfocado (entrar, pedir, buscar…), el campo desaparece sin avisar y la barra de
+  // abajo se quedaba escondida hasta tocar otro campo. Se revisa al pintar cada pantalla.
+  window.revisarTeclado = () => { const e = document.activeElement; if (e && e !== document.body && !e.isConnected) { try { e.blur(); } catch (x) { } } setTimeout(revisar, 0); setTimeout(revisar, 450); setTimeout(revisar, 1300); }; // el teclado tarda en cerrarse: se vuelve a revisar
   if (vv) vv.addEventListener('resize', revisar);
   document.addEventListener('focusin', revisar);
   // al cerrar el teclado, iOS a veces deja la barra fija fuera de lugar: se vuelve a acomodar
@@ -1131,7 +1136,21 @@ function money(n) { n = Number(n) || 0; if (n < 0) return '−' + money(-n); ret
 function hora(ms) { return ms ? new Date(ms).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : ''; }
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + hora(ms) : ''; }
 function enMin(ms) { const m = Math.round((ms - Date.now()) / 60000); return m > 0 ? 'en ' + m + ' min' : m === 0 ? 'ahora' : 'hace ' + (-m) + ' min'; }
-function html(h) { $('#vista').innerHTML = barraChecar() + h; }
+/**
+ * 2.86 · Ahorro de datos: automático si el teléfono tiene "Ahorro de datos" o la conexión es 2G/muy lenta; también a mano
+ * (Perfil → 📶 Ahorro de datos). Fotos más chicas, mapas solo cuando se piden, sin carrusel y consultas más espaciadas.
+ */
+function ahorro() {
+  const m = ls('ahorro'); if (m === 1) return true; if (m === 0) return false;
+  const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
+}
+/** Fotos: se cargan hasta que se ven y, en ahorro de datos, a la mitad de tamaño. */
+function imgLigeras(h) {
+  h = String(h).replace(/<img (?![^>]*\bloading=)/g, '<img loading="lazy" decoding="async" ');
+  if (ahorro()) h = h.replace(/(drive\.google\.com\/thumbnail\?id=[^"'&\s]+&(?:amp;)?sz=w)(\d+)/g, (x, a, w) => a + Math.max(120, Math.round(w / 2)));
+  return h;
+}
+function html(h) { $('#vista').innerHTML = barraChecar() + imgLigeras(h); if (window.revisarTeclado) revisarTeclado(); }
 function iniciales(n) { return String(n || '?').split(' ').filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase(); }
 function estrellas(c, n) { return c ? `<span class="estrella">★</span> <b>${c}</b> <span class="muted small">(${n})</span>` : '<span class="tag t-pri">Nuevo</span>'; }
 function toast(msg, tipo) {
@@ -1146,7 +1165,7 @@ function toastIr(titulo, cuerpo, url) {
   t.onclick = () => { t.className = ''; t.onclick = null; abrirDesdeUrl(url); };
   clearTimeout(t._t); t._t = setTimeout(() => { t.className = ''; t.onclick = null; }, 7000);
 }
-function modal(h) { $('#modalCaja').innerHTML = h; $('#modal').classList.add('on'); }
+function modal(h) { $('#modalCaja').innerHTML = imgLigeras(h); $('#modal').classList.add('on'); }
 /** 2.43.2 · Tocar fuera de la ventana: solo cierra las que no tienen datos por escribir (para salir: Cancelar o ✕). */
 function modalFuera() {
   const c = $('#modalCaja');
@@ -1182,7 +1201,7 @@ async function api(accion, datos) {
 }
 async function apiBase(accion, datos) {
   if (API_URL.indexOf('PEGA_AQUI') === 0) throw new Error('Falta configurar API_URL en index.html');
-  const modo = esAdminU() && S.modoRep ? 'repartidor' : (esStaff() || esAdminU()) && S.modoCliente && accion !== 'sondeo' ? 'cliente' : '';
+  const modo = esAdminU() && S.modoRep ? 'repartidor' : (esStaff() || esAdminU()) && S.modoCliente && !['sondeo', 'arranque', 'yo'].includes(accion) ? 'cliente' : '';
   const real = () => apiDe(PUEBLO, accion, datos, S.token, true, modo);
   if (!API_RAPIDA.has(accion)) {
     const d = await real();
@@ -1191,20 +1210,21 @@ async function apiBase(accion, datos) {
   }
   // 2.37 · pantallas al instante: se pinta con lo último que se vio y se actualiza en segundo plano
   const k = [PUEBLO.id, S.user && S.user.id, S.negActivo, modo, accion, JSON.stringify(datos || {})].join('|'), c = API_CACHE.get(k);
-  if (c && S._deCache && Date.now() - c.t < 20 * 60e3) {
+  if (c && S._deCache && Date.now() - c.t < (c.guardado ? CACHE_DIA : 20 * 60e3)) {
     if (Date.now() - c.t > API_FRESCO && !c.p && navigator.onLine) {
-      const vista = S.vista, gen = API_GEN;
+      const vista = S.vista, gen = API_GEN, viejo = Date.now() - c.t > 60000;
+      if (viejo) avisoActualizando(true);
       c.p = real().then(d => {
         if (gen !== API_GEN) return;
         const j = JSON.stringify(d), cambio = j !== c.j;
-        API_CACHE.set(k, { j, t: Date.now() });
+        API_CACHE.set(k, { j, t: Date.now() }); cacheGuardar();
         if (cambio && S.vista === vista) repintarDeCache();
-      }).catch(() => { }).finally(() => { c.p = null; });
+      }).catch(() => { }).finally(() => { c.p = null; if (viejo) avisoActualizando(false); });
     }
     return JSON.parse(c.j);
   }
   const gen = API_GEN, d = await real();
-  if (gen === API_GEN) API_CACHE.set(k, { j: JSON.stringify(d), t: Date.now() });
+  if (gen === API_GEN) { API_CACHE.set(k, { j: JSON.stringify(d), t: Date.now() }); cacheGuardar(); }
   return d;
 }
 // lecturas que pintan una pantalla (se pueden mostrar guardadas mientras llega lo nuevo)
@@ -1216,8 +1236,34 @@ const API_LECTURA = new Set(['dispLista', 'higVer', 'higCurso', 'higExpediente',
   'miNegocio', 'misProductos', 'pedidosNegocio', 'panelNegocio', 'misPromos', 'miSuscripcion', 'adminCobros', 'adminVerificaciones', 'adminAlertas', 'disponibles', 'misEntregas', 'historialRepartidor', 'miPuntaje', 'directorioRepartidores', 'misGrupos', 'sondeo', 'primeraCompra',
   'adminResumen', 'adminUsuarios', 'adminPedidos', 'adminConfig', 'adminPromos', 'adminComisiones', 'adminInvitaciones', 'invitacion', 'adminEstadisticas', 'modAtencion', 'modRepartidores', 'avisoCiudad']);
 const API_CACHE = new Map(), API_FRESCO = 4000;
+/** 2.86 · Acciones que de verdad tardan (timbrar, reportes, PDF): esperan más antes de darse por perdidas. */
+const API_LENTAS = new Set(['facturaEmitir', 'facturasComprar', 'facturaCancelar', 'facturaArchivo', 'higExpediente', 'higArchivo', 'adminEstadisticas', 'nominaCalcular', 'pdvReporteApp', 'adminComisiones', 'importarCO', 'crearPedidos', 'login', 'registrar']);
 let API_GEN = 0;
-API_CACHE.clear = function () { API_GEN++; Map.prototype.clear.call(this); };
+API_CACHE.clear = function () { API_GEN++; Map.prototype.clear.call(this); cacheGuardar(); };
+/*
+ * 2.86 · Lo último que se vio de cada pantalla se guarda en el teléfono: al abrir la app se muestra al instante (aunque no haya
+ * señal) y se actualiza por detrás. Máximo ~1.2 MB, un día de antigüedad; se borra al cerrar sesión.
+ */
+const CACHE_LS = 'pe_apiCache', CACHE_MAX = 1200000, CACHE_DIA = 864e5;
+(function () { try { const o = JSON.parse(localStorage.getItem(CACHE_LS) || '{}'), t = Date.now(); Object.keys(o).forEach(k => { if (o[k] && t - o[k].t < CACHE_DIA) Map.prototype.set.call(API_CACHE, k, { j: o[k].j, t: o[k].t, guardado: 1 }); }); } catch (e) { } })();
+let _cacheT = null;
+function cacheGuardar() {
+  clearTimeout(_cacheT);
+  _cacheT = setTimeout(() => {
+    try {
+      const l = [...API_CACHE.entries()].filter(([, v]) => v && v.j && v.j.length < 300000).sort((a, b) => b[1].t - a[1].t);
+      const o = {}; let tam = 0;
+      for (const [k, v] of l) { if (tam + v.j.length > CACHE_MAX) break; o[k] = { j: v.j, t: v.t }; tam += v.j.length; }
+      if (S.token) localStorage.setItem(CACHE_LS, JSON.stringify(o)); else localStorage.removeItem(CACHE_LS);
+    } catch (e) { try { localStorage.removeItem(CACHE_LS); } catch (x) { } }
+  }, 1500);
+}
+/** Aviso chiquito arriba mientras se actualiza lo que se mostró de lo guardado. */
+function avisoActualizando(on) {
+  let e = document.getElementById('actz');
+  if (!e) { e = document.createElement('div'); e.id = 'actz'; e.textContent = '↻ Actualizando…'; document.body.appendChild(e); }
+  e.classList.toggle('on', !!on);
+}
 /** Llegó algo nuevo para la pantalla abierta: se vuelve a pintar (sin volver a pedirlo), salvo que estén escribiendo. */
 function repintarDeCache() {
   const foco = document.activeElement;
@@ -1233,19 +1279,27 @@ async function apiDe(pb, accion, datos, token, propio, modo) {
   const cuerpo = JSON.stringify(Object.assign({ accion, datos: datos || {}, token, rid }, modo ? { modo } : {}, propio && S.negActivo && S.user && S.user.rol === 'negocio' ? { neg: S.negActivo } : {}));
   let alt = false;
   try { alt = Number(localStorage.getItem('pe_rutaAlt')) > Date.now(); } catch (e) { }
+  // 2.86 · con mala señal, la llamada no se queda colgada: a los 15 s (más si es pesada) se corta y se intenta por la otra ruta.
+  // No se duplica nada: cada operación lleva su "rid" y el servidor no la repite.
+  const limite = cuerpo.length > 60000 ? 90000 : API_LENTAS.has(accion) ? 45000 : 15000;
   const intento = async url => {
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: cuerpo });
-    const t = await r.text();
-    try { return JSON.parse(t); } catch (e) { const er = new Error('NOJSON'); er.noLlego = true; throw er; }
+    const ctl = 'AbortController' in window ? new AbortController() : null, to = ctl ? setTimeout(() => ctl.abort(), limite) : null;
+    try {
+      const r = await fetch(url, Object.assign({ method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: cuerpo }, ctl ? { signal: ctl.signal } : {}));
+      const t = await r.text();
+      try { return JSON.parse(t); } catch (e) { const er = new Error('NOJSON'); er.noLlego = true; throw er; }
+    } catch (e) { if (e && e.name === 'AbortError') { const er = new Error('LENTO'); er.lento = true; throw er; } throw e; }
+    finally { if (to) clearTimeout(to); }
   };
   const recordar = v => { try { if (v) localStorage.setItem('pe_rutaAlt', Date.now() + 864e5); else localStorage.removeItem('pe_rutaAlt'); } catch (e) { } };
   let j;
   try {
     j = await intento(alt && ALT ? ALT : URL1);
   } catch (e1) {
-    if (!ALT) throw new Error(e1.noLlego ? 'El servidor no respondió bien. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.');
+    const msg = (a, b) => a.noLlego && (!b || b.noLlego) ? 'El servidor no respondió bien. Intenta de nuevo.' : (a.lento || (b && b.lento)) ? 'La señal está muy lenta y no hubo respuesta. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.';
+    if (!ALT) throw new Error(msg(e1));
     try { j = await intento(alt ? URL1 : ALT); recordar(!alt); }
-    catch (e2) { throw new Error(e1.noLlego && e2.noLlego ? 'El servidor no respondió bien. Intenta de nuevo.' : 'Sin conexión. Revisa tu internet.'); }
+    catch (e2) { throw new Error(msg(e1, e2)); }
   }
   if (!j.ok) {
     if (j.error === 'SESION' && propio) { salir(true); throw new Error('Tu sesión terminó, vuelve a entrar.'); }
@@ -1589,6 +1643,8 @@ function modoCliente(on) {
   S.modoRep = false; ls('modoRep', null); S.modoServicio = false; ls('modoServicio', null);
   S.firma = ''; pintarNav();
   ir(on ? 'inicio' : inicioRol());
+  // 2.86: al regresar a su panel, si le faltan su negocio u opciones, se recarga su sesión
+  if (!on && S.user && S.user.rol === 'negocio' && (!S.negocio || !(S.negocios || []).length)) refrescarSesionNeg(false).then(() => { pintarNav(); if (S.vista === 'perfil' || S.vista === inicioRol()) pintar(true); }).catch(() => { });
 }
 /** El administrador como repartidor: solo ve y entrega pedidos de muestra. */
 function modoRepartidor(on) {
@@ -1622,6 +1678,7 @@ function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
 // logo de Pídele (la campana de servir con líneas de velocidad), en trazo crema
 const LOGO_PIDELE = '<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="#F4EBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h8M6 23h7M8 28h5"/><path d="M15 33a12.5 12.5 0 0 1 25 0z"/><circle cx="27.5" cy="17.5" r="2"/><path d="M12 36h31"/></svg>';
 function pintarNav() {
+  if (window.revisarTeclado) revisarTeclado();
   const rol = rolActual();
   // barra superior verde solo para la operación; el cliente usa el diseño a pantalla completa
   const pantallaPropia = S.vista === 'cocina' || S.vista === 'caja';
@@ -1718,7 +1775,7 @@ async function arrancar() {
   quitarSplash();
   await S._catProm.catch(() => { });
   S._catProm = null;
-  enReposo(cargarLeaflet, 2500);
+  if (!ahorro()) enReposo(cargarLeaflet, 2500); // 2.86: en ahorro de datos el mapa se baja solo cuando una pantalla lo usa
 }
 
 function quitarSplash() {
@@ -1788,6 +1845,7 @@ function salir(silencioso) {
   if (!silencioso && EN_SECCION && !ls('loginLocal')) { const t = lsDe(PID, 'token'); if (t) apiDe(CIUDAD, 'salir', { token: t }, t).catch(() => { }); ['token', 'user', 'negocio', 'negocios', 'negActivo'].forEach(k => lsDe(PID, k, null)); }
   ls('loginLocal', null); ls('origen', null); S._loginLocal = false;
   ['token', 'user', 'negocio', 'entrega', 'modoCliente', 'modoRep', 'modoServicio'].forEach(k => ls(k, null));
+  try { localStorage.removeItem(CACHE_LS); } catch (e) { } Map.prototype.clear.call(API_CACHE);
   S.modoCliente = false; S.modoRep = false; S.modoServicio = false; S.token = null; S.user = null; S.negocio = null; S.negocios = []; S.negActivo = ''; S.invEquipo = []; ['negocios', 'negActivo', 'invEquipo', 'monCache'].forEach(k => ls(k, null)); S.firma = ''; S._yaAbrioEntregas = false; S.nuevos = 0; S.despues = null; S.entrega = null;
   clearTimeout(S._sondeo); S._genSondeo = (S._genSondeo || 0) + 1;
   if (S._gps && navigator.geolocation) { navigator.geolocation.clearWatch(S._gps); S._gps = null; }
@@ -2295,6 +2353,11 @@ async function descargarQR() {
  */
 const SONDEO_MS = { comprador: 60000, negocio: 30000, repartidor: 20000, admin: 30000 };
 function intervaloSondeo() {
+  // 2.86: tras fallas seguidas (mala señal) se espera el doble cada vez, hasta 2 min; en ahorro de datos, el doble
+  const f = Math.min(S._sondeoFallas || 0, 3), base = intervaloSondeo_();
+  return Math.min(Math.max(base * Math.pow(2, f) * (ahorro() && base >= 20000 ? 2 : 1), base), 120000);
+}
+function intervaloSondeo_() {
   const r = S.user ? rolActual() : '';
   // siguiendo un pedido que ya va en camino: más seguido para mover al repartidor en el mapa (los de muestra, casi en vivo)
   if (r === 'comprador' && S.vista === 'pedido' && S._trk && ['EN_CAMINO', 'LISTO', 'PREPARANDO'].includes(S._trk.estado)) return S._trk.muestra ? 4000 : 15000;
@@ -2314,6 +2377,7 @@ function iniciarSondeo() {
 }
 async function sondear(forzar) {
   if (!S.token || !S.user || (document.hidden && S.user.rol === 'comprador' && !forzar)) return;
+  if (!navigator.onLine && !forzar) return; // 2.86: sin internet no se intenta (se retoma solo al volver la señal)
   if (S._sondeando) return;
   S._sondeando = true;
   try {
@@ -2333,14 +2397,18 @@ async function sondear(forzar) {
     if (S.user.estado !== d.estado) { S.user.estado = d.estado; ls('user', S.user); }
     pintarNav();
     S.ticks++;
+    S._sondeoFallas = 0;
     // en el seguimiento se repinta en cada consulta (mueve al repartidor); en las demás, al haber cambios
-    const cada = S.vista === 'pedido' ? 1 : 4;
+    // (2.86: el repaso periódico es cada 8 consultas y nunca en ahorro de datos)
+    const cada = S.vista === 'pedido' ? 1 : ahorro() ? 1e9 : 8;
     if (S.auto && !$('#modal').classList.contains('on') && (cambio || forzar || S.ticks % cada === 0)) pintar(true);
     if (S.chat && forzar) cargarChat();
     if (S.vista === 'caja' && (cambio || forzar || masNuevos) && typeof pdvCargarApp === 'function') pdvCargarApp(); // 2.67.1: los pedidos de la app llegan a la caja
-  } catch (e) { } finally { S._sondeando = false; }
+  } catch (e) { S._sondeoFallas = (S._sondeoFallas || 0) + 1; } finally { S._sondeando = false; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) sondear(); });
+// 2.86: regresó la señal: se consulta de inmediato y la pantalla se pone al día
+window.addEventListener('online', () => { S._sondeoFallas = 0; if (S.token) { sondear(true); } });
 
 function iniciarGPS() {
   if (!navigator.geolocation || S._gps) return;
@@ -11786,7 +11854,7 @@ function prefCategorias() {
  */
 async function precargar() {
   if (!S._negs || !esCliente() || S._precargando) return;
-  if (navigator.connection && navigator.connection.saveData) return; // modo "ahorro de datos"
+  if (ahorro()) return; // 2.86: modo ahorro de datos (del teléfono o de Pídele)
   S._precargando = true;
   try {
     const top = S._negs.filter(n => n.abierto).sort((a, b) => puntaje(b) - puntaje(a)).slice(0, 6);
@@ -12330,6 +12398,7 @@ function iniciarCarrusel(l) {
   ['touchstart', 'pointerdown', 'wheel'].forEach(ev => f.addEventListener(ev, () => { pausa = Date.now(); }, { passive: true }));
   // cada anuncio se queda los segundos de su plan (Ajustes → Planes)
   let prox = Date.now() + (l[0].segundos || 5) * 1000;
+  if (ahorro()) return; // 2.86: en ahorro de datos el anuncio no rota (no baja las demás imágenes)
   S._carrusel = setInterval(() => {
     if (!document.body.contains(f)) { clearInterval(S._carrusel); return; }
     if (document.hidden || Date.now() - pausa < 8000 || Date.now() < prox) return;
@@ -13969,6 +14038,8 @@ function vPerfil() {
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
     <div class="card">
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
+      <div class="row between" style="gap:8px;margin-bottom:10px"><div class="grow"><b>📶 Ahorro de datos</b><div class="muted small">${ahorro() ? 'Activo: fotos chicas, mapas solo cuando los abres y menos consultas.' : 'Para gastar menos datos o con mala señal.'}</div></div>
+        <select class="i" style="width:auto" onchange="ls('ahorro', this.value === 'auto' ? null : Number(this.value)); toast(ahorro() ? 'Ahorro de datos activo 📶' : 'Ahorro de datos apagado'); vPerfil()">${[['auto', 'Automático'], ['1', 'Siempre'], ['0', 'Nunca']].map(([v, t]) => `<option value="${v}" ${String(ls('ahorro') == null ? 'auto' : ls('ahorro')) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
       ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
       <button class="btn ${r === 'negocio' ? '' : 'pri'} full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>

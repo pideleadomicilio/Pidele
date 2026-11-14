@@ -1,5 +1,6 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v2.85.3';
+const VERSION = 'pidele-v2.86.0';
+const LIBS = 'pidele-libs-1'; // 2.86: librerías y letra en su propia caché: no se vuelven a bajar con cada versión
 const COMPARTIDO = 'pidele-compartido'; // comprobante que llega desde "Compartir" de otra app
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
 
@@ -39,14 +40,14 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== COMPARTIDO).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== COMPARTIDO && k !== LIBS).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
 /*
  * - Archivos de la app: se responden AL INSTANTE desde la caché y se actualizan por detrás
  *   (antes se esperaba a la red, lo que hacía lenta la apertura con mala señal).
- * - Librerías con versión fija (mapas, Firebase): caché primero, nunca cambian.
+ * - Librerías con versión fija (mapas, Firebase) y la letra: caché primero, nunca cambian.
  * - Servidor, mapas (teselas), imágenes de Drive: siempre a la red.
  */
 self.addEventListener('fetch', e => {
@@ -68,10 +69,10 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const u = new URL(e.request.url);
   const propio = u.origin === self.location.origin;
-  const libreria = u.hostname === 'cdnjs.cloudflare.com' || (u.hostname === 'www.gstatic.com' && u.pathname.startsWith('/firebasejs/'));
+  const libreria = u.hostname === 'cdnjs.cloudflare.com' || (u.hostname === 'www.gstatic.com' && u.pathname.startsWith('/firebasejs/')) || u.hostname === 'fonts.googleapis.com' || u.hostname === 'fonts.gstatic.com'; // 2.86: la letra también se queda guardada
   if (libreria) {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      if (res.ok) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
+      if (res.ok) { const copia = res.clone(); caches.open(LIBS).then(c => c.put(e.request, copia)); }
       return res;
     })));
     return;
