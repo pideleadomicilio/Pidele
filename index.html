@@ -32,7 +32,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.85.1"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.85.2"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -506,6 +506,8 @@ body.enCaja{padding-bottom:0}
 .pdvMesa b{font-size:16px}.pdvMesa span{font-weight:800;color:var(--tx2);font-size:13.5px}.pdvMesa small{font-size:12px;color:var(--tx2)}
 .pdvMesa.ocupada{border:2px solid var(--pri);background:#EAF2E3}.pdvMesa.ocupada span{color:var(--pri)}
 .pdvMesa.vieja{border-color:#D98A1B;background:#FFF3DF}
+.pdvMesa.otroDia{border:2px solid var(--err);background:#FDECEA}.pdvMesa.otroDia small{color:var(--err);font-weight:700}
+.pdvDiaTag{position:absolute;top:8px;right:8px;font-size:11px;font-weight:800;background:var(--err);color:#fff;border-radius:99px;padding:2px 8px}
 .pdvListo{position:absolute;top:6px;right:8px;font-size:18px}
 .pdvRonda{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0 2px;font-size:13px;font-weight:900;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
 .pdvRonda.nueva{color:var(--pri)}
@@ -1032,7 +1034,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.85.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.85.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -3524,8 +3526,28 @@ function facTarjeta(f, negocio) {
       <span class="tag ${e[0]}">${e[1]}</span></div>
     ${f.estado === 'rechazada' && f.motivo ? `<div class="aviso err small" style="margin:6px 0 0">${esc(f.motivo)}</div>` : ''}
     ${f.error && f.estado === 'pendiente' ? `<div class="aviso err small" style="margin:6px 0 0">Último intento: ${esc(f.error)}</div>` : ''}
+    ${negocio ? '' : facEnviosHTML(f)}
     ${f.estado === 'emitida' ? `<div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" onclick="act(this,()=>facDescargar('${f.id}','pdf'))">📄 PDF</button><button class="btn sm" onclick="act(this,()=>facDescargar('${f.id}','xml'))">🗂️ XML</button></div>` : ''}
     ${f.acciones || ''}</div>`;
+}
+/** 2.85.2 · Último envío por correo de la factura: a quién (cliente y copia al negocio), cuándo y si falló. */
+function facEnviosHTML(f) {
+  const l = f.envios || []; if (f.estado !== 'emitida') return '';
+  if (!l.length) return (f.receptor || {}).email ? '' : '<div class="small muted" style="margin-top:4px">📧 Sin correo del cliente: mándala por WhatsApp o reenvíala con su correo.</div>';
+  const ult = l[l.length - 1].ts, ronda = l.filter(x => x.ts === ult);
+  return `<div class="small" style="margin-top:4px">${ronda.map(x => `<div style="color:${x.ok ? 'var(--ok)' : 'var(--err)'}">${x.ok ? '📧' : '⚠️'} ${x.tipo === 'copia' ? 'Copia al negocio' : 'Cliente'}: ${esc(x.a)}${x.ok ? '' : ' · no se pudo mandar' + (x.err ? ' (' + esc(x.err) + ')' : '')}</div>`).join('')}<span class="muted">${fechaCorta(ult)} ${hora(ult)}${l.length > ronda.length ? ' · reenviada' : ''}</span></div>`;
+}
+function facReenviarForm(id) {
+  const f = ((S._facNeg || {}).recientes || []).find(x => x.id === id) || {}, c = (S._facNeg || {}).config || {};
+  modal(`<h2 style="margin:0 0 4px">📧 Reenviar factura ${esc((f.serie || '') + (f.folio || ''))}</h2>
+    <div class="muted small">${esc((f.receptor || {}).nombre || '')} · ${money(f.total)}</div>
+    <label class="f">Correo del cliente</label><input class="i" id="frMail" type="email" value="${esc((f.receptor || {}).email || '')}" placeholder="cliente@correo.com">
+    <div class="small muted" style="margin-top:4px">${c.email ? 'Se manda con copia a <b>' + esc(c.email) + '</b>.' : 'Sin copia: el negocio aún no pone su correo en los datos fiscales.'} Si el cliente no la ve, que revise Spam o Promociones.</div>
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,()=>facReenviar('${id}'))">Reenviar</button></div>`);
+}
+async function facReenviar(id) {
+  await api('facturaReenviar', { negocioId: S.negocio.id, facturaId: id, email: $('#frMail').value.trim() });
+  cerrarModal(); toast('Factura reenviada ✓'); S._facBox = null; await facPintar();
 }
 async function facDescargar(id, fmt) {
   const r = await api('facturaArchivo', { facturaId: id, formato: fmt });
@@ -3652,6 +3674,7 @@ async function facPintar() {
     ${c.enPlan === false ? `<div class="card" style="text-align:center;border:2px solid var(--pri)"><div style="font-size:40px">📄</div><b>La facturación viene en el plan ${esc(planesCon('factura') || 'Total')}</b>
       <div class="muted small" style="margin:4px 0 8px">Tu plan actual (${esc(c.planNombre || '')}) no incluye facturación. Puedes dejar listos tus datos fiscales y tus sellos; podrás facturar al cambiar de plan.</div>
       ${dueno ? `<button class="btn pri pill" onclick="ir('suscripcion')">Ver planes</button>` : ''}</div>` : ''}
+    ${c.listo && !c.email ? `<div class="aviso warn small">📧 Pon el <b>correo del negocio</b> en tus datos fiscales para recibir copia de cada factura que se manda a tus clientes.${dueno ? ' <button class="lnk small" onclick="facFormConfig()">Ponerlo</button>' : ''}</div>` : ''}
     <div class="card">${c.listo ? `<div class="row between"><div class="grow"><b>${esc(c.nombre)}</b><div class="muted small">${esc(c.rfc)} · CP ${esc(c.cp)} · ${esc(facRegimenTxt(c.regimen))}</div>
         <div class="muted small">Siguiente folio ${esc(c.serie)}${c.folio} · IVA ${c.iva}% · ${c.concepto === 'consumo' ? 'concepto “Consumo”' : 'conceptos detallados'}</div>
         ${c.logoNota ? `<div class="muted small">🖼️ ${esc(c.logoNota)}</div>` : ''}
@@ -3661,7 +3684,7 @@ async function facPintar() {
     ${c.listo ? facCuotaHTML(c, dueno) : ''}
     ${c.listo ? `<h3>Solicitudes de clientes ${d.pendientes.length ? '(' + d.pendientes.length + ')' : ''}</h3>
       ${d.pendientes.length ? d.pendientes.map(f => facTarjeta(Object.assign({}, f, { acciones: `<div class="row" style="gap:8px;margin-top:8px"><button class="btn pri sm" style="flex:1" onclick="facFormEmitir('${f.id}')">Revisar y emitir</button><button class="btn err sm" onclick="facFormRechazar('${f.id}')">No procede</button></div>` }))).join('') : '<div class="muted small">No hay solicitudes pendientes. También puedes facturar directo desde una venta en la caja (Ventas → toca la venta → 🧾 Facturar).</div>'}
-      ${d.recientes.length ? `<h3>Facturas recientes</h3>${d.recientes.map(f => facTarjeta(Object.assign({}, f, { acciones: f.estado === 'emitida' ? `<div class="row" style="gap:8px;margin-top:8px;align-items:center"><button class="btn sm ok" onclick="act(this,()=>facWhatsApp('${f.id}','${esc(f.tel || '')}','${esc((f.serie || '') + (f.folio || ''))}'))">📲 Mandar por WhatsApp (PDF y XML)</button>${dueno || (S.negocio.permisos || []).includes('gerente') ? `<button class="lnk small" style="color:var(--err)" onclick="facFormCancelar('${f.id}')">Cancelar factura</button>` : ''}</div>` : '' }))).join('')}` : ''}` : ''}`;
+      ${d.recientes.length ? `<h3>Facturas recientes</h3>${d.recientes.map(f => facTarjeta(Object.assign({}, f, { acciones: f.estado === 'emitida' ? `<div class="row" style="gap:8px;margin-top:8px;align-items:center"><button class="btn sm ok" onclick="act(this,()=>facWhatsApp('${f.id}','${esc(f.tel || '')}','${esc((f.serie || '') + (f.folio || ''))}'))">📲 WhatsApp (PDF y XML)</button><button class="btn sm" onclick="facReenviarForm('${f.id}')">📧 Reenviar por correo</button>${dueno || (S.negocio.permisos || []).includes('gerente') ? `<button class="lnk small" style="color:var(--err)" onclick="facFormCancelar('${f.id}')">Cancelar factura</button>` : ''}</div>` : '' }))).join('')}` : ''}` : ''}`;
   S._facBox = { nid: S.negocio.id, h: box.innerHTML, t: Date.now() };
   if (S.vista === 'caja' && PDV.tab !== 'facturas') pintarCaja();
 }
@@ -3690,13 +3713,13 @@ function facFormConfig() {
     <label class="f">Nombre o razón social</label><input class="i" id="fnNom" value="${esc(c.nombre)}" style="text-transform:uppercase" placeholder="Sin “S.A. de C.V.” si tu constancia no lo trae">
     <label class="f">Régimen fiscal</label><select class="i" id="fnReg">${facOpciones(c.regimenes, c.regimen)}</select>
     <label class="f">Código postal (lugar de expedición)</label><input class="i" id="fnCp" value="${esc(c.cp)}" inputmode="numeric" maxlength="5">
+    <label class="f">📧 Correo del negocio</label><input class="i" id="fnMail" type="email" value="${esc(c.email)}" placeholder="facturas@tunegocio.com"><div class="muted small">Te llega una copia de cada factura que se le manda a tus clientes. Así sabes que sí salió y la puedes reenviar.</div>
     <div class="row" style="gap:8px"><div class="grow"><label class="f">Serie</label><input class="i" id="fnSer" value="${esc(c.serie)}" maxlength="10"></div><div class="grow"><label class="f">Siguiente folio</label><input class="i" id="fnFol" value="${c.folio}" inputmode="numeric"></div></div>
     <label class="f">IVA que cobras</label><select class="i" id="fnIva">${[16, 8, 0].map(x => `<option value="${x}" ${c.iva === x ? 'selected' : ''}>${x}%${x === 8 ? ' (región fronteriza)' : x === 0 ? ' (tasa 0)' : ''}</option>`).join('')}</select>
     <label class="f">Conceptos (lo que se propone; se puede cambiar en cada factura)</label><select class="i" id="fnCon"><option value="detalle" ${c.concepto !== 'consumo' ? 'selected' : ''}>Cada producto vendido</option><option value="consumo" ${c.concepto === 'consumo' ? 'selected' : ''}>Un solo concepto: “Consumo de alimentos y bebidas”</option></select>
     <details style="margin-top:8px"><summary class="small">Claves del SAT (avanzado)</summary>
       <label class="f">Clave de producto o servicio</label><input class="i" id="fnCla" value="${esc(c.clave)}" inputmode="numeric" maxlength="8"><div class="muted small">90101500 = Establecimientos para comer y beber.</div>
-      <div class="row" style="gap:8px"><div class="grow"><label class="f">Clave de unidad</label><input class="i" id="fnUni" value="${esc(c.unidad)}" maxlength="3"></div><div class="grow"><label class="f">Unidad</label><input class="i" id="fnUnT" value="${esc(c.unidadTxt)}"></div></div>
-      <label class="f">Correo del negocio (copia de cada factura)</label><input class="i" id="fnMail" type="email" value="${esc(c.email)}"></details>
+      <div class="row" style="gap:8px"><div class="grow"><label class="f">Clave de unidad</label><input class="i" id="fnUni" value="${esc(c.unidad)}" maxlength="3"></div><div class="grow"><label class="f">Unidad</label><input class="i" id="fnUnT" value="${esc(c.unidadTxt)}"></div></div></details>
     <hr class="hr"><b>Imagen en la factura</b><div class="muted small">Aparece en el PDF que recibe tu cliente.</div>
     <select class="i" id="fnLogo" onchange="facLogoCambio()" style="margin-top:6px">
       <option value="negocio" ${c.logo === 'negocio' ? 'selected' : ''} ${c.tieneLogoNeg ? '' : 'disabled'}>El logo de mi negocio${c.tieneLogoNeg ? '' : ' (aún no subes uno)'}</option>
@@ -4969,16 +4992,34 @@ function pdvVistaActivas() {
     const cs = porMesa[m] || [];
     if (!cs.length) return `<button class="pdvMesa" onclick="pdvNuevaCuenta(${esc(JSON.stringify(m))})"><b>${esc(m)}</b><span>Libre</span></button>`;
     const total = pdvR(cs.reduce((s, c) => s + pdvSaldo(c), 0)), desde = Math.min(...cs.map(c => c.ts)), lista = cs.some(c => listas.has(c.id));
-    const vieja = cs.some(c => ahora - Math.max(c.ts, c.revisado || 0) > PDV_2H);
-    return `<button class="pdvMesa ocupada ${vieja ? 'vieja' : ''}" onclick="pdvAbrirMesa(${esc(JSON.stringify(m))})">${lista ? '<span class="pdvListo">📦</span>' : ''}<b>${esc(m)}</b>
-      <span>${money(total)}${cs.length > 1 ? ' · ' + cs.length + ' cuentas' : ''}</span><small>${Math.round((ahora - desde) / 60000)} min · ${esc(cs[0].mesero.nombre.split(' ')[0])}</small></button>`;
+    const vieja = cs.some(c => ahora - Math.max(c.ts, c.revisado || 0) > PDV_2H), otro = cs.find(c => c.dia !== pdvHoy());
+    return `<button class="pdvMesa ocupada ${otro ? 'otroDia' : vieja ? 'vieja' : ''}" onclick="pdvAbrirMesa(${esc(JSON.stringify(m))})">${otro ? `<span class="pdvDiaTag">📅 ${esc(pdvDiaCorto(otro.dia))}</span>` : lista ? '<span class="pdvListo">📦</span>' : ''}<b>${esc(m)}</b>
+      <span>${money(total)}${cs.length > 1 ? ' · ' + cs.length + ' cuentas' : ''}</span><small>${otro ? 'Abierta desde ' + esc(pdvDiaCorto(otro.dia)) + ' ' + hora(otro.ts) : Math.round((ahora - desde) / 60000) + ' min'} · ${esc(cs[0].mesero.nombre.split(' ')[0])}</small></button>`;
   };
   const sueltas = abiertas.filter(c => !c.mesa).sort((a, b) => a.ts - b.ts);
   pdvAppAsegurar(8000);
   return `${pdvBarraPedidos()}${pdvVistaPorEntregar()}${pdvVistaApp()}<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'llevar')">🥡 Para llevar</button><button class="btn pill" style="flex:1" onclick="pdvNuevaCuenta('', 'libre')">➕ Cuenta sin mesa</button></div>
     <div class="pdvMesas">${lista.map(tile).join('')}</div>
     ${sueltas.length ? `<h3>📋 Pedidos activos (para llevar y sin mesa)</h3>${sueltas.map(c => `<div class="card row between" style="cursor:pointer" onclick="pdvIrCuenta('${c.id}')"><div><b>${esc(pdvEtiqueta(c))}</b>${listas.has(c.id) ? ' <span class="tag t-ok">📦 Listo</span>' : ''}<div class="small muted">${esc(c.folio)} · ${c.dia !== pdvHoy() ? '<b style="color:var(--err)">📅 ' + esc(fechaCorta(c.ts)) + '</b>' : hora(c.ts)} · ${esc(c.mesero.nombre.split(' ')[0])}</div></div><b>${money(pdvSaldo(c))}</b></div>`).join('')}` : ''}
-    ${abiertas.some(c => c.dia !== pdvHoy()) ? '<div class="aviso warn small" style="margin-top:8px">📅 Hay cuentas abiertas de otro día. Ábrelas para cobrarlas, o en ⋯ → <b>Cancelar cuenta completa</b> si ya no se van a cobrar.</div>' : ''}`;
+    ${abiertas.some(c => c.dia !== pdvHoy()) ? `<button class="aviso warn small" style="margin-top:8px;width:100%;text-align:left;border:0;cursor:pointer;font:inherit" onclick="pdvCuentasViejas()">📅 Hay ${abiertas.filter(c => c.dia !== pdvHoy()).length === 1 ? 'una cuenta abierta' : abiertas.filter(c => c.dia !== pdvHoy()).length + ' cuentas abiertas'} de otro día (marcadas en rojo). <b>Toca aquí para verlas</b> y cobrarlas o cancelarlas.</button>` : ''}`;
+}
+/** 2.85.3 · "Ayer", "mar 11 nov"… para las cuentas que se quedaron abiertas de otro día. */
+function pdvDiaCorto(dia) {
+  const ay = new Date(); ay.setDate(ay.getDate() - 1);
+  const f = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  if (dia === f(ay)) return 'ayer';
+  const [y, m, d] = String(dia).split('-').map(Number); if (!y) return dia;
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+/** Lista de las cuentas de otro día, con su total y los botones para cobrar o cancelar. */
+function pdvCuentasViejas() {
+  const l = PDV.cuentas.filter(c => c.dia !== pdvHoy()).sort((a, b) => a.ts - b.ts);
+  if (!l.length) { toast('Ya no hay cuentas de otro día ✓'); return; }
+  modal(`<div class="row between"><h2 style="margin:0">📅 Cuentas de otro día</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">Se quedaron abiertas. Cóbralas si el cliente sí pagó, o cancélalas si ya no se van a cobrar (pide el código de un gerente o del dueño).</div>
+    ${l.map(c => `<div class="card"><div class="row between"><b>${esc(pdvEtiqueta(c))}</b><b>${money(pdvSaldo(c))}</b></div>
+      <div class="small muted">${esc(c.folio || '')} · abierta ${esc(pdvDiaCorto(c.dia))} a las ${hora(c.ts)} · ${esc(((c.mesero || c.por || {}).nombre || '').split(' ')[0])} · ${(c.items || []).length} producto(s)</div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn pri sm" style="flex:1" onclick="cerrarModal();pdvIrCuenta('${c.id}')">Abrir y cobrar</button>${pdvPuede('dcmg') ? `<button class="btn err sm" onclick="act(this,()=>pdvCancelarCuenta('${c.id}'))">Cancelar</button>` : ''}</div></div>`).join('')}`);
 }
 /* ============ 2.62 · PEDIDOS DE LA APP Y POR TELÉFONO: una cuenta más en caja ============ */
 const APP_EST = { PROGRAMADO: ['🗓️ Programado', 't-info'], NUEVO: ['📥 Por aceptar', 't-warn'], POR_PAGAR: ['💳 Esperando pago', 't-warn'], PAGO_ENVIADO: ['🏦 Revisar pago', 't-warn'], PREPARANDO: ['👩‍🍳 Preparando', ''], LISTO: ['📦 Listo', 't-ok'], EN_CAMINO: ['🛵 Con repartidor', 't-ok'], ENTREGADO: ['✅ Entregado', 't-ok'] };
@@ -13928,7 +13969,8 @@ function vPerfil() {
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
     <div class="card">
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
-      <button class="btn pri full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
+      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
+      <button class="btn ${r === 'negocio' ? '' : 'pri'} full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
       ${estadoPushTexto() ? `<div class="muted small" style="margin-bottom:8px">${estadoPushTexto()}</div>` : ''}
