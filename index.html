@@ -33,7 +33,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.86.0"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.87.0"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -841,6 +841,8 @@ function cambiarPueblo(id, query) {
  * - Los administradores se cambian libres desde su panel.
  */
 const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('pe_' + k); if (v === null) localStorage.removeItem('pe_' + k); else localStorage.setItem('pe_' + k, String(v)); } catch (e) { return null; } };
+// 2.86.1: si este equipo ya tuvo una sesión (o ya tiene datos de Pídele), no es "primera vez"
+try { if (!lsG('yaEntro') && Object.keys(localStorage).some(k => /(^|_)(token|user)$/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== 'null')) lsG('yaEntro', 1); } catch (e) { }
 /**
  * ¿Se abrió desde la app de Android de Google Play? Ahí la suscripción se paga con Google Play y no se muestran transferencias.
  * Se recuerda en el teléfono. Para probar en el navegador: pidele.app/?modo=play (y ?modo=web para volver).
@@ -1036,7 +1038,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.86.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.87.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1304,7 +1306,8 @@ async function apiDe(pb, accion, datos, token, propio, modo) {
   if (!j.ok) {
     if (j.error === 'SESION' && propio) { salir(true); throw new Error('Tu sesión terminó, vuelve a entrar.'); }
     if (j.error === 'BLOQUEADO' && propio) { vBloqueado(); throw new Error('Cuenta suspendida'); }
-    throw new Error(j.error);
+    const er = new Error(String(j.error || '').replace(/^SINCUENTA\|/, '')); if (/^SINCUENTA\|/.test(j.error || '')) er.sinCuenta = true; // 2.86.1
+    throw er;
   }
   return j.data;
 }
@@ -1479,6 +1482,7 @@ const NAV = {
 };
 function navRol() {
   const r = rolActual();
+  if (r === 'invitado' && !lsG('yaEntro')) return NAV.invitado.map(x => x[0] === 'entrar' ? ['entrar', 'user', 'Crear cuenta'] : x); // 2.86.1: equipo nuevo
   let l = NAV[r === 'admin' && S.user && S.user.local ? (S.user.ciudad ? 'adminCiudad' : 'adminLocal') : r] || [];
   // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
   if (r === 'negocio') {
@@ -1813,6 +1817,7 @@ async function refrescarArranque() {
 }
 
 function guardarSesion(d) {
+  lsG('yaEntro', 1); // 2.86.1
   S.token = d.token; S.user = d.usuario; S.conf = d.config; S.modoCliente = false; ls('modoCliente', null); S.modoRep = false; ls('modoRep', null);
   ls('token', S.token); ls('user', S.user); ls('conf', S.conf); fijarSesionNeg(d);
   history.replaceState(null, '');
@@ -1860,18 +1865,30 @@ function vLogin() {
   // mientras escribe su teléfono, se deja lista la pantalla principal
   if (!S._negs) cargarCatalogo().catch(() => { });
   else enReposo(precargar, 300);
+  // 2.86.1: en un equipo donde nunca han entrado, primero se invita a crear la cuenta (y "Entrar" queda abajo, más chico)
+  const nuevo = !lsG('yaEntro') && !S._loginAbierto; S._loginAbierto = false;
   html(`<div class="entrar">
     <button class="redondo" onclick="ir('inicio')" aria-label="Volver">${ico('atras')}</button>
-    <div class="marca"><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
+    <div class="marca"${nuevo ? ' style="margin-bottom:10px"' : ''}><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
     ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}${esAdminU() ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : explorando() ? '<button class="lnk small" onclick="elegirCiudadExplora()">¿Tu cuenta es de otra ciudad?</button>' : ''}</div>` : ''}
-    <div class="card">
+    ${nuevo ? `<div class="card" id="invCuenta" style="border:2px solid var(--pri)">
+      <h2 style="margin:0 0 2px;text-align:center">¿Primera vez en Pídele?</h2>
+      <div class="muted" style="text-align:center;margin-bottom:12px">Crea tu cuenta gratis, en 1 minuto</div>
+      <div class="btns" style="flex-direction:column;gap:8px">
+        <button class="btn pri pill full" onclick="vRegistro('comprador')">🛍️ Para pedir</button>
+        <button class="btn pill full" onclick="vRegistro('negocio')">🏪 Tengo un negocio</button>
+        <button class="btn pill full" onclick="quieroRepartir()">🛵 Quiero repartir</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin:4px 0 10px" id="yaTengo"><span class="muted">¿Ya tienes cuenta?</span> <button class="lnk b" onclick="abrirLogin()">Entrar</button></div>` : ''}
+    <div class="card" id="cajaLogin"${nuevo ? ' style="display:none"' : ''}>
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
       <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
       <div style="text-align:center;margin-top:10px"><button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button></div>
     </div>
     <div class="card row between" style="cursor:pointer" onclick="dispEntrarModal()"><div><b>🖥️ Entrar como equipo del negocio</b><div class="muted small">Caja, cocina, mesas o barra: con el código que te da el dueño</div></div><span class="lnk small">›</span></div>
-    <div class="vacio" style="padding:10px">¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button><br><br>
+    <div class="vacio" style="padding:10px">${nuevo ? '' : `¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button><br><br>`}
       <button class="lnk" onclick="ir('inicio')">Ver negocios sin cuenta</button></div>
   </div>`);
 }
@@ -1888,9 +1905,35 @@ async function dispEntrarCod() {
   const d = await api('dispEntrar', { codigo: $('#dispCod').value, aparato: aparatoId() });
   cerrarModal(); guardarSesion(d); toast('Equipo conectado: ' + d.usuario.nombre + ' ✓');
 }
+/** 2.86.1 · Muestra los campos de "Entrar" (en un equipo nuevo empiezan escondidos). */
+function abrirLogin() {
+  const c = $('#cajaLogin'); if (!c) return; c.style.display = '';
+  const y = $('#yaTengo'); if (y) y.style.display = 'none';
+  const t = $('#lTel'); if (t) t.focus();
+}
+/** 2.86.1 · Repartir: se crea la cuenta normal y desde el perfil se solicita (o entra con la invitación del negocio). */
+function quieroRepartir() {
+  vRegistro('comprador');
+  const c = document.querySelector('.entrar .card');
+  if (c) c.insertAdjacentHTML('beforebegin', '<div class="aviso info small">🛵 Primero crea tu cuenta. Después, en tu <b>Perfil</b>, toca <b>Quiero repartir</b> para enviar tu solicitud. Si un negocio te invitó, abre el link de su invitación.</div>');
+}
+/** 2.86.1 · Ese teléfono no tiene cuenta: se ofrece crearla con ese número. */
+function sinCuentaModal(tel, titulo) {
+  tel = String(tel || '').replace(/\D/g, '').slice(-10);
+  modal(`<div class="row between"><h2 style="margin:0">${titulo || 'Ese teléfono todavía no tiene cuenta'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <p class="muted">${tel ? 'El número <b>' + esc(tel) + '</b> todavía no tiene cuenta en Pídele.' : 'Ese teléfono todavía no tiene cuenta en Pídele.'} Créala gratis en un minuto; no necesitas una contraseña de nadie, tú eliges la tuya.</p>
+    <div class="btns" style="flex-direction:column;gap:8px"><button class="btn pri pill full" onclick="cerrarModal();crearConTel('${esc(tel)}')">Crear mi cuenta con este número</button>
+    <button class="btn pill full" onclick="cerrarModal();const t=$('#lTel');if(t)t.focus()">Revisar el número</button></div>`);
+}
+function crearConTel(tel) {
+  vRegistro('comprador');
+  setTimeout(() => { const t = $('#rTel'); if (t && tel) t.value = tel; const n = $('#rNom'); if (n) n.focus(); }, 60);
+}
 async function entrar() {
   const pass = $('#lPass').value;
-  const d = await api('login', { telefono: $('#lTel').value, pass, aparato: aparatoId() });
+  let d;
+  try { d = await api('login', { telefono: $('#lTel').value, pass, aparato: aparatoId() }); }
+  catch (e) { if (e.sinCuenta) { sinCuentaModal($('#lTel').value); return; } throw e; }
   if (d.usuario.cambiarPass) S._claveTemp = pass;
   guardarSesion(d);
 }
@@ -1900,9 +1943,12 @@ const PLAN_ICO = { donado: '🎁', basico: '📱', plus: '🧾', pro: '🚀', ul
 const PLANES_PAGO = ['basico', 'plus', 'pro', 'ultra'];
 const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Punto de venta', pro: 'Pro (anterior)', ultra: 'Total', completo: 'Punto de venta', '': 'Punto de venta' };
 /** 2.81: los planes que se ofrecen hoy. */
-const planesOferta = () => (S.conf && S.conf.planesOferta) || ['basico', 'plus', 'ultra'];
+const planesOferta = () => (S.conf && S.conf.planesOferta) || ['plus', 'ultra']; // 2.87: Punto de venta y Total (la app es el módulo "Pídele en línea")
 /** 2.47: qué trae cada plan (lo marca el administrador en Ajustes → Planes). k: caja | fidelidad | factura */
-const PLAN_DEF_FUN = { plus: { caja: 1 }, pro: { caja: 1, fidelidad: 1, personal: 1 }, ultra: { caja: 1, fidelidad: 1, factura: 1, facturasMes: 50, personal: 1, inventario: 1, operacion: 1 } };
+const PLAN_DEF_FUN = { donado: { app: 1 }, basico: { app: 1 }, plus: { caja: 1 }, pro: { app: 1, caja: 1, fidelidad: 1, personal: 1 }, ultra: { app: 1, caja: 1, fidelidad: 1, personal: 1, inventario: 1, operacion: 1 } };
+/** 2.87 · Lo que trae el plan base y el módulo para estar en la app. */
+const TXT_PDV = 'Punto de venta completo: caja, mesas y meseros, pantallas de cocina y barra, pedidos por teléfono para llevar o a domicilio con tus repartidores, registro de clientes, cortes y reportes.';
+const TXT_EN_LINEA = 'Apareces en la app de Pídele y recibes pedidos en línea: tu menú digital con fotos, link y QR para compartir, a domicilio y para recoger.';
 /** 2.67.2 · todos los negocios del dueño traen caja (entonces su equipo se maneja en 👥 Personal). */
 const equipoEnPersonal = l => { l = (l || S.negocios || []).filter(n => n.dueno !== false); return !!l.length && modOn('personal') && l.every(n => planTiene('caja', n.plan) && (n.id !== (S.negocio || {}).id || modOn('caja'))); };
 /* 2.68 · MÓDULOS: el dueño prende lo que usa (el plan dice lo que puede tener) */
@@ -1948,10 +1994,11 @@ function nombrePlan(id, P) { return ((P || planesCfg())[id] || {}).nombre || PLA
 /** Lo que incluye un plan, en una línea. */
 function textoPlan(p) {
   if (!p) return '';
+  if (p.app !== undefined && !p.app && (p.caja || planTiene('caja', p.id))) return TXT_PDV + ' No aparece en la app: agrega 📲 Pídele en línea cuando quieras.'; // 2.87
   const cats = 'Apareces en ' + p.categorias + (p.categorias > 1 ? ' categorías' : ' categoría');
   if (!p.anuncios) return cats + '. Sin anuncios en el banner de Inicio: tus promociones se ven en Promociones y dentro de tu negocio.';
   const tiene = k => p[k] !== undefined ? !!p[k] : planTiene(k, p.id);
-  const fun = [tiene('caja') ? 'punto de venta (caja, meseros, cocina, cortes y reportes)' : 'pedidos en la app', tiene('caja') && tiene('personal') ? 'personal' : '', tiene('caja') && tiene('fidelidad') ? 'lealtad (monedero de clientes)' : '', tiene('factura') ? 'facturación con ' + (p.facturasMes || 50) + ' facturas al mes' : '', tiene('caja') && tiene('inventario') ? 'inventario y recetas' : '', tiene('caja') && tiene('operacion') ? 'operación' : ''].filter(Boolean);
+  const fun = [tiene('caja') && p.app ? '📲 Pídele en línea' : '', tiene('caja') ? 'punto de venta (caja, meseros, cocina, cortes y reportes)' : 'pedidos en la app', tiene('caja') && tiene('personal') ? 'personal' : '', tiene('caja') && tiene('fidelidad') ? 'lealtad (monedero de clientes)' : '', tiene('factura') ? 'facturación con ' + (p.facturasMes || 50) + ' facturas al mes' : '', tiene('caja') && tiene('inventario') ? 'inventario y recetas' : '', tiene('caja') && tiene('operacion') ? 'operación' : ''].filter(Boolean);
   const extra = fun.length ? ' Incluye ' + fun.join(', ').replace(/, ([^,]*)$/, ' y $1') + '.' : '';
   return cats + '. ' + p.anuncios + (p.anuncios > 1 ? ' anuncios' : ' anuncio') + (p.fijo ? ' fijo por semana' : ' por día (lo cambias cuando quieras)') +
     ' en el banner de Inicio, visibilidad x' + p.visibilidad + ' y ' + p.segundos + ' s en pantalla.' + extra;
@@ -1959,8 +2006,9 @@ function textoPlan(p) {
 /** Tarjetas para elegir plan al registrar un negocio (se puede cambiar en el mes de prueba). */
 function eligePlanHTML() {
   const P = planesCfg(), sel = S._plan || 'plus';
-  return `<label class="f">Tu plan</label><div>${planesOferta().filter(k => P[k]).map(k => `<div class="opcion ${sel === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${k}';this.parentNode.querySelectorAll('.opcion').forEach(o=>o.classList.toggle('on',o===this))">
+  return `<label class="f">Tu plan</label><div>${planesOferta().filter(k => P[k]).map(k => `<div class="opcion ${sel === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${k}';const w=$('#rPlanes');if(w)w.innerHTML=eligePlanHTML()">
       <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${esc(textoPlan(P[k]))}</small></div></div>`).join('')}</div>
+    ${(P[sel] || {}).app === 0 || (P[sel] && !P[sel].app) ? `<label class="pdvChk" style="align-items:flex-start;margin-top:10px"><input type="checkbox" id="rEnLinea" ${S._enLinea ? 'checked' : ''} onchange="S._enLinea=this.checked" style="margin-top:3px"> <span><b>📲 Pídele en línea · +${money(((S.conf || {}).extrasPrecios || {}).app || 199)}/mes</b><br><small class="muted">${TXT_EN_LINEA}</small></span></label>` : ''}
     <div class="muted small" style="margin-top:6px">Puedes cambiarlo cuando quieras durante tu mes de prueba.</div>`;
 }
 function vRegistro(rol) {
@@ -1979,7 +2027,7 @@ function vRegistro(rol) {
       <label class="f">Teléfono (10 dígitos)</label><input class="i" id="rTel" type="tel" inputmode="numeric" maxlength="14">
       ${rol === 'negocio' ? `<label class="f">Nombre del negocio</label><input class="i" id="rNeg">
         <label class="f">Categoría</label><select class="i" id="rCat">${CATEGORIAS.map(c => `<option>${c}</option>`).join('')}</select>
-        ${eligePlanHTML()}` : ''}
+        <div id="rPlanes">${eligePlanHTML()}</div>` : ''}
       ${rol === 'repartidor' ? `<label class="f">Vehículo (moto, bici, auto…)</label><input class="i" id="rVeh" placeholder="Ej. Moto Italika roja">` : ''}
       <label class="f">Contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
       ${rol !== 'comprador' ? `<div class="aviso info" style="margin-top:12px">Tu solicitud quedará en revisión hasta que el administrador la apruebe. Mientras, ya puedes pedir comida con esta cuenta.</div>` : ''}
@@ -1996,7 +2044,7 @@ async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
   if (rol === 'negocio' && !(await avisoPlanFactura(S._plan || 'plus'))) return;
   const ci = rol === 'comprador' ? ls('cliTkPend') : null;
-  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', aparato: aparatoId(), cliTk: ci && ci.token ? ci.token : '' });
+  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', plan287: rol === 'negocio', enLinea: rol === 'negocio' && !!S._enLinea, aparato: aparatoId(), cliTk: ci && ci.token ? ci.token : '' });
   if (ci && d.usuario && d.usuario.telVerificado) { ls('cliTkPend', null); toast('¡Bienvenido a ' + APP + '! Tu número ya quedó verificado ✅'); }
   else toast('¡Bienvenido a ' + APP + '!');
   guardarSesion(d);
@@ -2902,6 +2950,7 @@ async function vNuevoPedido() {
   if (S.vista === 'negPedidos') formPedidoTel();
 }
 async function vCaja() {
+  if (negInactivo()) { vInactivo(); return; } // 2.87
   if (!pdvTieneAcceso()) { ir(inicioRol()); return; }
   clearTimeout(PDV._salirT);
   // 2.37 · ya estaba conectada (se salió hace poco): se pinta al instante con los datos en vivo que siguen llegando
@@ -3025,16 +3074,21 @@ function pdvPanelCarrito() {
     ${its.map(x => { const det = detalleItem(x); return `<div class="pdvLinea"><div class="grow"><b>${esc(x.nombre)}</b>${det ? `<div class="small muted">${det}</div>` : ''}<div class="small">${money(x.precio)} c/u</div></div>
       <div class="pdvCant"><button onclick="pdvCant(${esc(JSON.stringify(x.key))},-1)">−</button><b>${x.cant}</b><button onclick="pdvCant(${esc(JSON.stringify(x.key))},1)">+</button></div>
       <b style="min-width:64px;text-align:right">${money(x.cant * x.precio)}</b></div>`; }).join('')}
-    <div class="pdvTipo">${[['mostrador', '🍽️ Aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${v.tipo === k ? 'on' : ''}" onclick="PDV.venta.tipo='${k}';pdvPintarCarrito()">${t}</button>`).join('')}${S.negocio && S.negocio.estado === 'activo' && puedo(['pedidos', 'caja']) ? `<button onclick="pdvDomicilio()">🛵 A domicilio</button>` : ''}</div>
-    ${v.tipo === 'llevar' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" type="time" value="${esc(v.recoge)}" onchange="PDV.venta.recoge=this.value">` : ''}
-    <details class="pdvCli" ${v.tel ? 'open' : ''}><summary>👤 Cliente (opcional)</summary>
+    <div class="pdvTipo">${[['mostrador', '🍽️ Aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${v.tipo === k ? 'on' : ''}" onclick="PDV.venta.tipo='${k}';if('${k}'==='mostrador')PDV.venta.ent='';pdvPintarCarrito()">${t}</button>`).join('')}</div>
+    ${v.tipo === 'llevar' ? `<div class="pdvTipo pdvEnt">${[['', '🏪 Pasa a recoger'], ['dom', '🛵 A domicilio']].map(([k, t]) => `<button class="${(v.ent || '') === k ? 'on' : ''}" onclick="PDV.venta.ent='${k}';pdvPintarCarrito()${k === 'dom' ? ';if(!PDV.venta.dom)pdvDomForm()' : ''}">${t}</button>`).join('')}</div>` : ''}
+    ${v.tipo === 'llevar' && v.ent === 'dom' ? pdvDomResumen(v.dom) : v.tipo === 'llevar' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" type="time" value="${esc(v.recoge)}" onchange="PDV.venta.recoge=this.value">` : ''}
+    ${v.tipo === 'llevar' && v.ent === 'dom' ? '' : `<details class="pdvCli" ${v.tel ? 'open' : ''}><summary>👤 Cliente (opcional)</summary>
       <input class="i" id="pdvTel" inputmode="tel" maxlength="14" placeholder="Teléfono a 10 dígitos" value="${esc(v.tel)}" oninput="PDV.venta.tel=this.value;pdvBuscarCliente()">
       <input class="i" id="pdvNom" maxlength="60" placeholder="Nombre" value="${esc(v.nombre)}" oninput="PDV.venta.nombre=this.value" style="margin-top:6px">
-      <div class="small muted" id="pdvCliInfo"></div></details>
+      <div class="small muted" id="pdvCliInfo"></div></details>`}
     ${pdvPromoLineas(pdvPromoVenta())}
-    <div class="tot g" style="font-size:22px;margin:10px 0"><span>Total</span><span>${money(pdvTotal())}</span></div>
+    ${v.tipo === 'llevar' && v.ent === 'dom' ? `${v.dom && v.dom.envio ? `<div class="tot"><span>🛵 Envío</span><span>${money(v.dom.envio)}</span></div>` : ''}
+    <div class="tot g" style="font-size:22px;margin:10px 0"><span>Total</span><span>${money(pdvR(pdvTotal() + (v.dom ? Number(v.dom.envio) || 0 : 0)))}</span></div>
+    <div class="row" style="gap:8px"><button class="btn pill" onclick="pdvVaciar()">Vaciar</button><button class="btn pri pill" style="flex:1;font-size:17px" onclick="pdvDomPedido()">🛵 Guardar pedido a domicilio</button></div>
+    <div class="small muted" style="text-align:center;margin-top:4px">Se cobra al entregar (o antes, si ya pagó) en <b>Mesas y pedidos</b>.</div>`
+    : `<div class="tot g" style="font-size:22px;margin:10px 0"><span>Total</span><span>${money(pdvTotal())}</span></div>
     <div class="row" style="gap:8px"><button class="btn pill" onclick="pdvVaciar()">Vaciar</button><button class="btn pri pill" style="flex:1;font-size:18px" onclick="pdvCobrar()">Cobrar ${money(pdvTotal())}</button></div>
-    <button class="btn pill full" style="margin-top:8px;font-size:16px" onclick="pdvFormGuardar()">📋 Guardar pedido · cobrar después</button>`;
+    <button class="btn pill full" style="margin-top:8px;font-size:16px" onclick="pdvFormGuardar()">📋 Guardar pedido · cobrar después</button>`}`;
 }
 /*
  * 2.39 · Guardar pedido sin cobrar: queda como pedido activo (en "Mesas y pedidos") y se cobra cuando lo recogen.
@@ -3042,9 +3096,9 @@ function pdvPanelCarrito() {
  */
 function pdvFormGuardar() {
   if (!pdvTotal()) { toast('Agrega productos primero', 'err'); return; }
-  const v = PDV.venta, dom = puedo('pedidos') && S.negocio.estado === 'activo';
-  const g = S._gp = S._gp || { tipo: v.tipo === 'llevar' ? 'recoge' : 'aqui', mesa: '', cocina: v.cocina, hora: v.recoge || '' };
-  if (g.tipo === 'domicilio' && !dom) g.tipo = 'recoge';
+  const v = PDV.venta, dom = pdvDomApp(); // 2.87: el de la app solo con "Pídele en línea"
+  const g = S._gp = S._gp || { tipo: v.tipo === 'llevar' ? (v.ent === 'dom' ? 'domicilio' : 'recoge') : 'aqui', mesa: '', cocina: v.cocina, hora: v.recoge || '' };
+  if (g.tipo === 'domApp' && !dom) g.tipo = 'domicilio';
   const aqui = g.tipo === 'aqui';
   const opc = (k, t, sub) => `<div class="opcion ${g.tipo === k ? 'on' : ''}" onclick="pdvGpGuardar();S._gp.tipo='${k}';pdvFormGuardar()"><span class="radio"></span><div class="grow"><b>${t}</b><div class="muted small">${sub}</div></div></div>`;
   // mesas: solo si el negocio las configuró (Caja → ⚙️ → Mesas del negocio)
@@ -3054,7 +3108,7 @@ function pdvFormGuardar() {
     <div class="pdvTipo">${[['aqui', '🍽️ Comer aquí'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${(k === 'aqui') === aqui ? 'on' : ''}" onclick="pdvGpGuardar();S._gp.tipo='${k === 'aqui' ? 'aqui' : 'recoge'}';PDV.venta.tipo='${k === 'aqui' ? 'mostrador' : 'llevar'}';pdvFormGuardar()">${t}</button>`).join('')}</div>
     ${aqui ? (mesas.length ? `<label class="f">¿En qué mesa?</label><div class="pdvMesasSel">${[''].concat(mesas).map(m => `<button class="${g.mesa === m ? 'on' : ''} ${ocup.has(m) ? 'ocup' : ''}" onclick="pdvGpGuardar();S._gp.mesa=${esc(JSON.stringify(m))};pdvFormGuardar()">${m ? esc(m) : 'Sin mesa'}${ocup.has(m) ? '<small>ocupada</small>' : ''}</button>`).join('')}</div>
         ${g.mesa && ocup.has(g.mesa) ? '<div class="small muted" style="margin-top:4px">Se agrega a la cuenta que ya está abierta en esa mesa.</div>' : ''}` : '')
-      : `${opc('recoge', '🥡 Pasan a recoger', 'Puedes poner a qué hora pasa.')}${opc('espera', '🙋 El cliente espera en el negocio', 'Se entrega en cuanto esté listo.')}${dom ? opc('domicilio', '🛵 A domicilio · pedir repartidor', 'Después pones la dirección y lo mandas con un repartidor.') : ''}
+      : `${opc('recoge', '🥡 Pasan a recoger', 'Puedes poner a qué hora pasa.')}${opc('espera', '🙋 El cliente espera en el negocio', 'Se entrega en cuanto esté listo.')}${opc('domicilio', '🛵 A domicilio', 'Con los datos del cliente; lo mandas con tu repartidor por WhatsApp.')}${dom ? opc('domApp', '📱 A domicilio por la app', 'El cliente recibe su seguimiento y puedes pedir repartidor de Pídele.') : ''}
       ${g.tipo === 'recoge' ? `<label class="f">¿A qué hora pasa? (opcional)</label><input class="i" id="gpHora" type="time" value="${esc(g.hora || '')}">` : ''}`}
     <div class="btns"><button class="btn pri pill full" style="font-size:17px" onclick="pdvGpSiguiente()">Siguiente →</button></div>`);
 }
@@ -3066,7 +3120,8 @@ function pdvGpGuardar() {
 function pdvGpSiguiente() {
   pdvGpGuardar();
   const g = S._gp, v = PDV.venta, tel = (v.tel || '').replace(/\D/g, '');
-  if (g.tipo === 'domicilio') {
+  if (g.tipo === 'domicilio') { cerrarModal(); PDV.venta.tipo = 'llevar'; PDV.venta.ent = 'dom'; S._gp = null; if (PDV.venta.dom) pdvDomPedido(); else pdvDomForm(null, true); return; }
+  if (g.tipo === 'domApp') {
     pdvPasoCliente('¿A quién se le envía?', 'Para el repartidor y para mandarle su seguimiento.', cli => {
       S.modoTel = { tel: cli.tel, nombre: cli.nombre, desdeCaja: true }; ls('modoTel', S.modoTel);
       S.modoCliente = true; ls('modoCliente', 1);
@@ -3096,7 +3151,7 @@ async function pdvGuardarPedido(cli) {
     const ref = pdvCol('ventas').doc(), folio = pdvFolio(), aqui = g.tipo === 'aqui';
     c = { id: ref.id, folio, dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
       tipo: aqui ? 'mesa' : 'llevar', mesa: aqui ? g.mesa || '' : '', nombre: nom || (aqui ? (g.mesa ? 'Cuenta 1' : 'Aquí · ' + folio) : 'Pedido ' + folio),
-      recoge: g.tipo === 'recoge' ? g.hora || '' : '', espera: g.tipo === 'espera', cliente: cli ? { tel: cli.tel, nombre: cli.nombre } : null,
+      recoge: g.tipo === 'recoge' ? g.hora || '' : '', espera: g.tipo === 'espera', cliente: cli ? { tel: cli.tel, nombre: cli.nombre } : null, dom: g.tipo === 'domicilio' && g.dom ? Object.assign({ estado: 'prep' }, g.dom) : null,
       items, total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts };
     pdvPromoCuenta(c); c.total = pdvTotalCuenta(c);
     const d = JSON.parse(JSON.stringify(c)); delete d.id;
@@ -3106,6 +3161,7 @@ async function pdvGuardarPedido(cli) {
   if (cocina) await pdvEnviarRonda(c.id);
   car.items = {}; guardarCarritos(); S._gp = null;
   PDV.venta = { tipo: 'mostrador', cocina: pdvCfg().cocina, tel: '', nombre: '', recoge: '' };
+  if (c.dom) { pintarCaja(); pdvDomListo(c, cocina); return; }
   modal(`<div style="text-align:center"><div style="font-size:46px">📋</div><h2 style="margin:4px 0">${nueva ? 'Pedido ' + esc(c.folio) + ' guardado' : 'Agregado a ' + esc(c.mesa)}</h2>
     <div class="muted">${esc(pdvEtiqueta(c))} · ${money(pdvTotalCuenta(c))}${cocina ? ' · 👩‍🍳 enviado a cocina' : ''}</div>
     <div class="muted small" style="margin-top:6px">Lo cobras en <b>Mesas y pedidos</b> cuando lo entregues.</div>
@@ -3193,6 +3249,241 @@ async function pdvBuscarCliente() {
       if (info) info.textContent = '⭐ Cliente frecuente: ' + (x.visitas || 0) + ' visitas · ' + money(x.total || 0);
     } else if (info) info.textContent = 'Cliente nuevo: se guarda al cobrar';
   } catch (e) { }
+}
+
+/* ---------- 2.87 · A domicilio desde la caja (sin la app): cliente con dirección, envío y repartidor por WhatsApp ---------- */
+/** ¿Puede mandar el pedido por la app? (solo con "Pídele en línea"; sin el dato, como antes) */
+const pdvDomApp = () => !!S.negocio && S.negocio.estado === 'activo' && puedo('pedidos') && S.negocio.enLinea !== false;
+const pdvTel10 = t => String(t || '').replace(/\D/g, '').slice(-10);
+function pdvDomResumen(d) {
+  if (!d) return `<button class="btn pill full" style="margin:6px 0" onclick="pdvDomForm()">➕ Datos de entrega (teléfono y dirección)</button>`;
+  return `<div class="card pdvDomRes" style="margin:6px 0;padding:10px;box-shadow:none;border:1px solid var(--ln);cursor:pointer" onclick="pdvDomForm()">
+    <div class="row between"><b>🛵 ${esc(d.nombre)}</b><span class="lnk small">✏️ Cambiar</span></div>
+    <div class="small">📞 ${esc(d.tel)}</div><div class="small">📍 ${esc(d.dir)}</div>${d.ref ? `<div class="small muted">🏠 ${esc(d.ref)}</div>` : ''}</div>`;
+}
+/** Captura (o corrige) teléfono, nombre, dirección, referencias y envío. cuentaId: corrige una cuenta abierta. */
+function pdvDomForm(cuentaId, guardarAlFin) {
+  const c = cuentaId ? pdvCuenta(cuentaId) : null, d = (c ? c.dom : PDV.venta.dom) || { tel: pdvTel10(PDV.venta.tel), nombre: PDV.venta.nombre || '', dir: '', ref: '', envio: lsG('pdvEnvio') || '' };
+  S._dom = { cuentaId: cuentaId || '', guardar: !!guardarAlFin, dirs: [], cli: null };
+  modal(`<div class="row between"><h2 style="margin:0">🛵 Datos de entrega</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Teléfono del cliente</label><input class="i" id="dmTel" inputmode="tel" maxlength="14" placeholder="10 dígitos" value="${esc(d.tel || '')}" oninput="pdvDomBuscar()">
+    <div class="small" id="dmInfo" style="margin-top:4px"></div>
+    <label class="f">Nombre</label><input class="i" id="dmNom" maxlength="60" placeholder="Ej. Ana López" value="${esc(d.nombre || '')}">
+    <div id="dmDirs"></div>
+    <label class="f">Dirección</label><textarea class="i" id="dmDir" rows="2" maxlength="160" placeholder="Calle, número y colonia">${esc(d.dir || '')}</textarea>
+    <label class="f">Referencias (opcional)</label><input class="i" id="dmRef" maxlength="120" placeholder="Ej. Portón negro, frente a la tienda" value="${esc(d.ref || '')}">
+    <label class="f">Costo del envío</label><input class="i" id="dmEnv" inputmode="decimal" placeholder="0 = sin costo" value="${esc(d.envio === 0 ? '0' : d.envio || '')}">
+    ${!cuentaId && pdvDomApp() ? `<div class="small muted" style="margin-top:8px">📱 ¿Quieres que el cliente vea su seguimiento o pedir repartidor de Pídele? <button class="lnk small" onclick="cerrarModal();PDV.venta.ent='';pdvDomicilio()">Mándalo por la app</button></div>` : ''}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvDomGuardarDatos)">${guardarAlFin ? 'Guardar pedido' : 'Listo'}</button></div>`);
+  if (d.tel) pdvDomBuscar(true);
+}
+async function pdvDomBuscar(sinTocar) {
+  const tel = pdvTel10($('#dmTel').value), info = $('#dmInfo'); S._dom.cli = null; S._dom.dirs = [];
+  const pinta = () => { const w = $('#dmDirs'); if (w) w.innerHTML = S._dom.dirs.length ? `<label class="f">Direcciones guardadas</label>${S._dom.dirs.map((x, i) => `<button class="btn sm full" style="margin-top:4px;text-align:left;justify-content:flex-start;white-space:normal" onclick="pdvDomUsarDir(${i})">📍 ${esc(x.d)}${x.r ? ' · <span class=muted>' + esc(x.r) + '</span>' : ''}</button>`).join('')}` : ''; };
+  if (String($('#dmTel').value).replace(/\D/g, '').length < 10) { if (info) info.textContent = ''; pinta(); return; }
+  let x = null; try { const s = await pdvCol('clientes').doc(tel).get(); x = s.exists ? s.data() : null; } catch (e) { }
+  if (!$('#dmTel') || pdvTel10($('#dmTel').value) !== tel) return;
+  S._dom.cli = x; S._dom.dirs = (x && Array.isArray(x.dirs) ? x.dirs : []).filter(y => y && y.d);
+  if (x && x.nombre) { if (!sinTocar || !$('#dmNom').value.trim()) $('#dmNom').value = x.nombre; info.innerHTML = `⭐ <b>${esc(x.nombre)}</b> · ${x.visitas || 0} visita(s)${x.total ? ' · ' + money(x.total) : ''}`; }
+  else info.innerHTML = '🆕 Cliente nuevo: se guarda para el próximo pedido.';
+  if (!sinTocar && S._dom.dirs[0] && !$('#dmDir').value.trim()) pdvDomUsarDir(0);
+  pinta();
+}
+function pdvDomUsarDir(i) { const x = S._dom.dirs[i]; if (!x) return; $('#dmDir').value = x.d; $('#dmRef').value = x.r || ''; }
+function pdvDomGuardarDatos() {
+  const k = S._dom || {}, tel = pdvTel10($('#dmTel').value), nombre = $('#dmNom').value.trim().slice(0, 60), dir = $('#dmDir').value.trim().slice(0, 160), ref = $('#dmRef').value.trim().slice(0, 120);
+  const envTxt = String($('#dmEnv').value || '').replace(/[^\d.]/g, ''), envio = pdvR(Number(envTxt) || 0);
+  if (String($('#dmTel').value).replace(/\D/g, '').length < 10) throw new Error('Escribe el teléfono a 10 dígitos');
+  if (nombre.length < 2) throw new Error('Escribe el nombre del cliente');
+  if (dir.length < 5) throw new Error('Escribe la dirección');
+  lsG('pdvEnvio', envio);
+  const d = { tel, nombre, dir, ref, envio };
+  // registro interno: nombre y sus direcciones (la más reciente primero, hasta 5)
+  const dirs = [{ d: dir, r: ref }].concat((k.dirs || []).filter(x => x.d.toLowerCase() !== dir.toLowerCase())).slice(0, 5);
+  pdvGuardar(pdvCol('clientes').doc(tel).set(Object.assign({ tel, nombre, dirs }, k.cli ? {} : { creado: Date.now() }), { merge: true }));
+  S._dom = null;
+  if (k.cuentaId) {
+    const c = pdvCuenta(k.cuentaId); if (!c) { cerrarModal(); return; }
+    const dom = Object.assign({}, c.dom || {}, d);
+    pdvActualizarCuenta(c, { dom, nombre, cliente: { tel, nombre } });
+    cerrarModal(); toast('Datos de entrega guardados ✓'); return;
+  }
+  PDV.venta.dom = d; PDV.venta.tel = tel; PDV.venta.nombre = nombre; PDV.venta.tipo = 'llevar'; PDV.venta.ent = 'dom';
+  cerrarModal();
+  if (k.guardar) { pdvDomPedido(); return; }
+  pintarCaja();
+}
+/** Del carrito a una cuenta abierta "a domicilio" (se manda a cocina si así está configurado). */
+function pdvDomPedido() {
+  if (!pdvTotal()) { toast('Agrega productos primero', 'err'); return; }
+  const d = PDV.venta.dom;
+  if (!d) { pdvDomForm(null, true); return; }
+  S._gp = { tipo: 'domicilio', mesa: '', cocina: PDV.venta.cocina, hora: '', dom: Object.assign({}, d) };
+  pdvGuardarPedido({ tel: d.tel, nombre: d.nombre });
+}
+function pdvDomListo(c, cocina) {
+  modal(`<div style="text-align:center"><div style="font-size:46px">🛵</div><h2 style="margin:4px 0">Pedido ${esc(c.folio)} a domicilio</h2>
+    <div class="muted">${esc(c.dom.nombre)} · ${money(pdvTotalCuenta(c))}${cocina ? ' · 👩‍🍳 enviado a cocina' : ''}</div>
+    <div class="muted small" style="margin-top:6px">${esc(c.dom.dir)}</div>
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();pdvDomRep('${c.id}')">🛵 Mandar con repartidor</button></div>
+    <div class="btns"><button class="btn pill" style="flex:1" onclick="pdvDomTicket('${c.id}')">🖨️ Ticket de entrega</button><button class="btn pill" style="flex:1" onclick="cerrarModal();pdvIrCuenta('${c.id}')">Ver pedido</button></div>
+    <button class="lnk" onclick="cerrarModal();pintarCaja()">Nuevo pedido</button></div>`);
+}
+function pdvDomTarjeta(c) {
+  const d = c.dom, est = d.estado === 'camino' ? `<span class="tag t-warn">🛵 En camino${d.rep ? ' con ' + esc(String(d.rep.nombre).split(' ')[0]) : ''}${d.eta ? ' · llega ~' + hora(d.eta) : ''}</span>` : d.estado === 'entregado' ? '<span class="tag t-ok">✅ Entregado</span>' : '<span class="tag t-info">👩‍🍳 Preparando</span>';
+  return `<div class="card pdvDomCard" style="margin:0 0 10px;padding:10px;box-shadow:none;border:2px solid var(--pri)">
+    <b>🛵 A domicilio</b><div style="margin:4px 0">${est}</div>
+    <div style="margin-top:4px"><b>${esc(d.nombre)}</b> · <a href="tel:${esc(d.tel)}">${esc(d.tel)}</a></div>
+    <div class="small">📍 ${esc(d.dir)}</div>${d.ref ? `<div class="small muted">🏠 ${esc(d.ref)}</div>` : ''}
+    <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">
+      ${d.estado !== 'entregado' ? `<button class="btn sm pri" onclick="pdvDomRep('${c.id}')">🛵 ${d.estado === 'camino' ? 'Cambiar repartidor' : 'Mandar con repartidor'}</button>` : ''}
+      ${d.estado === 'camino' ? `<button class="btn sm ok" onclick="pdvDomEntregado('${c.id}')">✅ Entregado</button>` : ''}
+      <button class="btn sm" onclick="pdvDomTicket('${c.id}')">🖨️ Ticket</button>
+      <button class="btn sm" onclick="pdvDomForm('${c.id}')">✏️ Datos</button></div></div>`;
+}
+const pdvDomTicketDatos = d => `<div class="t">${esc(d.nombre)}</div><div>Tel. ${esc(d.tel)}</div><div><b>${esc(d.dir)}</b></div>${d.ref ? `<div>Ref: ${esc(d.ref)}</div>` : ''}${d.rep ? `<div>Repartidor: ${esc(d.rep.nombre)}</div>` : ''}${d.eta ? `<div>Entrega aprox. ${esc(hora(d.eta))}</div>` : ''}`;
+function pdvDomTicket(id) {
+  const c = pdvCuenta(id); if (!c || !c.dom) return;
+  const n = S.negocio || {}, saldo = pdvSaldo(c);
+  imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div>${n.telefono ? `<div class="p">Tel. ${esc(n.telefono)}</div>` : ''}<div class="t">A DOMICILIO</div></div><hr>
+    <div class="r"><b>${esc(c.folio)}</b><span>${new Date().toLocaleDateString('es-MX')} ${hora(Date.now())}</span></div>${pdvDomTicketDatos(c.dom)}<hr>
+    ${pdvItemsVivos(c).map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
+    ${c.promo && c.promo.total && !c.sinPromo ? c.promo.det.map(d => `<div class="r"><span>🏷️ ${esc(d.titulo)}</span><span>-${money(d.monto)}</span></div>`).join('') : ''}
+    ${pdvEnvioDe(c) ? `<div class="r"><span>Envío a domicilio</span><span>${money(pdvEnvioDe(c))}</span></div>` : ''}
+    <div class="r t"><span>TOTAL</span><span>${money(pdvTotalCuenta(c))}</span></div>
+    <div class="c t">${saldo > 0 ? 'COBRAR ' + money(saldo) : 'PAGADO'}</div><hr><div class="c">¡Gracias por tu compra!</div>`, 'Entrega ' + c.folio));
+}
+/* directorio de repartidores del negocio (propios o externos), guardado en la caja */
+async function pdvRepsCargar() {
+  if (PDV.reps && PDV._repsNid === PDV.nid) return PDV.reps;
+  let l = [];
+  try { const s = await pdvCol('repartidores').get(); l = s.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(x => !x.quitado); } catch (e) { }
+  if (!l.length && S.negocio && (S.negocio.repartidoresPropios || []).length) { // los que ya tenía en Negocio → Envíos
+    l = S.negocio.repartidoresPropios.map(x => ({ nombre: x.nombre, tel: x.tel, vehiculo: '', tipo: 'propio', nota: '' }));
+    l.forEach(x => { const r = pdvCol('repartidores').doc(); x.id = r.id; const y = Object.assign({ creado: Date.now() }, x); delete y.id; pdvGuardar(r.set(y)); });
+  }
+  PDV.reps = l.sort((a, b) => (b.usado || 0) - (a.usado || 0)); PDV._repsNid = PDV.nid;
+  return PDV.reps;
+}
+function pdvRepCampos(x) {
+  x = x || {};
+  return `<div class="row" style="gap:6px"><input class="i grow" id="rpNom" maxlength="40" placeholder="Nombre" value="${esc(x.nombre || '')}"><input class="i" id="rpTel" inputmode="tel" maxlength="14" placeholder="WhatsApp" style="max-width:150px" value="${esc(x.tel || '')}"></div>
+    <div class="row" style="gap:6px;margin-top:6px"><input class="i grow" id="rpVeh" maxlength="30" placeholder="Vehículo (opcional)" value="${esc(x.vehiculo || '')}"><select class="i" id="rpTipo" style="max-width:150px"><option value="propio" ${x.tipo !== 'externo' ? 'selected' : ''}>Propio</option><option value="externo" ${x.tipo === 'externo' ? 'selected' : ''}>Externo</option></select></div>
+    <input class="i" id="rpNota" maxlength="80" placeholder="Nota (opcional): horario, cobra $30…" style="margin-top:6px" value="${esc(x.nota || '')}">`;
+}
+function pdvRepLeer() {
+  const nombre = $('#rpNom').value.trim().slice(0, 40), tel = pdvTel10($('#rpTel').value);
+  if (nombre.length < 2) throw new Error('Escribe el nombre del repartidor');
+  if (String($('#rpTel').value).replace(/\D/g, '').length < 10) throw new Error('Escribe su WhatsApp a 10 dígitos');
+  return { nombre, tel, vehiculo: $('#rpVeh').value.trim().slice(0, 30), tipo: $('#rpTipo').value === 'externo' ? 'externo' : 'propio', nota: $('#rpNota').value.trim().slice(0, 80) };
+}
+function pdvRepGuardar(x, id) {
+  const ref = id ? pdvCol('repartidores').doc(id) : pdvCol('repartidores').doc();
+  pdvGuardar(ref.set(Object.assign({}, x, id ? {} : { creado: Date.now() }, { ts: Date.now() }), { merge: true }));
+  const y = Object.assign({ id: ref.id }, (PDV.reps || []).find(r => r.id === id) || {}, x);
+  PDV.reps = (PDV.reps || []).filter(r => r.id !== ref.id).concat([y]);
+  return y;
+}
+async function pdvRepsAdmin() {
+  const l = await pdvRepsCargar();
+  modal(`<div class="row between"><h2 style="margin:0">🛵 Mis repartidores</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Propios o externos. Al mandar un pedido a domicilio eliges a uno y le llega por WhatsApp.</div>
+    ${l.length ? l.map(x => `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--ln)"><div class="grow"><b>${esc(x.nombre)}</b> <span class="tag ${x.tipo === 'externo' ? 't-gray' : 't-info'}">${x.tipo === 'externo' ? 'Externo' : 'Propio'}</span>
+      <div class="small muted">${esc(x.tel)}${x.vehiculo ? ' · ' + esc(x.vehiculo) : ''}${x.nota ? ' · ' + esc(x.nota) : ''}</div></div>
+      <button class="btn sm" onclick="pdvRepEditar('${x.id}')">✏️</button></div>`).join('') : '<div class="vacio">Aún no tienes repartidores registrados.</div>'}
+    <div class="btns"><button class="btn pri pill full" onclick="pdvRepEditar('')">+ Agregar repartidor</button></div>`);
+}
+function pdvRepEditar(id) {
+  const x = id ? (PDV.reps || []).find(r => r.id === id) : null;
+  modal(`<div class="row between"><h2 style="margin:0">${x ? 'Editar repartidor' : 'Nuevo repartidor'}</h2><button class="redondo" onclick="pdvRepsAdmin()" aria-label="Volver">✕</button></div>
+    <div style="margin-top:8px">${pdvRepCampos(x)}</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>{pdvRepGuardar(pdvRepLeer(),'${id}');toast('Guardado ✓');pdvRepsAdmin()})">Guardar</button></div>
+    ${x ? `<div style="text-align:center"><button class="lnk small" style="color:var(--err)" onclick="pdvRepGuardar({quitado:Date.now()},'${id}');PDV.reps=PDV.reps.filter(r=>r.id!=='${id}');pdvRepsAdmin()">Quitar del directorio</button></div>` : ''}`);
+}
+/** Elegir repartidor y tiempo de entrega: se abre WhatsApp con la ficha y el pedido queda "en camino". */
+async function pdvDomRep(id) {
+  const c = pdvCuenta(id); if (!c || !c.dom) return;
+  const l = await pdvRepsCargar();
+  S._dr = { id, sel: c.dom.rep ? (l.find(r => r.tel === c.dom.rep.tel) || {}).id || '' : (l[0] || {}).id || '', nuevo: !l.length, min: Number(lsG('pdvEta')) || Math.max(20, (Number(S.negocio.tiempoPrep) || 15) + 15) };
+  pdvDomRepPintar();
+}
+function pdvDomRepPintar() {
+  const k = S._dr, c = pdvCuenta(k.id); if (!c) { cerrarModal(); return; }
+  const l = PDV.reps || [];
+  modal(`<div class="row between"><h2 style="margin:0">🛵 ¿Quién lo lleva?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">${esc(c.folio)} · ${esc(c.dom.nombre)} · ${esc(c.dom.dir)}</div>
+    ${l.map(x => `<label class="opc"><input type="radio" name="drSel" value="${x.id}" ${k.sel === x.id && !k.nuevo ? 'checked' : ''} onchange="S._dr.sel=this.value;S._dr.nuevo=false;pdvDomRepLink()"><span><b>${esc(x.nombre)}</b> · ${esc(x.tel)}${x.tipo === 'externo' ? ' <span class="tag t-gray">Externo</span>' : ''}${x.vehiculo ? ' <span class="muted small">' + esc(x.vehiculo) + '</span>' : ''}</span></label>`).join('')}
+    <label class="opc"><input type="radio" name="drSel" value="" ${k.nuevo ? 'checked' : ''} onchange="S._dr.nuevo=true;pdvDomRepPintar()"><span>➕ Otro repartidor</span></label>
+    ${k.nuevo ? `<div class="card" style="box-shadow:none;border:1px solid var(--ln);padding:10px;margin-top:6px">${pdvRepCampos()}<div class="small muted" style="margin-top:4px">Se guarda en tu directorio.</div></div>` : ''}
+    <label class="f">Tiempo aproximado de entrega</label>
+    <div class="pdvTipo">${[15, 20, 30, 40, 45, 60].map(m => `<button class="${k.min === m ? 'on' : ''}" onclick="S._dr.min=${m};pdvDomRepPintar()">${m} min</button>`).join('')}</div>
+    <div class="small muted" style="margin-top:4px">Llega aprox. a las <b id="drHora">${hora(Date.now() + k.min * 60000)}</b></div>
+    <div class="btns"><a class="btn pri pill full" id="drWa" href="#" target="_blank" onclick="return pdvDomEnviar(this)">${ico('chat', 's')} Mandar por WhatsApp</a></div>`);
+  if (k.nuevo) ['rpNom', 'rpTel'].forEach(i => { const e = $('#' + i); if (e) e.oninput = pdvDomRepLink; });
+  pdvDomRepLink();
+}
+function pdvDomFicha(c, min) {
+  const n = S.negocio || {}, d = c.dom, saldo = pdvSaldo(c), eta = Date.now() + min * 60000;
+  const mapa = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.dir + (typeof PUEBLO !== 'undefined' && PUEBLO.nombre ? ', ' + PUEBLO.nombre : ''));
+  return `🛵 *Pedido ${c.folio}* · ${n.nombre || ''}\n\n👤 ${d.nombre}\n📞 ${d.tel}\n📍 ${d.dir}${d.ref ? '\n🏠 ' + d.ref : ''}\n🗺️ ${mapa}\n\n` +
+    pdvItemsVivos(c).map(i => `${i.cant} x ${i.nombre}`).join('\n') +
+    `\n\n${saldo > 0 ? '💵 *Cobrar: ' + money(saldo) + '*' + (pdvEnvioDe(c) ? ' (incluye envío ' + money(pdvEnvioDe(c)) + ')' : '') : '✅ *Ya está pagado*'}\n⏱️ Entregar aprox. a las ${hora(eta)} (${min} min)`;
+}
+/** Arma el link de WhatsApp al elegir (se abre con el mismo toque, sin bloqueos del navegador). */
+function pdvDomRepLink() {
+  const k = S._dr, a = $('#drWa'), c = pdvCuenta(k && k.id); if (!a || !c) return;
+  const h = $('#drHora'); if (h) h.textContent = hora(Date.now() + k.min * 60000);
+  let tel = '';
+  if (k.nuevo) tel = pdvTel10(($('#rpTel') || {}).value);
+  else { const x = (PDV.reps || []).find(r => r.id === k.sel); tel = x ? x.tel : ''; }
+  a.href = tel.length === 10 ? waLink(tel, pdvDomFicha(c, k.min)) : '#';
+}
+function pdvDomEnviar(a) {
+  const k = S._dr, c = pdvCuenta(k && k.id); if (!c) return false;
+  let rep;
+  try {
+    if (k.nuevo) rep = pdvRepGuardar(pdvRepLeer());
+    else rep = (PDV.reps || []).find(r => r.id === k.sel);
+    if (!rep) throw new Error('Elige quién lo lleva');
+  } catch (e) { toast(e.message, 'err'); return false; }
+  a.href = waLink(rep.tel, pdvDomFicha(c, k.min));
+  lsG('pdvEta', k.min);
+  pdvGuardar(pdvCol('repartidores').doc(rep.id).set({ usado: Date.now() }, { merge: true })); rep.usado = Date.now();
+  const ts = Date.now(), dom = Object.assign({}, c.dom, { estado: 'camino', rep: { nombre: rep.nombre, tel: rep.tel, tipo: rep.tipo || 'propio' }, sale: ts, eta: ts + k.min * 60000 });
+  pdvActualizarCuenta(c, { dom });
+  S._dr = null;
+  setTimeout(() => { cerrarModal(); toast('🛵 En camino con ' + rep.nombre.split(' ')[0]); pintarCaja(); }, 300);
+  return true;
+}
+function pdvDomEntregado(id) {
+  const c = pdvCuenta(id); if (!c || !c.dom) return;
+  pdvActualizarCuenta(c, { dom: Object.assign({}, c.dom, { estado: 'entregado', entregado: Date.now() }) });
+  toast(pdvSaldo(c) > 0 ? '✅ Entregado · falta cobrar ' + money(pdvSaldo(c)) : '✅ Entregado');
+}
+/* registro interno de clientes (teléfono, direcciones, visitas y gasto) */
+async function pdvClientes(q) {
+  if (!PDV._clis || PDV._clisNid !== PDV.nid || q === true) {
+    let l = []; try { const s = await pdvCol('clientes').get(); l = s.docs.map(d => Object.assign({ tel: d.id }, d.data())); } catch (e) { }
+    PDV._clis = l; PDV._clisNid = PDV.nid;
+  }
+  PDV._cliQ = typeof q === 'string' ? q : PDV._cliQ || '';
+  const b = PDV._cliQ.trim().toLowerCase(), l = PDV._clis.filter(x => !b || String(x.nombre || '').toLowerCase().includes(b) || String(x.tel).includes(b.replace(/\D/g, '') || '~') || (x.dirs || []).some(y => String(y.d).toLowerCase().includes(b)))
+    .sort((a, c) => (c.ultima || c.creado || 0) - (a.ultima || a.creado || 0)).slice(0, 60);
+  modal(`<div class="row between"><h2 style="margin:0">👥 Clientes</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <input class="i" id="clQ" placeholder="Buscar por nombre, teléfono o dirección" value="${esc(PDV._cliQ)}" oninput="clearTimeout(PDV._clT);PDV._clT=setTimeout(()=>{pdvClientes(this.value);const i=$('#clQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)" style="margin:6px 0">
+    <div class="small muted">${PDV._clis.length} cliente(s) registrados</div>
+    ${l.length ? l.map(x => `<div style="padding:8px 0;border-bottom:1px solid var(--ln)"><div class="row between"><b>${esc(x.nombre || 'Sin nombre')}</b><a class="small" href="tel:${esc(x.tel)}">${esc(x.tel)}</a></div>
+      <div class="small muted">${x.visitas || 0} visita(s)${x.total ? ' · ' + money(x.total) : ''}</div>
+      ${(x.dirs || []).map(y => `<div class="small">📍 ${esc(y.d)}${y.r ? ' · <span class="muted">' + esc(y.r) + '</span>' : ''}</div>`).join('')}
+      <button class="btn sm" style="margin-top:4px" onclick="pdvClienteDom('${esc(x.tel)}')">🛵 Pedido a domicilio</button></div>`).join('') : '<div class="vacio">Sin resultados</div>'}`);
+}
+function pdvClienteDom(tel) {
+  const x = (PDV._clis || []).find(y => y.tel === tel); if (!x) return;
+  const d0 = (x.dirs || [])[0] || {};
+  PDV.cuentaId = ''; PDV.tab = 'vender';
+  PDV.venta = Object.assign(PDV.venta || {}, { tipo: 'llevar', ent: 'dom', tel, nombre: x.nombre || '', dom: { tel, nombre: x.nombre || '', dir: d0.d || '', ref: d0.r || '', envio: Number(lsG('pdvEnvio')) || 0 } });
+  cerrarModal(); pintarCaja();
+  if (!d0.d) pdvDomForm(); else toast('Agrega lo que pidió ' + String(x.nombre || '').split(' ')[0]);
 }
 
 /* ---------- cobrar ---------- */
@@ -3465,8 +3756,8 @@ function pdvVistaVentas0() {
   const ok = l.filter(v => v.estado !== 'cancelada'), canc = l.filter(v => v.estado === 'cancelada');
   const total = pdvR(ok.reduce((s, v) => s + v.total, 0)), prop = pdvR(ok.reduce((s, v) => s + (v.propina || 0), 0));
   const met = {}; ok.forEach(v => (v.pagos || []).forEach(p => { met[p.metodo] = pdvR((met[p.metodo] || 0) + p.monto); }));
-  const tipoDe = v => v.origen === 'cuenta' ? (v.tipo === 'llevar' ? 'llevar' : 'mesa') : v.tipo === 'llevar' ? 'llevar' : 'aqui';
-  const FIL = [['', 'Todas', ok.length], ['aqui', '🍽️ Mostrador', ok.filter(v => tipoDe(v) === 'aqui').length], ['mesa', '🪑 Mesas', ok.filter(v => tipoDe(v) === 'mesa').length], ['llevar', '🥡 Para llevar', ok.filter(v => tipoDe(v) === 'llevar').length],
+  const tipoDe = v => v.dom ? 'dom' : v.origen === 'cuenta' ? (v.tipo === 'llevar' ? 'llevar' : 'mesa') : v.tipo === 'llevar' ? 'llevar' : 'aqui';
+  const FIL = [['', 'Todas', ok.length], ['aqui', '🍽️ Mostrador', ok.filter(v => tipoDe(v) === 'aqui').length], ['mesa', '🪑 Mesas', ok.filter(v => tipoDe(v) === 'mesa').length], ['llevar', '🥡 Para llevar', ok.filter(v => tipoDe(v) === 'llevar').length], ['dom', '🛵 A domicilio', ok.filter(v => tipoDe(v) === 'dom').length],
     ['cocina', '👩‍🍳 En cocina', ok.filter(enCoc).length], ...Object.keys(met).map(m => ['m_' + m, PDV_MET[m], ok.filter(v => (v.pagos || []).some(p => p.metodo === m)).length]), ['canc', '❌ Canceladas', canc.length]].filter(f => !f[0] || f[2]);
   if (!FIL.some(f => f[0] === (PDV.vFil || ''))) PDV.vFil = '';
   const f = PDV.vFil || '';
@@ -4137,7 +4428,7 @@ function cliInvCrear() {
 }
 function cliInvEntrar() {
   const c = S._ci || {}; history.replaceState(null, '', location.pathname);
-  ir('entrar'); setTimeout(() => { const t = $('#lTel'); if (t && t.tagName && c.tel) { t.value = c.tel; const p = $('#lPass'); if (p && p.tagName) p.focus(); } }, 300);
+  S._loginAbierto = true; ir('entrar'); setTimeout(() => { const t = $('#lTel'); if (t && t.tagName && c.tel) { t.value = c.tel; const p = $('#lPass'); if (p && p.tagName) p.focus(); } }, 300);
 }
 async function cliLigarPend() {
   const p = ls('cliTkPend'); if (!p || !p.token || !S.token) return;
@@ -4164,7 +4455,7 @@ async function ticketLigarPend(callado) {
   } catch (e) { }
 }
 /** Guarda la sesión nueva sin cambiar de pantalla (el cliente sigue viendo la confirmación). */
-function guardarSesionSinIr(d) { S.token = d.token; S.user = d.usuario; ls('token', S.token); ls('user', S.user); if (d.config) { S.conf = d.config; ls('conf', S.conf); } }
+function guardarSesionSinIr(d) { lsG('yaEntro', 1); S.token = d.token; S.user = d.usuario; ls('token', S.token); ls('user', S.user); if (d.config) { S.conf = d.config; ls('conf', S.conf); } }
 
 /* ---- en la caja: mandar el link por WhatsApp y enviar la factura timbrada ---- */
 async function facMandarLink(id) {
@@ -4266,6 +4557,7 @@ function facQuitarCliente() { S._facVenta.pid = null; $('#fvSel').innerHTML = ''
 async function facEmitirVenta(id) {
   const v = pdvVenta(id), fv = S._facVenta || {}, receptor = fv.sol ? fv.sol.receptor : fv.pid ? null : facLeerReceptor('fv');
   const its = v.items.filter(i => !i.cancelado).map(i => ({ id: i.productoId || i.id || '', nombre: i.nombre + (detalleItem(i) ? ' ' + detalleItem(i).replace(/<[^>]+>/g, '') : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
+  if (pdvEnvioDe(v)) its.push({ id: '', nombre: 'Envío a domicilio', cant: 1, importe: pdvEnvioDe(v) }); // 2.87
   const suma = its.reduce((s, i) => s + i.importe, 0);
   if (suma > 0 && Math.abs(suma - v.total) > 0.01) { const k = v.total / suma; its.forEach(i => { i.importe = Math.round(i.importe * k * 100) / 100; }); } // descuentos de la venta
   const base = { negocioId: S.negocio.id, conceptos: its, formaPago: $('#feFor').value, concepto: $('#feCon').value };
@@ -4936,6 +5228,7 @@ function pdvAjustes() {
   const c = pdvCfg(), p = cocCfg();
   modal(`<div class="row between"><h2 style="margin:0">⚙️ Caja</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${pdvPuede('d') ? `<button class="btn pill full" style="margin:6px 0" onclick="S._pst=null;pdvFormPuestos()">🗄️ Cajas del negocio: <b>${pdvPuestos().length}</b>${pdvMulti() ? ' (' + pdvPuestos().map(p => esc(p.nombre)).join(', ') + ')' : ''}</button>` : ''}
+    <div class="row" style="gap:8px;margin:6px 0"><button class="btn pill" style="flex:1" onclick="pdvClientes()">👥 Clientes</button><button class="btn pill" style="flex:1" onclick="pdvRepsAdmin()">🛵 Repartidores</button></div>
     ${pdvMulti() && pdvMiPuesto() ? `<div class="small muted">Este equipo cobra en <b>${esc(pdvPuestoNom(pdvMiPuesto()))}</b>.</div>` : ''}
     <div class="muted small" style="margin:4px 0 10px">Lo de abajo se guarda solo en este equipo.</div>
     <label class="f">Papel de la impresora</label>
@@ -4964,10 +5257,11 @@ function pdvImprimirVenta(id) {
   const n = S.negocio || {};
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div>${n.direccion ? `<div class="p">${esc(n.direccion)}</div>` : ''}${n.telefono ? `<div class="p">Tel. ${esc(n.telefono)}</div>` : ''}</div><hr>
     <div class="r"><b>Ticket ${esc(v.folio)}</b><span>${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}</span></div>
-    <div>${v.tipo === 'llevar' ? 'PARA LLEVAR' : 'CONSUMO AQUÍ'} · Atendió ${esc(v.por.nombre.split(' ')[0])}</div>${v.cliente ? `<div>Cliente: ${esc(v.cliente.nombre || v.cliente.tel)}</div>` : ''}
+    <div>${v.dom ? 'A DOMICILIO' : v.tipo === 'llevar' ? 'PARA LLEVAR' : 'CONSUMO AQUÍ'} · Atendió ${esc(v.por.nombre.split(' ')[0])}</div>${v.dom ? pdvDomTicketDatos(v.dom) : v.cliente ? `<div>Cliente: ${esc(v.cliente.nombre || v.cliente.tel)}</div>` : ''}
     ${v.estado === 'cancelada' ? '<div class="c t">*** CANCELADA ***</div>' : ''}${v.entrega && v.entrega.estado === 'pendiente' ? `<div class="c t">PAGADO${v.entrega.hora ? ' · PASA ' + esc(horaTxt(v.entrega.hora)).toUpperCase() : ''} · ${esc(v.entrega.nombre).toUpperCase()}</div>` : ''}<hr>
     ${v.items.filter(i => !i.cancelado).map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.importe != null ? i.importe : i.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
     ${v.promo && v.promo.total ? v.promo.det.map(d => `<div class="r"><span>🏷️ ${esc(d.titulo)}</span><span>-${money(d.monto)}</span></div>`).join('') : ''}
+    ${pdvEnvioDe(v) ? `<div class="r"><span>Envío a domicilio</span><span>${money(pdvEnvioDe(v))}</span></div>` : ''}
     <div class="r t"><span>TOTAL</span><span>${money(v.total)}</span></div>
     ${v.promo && v.promo.total ? `<div class="c">¡Ahorraste ${money(v.promo.total)}!</div>` : ''}
     ${v.pagos.map(p => `<div class="r"><span>${PDV_MET_TXT[p.metodo]}</span><span>${money(p.monto)}</span></div>${p.propina ? `<div class="r"><span>&nbsp;Propina tarjeta</span><span>${money(p.propina)}</span></div>` : ''}${p.cambio ? `<div class="r"><span>&nbsp;Recibido ${money(p.recibe)}</span><span>Cambio ${money(p.cambio)}</span></div>` : ''}`).join('')}<hr>
@@ -5016,12 +5310,14 @@ function pdvImprimirCorte(id, ciego) {
  */
 const PDV_2H = 2 * 3600e3;
 const pdvItemsVivos = c => (c.items || []).filter(i => !i.cancelado);
-const pdvTotalCuenta = c => pdvR(pdvItemsVivos(c).reduce((s, i) => s + i.cant * i.precio, 0) - (c.promo && !c.sinPromo ? c.promo.total || 0 : 0));
+const pdvTotalCuenta = c => pdvR(pdvItemsVivos(c).reduce((s, i) => s + i.cant * i.precio, 0) - (c.promo && !c.sinPromo ? c.promo.total || 0 : 0) + pdvEnvioDe(c));
+/** 2.87 · Costo del envío de un pedido a domicilio de la caja. */
+const pdvEnvioDe = c => c && c.dom ? pdvR(Number(c.dom.envio) || 0) : 0;
 /** Recalcula la promoción de una cuenta abierta (al agregar, corregir o quitar productos). */
 function pdvPromoCuenta(c) { c.promo = c.sinPromo ? null : (pr => pr.total ? pr : null)(pdvPromoCalc(pdvItemsVivos(c))); return c.promo; }
 const pdvSaldo = c => pdvR(pdvTotalCuenta(c) - (c.pagado || 0));
 const pdvCuenta = id => PDV.cuentas.find(c => c.id === id);
-const pdvEtiqueta = c => c.tipo === 'llevar' ? (c.espera ? '🙋 ' : '🥡 ') + (c.nombre || 'Para llevar') + (c.espera ? ' · espera aquí' : c.recoge ? ' · recoge ' + c.recoge : '') + (c.mesa ? ' (' + c.mesa + ')' : '') : (c.mesa ? c.mesa + ' · ' : '') + (c.nombre || 'Cuenta');
+const pdvEtiqueta = c => c.dom ? '🛵 ' + (c.nombre || c.dom.nombre || 'A domicilio') + (c.dom.estado === 'camino' ? ' · en camino' : c.dom.estado === 'entregado' ? ' · entregado' : ' · a domicilio') : c.tipo === 'llevar' ? (c.espera ? '🙋 ' : '🥡 ') + (c.nombre || 'Para llevar') + (c.espera ? ' · espera aquí' : c.recoge ? ' · recoge ' + c.recoge : '') + (c.mesa ? ' (' + c.mesa + ')' : '') : (c.mesa ? c.mesa + ' · ' : '') + (c.nombre || 'Cuenta');
 function pdvMesasLista() {
   if (!funOn('caja', 'mesas')) return []; // 2.68: sin mesas (solo cuentas y pedidos)
   const z = (PDV.mesas && PDV.mesas.zonas) || [{ nombre: 'Mesa', n: 8 }];
@@ -5278,16 +5574,17 @@ function pdvPanelCuenta(c) {
         : `<b>${i.cant}×</b>`}
       <b style="min-width:58px;text-align:right">${money(i.cant * i.precio)}</b></div>`;
   const total = pdvTotalCuenta(c), saldo = pdvSaldo(c);
-  return `${rondas.map(r => { const k = kom(r); return `<div class="pdvRonda"><span>Ronda ${r} · ${hora(k ? k.ts : 0)}</span>${k ? (k.estado === 'listo' ? `<button class="btn sm ok" onclick="pdvEntregada('${k.id}')">📦 Lista · Entregué</button>` : k.estado === 'entregada' ? '<span>✅ Entregada</span>' : k.estado === 'cancelada' ? '<span>✖️</span>' : '<span>👩‍🍳 En cocina' + (komProg(k).h ? ' · ' + komProg(k).h + '/' + komProg(k).t : '') + '</span>') : ''}</div>${its.filter(i => i.ronda === r).map(i => linea(i, false)).join('')}`; }).join('')}
+  return `${c.dom ? pdvDomTarjeta(c) : ''}${rondas.map(r => { const k = kom(r); return `<div class="pdvRonda"><span>Ronda ${r} · ${hora(k ? k.ts : 0)}</span>${k ? (k.estado === 'listo' ? `<button class="btn sm ok" onclick="pdvEntregada('${k.id}')">📦 Lista · Entregué</button>` : k.estado === 'entregada' ? '<span>✅ Entregada</span>' : k.estado === 'cancelada' ? '<span>✖️</span>' : '<span>👩‍🍳 En cocina' + (komProg(k).h ? ' · ' + komProg(k).h + '/' + komProg(k).t : '') + '</span>') : ''}</div>${its.filter(i => i.ronda === r).map(i => linea(i, false)).join('')}`; }).join('')}
     ${nuevos.length && !pdvCocinaOn() ? nuevos.map(i => linea(i, true)).join('') : ''}
     ${nuevos.length && pdvCocinaOn() ? `<div class="pdvRonda nueva"><span>🆕 Sin enviar</span></div>${nuevos.map(i => linea(i, true)).join('')}
       <button class="btn pri pill full" style="margin:8px 0;font-size:17px" onclick="act(this,()=>pdvEnviarRonda('${c.id}'))">👩‍🍳 Enviar a cocina (${nuevos.reduce((s, i) => s + i.cant, 0)})</button>` : ''}
     ${!its.length ? '<div class="pdvVacio">Toca productos del menú para agregarlos a la cuenta</div>' : ''}
     ${c.promo && !c.sinPromo ? pdvPromoLineas(c.promo) : ''}
+    ${pdvEnvioDe(c) ? `<div class="tot"><span>🛵 Envío a domicilio</span><span>${money(pdvEnvioDe(c))}</span></div>` : ''}
     <div class="tot" style="margin-top:8px"><span>Total</span><span>${money(total)}</span></div>
     ${c.pagado ? `<div class="tot"><span>Pagado</span><span>${money(c.pagado)}</span></div>` : ''}
     <div class="tot g" style="font-size:22px"><span>${c.pagado ? 'Falta' : 'Total'}</span><span>${money(saldo)}</span></div>
-    ${pdvPuedeDividir(c) ? `<button class="btn pill full" style="margin-top:8px;font-size:16px" ${nuevos.length ? 'disabled' : ''} onclick="pdvDividir('${c.id}')">👥 Dividir cuenta · ${money(total)}</button>` : ''}
+    ${pdvPuedeDividir(c) && !c.dom ? `<button class="btn pill full" style="margin-top:8px;font-size:16px" ${nuevos.length ? 'disabled' : ''} onclick="pdvDividir('${c.id}')">👥 Dividir cuenta · ${money(total)}</button>` : ''}
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="pdvPreventa('${c.id}')">🧾 Pre-cuenta</button>
       <button class="btn pri pill" style="flex:2;font-size:17px" ${saldo > 0 && !nuevos.length ? '' : 'disabled'} onclick="pdvCobrarCuenta('${c.id}')">Cobrar</button></div>
     ${nuevos.length && saldo > 0 ? '<div class="small muted" style="text-align:center;margin-top:4px">Envía a cocina lo nuevo antes de cobrar o dividir.</div>' : ''}
@@ -5705,7 +6002,7 @@ function pdvCobrarCuenta(id) {
   }
   const enCocina = (PDV.comandas || []).some(k => k.ventaId === id && ['preparando', 'listo'].includes(k.estado));
   PDV.cobro = { cuentaId: id, met: 'efectivo', modo: 'monto', sel: {}, tel: c.cliente ? c.cliente.tel : '',
-    ent: { modo: enCocina || (c.tipo === 'llevar' && c.recoge) ? 'despues' : 'ahora', nombre: (c.cliente && c.cliente.nombre) || (c.tipo === 'mesa' ? pdvEtiqueta(c) : c.nombre) || '', hora: c.recoge || '' } };
+    ent: { modo: enCocina || (c.tipo === 'llevar' && c.recoge) || (c.dom && c.dom.estado !== 'entregado') ? 'despues' : 'ahora', nombre: (c.cliente && c.cliente.nombre) || (c.tipo === 'mesa' ? pdvEtiqueta(c) : c.nombre) || '', hora: c.recoge || '' } };
   pdvPintarCobroCuenta();
 }
 function pdvUnidadesPendientes(c) { return pdvItemsVivos(c).map(i => ({ i, resta: i.cant - (i.pagadoCant || 0) })).filter(x => x.resta > 0); }
@@ -5827,9 +6124,10 @@ function pdvPreventa(id) {
   const c = pdvCuenta(id); if (!c) return;
   const n = S.negocio || {};
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div><div class="t">PRE-CUENTA</div></div><hr>
-    <div class="r"><b>${esc(c.folio)}</b><span>${hora(Date.now())}</span></div><div>${esc(pdvEtiqueta(c))} · Atiende ${esc(c.mesero.nombre.split(' ')[0])}</div><hr>
+    <div class="r"><b>${esc(c.folio)}</b><span>${hora(Date.now())}</span></div><div>${esc(pdvEtiqueta(c))} · Atiende ${esc(c.mesero.nombre.split(' ')[0])}</div>${c.dom ? pdvDomTicketDatos(c.dom) : ''}<hr>
     ${pdvItemsVivos(c).map(i => `<div class="r"><span>${i.cant} x ${esc(i.nombre)}</span><span>${money(i.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`).join('')}<hr>
     ${c.promo && c.promo.total ? c.promo.det.map(d => `<div class="r"><span>🏷️ ${esc(d.titulo)}</span><span>-${money(d.monto)}</span></div>`).join('') : ''}
+    ${pdvEnvioDe(c) ? `<div class="r"><span>Envío a domicilio</span><span>${money(pdvEnvioDe(c))}</span></div>` : ''}
     <div class="r t"><span>TOTAL</span><span>${money(pdvTotalCuenta(c))}</span></div>
     ${c.pagado ? `<div class="r"><span>Pagado</span><span>${money(c.pagado)}</span></div><div class="r t"><span>FALTA</span><span>${money(pdvSaldo(c))}</span></div>` : ''}<hr>
     <div class="c p">Este ticket no es comprobante de pago</div>`, 'Pre-cuenta ' + c.folio));
@@ -9644,6 +9942,7 @@ function cocinaSoloPro() {
 }
 const cocCfg = () => Object.assign({ papel: 58, auto: false, sonido: true }, ls('cocina') || {});
 async function vCocina(_, silencioso) {
+  if (negInactivo()) { vInactivo(); return; } // 2.87
   if (!cocTieneAcceso() || !puedo('pedidos')) { ls('estacion', null); ir(inicioRol()); return; }
   if (!esBarra()) ls('estacion', 'cocina');
   if (!S._cocMenu && S.negocio) { S._cocMenu = menuLocal(S.negocio.id); if (!S._cocMenu) api('menu', { negocioId: S.negocio.id }).then(m => { S._cocMenu = m; pintarCocina(); }).catch(() => { }); }
@@ -11045,12 +11344,27 @@ function mpDesconectarPreg() {
     <div class="btns"><button class="btn" onclick="modulosVer()">No</button><button class="btn pri" onclick="act(this,async()=>{fijarNeg(await api('mpDesconectar',{negocioId:S.negocio.id}));toast('Desconectado');modulosVer()})">Sí, desconectar</button></div>`);
 }
 const MOD_REQ = { personal: 'caja', lealtad: 'caja' };
+/* ---------- 2.87 · Pídele en línea e inactivo sin plan ---------- */
+async function enLineaActivar(nid) {
+  if (S.negocio && S.negocio.id !== nid) await elegirNegocio(nid);
+  await extraAgregar('app');
+  try { const d = await api('yo'); if (d && d.negocios) { S.negocios = d.negocios; ls('negocios', S.negocios); } } catch (e) { }
+  pintar(true);
+}
+/** El negocio quedó inactivo (no eligió su plan a tiempo o no pagó): la caja y lo demás se bloquean hasta resolverlo. */
+const negInactivo = () => !!(S.negocio && S.negocio.suscripcion && S.negocio.suscripcion.estado === 'suspendido' && !S.negocio.cortesia && !esAdminU());
+function vInactivo() {
+  const s = S.negocio.suscripcion || {};
+  html(`<div class="vacio" style="padding:30px 16px"><div style="font-size:52px">⏸️</div><h2>${esc(S.negocio.nombre)} está inactivo</h2>
+    <p class="muted">${s.sinPlan ? 'No se eligió un plan antes del ' + fechaLarga(s.suspendeEl) + '.' : 'La suscripción está vencida.'} Tus datos están guardados: ${s.sinPlan ? 'elige tu plan' : 'registra tu pago'} y se reactiva.</p>
+    ${esDueno() ? `<div class="btns" style="flex-direction:column;gap:8px">${s.sinPlan ? `<button class="btn pri pill full" onclick="ir('elegirPlan')">📋 Elegir mi plan</button>` : ''}<button class="btn pill full" onclick="ir('suscripcion')">💳 Mi suscripción</button></div>` : '<div class="aviso warn">Avísale al dueño del negocio.</div>'}</div>`);
+}
 /* ---------- 2.81 · Módulos extra y cajas adicionales ---------- */
-const EXTRA_NOM = { personal: 'Personal', lealtad: 'Lealtad', facturas: 'Facturación', inventario: 'Inventario y recetas', operacion: 'Operación', caja: 'Caja adicional' };
+const EXTRA_NOM = { app: 'Pídele en línea', personal: 'Personal', lealtad: 'Lealtad', facturas: 'Facturación', inventario: 'Inventario y recetas', operacion: 'Operación', caja: 'Caja adicional' };
 function extraBotonHTML(k, ex) {
   if (!ex || !ex.precio) return `<button class="lnk small" onclick="cerrarModal();ir('suscripcion')">Ver planes ›</button>`;
   const caja = (S.negocio.planCfg || {}).caja;
-  if (k !== 'facturas' && !caja) return `<div class="small muted" style="margin-top:4px">Necesita el plan ${esc(nombrePlan('plus'))}. <button class="lnk small" onclick="cerrarModal();ir('suscripcion')">Ver planes ›</button></div>`;
+  if (k !== 'facturas' && k !== 'app' && !caja) return `<div class="small muted" style="margin-top:4px">Necesita el plan ${esc(nombrePlan('plus'))}. <button class="lnk small" onclick="cerrarModal();ir('suscripcion')">Ver planes ›</button></div>`;
   if (ex.src === 'pend') return `<div class="btns"><button class="btn pri sm" onclick="act(this,()=>extraAgregar('${k}'))">Suscribirme con Google Play</button></div>`;
   return `<div class="btns"><button class="btn pri sm" onclick="act(this,()=>extraAgregar('${k}'))">Agregar a mi plan · +${money(ex.precio)}/mes</button></div>`;
 }
@@ -14040,7 +14354,7 @@ function vPerfil() {
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
       <div class="row between" style="gap:8px;margin-bottom:10px"><div class="grow"><b>📶 Ahorro de datos</b><div class="muted small">${ahorro() ? 'Activo: fotos chicas, mapas solo cuando los abres y menos consultas.' : 'Para gastar menos datos o con mala señal.'}</div></div>
         <select class="i" style="width:auto" onchange="ls('ahorro', this.value === 'auto' ? null : Number(this.value)); toast(ahorro() ? 'Ahorro de datos activo 📶' : 'Ahorro de datos apagado'); vPerfil()">${[['auto', 'Automático'], ['1', 'Siempre'], ['0', 'Nunca']].map(([v, t]) => `<option value="${v}" ${String(ls('ahorro') == null ? 'auto' : ls('ahorro')) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
+      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => n.enLinea === false ? `<div class="card" style="box-shadow:none;border:2px dashed var(--pri);padding:10px"><b>📲 Pídele en línea${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted" style="margin:2px 0 6px">${TXT_EN_LINEA}</div>${n.dueno !== false ? `<button class="btn pri sm" onclick="act(this,()=>enLineaActivar('${n.id}'))">Activar · +${money(((S.conf || {}).extrasPrecios || {}).app || 199)}/mes</button>` : '<div class="small muted">Pídele al dueño que lo active.</div>'}</div><div style="height:6px"></div>` : `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
       <button class="btn ${r === 'negocio' ? '' : 'pri'} full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
@@ -14110,13 +14424,29 @@ async function guardarNuevaClave() {
 }
 
 /** "Olvidé mi contraseña": se pide por WhatsApp desde el número de la cuenta. */
+/** 2.86.1 · Primero el teléfono: si no tiene cuenta, se ofrece crearla (antes pedían contraseña sin haberse registrado). */
 function olvideClave() {
+  const t0 = ($('#lTel') && $('#lTel').value) || '';
+  modal(`<div class="row between"><h2 style="margin:0">¿Olvidaste tu contraseña?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <p class="muted">Escribe el teléfono con el que te registraste.</p>
+    <input class="i" id="olvTel" type="tel" inputmode="numeric" maxlength="14" value="${esc(t0)}" placeholder="10 dígitos" onkeydown="if(event.key==='Enter')$('#bOlv').click()">
+    <div class="btns"><button class="btn pri pill full" id="bOlv" onclick="act(this,olvideRevisar)">Continuar</button></div>`);
+  setTimeout(() => { const i = $('#olvTel'); if (i) i.focus(); }, 200);
+}
+async function olvideRevisar() {
+  const tel = String($('#olvTel').value || '').replace(/\D/g, '').slice(-10);
+  if (tel.length !== 10) throw new Error('Escribe tu teléfono a 10 dígitos');
+  let r; try { r = await api('telCuenta', { telefono: tel }); } catch (e) { if (/acción|accion|desconocida/i.test(e.message)) r = { cuenta: true }; else throw e; } // servidor anterior: sigue como antes
+  if (!r.cuenta) { sinCuentaModal(tel, 'Ese teléfono no tiene cuenta'); return; }
+  olvideClaveAyuda(tel);
+}
+function olvideClaveAyuda(tel) {
   const n = numPidele(), sop = (S.conf && S.conf.soporteWhatsApp) || '';
   modal(`<div class="row between"><h2 style="margin:0">¿Olvidaste tu contraseña?</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${n && S.conf.whatsappResponde ? `<p class="muted">Desde el WhatsApp del teléfono con el que te registraste, envía la palabra <b>CLAVE</b> a Pídele. Te contestamos con una contraseña temporal; al entrar te pediremos crear una nueva.</p>
       <a class="btn pri pill full" href="${waLink(n, 'CLAVE')}" target="_blank">${ico('chat', 's')} Enviar CLAVE por WhatsApp</a>`
     : `<p class="muted">Escríbenos por WhatsApp desde el teléfono con el que te registraste. Te daremos una contraseña temporal; al entrar te pediremos crear una nueva.</p>
-      ${sop ? `<a class="btn pri pill full" href="${waLink(sop, 'Hola, olvidé mi contraseña de ' + APP + '. Mi teléfono registrado es: ')}" target="_blank">${ico('chat', 's')} Pedir contraseña a soporte</a>` : '<div class="aviso warn">Pide al administrador una contraseña temporal.</div>'}`}`);
+      ${sop ? `<a class="btn pri pill full" href="${waLink(sop, 'Hola, olvidé mi contraseña de ' + APP + '. Mi teléfono registrado es: ' + (tel || ''))}" target="_blank">${ico('chat', 's')} Pedir contraseña a soporte</a>` : '<div class="aviso warn">Pide al administrador una contraseña temporal.</div>'}`}`);
 }
 
 /** Tarjeta para verificar el teléfono (perfil, pago y pasos del repartidor). */
@@ -15258,19 +15588,19 @@ async function vElegirPlan() {
 }
 function pintarElegirPlan() {
   const d = S._susc, P = d.planes || {}, pr = d.extrasPrecios || {}, E = S._ep, pc = P[E.plan] || {};
-  const flag = { personal: 'personal', lealtad: 'fidelidad', facturas: 'factura', inventario: 'inventario', operacion: 'operacion' };
-  const info = { personal: ['👥', 'Asistencia, vacaciones, nómina, bonos y consumo del equipo'], lealtad: ['👛', 'Monedero de tus clientes: cashback, recargas y visitas'], facturas: ['🧾', 'Facturas CFDI a tus clientes: 50 al mes'], inventario: ['📦', 'Existencias, recetas, conteos y producción'], operacion: ['✅', 'Tareas del equipo, reporte de daños, pendientes entre equipos y entrega de turno'] };
-  const puede = k => k === 'facturas' || pc.caja;
+  const flag = { app: 'app', personal: 'personal', lealtad: 'fidelidad', facturas: 'factura', inventario: 'inventario', operacion: 'operacion' };
+  const info = { app: ['📲', TXT_EN_LINEA], personal: ['👥', 'Asistencia, vacaciones, nómina, bonos y consumo del equipo'], lealtad: ['👛', 'Monedero de tus clientes: cashback, recargas y visitas'], facturas: ['🧾', 'Facturas CFDI a tus clientes: 50 al mes'], inventario: ['📦', 'Existencias, recetas, conteos y producción'], operacion: ['✅', 'Tareas del equipo, reporte de daños, pendientes entre equipos y entrega de turno'] };
+  const puede = k => k === 'facturas' || k === 'app' || pc.caja;
   E.extras = E.extras.filter(k => puede(k) && !pc[flag[k]]);
   if (!pc.caja) E.cajas = 0;
   const lineas = [['Plan ' + pc.nombre, pc.precio]].concat(E.extras.map(k => [EXTRA_NOM[k], pr[k]]), E.cajas ? [[E.cajas + (E.cajas > 1 ? ' cajas adicionales' : ' caja adicional'), E.cajas * pr.caja]] : []);
   const total = lineas.reduce((s, x) => s + x[1], 0), conFac = pc.factura || E.extras.includes('facturas');
-  const suelto = ['caja', 'personal', 'lealtad', 'facturas', 'inventario', 'operacion'].reduce((s, k) => s + (k === 'caja' ? (P.plus || {}).precio || 0 : pr[k] || 0), 0);
+  const suelto = ['caja', 'app', 'personal', 'lealtad', 'inventario', 'operacion'].reduce((s, k) => s + (k === 'caja' ? (P.plus || {}).precio || 0 : pr[k] || 0), 0);
   html(`<div class="titBar">${d.eleccion ? '<span class="esp"></span>' : `<button class="redondo" onclick="S._ep=null;volver('suscripcion')">${ico('atras')}</button>`}<h2>Elige tu plan</h2><span class="esp"></span></div>
     ${d.eleccion ? `<div class="aviso info">📋 Pídele ya tiene planes. Elige el tuyo y los módulos que usas; ${d.primerCobro ? 'tu primer pago es el <b>' + fechaLarga(d.primerCobro) + '</b>' : 'lo pagas en tu siguiente fecha de corte'}. Lo puedes cambiar cuando quieras.</div>` : ''}
     ${planesOferta().filter(k => P[k]).map(k => `<div class="opcion ${E.plan === k ? 'on' : ''}" style="margin:8px 0 0" onclick="S._ep.plan='${k}';pintarElegirPlan()">
-      <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k] || ''} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${k === 'basico' ? 'Solo la app: tu menú, pedidos a domicilio y para recoger, preventas, pedidos programados y pagos con tarjeta.' : k === 'plus' ? 'La app + punto de venta: caja, meseros, cocina, cortes y reportes. 1 caja abierta a la vez.' : 'Todo incluido: punto de venta, personal, lealtad, facturación (50 al mes), inventario y operación' + (suelto > P[k].precio ? '. Por separado serían ' + money(suelto) + '.' : '.')}</small></div></div>`).join('')}
-    ${E.plan !== 'ultra' ? `<h3>Agrega módulos</h3><div class="card">${Object.keys(flag).filter(k => !pc[flag[k]]).map(k => puede(k)
+      <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k] || ''} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${k === 'basico' ? 'Solo la app: tu menú, pedidos a domicilio y para recoger, preventas, pedidos programados y pagos con tarjeta.' : k === 'plus' ? TXT_PDV + ' 1 caja abierta a la vez. Para aparecer en la app agrega 📲 Pídele en línea.' : 'Todo incluido: punto de venta, 📲 Pídele en línea, personal, lealtad, inventario y operación' + (suelto > P[k].precio ? '. Por separado serían ' + money(suelto) + '.' : '.') + ' La facturación se agrega aparte.'}</small></div></div>`).join('')}
+    ${Object.keys(flag).some(k => !pc[flag[k]]) || pc.caja ? `<h3>Agrega módulos</h3><div class="card">${Object.keys(flag).filter(k => !pc[flag[k]]).map(k => puede(k)
       ? `<label class="pdvChk" style="align-items:flex-start;margin:6px 0"><input type="checkbox" ${E.extras.includes(k) ? 'checked' : ''} onchange="epExtra('${k}',this.checked)" style="margin-top:3px"> <span class="grow"><b>${info[k][0]} ${EXTRA_NOM[k]} · +${money(pr[k])}/mes</b><br><small class="muted">${info[k][1]}</small></span></label>`
       : `<div class="small muted" style="margin:6px 0">${info[k][0]} ${EXTRA_NOM[k]} · necesita ${esc(nombrePlan('plus'))}</div>`).join('')}
       ${pc.caja ? `<div class="row between" style="margin-top:8px"><div><b>🗄️ Cajas adicionales</b><div class="small muted">Para tener más de una caja abierta a la vez · +${money(pr.caja)}/mes c/u</div></div>
@@ -16131,8 +16461,8 @@ function tarjetaConcursoAdmin(k) {
       : '<div class="muted small" style="margin-top:6px">Aún no hay entregas esta semana.</div>'}</div>`;
 }
 /* ============ 2.85 · MOSTRAR PÍDELE: demo guiada con datos simulados ============ */
-const DEMO_MODS = [['tablero', '📊', 'Tu negocio en tu celular', 'Ventas, órdenes, personal y gastos al momento'], ['pedidos', '🛵', 'Pedidos por la app', 'El cliente pide, el negocio acepta, el repartidor entrega'],
-  ['caja', '🧾', 'Punto de venta', 'Mesas, cobros mixtos y corte de caja'], ['cocina', '🍳', 'Cocina y barra', 'Comandas en pantalla con tiempos'], ['personal', '👥', 'Personal y nómina', 'Checado con QR, retardos y nómina'],
+const DEMO_MODS = [['tablero', '📊', 'Tu negocio en tu celular', 'Ventas, órdenes, personal y gastos al momento'],
+  ['caja', '🧾', 'Punto de venta', 'Mesas, domicilio con tus repartidores, cobros y corte de caja'], ['cocina', '🍳', 'Cocina y barra', 'Comandas en pantalla con tiempos'], ['pedidos', '📲', 'Pídele en línea', 'Aparece en la app: el cliente pide, el negocio acepta, el repartidor entrega'], ['personal', '👥', 'Personal y nómina', 'Checado con QR, retardos y nómina'],
   ['lealtad', '👛', 'Lealtad y monedero', 'Saldo para que el cliente regrese'], ['facturacion', '🧾', 'Facturación', 'El cliente pide su factura desde el ticket'], ['inventario', '📦', 'Inventario y recetas', 'Existencias y alertas'],
   ['operacion', '✅', 'Operación e higiene', 'Tareas, bitácoras y expediente NOM-251'], ['tarjeta', '💳', 'Pago con tarjeta', 'Cobro en línea con Mercado Pago']];
 const DEMO_GIROS = [['tacos', '🌮 Tacos'], ['cafe', '☕ Café'], ['hamburguesas', '🍔 Hamburguesas'], ['mariscos', '🦐 Mariscos'], ['pizza', '🍕 Pizza']];
@@ -16609,7 +16939,7 @@ function editorPlanes() {
       <b>${PLAN_ICO[k]} ${esc(nombrePlan(k, P))}</b>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">${CAMPOS_PLAN.map(([f, t]) => `<div><label class="f" style="margin-top:4px">${t}</label><input class="i plCfg" type="number" min="0" step="${f === 'visibilidad' ? '0.5' : '1'}" data-p="${k}" data-f="${f}" value="${esc((P[k] || {})[f] ?? '')}" oninput="cfgCambio()"></div>`).join('')}
         <label class="opc" style="align-self:end"><input type="checkbox" class="plCfg" data-p="${k}" data-f="fijo" ${(P[k] || {}).fijo ? 'checked' : ''} onchange="cfgCambio()"> <span>Anuncio fijo semanal</span></label></div>
-      <div class="plFun">${[['caja', '🧾 Punto de venta'], ['fidelidad', '👛 Programa de fidelidad'], ['factura', '📄 Facturación']].map(([f, t]) => `<label class="opc"><input type="checkbox" class="plCfg" data-p="${k}" data-f="${f}" ${planTiene(f, k) ? 'checked' : ''} onchange="planFunCambio(this)"> <span>${t}</span></label>`).join('')}</div>
+      <div class="plFun">${[['app', '📲 Aparece en la app'], ['caja', '🧾 Punto de venta'], ['fidelidad', '👛 Programa de fidelidad'], ['factura', '📄 Facturación']].map(([f, t]) => `<label class="opc"><input type="checkbox" class="plCfg" data-p="${k}" data-f="${f}" ${planTiene(f, k) ? 'checked' : ''} onchange="planFunCambio(this)"> <span>${t}</span></label>`).join('')}</div>
       <div class="plFacMes" style="${planTiene('factura', k) ? '' : 'display:none'}"><label class="f" style="margin-top:4px">Facturas incluidas al mes (no se acumulan)</label><input class="i plCfg" type="number" min="0" step="1" data-p="${k}" data-f="facturasMes" value="${esc((P[k] || {}).facturasMes ?? (planTiene('factura', k) ? 50 : 0))}" oninput="cfgCambio()"></div></div>`).join('')}
   </details>`;
 }
