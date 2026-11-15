@@ -33,7 +33,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.88.1"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.88.2"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -1058,7 +1058,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.88.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.88.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1155,6 +1155,25 @@ function ls(k, v) {
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function money(n) { n = Number(n) || 0; if (n < 0) return '−' + money(-n); return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+/* ---------- 2.88.2 · Todo en la hora del negocio (Sinaloa), sin importar la zona del teléfono ---------- */
+const tzNeg = () => (typeof S !== 'undefined' && S.conf && S.conf.tz) || 'America/Mazatlan';
+const TZ_FMT = {};
+/** Minutos que la zona del negocio va adelante de UTC en ese momento. */
+function tzOffMin(ms, tz) {
+  tz = tz || tzNeg();
+  let fm = TZ_FMT[tz];
+  if (!fm) { try { fm = TZ_FMT[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return -new Date(ms).getTimezoneOffset(); } }
+  const p = fm.formatToParts(new Date(ms)), g = k => +((p.find(x => x.type === k) || {}).value || 0);
+  return Math.round((Date.UTC(g('year'), g('month') - 1, g('day'), g('hour') % 24, g('minute')) - Math.floor(ms / 60000) * 60000) / 60000);
+}
+/** Fecha cuyos getHours/getDate/getDay son los de la hora del negocio (para cálculos con la hora actual). */
+const dZ = ms => { const t = ms == null ? Date.now() : Number(ms); return new Date(t + (tzOffMin(t) + new Date(t).getTimezoneOffset()) * 60000); };
+/** Milisegundos de un día y hora "HH:MM" en la hora del negocio. */
+const msZ = (f, hhmm) => { const [y, m, d] = String(f).split('-').map(Number), [h, mi] = String(hhmm || '00:00').split(':').map(Number), g = Date.UTC(y, m - 1, d, h || 0, mi || 0); return g - tzOffMin(g - 6 * 3600e3) * 60000; };
+/** Fecha AAAA-MM-DD de un Date local (para cuentas de calendario). */
+const fechaLocal = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+// las fechas y horas que se muestran salen en la hora del negocio
+(function () { const P = Date.prototype; ['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString'].forEach(k => { const o = P[k]; P[k] = function (l, op) { const x = Object.assign({}, op || {}); if (!x.timeZone) x.timeZone = tzNeg(); try { return o.call(this, l, x); } catch (e) { return o.call(this, l, op); } }; }); })();
 function hora(ms) { return ms ? new Date(ms).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }) : ''; }
 function fechaCorta(ms) { return ms ? new Date(ms).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' ' + hora(ms) : ''; }
 function enMin(ms) { const m = Math.round((ms - Date.now()) / 60000); return m > 0 ? 'en ' + m + ' min' : m === 0 ? 'ahora' : 'hace ' + (-m) + ' min'; }
@@ -2754,7 +2773,7 @@ async function enviarServicio() {
 const PDV = { db: null, nid: '', letras: '', subs: [], caja: null, cajasHoy: [], ventas: [], gastos: [], pagosProv: [], provs: [], personal: {}, cuentas: [], comandas: [], pagosFis: [], pagosVta: [], ventasDia: [], pagosDia: [], mesas: null, cuentaId: '', tab: '', sec: '', buscar: '', venta: { tipo: 'mostrador', cocina: true, tel: '', nombre: '', recoge: '' }, pendientes: 0 };
 const pdvTieneAcceso = () => cocTieneAcceso() && !!S.negocio && (puedo('caja') || puedo('mesero') || esDueno());
 const pdvEsTelefono = () => /Android.+Mobile|iPhone|iPod/i.test(navigator.userAgent || '') && !/iPad|Tablet/i.test(navigator.userAgent || '');
-const pdvHoy = (ms) => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const pdvHoy = (ms) => { const d = dZ(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const pdvCol = c => PDV.db.collection('negocios').doc(PDV.nid).collection(c);
 const pdvYo = () => esDisp() && S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? { uid: S._oper.uid, nombre: S._oper.nombre, equipo: S.user.nombre } : { uid: S.user.id, nombre: S.user.nombre };
 /** 2.83 · En un equipo del negocio: quién atiende ahora (se elige con su código; queda hasta que otro se identifique). */
@@ -3645,7 +3664,7 @@ async function pdvTerminarVenta() {
   const ts = Date.now(), tel = v0.tel.replace(/\D/g, ''), n = S.negocio;
   if (tel && tel.length !== 10) throw new Error('El teléfono del cliente debe tener 10 dígitos');
   let salida = 0;
-  if (v0.tipo === 'llevar' && v0.recoge) { const [h, mi] = v0.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); salida = d.getTime(); }
+  if (v0.tipo === 'llevar' && v0.recoge) { salida = msZ(pdvHoy(), v0.recoge); }
   if (!salida) salida = ts + (Number(n.tiempoPrep) || 15) * 60000;
   const ref = pdvCol('ventas').doc(), folio = pdvFolio();
   // monedero (2.32): primero se cobra lo pagado con monedero (si falla, la venta no se guarda)
@@ -3664,7 +3683,7 @@ async function pdvTerminarVenta() {
   if (app && app.incl && app.envRep > 0) v.envioRep = app.envRep; // 2.80.1
   else { const pr = pdvPromoVenta(); if (pr.total) v.promo = pr; if (v0.sinPromo) v.promoQuitada = v0.sinPromo; }
   const ent = app ? null : pdvEntDatos(k.ent);
-  if (ent) { v.entrega = ent; if (ent.hora) { const [h, mi] = ent.hora.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() > ts) salida = d.getTime(); } }
+  if (ent) { v.entrega = ent; if (ent.hora) { const d = new Date(msZ(pdvHoy(), ent.hora)); if (d.getTime() > ts) salida = d.getTime(); } }
   if (pdvCocinaOn() && !app) { // los pedidos de la app ya se ven en cocina
     const kref = pdvCol('comandas').doc(), rec = ent ? ent.hora : v0.tipo === 'llevar' ? v0.recoge || '' : '';
     v.cocina = { estado: 'enviada', comandaId: kref.id, salida, recoge: rec };
@@ -5014,7 +5033,7 @@ async function pdvAb3Ok() {
 }
 /** Saludo según el día y la hora; se quita solo y deja la pantalla de venta. */
 function pdvSaludo(nombre) {
-  const d = new Date(), h = d.getHours(), mom = h < 12 ? ['mañana', '☀️'] : h < 19 ? ['tarde', '🌤️'] : ['noche', '🌙'];
+  const d = dZ(), h = d.getHours(), mom = h < 12 ? ['mañana', '☀️'] : h < 19 ? ['tarde', '🌤️'] : ['noche', '🌙'];
   const dia = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()];
   modal(`<div class="pdvSaludo" onclick="cerrarModal()"><div class="e">${mom[1]}</div><div class="muted" style="font-size:18px">¡Hola ${esc(nombre.split(' ')[0])}!</div><h2>¡Hoy será una gran ${mom[0]} de ${dia}!</h2><div class="muted small">Caja abierta · toca para empezar</div></div>`);
   clearTimeout(PDV._saludoT); PDV._saludoT = setTimeout(() => { if ($('#modal .pdvSaludo')) cerrarModal(); }, 2800);
@@ -5218,7 +5237,7 @@ function pdvFinCierre(r, k, pend) {
   if (PDV.cajaCobroId === c.id) PDV.cajaCobroId = '';
   pdvElegirCajaVista(); pdvSuscribirCaja();
   const falta = cierre.diferencia < -0.5;
-  const h = new Date().getHours(), despedida = h < 12 ? 'que tengas un lindo día' : h < 19 ? 'que tengas linda tarde' : 'que tengas linda noche';
+  const h = dZ().getHours(), despedida = h < 12 ? 'que tengas un lindo día' : h < 19 ? 'que tengas linda tarde' : 'que tengas linda noche';
   const extras = `${k.propinas ? `<div class="aviso info" style="text-align:left;margin:8px 0">💳 Entrega <b>${money(k.propinas)}</b> de propinas con tarjeta al equipo (ya se registraron como gasto).</div>` : ''}${k.abiertasN ? `<div class="aviso warn" style="text-align:left;margin:8px 0">🍽️ Quedan ${k.abiertasN} cuenta(s) abierta(s) de este turno; se suman a tus ventas cuando se cobren.</div>` : ''}`;
   modal(`<div style="text-align:center"><div style="font-size:46px">${falta ? '📝' : '🙌'}</div><h2 style="margin:4px 0">${esc(pdvCajaNom(c))} cerrado</h2>
     ${falta ? `<div class="pdvCambioG" style="color:var(--err)">Faltaron ${money(-cierre.diferencia)}</div><div class="muted" style="margin:6px 0">Enviaremos el reporte para su revisión. ¡Gracias por tu trabajo de hoy!</div>`
@@ -5390,7 +5409,7 @@ function pdvVistaActivas() {
 }
 /** 2.85.3 · "Ayer", "mar 11 nov"… para las cuentas que se quedaron abiertas de otro día. */
 function pdvDiaCorto(dia) {
-  const ay = new Date(); ay.setDate(ay.getDate() - 1);
+  const ay = new Date(pdvHoy() + 'T12:00'); ay.setDate(ay.getDate() - 1);
   const f = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   if (dia === f(ay)) return 'ayer';
   const [y, m, d] = String(dia).split('-').map(Number); if (!y) return dia;
@@ -5641,7 +5660,7 @@ async function pdvEnviarRonda(id) {
   const nuevos = c.items.filter(i => !i.ronda); if (!nuevos.length) return;
   const r = Math.max(0, ...c.items.map(i => i.ronda || 0)) + 1, ts = Date.now(), ref = pdvCol('comandas').doc();
   let salida = ts + (Number(S.negocio.tiempoPrep) || 15) * 60000;
-  if (c.tipo === 'llevar' && c.recoge) { const [h, mi] = c.recoge.split(':').map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() > ts) salida = d.getTime(); }
+  if (c.tipo === 'llevar' && c.recoge) { const d = new Date(msZ(pdvHoy(), c.recoge)); if (d.getTime() > ts) salida = d.getTime(); }
   nuevos.forEach(i => { i.ronda = r; });
   const k = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: r, agregado: r > 1, dia: pdvHoy(), ts, salida, estado: 'preparando', mesero: pdvYo(),
     items: nuevos.map(i => ({ k: i.k, id: i.id || '', nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) };
@@ -6228,8 +6247,8 @@ function pdvGuardarMesas() {
  */
 const PDV_PER = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada'], ['mes', 'Este mes'], ['mesAnt', 'Mes pasado'], ['anio', 'Este año'], ['anioAnt', 'Año pasado'], ['otro', 'Otras fechas']];
 function pdvRango(per, desde, hasta) {
-  const h = new Date(); h.setHours(0, 0, 0, 0);
-  const d = (y, m, dd) => new Date(y, m, dd), Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
+  const h = new Date(pdvHoy() + 'T12:00'); // 2.88.2: el "hoy" del negocio
+  const d = (y, m, dd) => new Date(y, m, dd, 12), Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
   const lunes = new Date(h); lunes.setDate(D - (h.getDay() + 6) % 7);
   let a, b;
   if (per === 'hoy') { a = h; b = h; }
@@ -6242,8 +6261,9 @@ function pdvRango(per, desde, hasta) {
   else if (per === 'mesAnt') { a = d(Y, M - 1, 1); b = d(Y, M, 0); }
   else if (per === 'anio') { a = d(Y, 0, 1); b = h; }
   else if (per === 'anioAnt') { a = d(Y - 1, 0, 1); b = d(Y - 1, 11, 31); }
-  else { a = desde ? new Date(desde + 'T00:00') : h; b = hasta ? new Date(hasta + 'T00:00') : h; if (b < a) [a, b] = [b, a]; }
-  return { desde: pdvHoy(a.getTime()), hasta: pdvHoy(b.getTime()), msDesde: a.getTime(), msHasta: b.getTime() + 864e5 - 1 };
+  else { a = desde ? new Date(desde + 'T12:00') : h; b = hasta ? new Date(hasta + 'T12:00') : h; if (b < a) [a, b] = [b, a]; }
+  const de = fechaLocal(a), ha = fechaLocal(b);
+  return { desde: de, hasta: ha, msDesde: msZ(de, '00:00'), msHasta: msZ(ha, '00:00') + 864e5 - 1 };
 }
 function pdvNegsReporte() {
   const l = Object.entries(PDV.negs || {}).filter(([, le]) => /[dgv]/.test(le)).map(([id]) => ({ id, nombre: ((S.negocios || []).find(n => n.id === id) || (S.negocio && S.negocio.id === id ? S.negocio : {}) || {}).nombre || 'Negocio' }));
@@ -6392,7 +6412,7 @@ function pdvCalcReporte(D) {
       vNeg += v.total; r.tickets++; r.propinas += v.propina || 0; sum(r.porCaja, nomC(v.cajaId), v.total);
       v.pagos.forEach(p => sum(r.porMet, MET[p.metodo] || p.metodo, p.monto));
       sum(r.porTipo, v.canal === 'app' ? '📱 App (cobrado en caja)' : v.canal === 'tel' ? '☎️ Teléfono (cobrado en caja)' : v.tipo === 'llevar' ? '🥡 Para llevar (mostrador)' : '🧾 Mostrador', v.total);
-      sum(r.porDia, v.dia, v.total); sum(r.porHora, new Date(v.ts).getHours(), v.total);
+      sum(r.porDia, v.dia, v.total); sum(r.porHora, dZ(v.ts).getHours(), v.total);
       sum(r.gente, v.por.nombre, v.total);
       v.items.forEach(i => { const x = r.prods[i.nombre] = r.prods[i.nombre] || { cant: 0, importe: 0 }; x.cant += i.cant; x.importe = pdvR(x.importe + (i.importe != null ? i.importe : i.cant * i.precio)); });
     });
@@ -6404,7 +6424,7 @@ function pdvCalcReporte(D) {
       sum(r.porMet, MET[p.metodo] || p.metodo, p.monto);
       const c = cuentas.find(x => x.id === p.ventaId) || {};
       sum(r.porTipo, c.tipo === 'llevar' ? '🥡 Para llevar (cuentas)' : '🍽️ Mesas', p.monto);
-      sum(r.porDia, p.diaVenta, p.monto); sum(r.porHora, new Date(p.ts).getHours(), p.monto);
+      sum(r.porDia, p.diaVenta, p.monto); sum(r.porHora, dZ(p.ts).getHours(), p.monto);
       sum(r.gente, (p.mesero || p.por).nombre, p.monto);
     });
     cuentas.filter(c => c.estado === 'pagada').forEach(c => {
@@ -6662,14 +6682,14 @@ function barraChecar() {
     const x = (ls('asisMia') || []).find(y => y.negocioId === S.negocio.id && y.hoy && y.hoy.fecha === pdvHoy());
     if (!x || x.hoy.salida || (!x.hoy.horario && !x.hoy.entrada)) return '';
     const h = x.hoy.horario, f = `act(this,()=>asisMarcarFlujo('${x.negocioId}'))`;
-    const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+    const ahoraMin = dZ().getHours() * 60 + dZ().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
     // 2.83: fuera de la hora de checar, se recoge en un icono pequeño (leer el QR del equipo de la caja)
     if (!x.hoy.entrada && h && aMin(h.e) !== null && ahoraMin < aMin(h.e) - 30)
       return `<div class="checar mini" role="button" onclick="${f}" title="Entras a las ${horaTxt(h.e)} · leer QR" aria-label="Checar entrada (entras a las ${horaTxt(h.e)})">🕒</div>`;
     if (x.hoy.entrada && h && aMin(h.s) !== null && aMin(h.s) > aMin(h.e) && ahoraMin < aMin(h.s) - 30)
       return `<div class="checar mini" role="button" onclick="${f}" title="Entraste ${hora(x.hoy.entrada)} · sales ${horaTxt(h.s)}" aria-label="Checar salida (sales a las ${horaTxt(h.s)})">🕒</div>${invBarraEquipo(x)}`;
     if (!x.hoy.entrada) {
-      const tarde = h ? Math.round((Date.now() - new Date(x.hoy.fecha + 'T' + h.e).getTime()) / 6e4) : 0;
+      const tarde = h ? Math.round((Date.now() - msZ(x.hoy.fecha, h.e)) / 6e4) : 0;
       return `<div class="checar ent" role="button" onclick="${f}"><span style="font-size:30px">🕒</span><span class="grow"><b>Checar entrada</b><small>${h ? 'Tu turno: ' + horaTxt(h.e) + ' – ' + horaTxt(h.s) : 'Hoy'}${tarde > 0 && tarde < 600 ? ' · vas ' + (tarde < 60 ? tarde + ' min' : Math.floor(tarde / 60) + ' h ' + (tarde % 60) + ' min') + ' tarde' : ''}</small></span><button class="btn pill" style="background:#fff;color:var(--pri);font-weight:800" onclick="event.stopPropagation();${f}">📷 Checar</button></div>`;
     }
     return `<div class="checar sal"><span style="font-size:24px">✅</span><span class="grow"><b style="font-size:15px">Entraste ${hora(x.hoy.entrada)}</b><small>${h ? 'Sales a las ' + horaTxt(h.s) + ' · al terminar, checa tu salida' : 'Al terminar, checa tu salida'}</small></span><button class="btn sm" onclick="${f}">👋 Checar salida</button></div>${invBarraEquipo(x)}`;
@@ -6685,7 +6705,7 @@ function relojPendRefrescar() {
 /** ¿Alguien está por entrar (30 min antes, y hasta que marque) o por salir (30 min antes)? Sin datos, se queda grande. */
 function relojGrande(nid) {
   const d = ls('relojPend_' + nid); if (!d || d.fecha !== pdvHoy()) return true;
-  const ahora = new Date().getHours() * 60 + new Date().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+  const ahora = dZ().getHours() * 60 + dZ().getMinutes(), aMin = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
   return (d.lista || []).some(x => {
     const e = aMin(x.e); let sa = aMin(x.s); if (e !== null && sa !== null && sa <= e) sa += 1440;
     if (!x.ent) return e === null ? false : ahora >= e - 30 && (sa === null || ahora <= sa);
@@ -8496,7 +8516,7 @@ async function vacReglasP(o) { PDV.per.datos = await api('vacReglas', Object.ass
 function vacGuardarReglas() { return vacReglasP({ anticipo: $('#vrAnt').value, maxDia: $('#vrMax').value }); }
 async function asisDecidir(uid, fecha, estado) { PDV.per.datos = await api('asisDecidir', { negocioId: S.negocio.id, usuarioId: uid, fecha, estado }); toast('Guardado ✓'); pintarCaja(); }
 function asisEncargado(uid, tipo, nombre) {
-  const ahora = new Date(), hh = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+  const ahora = dZ(), hh = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
   modal(`<div class="row between"><h2 style="margin:0">✍️ ${tipo === 'entrada' ? 'Entrada' : 'Salida'} de ${esc(nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small" style="margin:6px 0">Para quien no trae celular o se quedó sin batería. Queda registrado que lo hiciste tú.</div>
     <label class="f">Hora</label><input class="i" type="time" id="encHora" value="${hh}" max="${hh}">
@@ -8679,9 +8699,9 @@ async function asisGuardarPersona(activo) {
 }
 /** Periodos de nómina: semana lunes–domingo o quincena 1–15 / 16–fin. */
 function asisPeriodoNom(k) {
-  const h = new Date(); h.setHours(12, 0, 0, 0);
+  const h = new Date(pdvHoy() + 'T12:00');
   const lunes = new Date(h); lunes.setDate(h.getDate() - (h.getDay() + 6) % 7);
-  const f = d => pdvHoy(d.getTime()), mas = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const f = d => fechaLocal(d), mas = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   if (k === 'semana') return { periodo: 'semanal', desde: f(lunes), hasta: f(mas(lunes, 6)) };
   if (k === 'semanaAnt') return { periodo: 'semanal', desde: f(mas(lunes, -7)), hasta: f(mas(lunes, -1)) };
   const Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
@@ -8753,7 +8773,7 @@ function nomTablero(d) {
   const sum = k => pdvR(l.reduce((s, p) => s + (Number(p[k]) || 0), 0));
   const LT = PDV.lote && PDV.lote.on ? PDV.lote : null, nPend = nomLoteN();
   return `<div class="row between" style="gap:8px"><div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
-    ${LT ? '' : `<button class="btn sm pri" style="flex:0 0 auto" onclick="nomLoteIniciar()">✏️ Varios cambios</button>`}</div>
+    ${LT ? '' : `<div class="row" style="gap:6px;flex:0 0 auto"><button class="btn sm" onclick="nomActualizar()">🔄 Actualizar cálculos</button><button class="btn sm pri" onclick="nomLoteIniciar()">✏️ Varios cambios</button></div>`}</div>
     ${LT ? `<div class="aviso info small" style="margin-top:6px">✏️ <b>Varios cambios:</b> elige un pincel y toca los días; escribe las ventas en sus casillas. Nada se guarda hasta tocar <b>Guardar todo</b>.</div>
     <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
     <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
@@ -8772,7 +8792,7 @@ function nomTablero(d) {
 /** Corregir un día de una persona: asistencia a mano, retardo con permiso, otro estado o el turno del bono. */
 function nomCelda(uid, f) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid), x = p && p.detalle.find(y => y.fecha === f); if (!x) return;
-  const [, tt] = NT_EST[x.estado] || ['', x.estado], h = x.horario, hh = ms => { const z = new Date(ms); return String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); };
+  const [, tt] = NT_EST[x.estado] || ['', x.estado], h = x.horario, hh = ms => { const z = dZ(ms); return String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); };
   const auto = ntAuto(x).map(i => (turnosNeg()[i - 1] || {}).nombre || 'Turno ' + i).join(' y ') || 'ninguno';
   const futuro = f > pdvHoy();
   modal(`<div class="row between"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -8796,6 +8816,13 @@ async function nomAccion(accion, o) {
   if (PDV.lote && PDV.lote.on) { nomLoteDesdeAccion(accion, o); cerrarModal(); pintarCaja(); return; } // 2.88.1
   await api(accion, Object.assign({ negocioId: S.negocio.id }, o));
   cerrarModal(); toast('Guardado ✓'); asisRecargar();
+}
+/** 2.88.2 · Vuelve a pedir la nómina, la asistencia y las ventas, y recalcula los bonos. */
+function nomActualizar() {
+  if (PDV.lote && nomLoteN() && !confirm('Tienes cambios sin guardar. ¿Actualizar sin guardarlos?')) return;
+  PDV.lote = null; nomLoteAviso();
+  try { API_CACHE.clear(); } catch (e) { }
+  toast('🔄 Recalculando…'); asisRecargar();
 }
 /* ---------- 2.88.1 · Varios cambios: se juntan y se guardan de una vez ---------- */
 const NT_PIN = [['tiempo', '✅ A tiempo'], ['hora', '🕐 Otra hora'], ['justif', '🟩 Tarde con permiso'], ['falta', '⬛ Falta'], ['descanso', '– Descanso'], ['permiso_goce', '🟦 Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['vacaciones', '🏖️ Vacaciones'], ['quitar', '🧹 Borrar captura']];
@@ -9050,7 +9077,7 @@ function metaEnTurno(det, f, t) {
   if (det.turnoBono) return Number(det.turnoBono) === Number(t);
   if (det.doble) return true;
   const tn = turnosNeg()[t - 1]; if (!tn) return false;
-  const a = new Date(f + 'T' + tn.e).getTime(); let b = new Date(f + 'T' + tn.s).getTime(); if (b <= a) b += 864e5;
+  const a = msZ(f, tn.e); let b = msZ(f, tn.s); if (b <= a) b += 864e5; // 2.88.2: en la hora del negocio
   const e = det.entrada, s = det.salida || e + 8 * 3600e3;
   return Math.min(b, s) - Math.max(a, e) >= 60 * 6e4;
 }
@@ -9058,7 +9085,7 @@ const META_BASE = { personal: '👤 Ventas personales', turno: '🗄️ Ventas d
 const META_PER = { turno: 'Por turno', semana: 'Por semana', quincena: 'Por quincena', mes: 'Por mes' };
 /** Ventanas (inicio y fin) de un periodo que terminan dentro de [desde, hasta]. */
 function metaVentanas(periodo, desde, hasta) {
-  const out = [], d0 = new Date(desde + 'T12:00'), d1 = new Date(hasta + 'T12:00'), f = d => pdvHoy(d.getTime());
+  const out = [], d0 = new Date(desde + 'T12:00'), d1 = new Date(hasta + 'T12:00'), f = d => fechaLocal(d);
   if (periodo === 'semana') {
     const lun = new Date(d0); lun.setDate(lun.getDate() - (lun.getDay() + 6) % 7);
     for (let a = new Date(lun); a <= d1; a.setDate(a.getDate() + 7)) { const b = new Date(a); b.setDate(b.getDate() + 6); if (b >= d0 && b <= d1) out.push({ desde: f(a), hasta: f(b), txt: 'Semana del ' + asisDiaTxt(f(a)) }); }
@@ -10800,7 +10827,7 @@ function resumenCobro(p) {
 }
 
 /** Botones de acción según el rol (negocio, repartidor, admin). */
-const progTxtC = ms => { const d = new Date(ms), h = new Date(), dd = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(h.getFullYear(), h.getMonth(), h.getDate())) / 864e5); return (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })) + ' ' + hora(ms); };
+const progTxtC = ms => { const d = dZ(ms), h = dZ(), dd = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(h.getFullYear(), h.getMonth(), h.getDate())) / 864e5); return (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })) + ' ' + hora(ms); };
 function botonesPedido(p, enTarjeta) {
   const r = rolActual(), b = [], id = p.id;
   const efe = p.metodoPago === 'efectivo', recoger = p.tipoEntrega === 'recoger';
@@ -12501,7 +12528,7 @@ function promosDe(negId) {
 /** ¿La promo aplica en este momento? (fechas, días y horario; igual que el servidor) */
 function promoVigC(p) {
   const t = Date.now(); if (t < Number(p.inicio) || t > Number(p.fin)) return false;
-  const d = new Date(), dia = d.getDay(), min = d.getHours() * 60 + d.getMinutes();
+  const d = dZ(), dia = d.getDay(), min = d.getHours() * 60 + d.getMinutes();
   const dias = Array.isArray(p.dias) ? p.dias : [], okDia = x => !dias.length || dias.includes(x);
   const am = h => { const m = String(h || '').match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; }, a = am(p.horaIni), c = am(p.horaFin);
   if (a === null || c === null || a === c) return okDia(dia);
@@ -13182,7 +13209,7 @@ function pintarTabNegocio() {
   if (S._sec.tab === 'info') {
     if (!window.L || !L.map) { $('#tabCont').innerHTML = '<div class="cargando">Cargando…</div>'; cargarLeaflet().then(() => { if (S._sec.tab === 'info' && S.vista === 'negocio') pintarTabNegocio(); }).catch(e => toast(e.message, 'err')); return; }
     const hs = n.horarios && n.horarios.length === 7 ? n.horarios : null;
-    const hoy = new Date().getDay();
+    const hoy = dZ().getDay();
     const pagos = [n.pagos.efectivo && `<span class="tag t-pri">${ico('efectivo', 's')} Efectivo</span>`, n.pagos.transferencia && `<span class="tag t-pri">${ico('banco', 's')} Transferencia</span>`, n.pagos.codi && `<span class="tag t-pri">${ico('qr', 's')} CoDi</span>`].filter(Boolean).join(' ');
     $('#tabCont').innerHTML = `
       ${!n.abierto ? `<div class="aviso warn">${esc(n.estadoTexto)}</div>` : ''}
@@ -13850,7 +13877,7 @@ function notaPago(neg) {
 }
 
 /* ---------- 2.63 · ¿Cuándo lo quieres? (lo antes posible o programado) ---------- */
-const progMs = (dia, hora) => new Date(dia + 'T' + hora + ':00').getTime();
+const progMs = (dia, hora) => msZ(dia, hora);
 /** Horas de 15 en 15 en que TODOS los negocios del pedido atienden ese día (con su tiempo de preparación). */
 function progSlots(cs, negs, dia) {
   if (!dia) return [];
@@ -13868,7 +13895,7 @@ const aMinC = s => { const x = String(s || '').match(/^(\d{1,2}):(\d{2})/); retu
 function progDias(cs, negs) {
   const ns = cs.map(c => negs[c.negocioId] || {}); if (!ns.length || !ns.every(n => n.prog && n.prog.activo)) return [];
   const dias = Math.min(...ns.map(n => n.prog.dias)), out = [];
-  for (let k = 0; k <= dias; k++) { const d = new Date(Date.now() + k * 864e5); const f = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); if (progSlots(cs, negs, f).length) out.push(f); }
+  for (let k = 0; k <= dias; k++) { const d = dZ(Date.now() + k * 864e5); const f = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); if (progSlots(cs, negs, f).length) out.push(f); }
   return out;
 }
 function progHTML(cs, negs, e) {
@@ -13880,7 +13907,7 @@ function progHTML(cs, negs, e) {
   const sl = e.prog.on ? progSlots(cs, negs, e.prog.dia) : [];
   if (e.prog.on && !sl.includes(e.prog.hora)) e.prog.hora = sl[0] || '';
   const hoyF = dias[0] === new Date().toISOString().slice(0, 10) ? dias[0] : '';
-  const nomDia = f => { const d = new Date(f + 'T12:00:00'), h = new Date(); const dd = Math.round((new Date(f + 'T00:00:00') - new Date(h.getFullYear(), h.getMonth(), h.getDate())) / 864e5); return dd === 0 ? 'Hoy' : dd === 1 ? 'Mañana' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }); };
+  const nomDia = f => { const d = new Date(f + 'T12:00:00'), h = dZ(); const dd = Math.round((new Date(f + 'T00:00:00') - new Date(h.getFullYear(), h.getMonth(), h.getDate())) / 864e5); return dd === 0 ? 'Hoy' : dd === 1 ? 'Mañana' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }); };
   return `<div class="card progCard"><b style="font-size:16px">🕒 ¿Cuándo lo quieres?</b>
     <div class="pdvTipo" style="margin:8px 0 0"><button class="${e.prog.on ? '' : 'on'}" ${cerrado ? 'disabled' : ''} onclick="S.entrega.prog.on=false;pintar(true)">⚡ Lo antes posible${cerrado ? ' (cerrado)' : ''}</button><button class="${e.prog.on ? 'on' : ''}" onclick="S.entrega.prog.on=true;pintar(true)">🗓️ Programar</button></div>
     ${e.prog.on ? `<div class="tabChips" style="margin-top:8px">${dias.map(f => `<button class="${e.prog.dia === f ? 'on' : ''}" onclick="S.entrega.prog.dia='${f}';S.entrega.prog.hora='';pintar(true)">${esc(nomDia(f))}</button>`).join('')}</div>
@@ -15457,7 +15484,7 @@ async function eliminarProducto(id) {
 }
 
 /* ============ NEGOCIO: PROMOCIÓN DEL DÍA ============ */
-function fechaISO(diasMas) { const d = new Date(Date.now() + (diasMas || 0) * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fechaISO(diasMas) { const d = dZ(Date.now() + (diasMas || 0) * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
 function estadoPromoTag(p) {
   if (p.estado === 'oculta') return '<span class="tag t-err">Oculta por el administrador</span>';
@@ -16160,7 +16187,7 @@ function calcSusc() {
   $('#sTot').textContent = money(montoSusc());
   if (d.tipo === 'repartidor' && !d.inscrito) { $('#sNota').innerHTML = 'Pago único. Tu primer mes es gratis a partir de que te aprueben.'; return; }
   const activo = ['ok', 'por_vencer'].includes(s.estado);
-  const base = activo ? s.vence : new Date().setHours(0, 0, 0, 0);
+  const base = activo ? s.vence : msZ(pdvHoy(), '00:00');
   $('#sNota').innerHTML = m > 0 ? `Al confirmarse, quedas activo hasta el <b>${fechaLarga(base + m * d.diasPorPago * 864e5)}</b>${e ? ' con ' + e + ' banner' + (e > 1 ? 's' : '') + ' extra' : ''}.`
     : e ? `${e} banner${e > 1 ? 's' : ''} extra hasta tu fecha de corte (${fechaLarga(s.vence)}), cobrado por los días que faltan.` : 'Elige cuántos banners extra quieres.';
 }
