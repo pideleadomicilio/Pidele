@@ -33,7 +33,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.88.0"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.88.1"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -617,6 +617,10 @@ body.enCaja{padding-bottom:0}
 .ntC.sin{background:transparent;border:2px dashed #e0a100;color:#b07d00}.ntC.fut{background:transparent;border:1px solid var(--ln);color:var(--tx2)}
 .ntV{font-size:11px;font-weight:700;cursor:pointer;padding:4px 2px;border-radius:6px}.ntV.man{color:var(--pri)}.ntV.cero{color:var(--tx2)}
 .ntM{font-variant-numeric:tabular-nums;cursor:pointer;font-weight:700;padding:0 8px !important}.ntM.neg{color:var(--err)}.ntM.ntTot{font-weight:900;font-size:13px}
+.ntC.pend{outline:3px solid var(--pri);outline-offset:1px;position:relative}.ntC.pend:after{content:'✎';position:absolute;top:-7px;right:-7px;background:var(--pri);color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;line-height:14px}
+.ntIn{width:64px;padding:4px;border:1px solid var(--ln);border-radius:6px;font-size:12px;text-align:right;background:var(--card);color:var(--tx)}.ntIn.cmb{border:2px solid var(--pri)}
+.ntPin{display:flex;gap:6px;overflow-x:auto;padding:6px 0;margin-top:6px}.ntPin button{flex:0 0 auto;border:1px solid var(--ln);background:var(--card);border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--tx)}.ntPin button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.ntBarra{position:sticky;bottom:0;z-index:5;background:var(--card);border:2px solid var(--pri);border-radius:14px;padding:8px;margin-top:10px;display:flex;gap:8px;align-items:center;box-shadow:0 -4px 14px rgba(0,0,0,.12)}
 .ntLey{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;margin-top:8px;color:var(--tx2)}.ntLey .ntC{width:18px;height:18px;display:inline-flex;margin:0 3px 0 0;vertical-align:middle;cursor:default}.nomFila{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(4,minmax(78px,1fr));gap:8px;padding:9px 2px;border-bottom:1px solid var(--ln);font-size:14px;align-items:center;cursor:pointer;min-width:470px}
 #btAviso{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:9999;width:min(560px,calc(100vw - 24px));display:flex;gap:8px;align-items:center;background:var(--card,#fff);border:1px solid var(--ln);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.25);padding:10px 12px}
 .metaNivel .i{min-width:0;flex:1;padding-left:8px;padding-right:8px}.metaNivel select.i{flex:1.6 1 140px;min-width:140px}
@@ -1054,7 +1058,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.88.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.88.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1538,6 +1542,7 @@ const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
 async function ir(v, p, sinHistoria) {
   if (v !== 'negPedidos' && v !== 'pedido') S._pedHist = false; // 2.67.1: el historial de pedidos se queda mientras se esté en él
   if (S.vista === 'cocina' && v !== 'cocina') salirCocina_();
+  if (S.vista === 'caja' && v !== 'caja' && typeof nomLoteSalir === 'function' && !nomLoteSalir()) return; // 2.88.1: cambios de nómina sin guardar
   if (S.vista === 'caja' && v !== 'caja') pdvSalir();
   if (S.modoTel && !VISTAS_TEL.includes(v)) {
     terminarModoTel();
@@ -8093,7 +8098,7 @@ function pdvVistaPersonal() {
     if (!S._perTodos || Date.now() - S._perTodos.t > 60000) { if (!P.todosCarga) { P.todosCarga = true; perTodosCargar(true).catch(e => { S._perTodos = { negocios: [], t: Date.now(), _error: e.message }; }).finally(() => { P.todosCarga = false; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); }); } if (!S._perTodos) return perNegChips() + '<div class="cargando">Cargando…</div>'; }
     return perNegChips() + (S._perTodos._error ? `<div class="aviso err">${esc(S._perTodos._error)}</div>` : perTodosHTML(S._perTodos, P.todosF, true)) + '<div class="muted small" style="margin-top:8px">Para asistencia, vacaciones, nómina o editar a alguien, elige arriba el negocio.</div>';
   }
-  const cab = perNegChips() + `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="muted small">Tu gente, asistencia, vacaciones, nómina y bonos</span><button class="btn sm pri" onclick="act(this,altaColab)">➕ Agregar colaborador</button></div><div class="tabChips perSubs">${subs.map(([k, t]) => `<button class="${P.sub === k ? 'on' : ''}" onclick="PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()">${t}</button>`).join('')}</div>`;
+  const cab = perNegChips() + `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="muted small">Tu gente, asistencia, vacaciones, nómina y bonos</span><button class="btn sm pri" onclick="act(this,altaColab)">➕ Agregar colaborador</button></div><div class="tabChips perSubs">${subs.map(([k, t]) => `<button class="${P.sub === k ? 'on' : ''}" onclick="if(!nomLoteSalir())return;PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()">${t}</button>`).join('')}</div>`;
   if (P.sub === 'metas') return cab + asisVistaMetas();
   if (P.sub === 'turnos') return cab + asisVistaTurnos();
   if (P.sub === 'consumo') return cab + asisVistaConsumo();
@@ -8685,9 +8690,9 @@ function asisPeriodoNom(k) {
 }
 function asisVistaNomina(d) {
   const per = PDV.per.nomPer || 'semana', vista = PDV.per.nomVista || 'tablero';
-  const sel = `<select class="i" style="margin:8px 0" onchange="PDV.per.nomPer=this.value;asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const sel = `<select class="i" style="margin:8px 0" onchange="if(!nomLoteSalir()){this.value=PDV.per.nomPer||'semana';return}PDV.per.nomPer=this.value;asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const l = d.personas, tot = pdvR(l.reduce((s, p) => s + p.total, 0)), pend = l.filter(p => !p.pagado);
-  const tabs = `<div class="pdvTipo" style="margin:0 0 8px">${[['tablero', '📋 Tablero por día'], ['lista', '📄 Resumen']].map(([k, t]) => `<button class="${vista === k ? 'on' : ''}" onclick="PDV.per.nomVista='${k}';pintarCaja()">${t}</button>`).join('')}</div>`;
+  const tabs = `<div class="pdvTipo" style="margin:0 0 8px">${[['tablero', '📋 Tablero por día'], ['lista', '📄 Resumen']].map(([k, t]) => `<button class="${vista === k ? 'on' : ''}" onclick="if('${k}'==='lista'&&!nomLoteSalir())return;PDV.per.nomVista='${k}';pintarCaja()">${t}</button>`).join('')}</div>`;
   if (vista === 'tablero' && l.length) return sel + tabs + tabDeudasHTML(d.deudas) + nomTablero(d);
   return sel + tabs + tabDeudasHTML(d.deudas) + `<div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días · sueldo diario = sueldo ÷ ${d.dias}${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''}</div>
     ${!l.length ? `<div class="vacio"><span class="big">💵</span>Nadie cobra ${d.periodo === 'semanal' ? 'por semana' : 'por quincena'}.</div>` : `
@@ -8728,7 +8733,10 @@ function nomTablero(d) {
     const c = x.justif ? 'just' : cl, ts = ntTurnos(x).map(ntLetra).join('');
     const sub = x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : x.estado === 'sin_decidir' ? '?' : '';
     const titulo = tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (x.manual ? ' · capturado a mano' : '');
-    return `<td><div class="ntC ${c}" title="${esc(titulo)}" onclick="nomCelda('${p.usuarioId}','${x.fecha}')">${x.estado === 'descanso' ? '–' : esc(ts || (cl === 'ok' || cl === 'tarde' ? '·' : ''))}${x.turnoBono ? '*' : ''}${sub ? `<small>${sub}</small>` : ''}</div></td>`;
+    const pc = nomLoteDe(p.usuarioId, x.fecha);
+    if (pc) return `<td><div class="ntC ${nomLoteClase(pc, x, d)} pend" title="Pendiente: ${esc(nomLoteTxt(pc))}" onclick="nomTocar('${p.usuarioId}','${x.fecha}')">${esc(nomLoteCorto(pc))}</div></td>`;
+    const pt = PDV.lote && PDV.lote.cambios[p.usuarioId + '|' + x.fecha + '|t'];
+    return `<td><div class="ntC ${c}${pt ? ' pend' : ''}" title="${esc(titulo)}" onclick="nomTocar('${p.usuarioId}','${x.fecha}')">${x.estado === 'descanso' ? '–' : esc(ts || (cl === 'ok' || cl === 'tarde' ? '·' : ''))}${x.turnoBono || pt ? '*' : ''}${sub ? `<small>${sub}</small>` : ''}</div></td>`;
   };
   const fila = p => `<tr><td class="ntN" onclick="asisDetalleNom('${p.usuarioId}')" title="${esc(p.nombre)}">${esc(p.nombre)}${p.pagado ? ' <small class="t-ok">✓</small>' : ''}</td>${p.detalle.map(x => celda(p, x)).join('')}
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','punt')">${p.bonoPunt ? money(p.bonoPunt) : '—'}</td>
@@ -8739,10 +8747,16 @@ function nomTablero(d) {
   const nc = dias.length + 6;
   const ventas = T.map((t, i) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + (i + 1))}</td>${dias.map(f => {
     const k = f + '|' + (i + 1), man = k in M, v = man ? M[k] : nomVentaCaja(V, f, i + 1);
+    if (PDV.lote && PDV.lote.on) { const pv = PDV.lote.ventas[k]; return `<td><input class="ntIn${pv != null ? ' cmb' : ''}" inputmode="decimal" placeholder="${v ? Math.round(v) : '$'}" value="${pv != null ? esc(pv) : ''}" oninput="nomLoteVenta('${k}',this.value,this)" title="${man ? 'Capturada a mano: ' + money(v) : v ? 'Corte de caja: ' + money(v) : 'Sin dato'}"></td>`; }
     return `<td><div class="ntV ${man ? 'man' : v ? '' : 'cero'}" onclick="nomVenta('${f}',${i + 1})" title="${man ? 'Capturada a mano' : 'Del corte de caja'}">${v ? (man ? '✍️' : '') + money(v).replace('.00', '') : (man ? '✍️$0' : '+')}</div></td>`;
   }).join('')}<td colspan="5" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + (i + 1); return s + (k in M ? M[k] : nomVentaCaja(V, f, i + 1)); }, 0)))}</td></tr>`).join('');
   const sum = k => pdvR(l.reduce((s, p) => s + (Number(p[k]) || 0), 0));
-  return `<div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
+  const LT = PDV.lote && PDV.lote.on ? PDV.lote : null, nPend = nomLoteN();
+  return `<div class="row between" style="gap:8px"><div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
+    ${LT ? '' : `<button class="btn sm pri" style="flex:0 0 auto" onclick="nomLoteIniciar()">✏️ Varios cambios</button>`}</div>
+    ${LT ? `<div class="aviso info small" style="margin-top:6px">✏️ <b>Varios cambios:</b> elige un pincel y toca los días; escribe las ventas en sus casillas. Nada se guarda hasta tocar <b>Guardar todo</b>.</div>
+    <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
+    <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
     ${l.some(p => p.sinDecidir) ? `<div class="aviso warn small" style="margin-top:6px">Hay días <b>sin registro</b> (cuadro punteado): tócalos para poner la asistencia, una falta, un descanso o un permiso. Mientras estén así cuentan como falta.</div>` : ''}
     <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th>${dTxt(f)}</th>`).join('')}<th>Puntua&shy;lidad</th><th>Bono ventas</th><th>Descuen&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
     ${ntGrupos(l).map(g => `<tr class="ntG"><td colspan="${nc}"><span>${esc(g.nombre)}</span></td></tr>${g.gente.map(fila).join('')}`).join('')}
@@ -8751,7 +8765,8 @@ function nomTablero(d) {
     </tbody></table></div>
     <div class="ntLey"><span><i class="ntC ok"></i>A tiempo</span><span><i class="ntC tarde"></i>Retardo</span><span><i class="ntC just"></i>Tarde con permiso</span><span><i class="ntC perm"></i>Permiso / vacaciones</span><span><i class="ntC falta"></i>Falta</span><span><i class="ntC desc"></i>Descanso</span><span><i class="ntC sin"></i>Sin registro</span><span>Letra = turno del bono (* elegido a mano)</span></div>
     <div class="small muted" style="margin-top:6px">Reglas: más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas.</div>
-    ${l.filter(p => !p.pagado).length ? `<div class="btns"><button class="btn pri pill full" onclick="asisPagar()">Pagar a ${l.filter(p => !p.pagado).length} · ${money(pdvR(l.filter(p => !p.pagado).reduce((s, p) => s + p.total, 0)))}</button></div>` : ''}
+    ${LT ? `<div class="ntBarra"><div class="grow"><b>${nPend}</b> cambio${nPend === 1 ? '' : 's'} pendiente${nPend === 1 ? '' : 's'}</div><button class="btn sm" onclick="nomLoteDescartar()">Descartar</button><button class="btn sm pri" ${nPend ? '' : 'disabled'} onclick="act(this,nomLoteGuardar)">💾 Guardar todo</button></div>` : ''}
+    ${!LT && l.filter(p => !p.pagado).length ? `<div class="btns"><button class="btn pri pill full" onclick="asisPagar()">Pagar a ${l.filter(p => !p.pagado).length} · ${money(pdvR(l.filter(p => !p.pagado).reduce((s, p) => s + p.total, 0)))}</button></div>` : ''}
     <div class="btns"><button class="btn pill" onclick="asisCsvNom()">⬇️ Descargar en Excel</button></div>`;
 }
 /** Corregir un día de una persona: asistencia a mano, retardo con permiso, otro estado o el turno del bono. */
@@ -8770,7 +8785,7 @@ function nomCelda(uid, f) {
     <label class="f">O marca el día como</label>
     <div class="row" style="gap:6px;flex-wrap:wrap">${[['falta', 'Falta'], ['descanso', 'Descanso'], ['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['vacaciones', 'Vacaciones']].map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>nomAccion('asisDecidir',{usuarioId:'${uid}',fecha:'${f}',estado:'${k}'}))">${t}</button>`).join('')}</div>`}
     ${x.entrada ? `<label class="f">Turno que cuenta para el bono de ventas</label>
-    <select class="i" id="ncT" onchange="act(null,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:this.value}))">
+    <select class="i" id="ncT" onchange="act(null,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:this.value}))">${PDV.lote && PDV.lote.on && PDV.lote.cambios[uid + '|' + f + '|t'] ? '<option selected disabled>Pendiente: ' + esc(PDV.lote.cambios[uid + '|' + f + '|t'].turno || 'automático') + '</option>' : ''}
       <option value="" ${!x.turnoBono ? 'selected' : ''}>Automático (${esc(auto)})</option>
       ${turnosNeg().map((t, i) => `<option value="${i + 1}" ${x.turnoBono === String(i + 1) ? 'selected' : ''}>Solo ${esc(t.nombre || 'Turno ' + (i + 1))}</option>`).join('')}
       <option value="ambos" ${x.turnoBono === 'ambos' ? 'selected' : ''}>Todos los turnos</option><option value="ninguno" ${x.turnoBono === 'ninguno' ? 'selected' : ''}>Ninguno</option></select>
@@ -8778,8 +8793,119 @@ function nomCelda(uid, f) {
     ${x.manual && !futuro ? `<div style="text-align:center;margin-top:8px"><button class="lnk small" style="color:var(--err)" onclick="act(this,()=>nomAccion('asisManual',{usuarioId:'${uid}',fecha:'${f}',quitar:true}))">Borrar la captura a mano</button></div>` : ''}`);
 }
 async function nomAccion(accion, o) {
+  if (PDV.lote && PDV.lote.on) { nomLoteDesdeAccion(accion, o); cerrarModal(); pintarCaja(); return; } // 2.88.1
   await api(accion, Object.assign({ negocioId: S.negocio.id }, o));
   cerrarModal(); toast('Guardado ✓'); asisRecargar();
+}
+/* ---------- 2.88.1 · Varios cambios: se juntan y se guardan de una vez ---------- */
+const NT_PIN = [['tiempo', '✅ A tiempo'], ['hora', '🕐 Otra hora'], ['justif', '🟩 Tarde con permiso'], ['falta', '⬛ Falta'], ['descanso', '– Descanso'], ['permiso_goce', '🟦 Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['vacaciones', '🏖️ Vacaciones'], ['quitar', '🧹 Borrar captura']];
+const nomLoteDe = (uid, f) => PDV.lote && PDV.lote.cambios[uid + '|' + f];
+const nomLoteN = () => PDV.lote ? Object.keys(PDV.lote.cambios).length + Object.keys(PDV.lote.ventas).length : 0;
+function nomLoteIniciar() { PDV.lote = { on: true, pincel: 'tiempo', cambios: {}, ventas: {}, per: PDV.per.nomPer || '' }; nomLoteAviso(); pintarCaja(); }
+function nomLoteAviso() { window.onbeforeunload = nomLoteN() ? () => 'Tienes cambios sin guardar' : null; }
+function nomLoteTxt(c) {
+  if (c.tipo === 'manual') return (c.pin === 'tiempo' ? 'A tiempo ' : 'Entró ') + c.entrada + (c.salida ? '–' + c.salida : '') + (c.justif ? ' (con permiso)' : '');
+  if (c.tipo === 'estado') return (NT_EST[c.estado] || [])[1] || c.estado;
+  if (c.tipo === 'justif') return c.justif === false ? 'Quitar permiso' : 'Tarde con permiso';
+  if (c.tipo === 'quitar') return 'Borrar captura';
+  return '';
+}
+const nomLoteCorto = c => c.tipo === 'manual' ? (c.pin === 'tiempo' ? '✓' : c.entrada) : c.tipo === 'estado' ? ({ falta: 'F', descanso: '–', permiso_goce: 'P', permiso_sin: 'PS', vacaciones: 'V' }[c.estado] || '?') : c.tipo === 'justif' ? '✓' : c.tipo === 'quitar' ? '🧹' : '';
+function nomLoteClase(c, x, d) {
+  if (c.tipo === 'manual') { if (c.justif) return 'just'; const h = x.horario, tol = Number((d.config || {}).tolerancia) || 0; if (!h) return 'ok'; const m = t => { const [a, b] = String(t).split(':').map(Number); return a * 60 + b; }; return m(c.entrada) - m(h.e) > tol ? 'tarde' : 'ok'; }
+  if (c.tipo === 'estado') return (NT_EST[c.estado] || ['fut'])[0];
+  if (c.tipo === 'justif') return c.justif === false ? 'tarde' : 'just';
+  return 'sin';
+}
+function nomLotePoner(k, c) { PDV.lote.cambios[k] = c; nomLoteAviso(); }
+function nomLoteQuitar(k) { delete PDV.lote.cambios[k]; nomLoteAviso(); }
+/** Tocar un día: con pincel lo pinta (o lo regresa); sin pincel abre su ventana. */
+function nomTocar(uid, f) {
+  const L = PDV.lote;
+  if (!L || !L.on || !L.pincel) { nomCelda(uid, f); return; }
+  const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid), x = p && p.detalle.find(y => y.fecha === f); if (!x) return;
+  const k = uid + '|' + f, ya = L.cambios[k], pin = L.pincel, futuro = f > pdvHoy();
+  if (ya && ya.pin === pin) { nomLoteQuitar(k); pintarCaja(); return; }
+  if (pin === 'tiempo') {
+    if (futuro) { toast('Ese día todavía no llega', 'err'); return; }
+    if (!x.horario) { toast('Ese día no tiene horario: usa "Otra hora"', 'err'); return; }
+    nomLotePoner(k, { tipo: 'manual', pin, usuarioId: uid, fecha: f, entrada: x.horario.e, salida: x.horario.s });
+  } else if (pin === 'hora') {
+    if (futuro) { toast('Ese día todavía no llega', 'err'); return; }
+    nomLoteHora(uid, f); return;
+  } else if (pin === 'justif') {
+    if (ya && ya.tipo === 'manual') { ya.justif = !ya.justif; nomLoteAviso(); pintarCaja(); return; }
+    if (x.estado !== 'retardo') { toast('Ese día no tiene retardo', 'err'); return; }
+    nomLotePoner(k, { tipo: 'justif', pin, usuarioId: uid, fecha: f, justif: true });
+  } else if (pin === 'quitar') {
+    if (!x.manual) { toast('Ese día no tiene captura a mano', 'err'); return; }
+    nomLotePoner(k, { tipo: 'quitar', pin, usuarioId: uid, fecha: f });
+  } else nomLotePoner(k, { tipo: 'estado', pin, usuarioId: uid, fecha: f, estado: pin });
+  pintarCaja();
+}
+function nomLoteHora(uid, f) {
+  const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid), x = p.detalle.find(y => y.fecha === f), h = x.horario, ya = nomLoteDe(uid, f);
+  modal(`<div class="row between"><h2 style="margin:0">🕐 ${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted">${asisDiaTxt(f)} · ${h ? 'horario ' + h.e + '–' + h.s : 'sin horario'}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><div style="flex:1"><small class="muted">Entrada</small><input class="i" type="time" id="nlE" value="${ya && ya.tipo === 'manual' ? ya.entrada : h ? h.e : ''}"></div><div style="flex:1"><small class="muted">Salida</small><input class="i" type="time" id="nlS" value="${ya && ya.tipo === 'manual' ? ya.salida : h ? h.s : ''}"></div></div>
+    <label class="pdvChk" style="margin-top:8px"><input type="checkbox" id="nlJ" ${ya && ya.justif ? 'checked' : ''}> Si llegó tarde, tenía permiso</label>
+    <div class="btns"><button class="btn pri pill full" onclick="nomLoteHoraOk('${uid}','${f}')">Agregar a los pendientes</button></div>`);
+  setTimeout(() => { const i = $('#nlE'); if (i) i.focus(); }, 150);
+}
+function nomLoteHoraOk(uid, f) {
+  const e = $('#nlE').value, sa = $('#nlS').value;
+  if (!e) { toast('Escribe la hora de entrada', 'err'); return; }
+  nomLotePoner(uid + '|' + f, { tipo: 'manual', pin: 'hora', usuarioId: uid, fecha: f, entrada: e, salida: sa, justif: $('#nlJ').checked });
+  cerrarModal(); pintarCaja();
+}
+/** Lo que se hace en la ventana del día, en modo varios cambios, queda pendiente. */
+function nomLoteDesdeAccion(accion, o) {
+  const k = o.usuarioId + '|' + o.fecha, b = { usuarioId: o.usuarioId, fecha: o.fecha };
+  if (accion === 'asisTurnoBono') { PDV.lote.cambios[k + '|t'] = Object.assign(b, { tipo: 'turno', turno: o.turno }); nomLoteAviso(); return; }
+  if (accion === 'asisManual') nomLotePoner(k, o.quitar ? Object.assign(b, { tipo: 'quitar', pin: 'quitar' }) : Object.assign(b, { tipo: 'manual', pin: 'hora', entrada: o.entrada, salida: o.salida }));
+  else if (accion === 'asisDecidir') nomLotePoner(k, Object.assign(b, { tipo: 'estado', pin: o.estado, estado: o.estado }));
+  else if (accion === 'asisJustificar') { const ya = PDV.lote.cambios[k]; if (ya && ya.tipo === 'manual') { ya.justif = o.justif !== false; nomLoteAviso(); } else nomLotePoner(k, Object.assign(b, { tipo: 'justif', pin: 'justif', justif: o.justif !== false })); }
+  toast('Agregado a los pendientes');
+}
+function nomLoteVenta(k, v, el) {
+  const t = String(v || '').replace(/[^\d.]/g, '');
+  if (t === '') delete PDV.lote.ventas[k]; else PDV.lote.ventas[k] = t;
+  if (el) el.classList.toggle('cmb', t !== '');
+  nomLoteAviso();
+  const b = document.querySelector('.ntBarra'); if (b) { const n = nomLoteN(); b.querySelector('.grow').innerHTML = `<b>${n}</b> cambio${n === 1 ? '' : 's'} pendiente${n === 1 ? '' : 's'}`; const g = b.querySelector('.btn.pri'); if (g) g.disabled = !n; }
+}
+function nomLoteDescartar(sinPreguntar) {
+  if (!sinPreguntar && nomLoteN() && !confirm('¿Descartar los ' + nomLoteN() + ' cambios sin guardar?')) return;
+  PDV.lote = null; nomLoteAviso(); pintarCaja();
+}
+/** Antes de salir del tablero: si hay pendientes, pregunta. */
+function nomLoteSalir() {
+  if (!PDV.lote || !nomLoteN()) { PDV.lote = null; nomLoteAviso(); return true; }
+  if (!confirm('Tienes ' + nomLoteN() + ' cambios sin guardar en la nómina. ¿Salir sin guardarlos?')) return false;
+  PDV.lote = null; nomLoteAviso(); return true;
+}
+async function nomLoteGuardar() {
+  const L = PDV.lote; if (!L) return;
+  const cambios = Object.values(L.cambios).map(c => { const o = Object.assign({}, c); delete o.pin; return o; });
+  const yo = (S.user || {}).nombre || '';
+  let r = { hechos: 0, errores: [] };
+  if (cambios.length) r = await api('asisLote', { negocioId: S.negocio.id, cambios });
+  const vs = Object.keys(L.ventas), malV = [];
+  await Promise.all(vs.map(k => { const [f, t] = k.split('|'); return pdvCol('ventasManual').doc(f + '_' + t).set({ dia: f, turno: Number(t), monto: pdvR(Number(L.ventas[k]) || 0), por: yo, ts: Date.now(), quitado: null }).catch(e => malV.push(k)); }));
+  const nombre = uid => ((PDV.per.datos.personas.find(p => p.usuarioId === uid) || {}).nombre || '');
+  if (r.errores.length || malV.length) {
+    // se quedan pendientes solo los que fallaron
+    const fall = {}; r.errores.forEach(e => { Object.keys(L.cambios).forEach(k => { const c = L.cambios[k]; if (c.usuarioId === e.usuarioId && c.fecha === e.fecha) fall[k] = c; }); });
+    const fv = {}; malV.forEach(k => fv[k] = L.ventas[k]);
+    PDV.lote = Object.assign({}, L, { cambios: fall, ventas: fv }); nomLoteAviso();
+    asisRecargar();
+    modal(`<h2>Se guardaron ${r.hechos + vs.length - malV.length} cambios</h2><div class="aviso warn">Estos no se pudieron guardar y siguen pendientes:</div>
+      ${r.errores.map(e => `<div class="tot"><span>${esc(nombre(e.usuarioId))} · ${asisDiaTxt(e.fecha)}</span><span class="small">${esc(e.error)}</span></div>`).join('')}${malV.map(k => `<div class="tot"><span>Venta ${esc(k.replace('|', ' · turno '))}</span><span class="small">No se guardó</span></div>`).join('')}
+      <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Entendido</button></div>`);
+    return;
+  }
+  PDV.lote = null; nomLoteAviso();
+  toast('💾 ' + (r.hechos + vs.length) + ' cambios guardados'); asisRecargar();
 }
 /** Venta de un día y turno: la del corte de caja o capturada a mano. */
 function nomVenta(f, t) {
