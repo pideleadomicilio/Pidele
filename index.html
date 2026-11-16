@@ -33,7 +33,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
-  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.88.2"><\/script>'); } } catch (e) { } })();
+  if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.90.0"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
 <style>
@@ -1058,7 +1058,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.88.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.90.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2788,10 +2788,10 @@ const pdvQuienTxt = (c, corto) => { if (!c || !c.abre) return ''; const a = c.ab
   return 'Abrió ' + esc(pdvPN(a)) + (corto ? '' : ' ' + hora(a.ts)) + (sa && !corto ? ' <span class="muted">(sesión de ' + esc(sa) + ')</span>' : '') +
     (k ? ' · Cerró ' + esc(pdvPN(k)) + (corto ? '' : ' ' + hora(k.ts)) + (sk && !corto ? ' <span class="muted">(sesión de ' + esc(sk) + ')</span>' : '') + (k.porOtro ? ' ⚠️' : '') : ''); };
 const pdvR = n => Math.round((Number(n) || 0) * 100) / 100;
-const PDV_MET = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', tarjeta: '💳 Tarjeta', consumo: '🎁 Consumo de personal', monedero: '👛 Monedero' };
-const PDV_MET_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', consumo: 'Consumo de personal', monedero: 'Monedero' };
+const PDV_MET = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', tarjeta: '💳 Tarjeta', consumo: '🎁 Consumo de personal', nomina: '🧾 A cuenta de nómina', monedero: '👛 Monedero' };
+const PDV_MET_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', consumo: 'Consumo de personal', nomina: 'A cuenta de nómina', monedero: 'Monedero' };
 /** Formas de pago en el cobro: el consumo de personal solo si alguien tiene saldo. */
-const pdvMetsCobro = () => Object.entries(PDV_MET).filter(([m]) => m === 'monedero' ? monActivo() : m !== 'consumo' || (funOn('personal', 'consumo') && (PDV.consumo || []).some(x => x.saldo > 0)));
+const pdvMetsCobro = () => Object.entries(PDV_MET).filter(([m]) => m === 'monedero' ? monActivo() : m === 'nomina' ? funOn('personal', 'nomina') && nominaGente().length > 0 : m !== 'consumo' || (funOn('personal', 'consumo') && (PDV.consumo || []).some(x => x.saldo > 0)));
 const PDV_CATS = ['Insumos', 'Gas', 'Hielo', 'Limpieza', 'Desechables', 'Servicios', 'Mantenimiento', 'Sueldos', 'Propinas', 'Otro'];
 /** Guarda en Firestore sin esperar al servidor (sin internet se sube después). */
 function pdvGuardar(prom) { PDV.pendientes++; Promise.resolve(prom).catch(e => toast('No se pudo guardar: ' + (e.message || e), 'err')).finally(() => { PDV.pendientes = Math.max(0, PDV.pendientes - 1); }); }
@@ -3561,7 +3561,7 @@ function pdvPintarCobro() {
       ${k.met === 'tarjeta' ? `<label class="f">Propina con tarjeta (opcional)</label><input class="i pdvNum" id="cbProp" inputmode="decimal" placeholder="0">
         <div class="small muted">Cobra en la terminal el monto más la propina. La propina se entrega en efectivo al cerrar el turno.</div>` : ''}
       ${k.met === 'transferencia' ? '<div class="small muted">Revisa en tu banco que el dinero ya llegó antes de registrar el pago.</div>' : ''}
-      ${k.met === 'consumo' ? consumoCampos() : ''}${k.met === 'monedero' ? monCampos(PDV.venta.tel) : ''}
+      ${k.met === 'consumo' ? consumoCampos() : ''}${k.met === 'nomina' ? nominaCampos() : ''}${k.met === 'monedero' ? monCampos(PDV.venta.tel) : ''}
       <div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvAgregarPago)">Registrar pago</button></div>
       ${k.pagos.length ? '' : '<div class="small muted" style="text-align:center">¿Pagan con dos formas? Cambia el monto y registra cada parte.</div>'}`
     : `<div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvTerminarVenta)">✅ Terminar venta</button></div>`}`);
@@ -3641,6 +3641,7 @@ async function pdvAgregarPago() {
     Object.assign(p, await monValidarPago(m));
   }
   if (k.met === 'consumo') { const ya = pdvR(k.pagos.filter(x => x.metodo === 'consumo' && x.consumoUid === ($('#cbCons') || {}).value).reduce((s, x) => s + x.monto, 0)); Object.assign(p, await consumoValidar(pdvR(m + ya))); }
+  if (k.met === 'nomina') Object.assign(p, await nominaValidar());
   k.pagos.push(p);
   if (pdvR(k.total - pdvPagado()) <= 0) await pdvTerminarVenta(); else pdvPintarCobro();
 }
@@ -3670,7 +3671,7 @@ async function pdvTerminarVenta() {
   // monedero (2.32): primero se cobra lo pagado con monedero (si falla, la venta no se guarda)
   for (const p of k.pagos.filter(x => x.metodo === 'monedero' && !x.monDesg)) await monDescontar(p, folio, ref.id);
   const telM = tel || ((k.pagos.find(x => x.metodo === 'monedero') || {}).monTel || '');
-  const baseCb = pdvR(k.total - k.pagos.filter(x => x.metodo === 'monedero' || x.metodo === 'consumo').reduce((s, x) => s + x.monto, 0));
+  const baseCb = pdvR(k.total - k.pagos.filter(x => x.metodo === 'monedero' || x.metodo === 'consumo' || x.metodo === 'nomina').reduce((s, x) => s + x.monto, 0));
   const monInfo = await monAcumular({ tel: telM, nombre: v0.nombre, base: baseCb, tarjeta: k.pagos.filter(x => x.metodo === 'tarjeta').reduce((s, x) => s + x.monto, 0), folio, ventaId: ref.id });
   const items = Object.values(c.items).map(x => ({ id: x.id, nombre: x.nombre, cant: x.cant, precio: pdvR(x.precio), importe: pdvR(x.cant * x.precio), variante: x.variante || '', extras: x.extras || [], sin: x.sin || [], nota: x.nota || '', mods: x.mods || [], partes: x.partes || null }));
   const v = {
@@ -3696,6 +3697,7 @@ async function pdvTerminarVenta() {
   pdvGuardar(ref.set(limpio));
   if (PDV.cajaCobroId) { if (!PDV.caja || caja.id !== PDV.caja.id) toast('Entró a ' + pdvNomCaja(caja) + ' 🗄️'); PDV.cajaCobroId = ''; }
   v.pagos.forEach(p => consumoDescontar(p, v.folio, ref.id));
+  v.pagos.forEach(p => nominaCargar(p, v.folio, ref.id, caja)); // 2.89
   const inc = { ventas: pdvInc(v.total), n: pdvInc(1), propinas: pdvInc(v.propina), ts }, porMet = {};
   v.pagos.forEach(p => { porMet[p.metodo] = (porMet[p.metodo] || 0) + p.monto; });
   Object.keys(porMet).forEach(m => { inc['met_' + m] = pdvInc(porMet[m]); });
@@ -6072,7 +6074,7 @@ function pdvPintarCobroCuenta() {
     ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[50, 100, 200, 500, 1000].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
       <input class="i pdvNum" id="cbRecibe" inputmode="decimal" placeholder="Igual al monto" oninput="pdvCambio()"><div class="pdvCambio" id="cbCambio"></div>` : ''}
     ${k.met === 'tarjeta' ? '<label class="f">Propina con tarjeta (opcional)</label><input class="i pdvNum" id="cbProp" inputmode="decimal" placeholder="0">' : ''}
-    ${k.met === 'consumo' ? consumoCampos() : ''}${k.met === 'monedero' ? monCampos(k.tel) : ''}
+    ${k.met === 'consumo' ? consumoCampos() : ''}${k.met === 'nomina' ? nominaCampos() : ''}${k.met === 'monedero' ? monCampos(k.tel) : ''}
     <div class="btns"><button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvPagarCuenta)">Registrar pago</button></div>`);
   pdvCambio(); monInfoCliente(); monInfoCobro();
 }
@@ -6095,6 +6097,7 @@ async function pdvPagarCuenta() {
   if (k.met === 'efectivo') { const r = pdvR(($('#cbRecibe') || {}).value || m); if (r < m) throw new Error('Lo recibido es menos que el monto'); p.recibe = r; p.cambio = pdvR(r - m); }
   if (k.met === 'tarjeta') { const pr = pdvR(($('#cbProp') || {}).value); if (pr) p.propina = pr; }
   if (k.met === 'consumo') Object.assign(p, await consumoValidar(m));
+  if (k.met === 'nomina') Object.assign(p, await nominaValidar());
   const telC = monTel(k.tel);
   if (telC && telC.length !== 10) throw new Error('El teléfono del cliente debe tener 10 dígitos');
   if (k.met === 'monedero') {
@@ -6107,6 +6110,7 @@ async function pdvPagarCuenta() {
   if (telM.length === 10) p.monedero = await monAcumular({ tel: telM, nombre: p.monNombre || '', base: k.met === 'monedero' || k.met === 'consumo' ? 0 : m, tarjeta: k.met === 'tarjeta' ? m : 0, folio: c.folio, ventaId: c.id });
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(p))));
   consumoDescontar(p, c.folio, c.id);
+  nominaCargar(p, c.folio, c.id, caja); // 2.89
   items.forEach(x => { const i = c.items.find(y => y.k === x.k); if (i) i.pagadoCant = (i.pagadoCant || 0) + x.cant; });
   c.pagado = pdvR((c.pagado || 0) + m);
   c.pagos = (c.pagos || []).concat([Object.assign({ metodo: p.metodo, monto: m, propina: p.propina || 0, cambio: p.cambio || 0, recibe: p.recibe || 0, ts, por: p.por, pagoId: ref.id, cajaId: caja.id }, telM.length === 10 ? { tel: telM } : {}, p.consumoUid ? { consumoUid: p.consumoUid, consumoNombre: p.consumoNombre } : {}, p.monTel ? { monTel: p.monTel, monNombre: p.monNombre, monDesg: p.monDesg } : {}, p.monedero ? { monedero: p.monedero } : {})]);
@@ -6401,7 +6405,7 @@ async function pdvCargarReporte(rg, negs, clave) {
 function pdvCalcReporte(D) {
   const r = { ventasCaja: 0, ventasApp: 0, tickets: 0, propinas: 0, gastos: 0, gastosSinProp: 0, porMet: {}, porTipo: {}, porDia: {}, porHora: {}, prods: {}, gente: {}, porNeg: [], cortes: [], cancel: [], quitados: [], corr: [], promos: {}, gastosL: [], porCat: {}, porPago: { caja: 0, fuera: 0, credito: 0 }, deuda: 0, app: { pedidos: 0, envio: 0, cancelados: 0 }, abiertas: 0 };
   const sum = (o, k, v) => { o[k] = pdvR((o[k] || 0) + v); };
-  const MET = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', consumo: 'Consumo de personal', codi: 'CoDi', mp: 'Tarjeta en línea', monedero: 'Monedero', otro: 'Otro' };
+  const MET = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', consumo: 'Consumo de personal', nomina: 'A cuenta de nómina', codi: 'CoDi', mp: 'Tarjeta en línea', monedero: 'Monedero', otro: 'Otro' };
   r.porCaja = {};
   r.tarjeta = { n: 0, cobrado: 0, mp: 0, pidele: 0, neto: 0, devol: { n: 0, monto: 0, error: 0 }, lista: [], efe: { extraN: 0, extra: 0, descN: 0, desc: 0 } }; // 2.78.3 · 2.80.1
   D.por.forEach(({ n, ventas, pagos, gastos, cajas, provs }) => {
@@ -6795,7 +6799,7 @@ async function pintarMiAsis() {
       ${x.pregunta ? `<div class="aviso warn" style="margin:0 0 8px">⏰ Tu turno terminó a las <b>${x.pregunta.horario.e ? x.pregunta.horario.s : ''}</b> y no has checado salida.<div class="btns" style="margin-top:6px"><button class="btn pri pill full" onclick="asisPreguntaMia('${x.negocioId}')">Responder: ¿doblas turno u olvidaste checar?</button></div></div>` : ''}
       ${!h.salida ? `<button class="btn pri pill full" onclick="act(this,()=>asisMarcarFlujo('${x.negocioId}'))">📷 Marcar ${h.entrada ? 'salida' : 'entrada'}</button>` : ''}
       ${x.diasFavor ? `<div class="small" style="margin-top:6px">🔁 Tienes <b>${x.diasFavor}</b> día${x.diasFavor > 1 ? 's' : ''} a favor por turno doble.</div>` : ''}
-      ${vacTarjeta(x)}
+      ${vacTarjeta(x)}${adelTarjeta(x)}
       <details style="margin-top:8px"><summary class="small">Mi horario de los próximos días</summary><div class="asisProx">${x.proximos.map(p => `<span><b>${asisDiaTxt(p.fecha)}</b>${p.horario ? p.horario.e + '–' + p.horario.s : 'Descanso'}</span>`).join('')}</div></details>
       ${x.rotativo ? `<div class="small muted" style="margin-top:8px">🗓️ ${falta ? 'Tu descanso de la próxima semana lo define el encargado.' : 'Tu descanso de la próxima semana: ' + x.eligio.map(asisDiaTxt).join(', ')}</div>` : ''}</div>`;
   }).join('');
@@ -8111,7 +8115,7 @@ async function asisBiometria() {
 function pdvVistaPersonal() {
   if (!pdvPuede('d')) return '<div class="aviso warn">Solo el dueño ve el personal y la nómina.</div>';
   const P = PDV.per = PDV.per || { sub: 'hoy', fecha: pdvHoy() };
-  const subs = [['equipo', '👥 Equipo'], ['hoy', '🕒 Asistencia hoy', 'asistencia'], ['semana', '📅 Semana'], ['vac', '🏖️ Vacaciones', 'vacaciones'], ['nomina', '💵 Nómina', 'nomina'], ['metas', '🎯 Bonos y metas', 'bonos'], ['turnos', '⏱️ Turnos'], ['config', '⚙️ Reglas y horarios'], ['consumo', '🎁 Consumo', 'consumo']].filter(x => !x[2] || funOn('personal', x[2])); // 2.68: solo las funciones prendidas
+  const subs = [['equipo', '👥 Equipo'], ['hoy', '🕒 Asistencia hoy', 'asistencia'], ['semana', '📅 Semana'], ['vac', '🏖️ Vacaciones', 'vacaciones'], ['nomina', '💵 Nómina', 'nomina'], ['adel', '💵 Adelantos', 'nomina'], ['metas', '🎯 Bonos y metas', 'bonos'], ['turnos', '⏱️ Turnos'], ['config', '⚙️ Reglas y horarios'], ['consumo', '🎁 Consumo', 'consumo']].filter(x => !x[2] || funOn('personal', x[2])); // 2.68: solo las funciones prendidas
   if (!subs.some(x => x[0] === P.sub)) P.sub = 'equipo';
   if (P.todos) { // 2.75: toda su gente, de todos sus negocios, en esta misma pantalla
     if (!navigator.onLine) return perNegChips() + '<div class="aviso warn">📴 Necesitas internet para ver a todo tu personal.</div>';
@@ -8128,13 +8132,13 @@ function pdvVistaPersonal() {
     if (P.cargando !== clave) {
       P.cargando = clave;
       const nid = S.negocio.id;
-      const pet = P.sub === 'equipo' ? Promise.all([api('personalLista', { negocioId: nid }), api('asisDia', { negocioId: nid, fecha: pdvHoy() }).catch(() => ({ personas: [] }))]).then(([a, b]) => Object.assign(a, { hoyAsis: b.personas || [] })) : P.sub === 'hoy' ? api('asisDia', { negocioId: nid, fecha: P.fecha }) : P.sub === 'vac' ? api('vacPanel', { negocioId: nid }) : P.sub === 'semana' ? api('asisSemana', { negocioId: nid, fecha: P.fecha }) : P.sub === 'config' ? api('personalLista', { negocioId: nid }) : api('nominaCalcular', Object.assign({ negocioId: nid }, asisPeriodoNom(P.nomPer || 'semana')));
+      const pet = P.sub === 'equipo' ? Promise.all([api('personalLista', { negocioId: nid }), api('asisDia', { negocioId: nid, fecha: pdvHoy() }).catch(() => ({ personas: [] }))]).then(([a, b]) => Object.assign(a, { hoyAsis: b.personas || [] })) : P.sub === 'hoy' ? api('asisDia', { negocioId: nid, fecha: P.fecha }) : P.sub === 'vac' ? api('vacPanel', { negocioId: nid }) : P.sub === 'adel' ? api('adelPanel', { negocioId: nid }) : P.sub === 'semana' ? api('asisSemana', { negocioId: nid, fecha: P.fecha }) : P.sub === 'config' ? api('personalLista', { negocioId: nid }) : api('nominaCalcular', Object.assign({ negocioId: nid }, asisPeriodoNom(P.nomPer || 'semana')));
       pet.then(async d => { if (P.sub === 'nomina') await asisAplicarIncentivos(d); P.datos = d; P.clave = clave; }).catch(e => { P.datos = { _error: e.message }; P.clave = clave; }).finally(() => { P.cargando = ''; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); });
     }
     return cab + '<div class="cargando">Cargando…</div>';
   }
   if (P.datos._error) return cab + `<div class="aviso err">${esc(P.datos._error)}</div>`;
-  return cab + (P.sub === 'equipo' ? equipoVista(P.datos) : P.sub === 'hoy' ? asisVistaHoy(P.datos) : P.sub === 'vac' ? vacVistaPanel(P.datos) : P.sub === 'semana' ? asisVistaSemana(P.datos) : P.sub === 'config' ? asisVistaConfig(P.datos) : asisVistaNomina(P.datos));
+  return cab + (P.sub === 'equipo' ? equipoVista(P.datos) : P.sub === 'hoy' ? asisVistaHoy(P.datos) : P.sub === 'vac' ? vacVistaPanel(P.datos) : P.sub === 'adel' ? adelVistaPanel(P.datos) : P.sub === 'semana' ? asisVistaSemana(P.datos) : P.sub === 'config' ? asisVistaConfig(P.datos) : asisVistaNomina(P.datos));
 }
 /* ============ 2.61 · EQUIPO: lista, alta en una pantalla y ficha de cada persona ============ */
 const PUESTOS = {
@@ -8331,18 +8335,20 @@ function asisVistaTurnos() {
         <div style="flex:2"><label class="f" style="margin-top:0">Nombre</label><input class="i tN" maxlength="20" value="${esc(t.nombre)}" placeholder="Ej. Matutino"></div>
         <div style="flex:1.3"><label class="f" style="margin-top:0">Entra</label><input class="i tE" type="time" value="${esc(t.e)}"></div>
         <div style="flex:1.3"><label class="f" style="margin-top:0">Sale</label><input class="i tS" type="time" value="${esc(t.s)}"></div>
+        <label class="small" style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px" title="Cuenta para los bonos de ventas por turno">Bonos<input type="checkbox" class="tB" ${t.bono !== false ? 'checked' : ''}></label>
         <button class="btn sm" onclick="asisTurnosLeer();S._tEd.splice(${i},1);pintarCaja()" aria-label="Quitar turno">✕</button></div>`).join('') || '<div class="muted small">Sin turnos.</div>'}
       <div class="row" style="gap:8px;margin-top:4px"><button class="btn pill" onclick="asisTurnosLeer();S._tEd.push({nombre:'',e:'09:00',s:'17:00'});pintarCaja()">➕ Turno</button>
         <button class="btn pri pill" style="flex:1" onclick="act(this,asisTurnosGuardar)">Guardar turnos</button></div></div>
-    <div class="small muted">Cambiar un turno aquí no cambia los horarios que ya tiene cada persona; vuelve a tocar el turno en su ficha para actualizarlo.</div>`;
+    <div class="small muted">Cambiar un turno aquí no cambia los horarios que ya tiene cada persona; vuelve a tocar el turno en su ficha para actualizarlo.</div>
+    <div class="small muted" style="margin-top:4px"><b>Bonos:</b> solo los turnos marcados cuentan para los bonos de ventas por turno (por ejemplo, deja sin marcar "Apertura" si cubre todo el día).</div>`;
 }
-function asisTurnosLeer() { if (!$('.turnoFila')) return; S._tEd = [...document.querySelectorAll('.turnoFila')].map(r => ({ nombre: r.querySelector('.tN').value.trim(), e: r.querySelector('.tE').value, s: r.querySelector('.tS').value })); }
+function asisTurnosLeer() { if (!$('.turnoFila')) return; S._tEd = [...document.querySelectorAll('.turnoFila')].map(r => ({ nombre: r.querySelector('.tN').value.trim(), e: r.querySelector('.tE').value, s: r.querySelector('.tS').value, bono: r.querySelector('.tB') ? r.querySelector('.tB').checked : true })); }
 async function asisTurnosGuardar() {
   asisTurnosLeer();
   const l = S._tEd.filter(t => t.nombre || t.e);
   if (l.some(t => !t.nombre)) throw new Error('Ponle nombre a cada turno');
   if (l.some(t => !/^\d\d:\d\d$/.test(t.e) || !/^\d\d:\d\d$/.test(t.s))) throw new Error('Revisa las horas de entrada y salida');
-  PDV.turnos = l.map(t => ({ nombre: t.nombre.slice(0, 20), e: t.e, s: t.s }));
+  PDV.turnos = l.map(t => ({ nombre: t.nombre.slice(0, 20), e: t.e, s: t.s, bono: t.bono !== false }));
   pdvGuardar(pdvCol('estado').doc('turnos').set({ lista: PDV.turnos, ts: Date.now() }));
   if (S.negocio && S.negocio.operacion) api('opTurnosSync', { negocioId: S.negocio.id, turnos: PDV.turnos }).catch(e => console.warn(e)); // 2.61: un solo lugar para los turnos
   S._tEd = null; toast('Turnos guardados ⏱️'); pintarCaja();
@@ -8355,6 +8361,7 @@ function asisVistaHoy(d) {
   return `<div class="row" style="gap:8px;align-items:center;margin:8px 0"><input class="i" type="date" value="${d.fecha}" max="${hoy}" onchange="PDV.per.fecha=this.value;asisRecargar()" style="max-width:200px">
       ${d.fecha === hoy ? '<span class="small muted">Hoy</span>' : `<button class="lnk small" onclick="PDV.per.fecha='${hoy}';asisRecargar()">Ir a hoy</button>`}<span class="grow"></span><button class="btn sm" onclick="act(this,asisMostrarQR)">🔳 Mostrar QR</button></div>
     ${(d.dobles || []).length ? `<div class="card" style="border-color:var(--warn)"><b>🔁 Turnos dobles por decidir</b>${d.dobles.map((x, i) => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--ln)"><span><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)}<br><span class="small muted">${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Dobló turno para apoyar'}${x.minutos ? ' · ' + Math.round(x.minutos / 6) / 10 + ' h de más' : ''}</span></span><button class="btn sm pri" onclick="asisDobleDecidirModal(${i})">Decidir</button></div>`).join('')}</div>` : ''}
+    ${d.adelPendientes ? `<div class="aviso info row between" style="gap:8px"><span>💵 ${d.adelPendientes} adelanto${d.adelPendientes > 1 ? 's' : ''} por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='adel';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${d.vacPendientes ? `<div class="aviso info row between" style="gap:8px"><span>🏖️ ${d.vacPendientes} solicitud${d.vacPendientes > 1 ? 'es' : ''} de vacaciones por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='vac';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${tabDeudasHTML(d.deudas)}
     ${(d.rotPendientes || []).length ? `<div class="aviso warn row between" style="gap:8px"><span>🗓️ Falta definir el descanso de la próxima semana de <b>${d.rotPendientes.map(esc).join(', ')}</b>.</span><button class="btn sm pri" onclick="act(this,asisDescansosModal)">Definir</button></div>` : ''}
@@ -8728,8 +8735,8 @@ const NT_EST = { presente: ['ok', 'A tiempo'], retardo: ['tarde', 'Retardo'], de
   permiso_sin: ['falta', 'Permiso sin goce'], falta: ['falta', 'Falta'], sin_decidir: ['sin', 'Sin registro'], programado: ['fut', 'Por venir'], por_llegar: ['fut', 'Por llegar'] };
 const ntLetra = i => { const t = turnosNeg()[i - 1]; return t && t.nombre ? t.nombre.trim().charAt(0).toUpperCase() : String(i); };
 /** Turnos que cuentan para el bono ese día (automático o lo que decidió el dueño). */
-function ntTurnos(x) { if (!x) return []; return turnosNeg().map((t, i) => i + 1).filter(i => metaEnTurno(x, x.fecha, i)); }
-function ntAuto(x) { if (!x || !x.entrada) return []; const y = Object.assign({}, x, { turnoBono: '', sinBono: false }); return turnosNeg().map((t, i) => i + 1).filter(i => metaEnTurno(y, x.fecha, i)); }
+function ntTurnos(x) { return turnosDeDia(x); }
+function ntAuto(x) { if (!x || !x.entrada) return []; return turnosDeDia(Object.assign({}, x, { turnoBono: '', sinBono: false })); }
 function ntGrupos(l) {
   const g = {};
   l.forEach(p => {
@@ -8751,7 +8758,7 @@ function nomTablero(d) {
   const celda = (p, x) => {
     const [cl, tt] = NT_EST[x.estado] || ['fut', x.estado];
     const c = x.justif ? 'just' : cl, ts = ntTurnos(x).map(ntLetra).join('');
-    const sub = x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : x.estado === 'sin_decidir' ? '?' : '';
+    const sub = x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.entrada && !x.turnoBono && (x.estado === 'presente' || x.estado === 'retardo') && ntMinTrab(x) < 420 && x.fecha < pdvHoy() ? '<7h' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : x.estado === 'sin_decidir' ? '?' : '';
     const titulo = tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (x.manual ? ' · capturado a mano' : '');
     const pc = nomLoteDe(p.usuarioId, x.fecha);
     if (pc) return `<td><div class="ntC ${nomLoteClase(pc, x, d)} pend" title="Pendiente: ${esc(nomLoteTxt(pc))}" onclick="nomTocar('${p.usuarioId}','${x.fecha}')">${esc(nomLoteCorto(pc))}</div></td>`;
@@ -8762,29 +8769,30 @@ function nomTablero(d) {
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','punt')">${p.bonoPunt ? money(p.bonoPunt) : '—'}</td>
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','ventas')">${p.incentivos ? money(p.incentivos) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','desc')">${p.descuento ? '−' + money(p.descuento) : '—'}</td>
+    <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','adel')">${p.adelantos ? '−' + money(p.adelantos) : '—'}</td>
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.sueldo)}</td>
     <td class="ntM ntTot" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.total)}</td></tr>`;
-  const nc = dias.length + 6;
-  const ventas = T.map((t, i) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + (i + 1))}</td>${dias.map(f => {
-    const k = f + '|' + (i + 1), man = k in M, v = man ? M[k] : nomVentaCaja(V, f, i + 1);
+  const nc = dias.length + 7;
+  const ventas = turnosBono().map(([ti, t]) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + ti)}</td>${dias.map(f => {
+    const k = f + '|' + ti, man = k in M, v = man ? M[k] : nomVentaCaja(V, f, ti);
     if (PDV.lote && PDV.lote.on) { const pv = PDV.lote.ventas[k]; return `<td><input class="ntIn${pv != null ? ' cmb' : ''}" inputmode="decimal" placeholder="${v ? Math.round(v) : '$'}" value="${pv != null ? esc(pv) : ''}" oninput="nomLoteVenta('${k}',this.value,this)" title="${man ? 'Capturada a mano: ' + money(v) : v ? 'Corte de caja: ' + money(v) : 'Sin dato'}"></td>`; }
-    return `<td><div class="ntV ${man ? 'man' : v ? '' : 'cero'}" onclick="nomVenta('${f}',${i + 1})" title="${man ? 'Capturada a mano' : 'Del corte de caja'}">${v ? (man ? '✍️' : '') + money(v).replace('.00', '') : (man ? '✍️$0' : '+')}</div></td>`;
-  }).join('')}<td colspan="5" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + (i + 1); return s + (k in M ? M[k] : nomVentaCaja(V, f, i + 1)); }, 0)))}</td></tr>`).join('');
+    return `<td><div class="ntV ${man ? 'man' : v ? '' : 'cero'}" onclick="nomVenta('${f}',${ti})" title="${man ? 'Capturada a mano' : 'Del corte de caja'}">${v ? (man ? '✍️' : '') + money(v).replace('.00', '') : (man ? '✍️$0' : '+')}</div></td>`;
+  }).join('')}<td colspan="6" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + ti; return s + (k in M ? M[k] : nomVentaCaja(V, f, ti)); }, 0)))}</td></tr>`).join('');
   const sum = k => pdvR(l.reduce((s, p) => s + (Number(p[k]) || 0), 0));
   const LT = PDV.lote && PDV.lote.on ? PDV.lote : null, nPend = nomLoteN();
-  return `<div class="row between" style="gap:8px"><div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
+  return `<div class="row between" style="gap:8px;flex-wrap:wrap"><div class="muted small" style="flex:1 1 220px">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
     ${LT ? '' : `<div class="row" style="gap:6px;flex:0 0 auto"><button class="btn sm" onclick="nomActualizar()">🔄 Actualizar cálculos</button><button class="btn sm pri" onclick="nomLoteIniciar()">✏️ Varios cambios</button></div>`}</div>
     ${LT ? `<div class="aviso info small" style="margin-top:6px">✏️ <b>Varios cambios:</b> elige un pincel y toca los días; escribe las ventas en sus casillas. Nada se guarda hasta tocar <b>Guardar todo</b>.</div>
     <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
     <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
     ${l.some(p => p.sinDecidir) ? `<div class="aviso warn small" style="margin-top:6px">Hay días <b>sin registro</b> (cuadro punteado): tócalos para poner la asistencia, una falta, un descanso o un permiso. Mientras estén así cuentan como falta.</div>` : ''}
-    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th>${dTxt(f)}</th>`).join('')}<th>Puntua&shy;lidad</th><th>Bono ventas</th><th>Descuen&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
+    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th>${dTxt(f)}</th>`).join('')}<th>Puntua&shy;lidad</th><th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
     ${ntGrupos(l).map(g => `<tr class="ntG"><td colspan="${nc}"><span>${esc(g.nombre)}</span></td></tr>${g.gente.map(fila).join('')}`).join('')}
     <tr class="ntG"><td colspan="${nc}"><span>💵 Venta por turno (toca para capturarla o corregirla)</span></td></tr>${ventas}
-    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td><td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
+    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td><td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM neg">−${money(sum('adelantos'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
     </tbody></table></div>
     <div class="ntLey"><span><i class="ntC ok"></i>A tiempo</span><span><i class="ntC tarde"></i>Retardo</span><span><i class="ntC just"></i>Tarde con permiso</span><span><i class="ntC perm"></i>Permiso / vacaciones</span><span><i class="ntC falta"></i>Falta</span><span><i class="ntC desc"></i>Descanso</span><span><i class="ntC sin"></i>Sin registro</span><span>Letra = turno del bono (* elegido a mano)</span></div>
-    <div class="small muted" style="margin-top:6px">Reglas: más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas.</div>
+    <div class="small muted" style="margin-top:6px">Reglas: cada día cuenta en un solo turno (el de más horas; los dos solo con turno doble autorizado) · menos de 7 h trabajadas no entra a bonos · más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas.</div>
     ${LT ? `<div class="ntBarra"><div class="grow"><b>${nPend}</b> cambio${nPend === 1 ? '' : 's'} pendiente${nPend === 1 ? '' : 's'}</div><button class="btn sm" onclick="nomLoteDescartar()">Descartar</button><button class="btn sm pri" ${nPend ? '' : 'disabled'} onclick="act(this,nomLoteGuardar)">💾 Guardar todo</button></div>` : ''}
     ${!LT && l.filter(p => !p.pagado).length ? `<div class="btns"><button class="btn pri pill full" onclick="asisPagar()">Pagar a ${l.filter(p => !p.pagado).length} · ${money(pdvR(l.filter(p => !p.pagado).reduce((s, p) => s + p.total, 0)))}</button></div>` : ''}
     <div class="btns"><button class="btn pill" onclick="asisCsvNom()">⬇️ Descargar en Excel</button></div>`;
@@ -8793,7 +8801,7 @@ function nomTablero(d) {
 function nomCelda(uid, f) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid), x = p && p.detalle.find(y => y.fecha === f); if (!x) return;
   const [, tt] = NT_EST[x.estado] || ['', x.estado], h = x.horario, hh = ms => { const z = dZ(ms); return String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); };
-  const auto = ntAuto(x).map(i => (turnosNeg()[i - 1] || {}).nombre || 'Turno ' + i).join(' y ') || 'ninguno';
+  const auto = ntAuto(x).map(i => (turnosNeg()[i - 1] || {}).nombre || 'Turno ' + i).join(' y ') || (x.entrada && ntMinTrab(x) < 420 ? 'ninguno: trabajó menos de 7 h' : 'ninguno');
   const futuro = f > pdvHoy();
   modal(`<div class="row between"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted">${asisDiaTxt(f)} · ${h ? 'horario ' + h.e + '–' + h.s : 'sin horario (descanso)'}</div>
@@ -8807,7 +8815,7 @@ function nomCelda(uid, f) {
     ${x.entrada ? `<label class="f">Turno que cuenta para el bono de ventas</label>
     <select class="i" id="ncT" onchange="act(null,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:this.value}))">${PDV.lote && PDV.lote.on && PDV.lote.cambios[uid + '|' + f + '|t'] ? '<option selected disabled>Pendiente: ' + esc(PDV.lote.cambios[uid + '|' + f + '|t'].turno || 'automático') + '</option>' : ''}
       <option value="" ${!x.turnoBono ? 'selected' : ''}>Automático (${esc(auto)})</option>
-      ${turnosNeg().map((t, i) => `<option value="${i + 1}" ${x.turnoBono === String(i + 1) ? 'selected' : ''}>Solo ${esc(t.nombre || 'Turno ' + (i + 1))}</option>`).join('')}
+      ${turnosBono().map(([i, t]) => `<option value="${i}" ${x.turnoBono === String(i) ? 'selected' : ''}>Solo ${esc(t.nombre || 'Turno ' + i)}</option>`).join('')}
       <option value="ambos" ${x.turnoBono === 'ambos' ? 'selected' : ''}>Todos los turnos</option><option value="ninguno" ${x.turnoBono === 'ninguno' ? 'selected' : ''}>Ninguno</option></select>
     ${x.sinBono ? '<div class="small muted">Llegó más de ' + (d.config.retSinBono || 60) + ' min tarde: ese día no suma bono de ventas (salvo que marques que tenía permiso).</div>' : ''}` : ''}
     ${x.manual && !futuro ? `<div style="text-align:center;margin-top:8px"><button class="lnk small" style="color:var(--err)" onclick="act(this,()=>nomAccion('asisManual',{usuarioId:'${uid}',fecha:'${f}',quitar:true}))">Borrar la captura a mano</button></div>` : ''}`);
@@ -8970,9 +8978,11 @@ function nomDesglose(uid, k) {
     ${fila('Días descontados', p.diasDescontados)}
     ${p.detalle.filter(x => ['falta', 'permiso_sin', 'sin_decidir'].includes(x.estado) || x.medio).map(x => fila('<small>' + asisDiaTxt(x.fecha) + '</small>', '<small>' + (x.medio ? 'medio día (' + x.minRetardo + ' min tarde)' : (NT_EST[x.estado] || [])[1]) + '</small>')).join('')}
     ${fila('<b>Descuento</b>', '<b>−' + money(p.descuento) + '</b>', 'g')}`;
-  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}
+  else if (k === 'adel') cuerpo = `${(p.adelDet || []).map(a => fila((ADEL_TXT[a.tipo] || a.tipo) + '<br><small class="muted">' + asisDiaTxt(a.fecha) + (a.folio ? ' · ' + esc(a.folio) : '') + (a.nota ? ' · ' + esc(a.nota) : '') + (a.origen === 'caja' && a.tipo === 'efectivo' ? ' · de la caja' : a.origen === 'externo' ? ' · fuera de caja' : '') + (a.decidePor ? ' · ' + esc(a.decidePor) : '') + '</small>', '−' + money(a.monto))).join('') || '<div class="small muted">Sin adelantos en este periodo.</div>'}
+    ${fila('<b>Adelantos</b>', '<b>−' + money(p.adelantos || 0) + '</b>', 'g')}${p.arrastre ? `<div class="aviso warn small" style="margin-top:6px">No alcanza: ${money(p.arrastre)} pasan a la siguiente nómina.</div>` : ''}`;
+  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}
     ${p.pagoExtra ? fila('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.pagoDobles ? fila('Turnos dobles', '+' + money(p.pagoDobles)) : ''}${fila('<b>Total</b>', '<b>' + money(p.total) + '</b>', 'g')}`;
-  const tit = { punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', total: '💵 Total' }[k];
+  const tit = { punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
   modal(`<div class="row between"><h2 style="margin:0">${tit}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted">${esc(p.nombre)} · ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}</div><div class="card" style="margin-top:8px">${cuerpo}</div>
     <div class="btns"><button class="btn pill" onclick="asisDetalleNom('${uid}')">Ver todo</button></div>`);
@@ -8985,10 +8995,10 @@ async function nomVentasMan(desde, hasta) {
   return o;
 }
 /** Venta de la caja (cortes) de un día y turno. */
-const nomVentaCaja = (V, dia, t) => { const ids = (V.cajas || []).filter(c => c.dia === dia && (Number(c.turno) || 1) === t).map(c => c.id); return pdvR((V.mov || []).filter(x => ids.includes(x.caja)).reduce((s, x) => s + x.monto, 0)); };
+const nomVentaCaja = (V, dia, t) => { const ids = (V.cajas || []).filter(c => c.dia === dia && (c.pt || ptDeCaja(c)) === t).map(c => c.id); return pdvR((V.mov || []).filter(x => ids.includes(x.caja)).reduce((s, x) => s + x.monto, 0)); };
 async function asisAplicarIncentivos(d) {
   try { const [V, M] = await Promise.all([PDV.db ? metaVentas(d.desde, d.hasta) : { mov: [], cajas: [], prod: [] }, PDV.db ? nomVentasMan(d.desde, d.hasta) : {}]); d._V = V; d._man = M; } catch (e) { d._V = { mov: [], cajas: [] }; d._man = {}; }
-  const trabajo = (uid, f) => { const p = d.personas.find(x => x.usuarioId === uid), x = p && p.detalle.find(y => y.fecha === f); return !!x && (x.estado === 'presente' || x.estado === 'retardo'); };
+  const trabajo = (uid, f) => { const p = d.personas.find(x => x.usuarioId === uid), x = p && p.detalle.find(y => y.fecha === f); return !!x && (x.estado === 'presente' || x.estado === 'retardo') && !x.sinBono && (x.turnoBono ? x.turnoBono !== 'ninguno' : ntMinTrab(x) >= 420); }; // 2.89: mínimo 7 h
   let inc = {};
   try { if (PDV.db && d.personas.length) inc = await metaIncentivos(d.desde, d.hasta, d.personas, trabajo); } catch (e) { console.warn(e); }
   d._inc = inc;
@@ -8996,6 +9006,7 @@ async function asisAplicarIncentivos(d) {
     const x = p.pagado ? { monto: p.pagado.incentivos || 0, detalle: p.pagado.incDetalle || [] } : inc[p.usuarioId] || { monto: 0, detalle: [] };
     p.incentivos = x.monto; p.incDetalle = x.detalle;
     p.bonos = pdvR((p.bonos || 0) + x.monto); p.total = pdvR(p.total + x.monto);
+    p.arrastre = 0; if (p.total < 0) { p.arrastre = pdvR(-p.total); p.total = 0; } // 2.89: adelantos de más pasan a la siguiente
   });
   return d;
 }
@@ -9008,13 +9019,13 @@ function asisDetalleNom(uid) {
       ${p.vacaciones ? `<div class="tot"><span>Vacaciones (pagadas)</span><span>${p.vacaciones}</span></div>` : ''}<div class="tot g"><span>Total a pagar</span><span>${money(p.total)}</span></div></div>
     <div class="btns"><button class="btn pill" onclick="asisRecibo('${uid}')">🖨️ Recibo</button><a class="btn pill" target="_blank" href="${esc('https://wa.me/?text=' + encodeURIComponent(asisTxtRecibo(d, p)))}">${ico('chat', 's')} WhatsApp</a></div>`);
 }
-const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${money(p.sueldo)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
+const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${money(p.sueldo)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}${p.adelantos ? 'Adelantos: −' + money(p.adelantos) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
 function asisRecibo(uid) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid); if (!p) return;
   const r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(d.negocio)}</div><div class="t">RECIBO DE NÓMINA</div><div>${esc(p.nombre)}</div><div>${d.desde} al ${d.hasta}</div></div><hr>
     ${r('Sueldo del periodo', money(p.sueldo))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}${p.cambios ? r('Lo cubrieron por cambio de turno (se paga normal)', p.cambios) : ''}${p.doblesCambio ? r('Cubrió por cambio de turno (sin extra)', p.doblesCambio) : ''}
-    ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.bonoPunt ? r('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}<hr>
+    ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.bonoPunt ? r('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}${p.adelantos ? r('Adelantos', '−' + money(p.adelantos)) : ''}<hr>
     <div class="r t"><span>TOTAL</span><span>${money(p.total)}</span></div>${p.pagado ? `<div>Pagado ${fechaCorta(p.pagado.fecha)} · ${esc(p.pagado.forma)}</div>` : ''}<hr>
     <div class="c p">Recibí de conformidad</div><div class="c p" style="margin-top:14mm">______________________</div>`, 'Recibo ' + p.nombre));
 }
@@ -9040,8 +9051,8 @@ async function asisConfirmarPago() {
 }
 function asisCsvNom() {
   const d = PDV.per.datos;
-  pdvDescargar('nomina-' + d.desde + '-a-' + d.hasta + '.csv', [['Nombre', 'Desde', 'Hasta', 'Sueldo', 'Diario', 'Trabajados', 'Descansos', 'Permisos con goce', 'Permisos sin goce', 'Faltas', 'Sin decidir', 'Retardos', 'Faltas por retardos', 'Descuento', 'Horas extra', 'Pago extra', 'Bono puntualidad', 'Medios días', 'Incentivos', 'Total', 'Pagado']]
-    .concat(d.personas.map(p => [p.nombre, d.desde, d.hasta, p.sueldo, p.diario, p.trabajados, p.descansos, p.permisosGoce, p.permisosSin, p.faltas, p.sinDecidir, p.retardos, p.faltasPorRetardo, p.descuento, p.horasExtra, p.pagoExtra, p.bonoPunt || 0, p.mediosDias || 0, p.incentivos || 0, p.total, p.pagado ? fechaCorta(p.pagado.fecha) : ''])));
+  pdvDescargar('nomina-' + d.desde + '-a-' + d.hasta + '.csv', [['Nombre', 'Desde', 'Hasta', 'Sueldo', 'Diario', 'Trabajados', 'Descansos', 'Permisos con goce', 'Permisos sin goce', 'Faltas', 'Sin decidir', 'Retardos', 'Faltas por retardos', 'Descuento', 'Horas extra', 'Pago extra', 'Bono puntualidad', 'Medios días', 'Adelantos', 'Incentivos', 'Total', 'Pagado']]
+    .concat(d.personas.map(p => [p.nombre, d.desde, d.hasta, p.sueldo, p.diario, p.trabajados, p.descansos, p.permisosGoce, p.permisosSin, p.faltas, p.sinDecidir, p.retardos, p.faltasPorRetardo, p.descuento, p.horasExtra, p.pagoExtra, p.bonoPunt || 0, p.mediosDias || 0, p.adelantos || 0, p.incentivos || 0, p.total, p.pagado ? fechaCorta(p.pagado.fecha) : ''])));
 }
 /** Menú 🕒 de la caja y la cocina: mostrar el QR (pantalla del negocio) o marcar mi asistencia. */
 async function asisMenu() {
@@ -9069,17 +9080,38 @@ function metasVisiblesCambiar(on) {
   toast(on ? 'Tu personal ya ve sus bonos en 🎯' : 'Los bonos quedan ocultos para el personal'); pintarCaja();
 }
 /** Minutos que la asistencia de una persona cubre del turno t (1, 2…) de ese día; turno doble cuenta en todos. */
-function metaEnTurno(det, f, t) {
-  if (!det || !det.entrada) return false;
-  if (det.sinBono) return false; // 2.88: llegó 1 h tarde o más: ese día no suma bono de ventas
-  if (det.turnoBono === 'ninguno') return false;
-  if (det.turnoBono === 'ambos') return true;
-  if (det.turnoBono) return Number(det.turnoBono) === Number(t);
-  if (det.doble) return true;
-  const tn = turnosNeg()[t - 1]; if (!tn) return false;
-  const a = msZ(f, tn.e); let b = msZ(f, tn.s); if (b <= a) b += 864e5; // 2.88.2: en la hora del negocio
-  const e = det.entrada, s = det.salida || e + 8 * 3600e3;
-  return Math.min(b, s) - Math.max(a, e) >= 60 * 6e4;
+/* ---------- 2.89 · Turno del bono: uno solo por día (el de más horas), mínimo 7 h, dos solo con turno doble autorizado ---------- */
+/** Turnos que cuentan para bonos: [índice (1, 2…), turno]. */
+const turnosBono = () => turnosNeg().map((t, i) => [i + 1, t]).filter(([, t]) => t.bono !== false);
+function ntRango(f, t) { const a = msZ(f, t.e); let b = msZ(f, t.s); if (b <= a) b += 864e5; return [a, b]; }
+/** Lo que trabajó ese día: de su entrada a su salida (sin salida, hasta el fin de su horario). */
+function ntIntervalo(det) {
+  if (!det || !det.entrada) return null;
+  let s = det.salida;
+  if (!s) { const h = det.horario; s = h ? ntRango(det.fecha, h)[1] : det.entrada + 8 * 3600e3; if (det.fecha === pdvHoy()) s = Math.min(s, Math.max(Date.now(), det.entrada)); }
+  return [det.entrada, Math.max(det.entrada, s)];
+}
+const ntMinTrab = det => { const r = ntIntervalo(det); return r ? Math.round((r[1] - r[0]) / 6e4) : 0; };
+const ntSolapa = (f, t, r) => { const [a, b] = ntRango(f, t); return Math.max(0, Math.min(b, r[1]) - Math.max(a, r[0])); };
+/** Los turnos (índices) en los que cuenta para el bono ese día. */
+function turnosDeDia(det) {
+  if (!det || !det.entrada || det.sinBono) return [];
+  const r = ntIntervalo(det), TB = turnosBono(); if (!r || !TB.length) return [];
+  if (det.turnoBono === 'ninguno') return [];
+  if (det.turnoBono === 'ambos') return TB.filter(([, t]) => ntSolapa(det.fecha, t, r) > 0).map(([i]) => i);
+  if (det.turnoBono) return [Number(det.turnoBono)];
+  if (ntMinTrab(det) < 420) return []; // menos de 7 horas: no entra a bonos
+  if (det.doble && det.dobleEstado === 'decidido' && det.doblePago !== 'cambio') return TB.filter(([, t]) => ntSolapa(det.fecha, t, r) >= 3600e3).map(([i]) => i);
+  let mejor = 0, idx = 0; TB.forEach(([i, t]) => { const v = ntSolapa(det.fecha, t, r); if (v > mejor) { mejor = v; idx = i; } });
+  return idx ? [idx] : [];
+}
+function metaEnTurno(det, f, t) { return turnosDeDia(Object.assign({ fecha: f }, det)).includes(Number(t)); }
+/** A qué turno de Personal corresponde una caja: por el horario en que estuvo abierta (no por su número). */
+function ptDeCaja(c) {
+  const TB = turnosBono(); if (!TB.length) return Number(c.turno) || 1;
+  const a = (c.abre && c.abre.ts) || 0, b = (c.cierre && (c.cierre.ts || c.cierre.t)) || (a ? a + 8 * 3600e3 : 0);
+  if (a) { let mejor = 0, idx = 0; TB.forEach(([i, t]) => { const v = ntSolapa(c.dia, t, [a, b]); if (v > mejor) { mejor = v; idx = i; } }); if (idx) return idx; }
+  return (TB[(Number(c.turno) || 1) - 1] || TB[TB.length - 1])[0];
 }
 const META_BASE = { personal: '👤 Ventas personales', turno: '🗄️ Ventas del turno', negocio: '🏪 Ventas del negocio' };
 const META_PER = { turno: 'Por turno', semana: 'Por semana', quincena: 'Por quincena', mes: 'Por mes' };
@@ -9111,6 +9143,7 @@ async function metaVentas(desde, hasta) {
   const prod = [];
   ventas.filter(v => v.estado === 'pagada').forEach(v => { const q = v.origen === 'cuenta' ? (v.mesero || v.por) : v.por;
     (v.items || []).filter(i => !i.cancelado).forEach(i => prod.push({ uid: q.uid, dia: v.dia, caja: v.cajaId, prod: i.id, cant: Number(i.cant) || 0, monto: pdvR((Number(i.cant) || 0) * (Number(i.precio) || 0)) })); });
+  cajas.forEach(c => { c.pt = ptDeCaja(c); }); // 2.89
   return { mov, cajas, prod };
 }
 function metaBono(meta, ventas) {
@@ -9159,7 +9192,7 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
     // 2.48: un turno completo junta todas las cajas de ese turno (mismo día y número de turno)
     const grupos = {};
     Object.keys(MAN).forEach(k => { const [dia, tt] = k.split('|'); if (dia < desde || dia > hasta || (m.turnoAplica > 0 && Number(tt) !== Number(m.turnoAplica))) return; if (!grupos[k]) grupos[k] = { cajas: [], dia, turno: Number(tt), txt: asisDiaTxt(dia) + ' ' + ((turnosNeg()[Number(tt) - 1] || {}).nombre || 'Turno ' + tt) }; });
-    V.cajas.filter(c => c.dia >= desde && c.dia <= hasta && (!(m.turnoAplica > 0) || Number(c.turno) === Number(m.turnoAplica))).forEach(c => { const k = c.dia + '|' + c.turno; (grupos[k] = grupos[k] || { cajas: [], dia: c.dia, turno: Number(c.turno) || 1, txt: asisDiaTxt(c.dia) + ' ' + ((turnosNeg()[(Number(c.turno) || 1) - 1] || {}).nombre || 'T' + c.turno) }).cajas.push(c.id); });
+    V.cajas.filter(c => c.dia >= desde && c.dia <= hasta && (!(m.turnoAplica > 0) || c.pt === Number(m.turnoAplica))).forEach(c => { const k = c.dia + '|' + c.pt; (grupos[k] = grupos[k] || { cajas: [], dia: c.dia, turno: c.pt, txt: asisDiaTxt(c.dia) + ' ' + ((turnosNeg()[c.pt - 1] || {}).nombre || 'T' + c.pt) }).cajas.push(c.id); });
     const ventanas = m.periodo === 'turno' ? Object.values(grupos) : wins[i];
     ventanas.forEach(w => {
       const enW = x => w.cajas ? w.cajas.includes(x.caja) : x.dia >= w.desde && x.dia <= w.hasta;
@@ -9278,12 +9311,50 @@ async function metaMiAvance() {
 }
 
 /* ---------- bonos de consumo ---------- */
+/* ---------- 2.90 · El bono de consumo va al monedero de cada persona (si el negocio tiene monedero) ---------- */
+const consMon = () => monActivo();
+const consTel = p => monTel(p && p.telefono);
+async function consMonCargar() {
+  const gente = (PDV.per && PDV.per.gente) || [], o = {};
+  await Promise.all(gente.filter(p => consTel(p).length === 10).map(async p => { try { const x = await monLeer(consTel(p), true); o[p.usuarioId] = monSaldo(x).total; } catch (e) { o[p.usuarioId] = null; } }));
+  PDV.per.monSal = o; PDV.per._monCarg = false;
+  await consMonMigrar();
+  pintarCaja();
+}
+/** Una vez: los saldos de consumo que ya tenían se pasan a su monedero. */
+async function consMonMigrar() {
+  if (PDV.per._migrado) return; PDV.per._migrado = true;
+  const gente = (PDV.per && PDV.per.gente) || [], dias = 30, vence = monSuma(pdvHoy(), dias);
+  let n = 0;
+  (PDV.consumo || []).filter(x => x.saldo > 0).forEach(x => {
+    const p = gente.find(g => g.usuarioId === x.id), tel = consTel(p); if (tel.length !== 10) return;
+    const m = pdvR(x.saldo), ts = Date.now();
+    pdvGuardar(monCol('monedero').doc(tel).set({ tel, nombre: p.nombre, cb: { [vence]: pdvInc(m) }, act: ts }, { merge: true }));
+    pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, vence, nota: 'Saldo de consumo que tenía' })));
+    pdvGuardar(pdvCol('consumo').doc(x.id).set({ saldo: pdvInc(-m), actualizado: ts }, { merge: true }));
+    pdvGuardar(pdvCol('consumoMov').doc().set({ uid: x.id, nombre: p.nombre, tipo: 'pasado', monto: m, nota: 'Pasado a su monedero', ts, dia: pdvHoy(), por: pdvYo() }));
+    x.saldo = 0; PDV.per.monSal = PDV.per.monSal || {}; PDV.per.monSal[x.id] = pdvR((PDV.per.monSal[x.id] || 0) + m); n++;
+  });
+  if (n) toast('👛 Se pasaron ' + n + ' saldo(s) de consumo a su monedero');
+}
 function asisVistaConsumo() {
+  if (consMon()) return asisVistaConsumoMon();
   const l = PDV.consumo || [], gente = (PDV.per && PDV.per.gente) || [];
   if (!PDV.per.gente && !PDV.per._cargGente) { PDV.per._cargGente = true; api('personalLista', { negocioId: S.negocio.id }).then(d => { PDV.per.gente = d.equipo.filter(p => p.alta); pintarCaja(); }).catch(() => { }).finally(() => { PDV.per._cargGente = false; }); }
   const saldo = uid => (l.find(x => x.id === uid) || {}).saldo || 0;
   return `<div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">Saldo para que tu personal consuma aquí. Se cobra en la caja con <b>🎁 Consumo de personal</b>.</span><button class="btn sm pri" onclick="consumoAsignar('')">🎁 Dar a todos</button></div>
-    ${gente.map(p => `<div class="card row between"><div><b>${esc(p.nombre)}</b><div class="small muted">Saldo: <b>${money(saldo(p.usuarioId))}</b></div></div><div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button><button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}`;
+    ${gente.map(p => `<div class="card row between"><div><b>${esc(p.nombre)}</b><div class="small muted">Saldo: <b>${money(saldo(p.usuarioId))}</b></div></div><div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button><button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button><button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}`;
+}
+function asisVistaConsumoMon() {
+  const gente = (PDV.per && PDV.per.gente) || [], sal = PDV.per.monSal;
+  if (!PDV.per.gente && !PDV.per._cargGente) { PDV.per._cargGente = true; api('personalLista', { negocioId: S.negocio.id }).then(d => { PDV.per.gente = d.equipo.filter(p => p.alta); pintarCaja(); }).catch(() => { }).finally(() => { PDV.per._cargGente = false; }); }
+  if (PDV.per.gente && !sal && !PDV.per._monCarg) { PDV.per._monCarg = true; consMonCargar(); }
+  const viejo = uid => ((PDV.consumo || []).find(x => x.id === uid) || {}).saldo || 0;
+  return `<div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">El bono de consumo va al <b>👛 monedero</b> de cada persona: lo ve en su app y lo usa en tus negocios y al pedir por la app. Se cobra con <b>👛 Monedero</b>.</span><button class="btn sm pri" onclick="consumoAsignar('')">🎁 Dar a todos</button></div>
+    ${gente.map(p => { const tel = consTel(p), v = sal ? sal[p.usuarioId] : undefined;
+      return `<div class="card row between"><div><b>${esc(p.nombre)}</b><div class="small muted">${tel.length !== 10 ? '⚠️ Sin teléfono: no tiene monedero' + (viejo(p.usuarioId) ? ' · consumo ' + money(viejo(p.usuarioId)) : '') : '👛 Monedero: <b>' + (v === undefined ? '…' : v === null ? 'sin conexión' : money(v)) + '</b>'}</div></div>
+      <div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button>${tel.length === 10 ? `<button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button>` : ''}<button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`; }).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}
+    <div class="small muted" style="margin-top:6px">El saldo del monedero incluye también su cashback como cliente. Para pedir por la app con su monedero, su teléfono debe estar verificado.</div>`;
 }
 function consumoAsignar(uid) {
   const gente = (PDV.per && PDV.per.gente) || [], p = gente.find(x => x.usuarioId === uid);
@@ -9291,12 +9362,25 @@ function consumoAsignar(uid) {
     <div class="muted small" style="margin:6px 0">${p ? '' : 'Se le suma a cada una de las ' + gente.length + ' personas dadas de alta.'}</div>
     <label class="f">Monto</label><input class="i pdvNum" id="csMonto" inputmode="decimal" placeholder="300">
     <label class="f">Nota (opcional)</label><input class="i" id="csNota" maxlength="60" placeholder="Ej. Consumo del mes de noviembre">
+    ${consMon() ? `<label class="f">Vence en (días)</label><input class="i pdvNum" id="csDias" inputmode="numeric" value="${lsG('consDias') || 30}"><div class="small muted">Va a su 👛 monedero; lo que no use en ese tiempo vence.</div>` : ''}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>consumoGuardar('${uid}'))">Dar bono</button></div>`);
 }
 async function consumoGuardar(uid) {
   const m = pdvR($('#csMonto').value), nota = $('#csNota').value.trim().slice(0, 60);
   if (!(m > 0)) throw new Error('Escribe el monto');
   const gente = ((PDV.per && PDV.per.gente) || []).filter(p => !uid || p.usuarioId === uid), ts = Date.now();
+  if (consMon()) { // 2.90: al monedero
+    const dias = Math.max(1, Math.min(365, Math.round(Number($('#csDias') && $('#csDias').value) || 30))), vence = monSuma(pdvHoy(), dias); lsG('consDias', dias);
+    let sinTel = 0;
+    gente.forEach(p => {
+      const tel = consTel(p);
+      if (tel.length !== 10) { sinTel++; pdvGuardar(pdvCol('consumo').doc(p.usuarioId).set({ nombre: p.nombre, saldo: pdvInc(m), actualizado: ts }, { merge: true })); pdvGuardar(pdvCol('consumoMov').doc().set({ uid: p.usuarioId, nombre: p.nombre, tipo: 'asignado', monto: m, nota, ts, dia: pdvHoy(), por: pdvYo() })); return; }
+      pdvGuardar(monCol('monedero').doc(tel).set({ tel, nombre: p.nombre, cb: { [vence]: pdvInc(m) }, act: ts }, { merge: true }));
+      pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, vence, nota })));
+      if (PDV.per.monSal && PDV.per.monSal[p.usuarioId] != null) PDV.per.monSal[p.usuarioId] = pdvR(PDV.per.monSal[p.usuarioId] + m);
+    });
+    cerrarModal(); toast('🎁 Bono enviado a su monedero' + (sinTel ? ' · ' + sinTel + ' sin teléfono quedó como consumo de personal' : '')); pintarCaja(); return;
+  }
   gente.forEach(p => {
     pdvGuardar(pdvCol('consumo').doc(p.usuarioId).set({ nombre: p.nombre, saldo: pdvInc(m), actualizado: ts }, { merge: true }));
     pdvGuardar(pdvCol('consumoMov').doc().set({ uid: p.usuarioId, nombre: p.nombre, tipo: 'asignado', monto: m, nota, ts, dia: pdvHoy(), por: pdvYo() }));
@@ -9304,13 +9388,201 @@ async function consumoGuardar(uid) {
   });
   cerrarModal(); toast('Bono de consumo dado 🎁'); pintarCaja();
 }
+async function consumoHistorialMon(p) {
+  modal('<div class="cargando">Cargando…</div>');
+  const tel = consTel(p);
+  const l = (await monCol('movs').where('tel', '==', tel).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 60);
+  const menos = x => x.tipo === 'uso' || x.tipo === 'recargaCancelada' || x.tipo === 'cashbackCancelado' || ((x.tipo === 'ajuste' || x.tipo === 'ajustePersonal') && x.signo < 0);
+  modal(`<div class="row between"><h2 style="margin:0">👛 Monedero · ${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${l.map(x => `<div class="pdvFila g"><span>${fechaCorta(x.ts)} · ${MON_MOV[x.tipo] || x.tipo}<small>${esc(x.negocio || '')}${x.folio ? ' · ' + esc(x.folio) : ''}${x.nota ? ' · ' + esc(x.nota) : ''}${x.vence ? ' · vence ' + monFecha(x.vence) : ''}</small></span><span></span><b style="color:${menos(x) ? 'inherit' : 'var(--ok)'}">${menos(x) ? '−' : '+'}${money(x.monto)}</b></div>`).join('') || '<div class="muted">Sin movimientos</div>'}`);
+}
+/** 2.89.1 · Corregir el saldo de consumo de una persona (por si se le dio de más o de menos). */
+function consumoAjustar(uid) {
+  const p = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid); if (!p) return;
+  if (consMon() && consTel(p).length === 10) return consumoAjustarMon(p);
+  const actual = ((PDV.consumo || []).find(x => x.id === uid) || {}).saldo || 0;
+  modal(`<div class="row between"><h2 style="margin:0">✏️ Ajustar saldo · ${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="card" style="margin:8px 0"><div class="tot"><span>Saldo actual</span><b>${money(actual)}</b></div></div>
+    <label class="f">¿Cuál es el saldo correcto?</label><input class="i pdvNum" id="caSaldo" inputmode="decimal" value="${actual}">
+    <label class="f">Nota (opcional)</label><input class="i" id="caNota" maxlength="60" placeholder="Ej. Se le dio de más por error">
+    <div class="small muted" style="margin-top:6px">Lo que ya consumió no cambia; queda un movimiento "Ajuste" en su historial.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>consumoAjusteGuardar('${uid}'))">Guardar saldo</button></div>`);
+  setTimeout(() => { const i = $('#caSaldo'); if (i) i.select(); }, 150);
+}
+function consumoAjustarMon(p) {
+  const actual = (PDV.per.monSal || {})[p.usuarioId] || 0;
+  modal(`<div class="row between"><h2 style="margin:0">✏️ Ajustar monedero · ${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="card" style="margin:8px 0"><div class="tot"><span>Saldo actual del monedero</span><b>${money(actual)}</b></div></div>
+    <label class="f">¿Cuál es el saldo correcto?</label><input class="i pdvNum" id="caSaldo" inputmode="decimal" value="${actual}">
+    <label class="f">Nota (opcional)</label><input class="i" id="caNota" maxlength="60" placeholder="Ej. Se le dio de más por error">
+    <div class="small muted" style="margin-top:6px">Si subes el saldo, lo agregado vence en ${lsG('consDias') || 30} días. Si lo bajas, se quita primero lo que vence antes.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>consumoAjusteMonGuardar('${p.usuarioId}'))">Guardar saldo</button></div>`);
+  setTimeout(() => { const i = $('#caSaldo'); if (i) i.select(); }, 150);
+}
+async function consumoAjusteMonGuardar(uid) {
+  const p = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid), tel = consTel(p); if (!p || tel.length !== 10) return;
+  const txt = String($('#caSaldo').value || '').replace(/[^\d.]/g, ''); if (txt === '') throw new Error('Escribe el saldo correcto');
+  const nuevo = pdvR(Number(txt)), nota = ($('#caNota').value.trim() || '').slice(0, 60), ref = monCol('monedero').doc(tel), hoy = pdvHoy(), ts = Date.now();
+  let antes = 0, dif = 0;
+  if (!navigator.onLine) throw new Error('Para ajustar el monedero se necesita internet');
+  await PDV.db.runTransaction(async t => {
+    const sd = await t.get(ref), x = sd.exists ? sd.data() : null, sal = monSaldo(x, hoy);
+    antes = sal.total; dif = pdvR(nuevo - antes);
+    if (!dif) return;
+    if (dif > 0) { const vence = monSuma(hoy, Number(lsG('consDias')) || 30); if (sd.exists) t.update(ref, { ['cb.' + vence]: pdvR(((x.cb || {})[vence] || 0) + dif), act: ts }); else t.set(ref, { tel, nombre: p.nombre, cb: { [vence]: dif }, act: ts, creado: ts }); return; }
+    let resto = pdvR(-dif); const upd = { act: ts };
+    for (const [k, v] of sal.lotes) { if (resto <= 0) break; const q = pdvR(Math.min(v, resto)); upd['cb.' + k] = pdvR(v - q); resto = pdvR(resto - q); }
+    if (resto > 0) upd.rec = pdvR(sal.rec - resto);
+    t.update(ref, upd);
+  });
+  if (!dif) { cerrarModal(); toast('El saldo ya era ese'); return; }
+  pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid, tipo: 'ajustePersonal', signo: dif > 0 ? 1 : -1, monto: Math.abs(dif), antes, despues: nuevo, nota: nota || ('Ajuste de ' + money(antes) + ' a ' + money(nuevo)) })));
+  PDV.per.monSal = PDV.per.monSal || {}; PDV.per.monSal[uid] = nuevo;
+  cerrarModal(); toast('Saldo del monedero ajustado ✓'); pintarCaja();
+}
+async function consumoAjusteGuardar(uid) {
+  const p = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid); if (!p) return;
+  const txt = String($('#caSaldo').value || '').replace(/[^\d.]/g, '');
+  if (txt === '') throw new Error('Escribe el saldo correcto');
+  const nuevo = pdvR(Number(txt)), x = (PDV.consumo || []).find(y => y.id === uid), antes = (x || {}).saldo || 0, dif = pdvR(nuevo - antes);
+  if (!dif) { cerrarModal(); toast('El saldo ya era ese'); return; }
+  const ts = Date.now(), nota = ($('#caNota').value.trim() || '').slice(0, 60);
+  pdvGuardar(pdvCol('consumo').doc(uid).set({ nombre: p.nombre, saldo: pdvInc(dif), actualizado: ts }, { merge: true }));
+  pdvGuardar(pdvCol('consumoMov').doc().set({ uid, nombre: p.nombre, tipo: 'ajuste', monto: dif, antes, despues: nuevo, nota: nota || ('Ajuste de ' + money(antes) + ' a ' + money(nuevo)), ts, dia: pdvHoy(), por: pdvYo() }));
+  if (x) x.saldo = nuevo; else (PDV.consumo = PDV.consumo || []).push({ id: uid, nombre: p.nombre, saldo: nuevo });
+  cerrarModal(); toast('Saldo ajustado ✓'); pintarCaja();
+}
 async function consumoHistorial(uid) {
+  const pp = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid);
+  if (consMon() && consTel(pp).length === 10) return consumoHistorialMon(pp);
   modal('<div class="cargando">Cargando…</div>');
   const l = (await pdvCol('consumoMov').where('uid', '==', uid).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 60);
   modal(`<div class="row between"><h2 style="margin:0">Historial de consumo</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    ${l.map(x => `<div class="pdvFila g"><span>${fechaCorta(x.ts)} · ${{ asignado: '🎁 Bono', devuelto: '↩️ Devuelto' }[x.tipo] || '🍽️ Consumió'}<small>${esc(x.nota || x.folio || '')} · ${esc(x.por.nombre.split(' ')[0])}</small></span><span></span><b style="color:${x.tipo !== 'usado' ? 'var(--ok)' : 'inherit'}">${x.tipo !== 'usado' ? '+' : '−'}${money(x.monto)}</b></div>`).join('') || '<div class="muted">Sin movimientos</div>'}`);
+    ${l.map(x => `<div class="pdvFila g"><span>${fechaCorta(x.ts)} · ${{ asignado: '🎁 Bono', devuelto: '↩️ Devuelto', ajuste: '🔧 Ajuste' }[x.tipo] || '🍽️ Consumió'}<small>${esc(x.nota || x.folio || '')} · ${esc(x.por.nombre.split(' ')[0])}</small></span><span></span><b style="color:${x.tipo === 'usado' || (x.tipo === 'ajuste' && x.monto < 0) ? 'inherit' : 'var(--ok)'}">${x.tipo === 'ajuste' ? (x.monto < 0 ? '−' : '+') + money(Math.abs(x.monto)) : (x.tipo !== 'usado' ? '+' : '−') + money(x.monto)}</b></div>`).join('') || '<div class="muted">Sin movimientos</div>'}`);
 }
 /** Campos del cobro cuando se paga con consumo de personal. */
+/* ---------- 2.89 · A cuenta de nómina (caja) y adelantos ---------- */
+const ADEL_TXT = { efectivo: '💵 Adelanto en efectivo', platillo: '🍽️ Consumo a cuenta de nómina', manual: '✍️ Adelanto capturado', saldo: '↪️ Saldo de la nómina anterior' };
+const nominaGente = () => Object.entries(PDV.personal || {}).filter(([, x]) => x && x.pin).map(([uid, x]) => ({ uid, nombre: x.nombre || '' })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+function nominaCampos() {
+  const l = nominaGente();
+  if (!l.length) return '<div class="aviso warn">Nadie del personal tiene código de caja.</div>';
+  return `<label class="f">¿A quién se le carga?</label><select class="i" id="cbNom"><option value="">Elige…</option>${l.map(x => `<option value="${x.uid}">${esc(x.nombre)}</option>`).join('')}</select>
+    <label class="f">Código de trabajador de esa persona</label><input class="i" id="cbNomPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+    <div class="small muted">Se descuenta de su nómina.</div>`;
+}
+async function nominaValidar() {
+  const uid = ($('#cbNom') || {}).value, pin = (($('#cbNomPin') || {}).value || '').trim();
+  const x = nominaGente().find(y => y.uid === uid);
+  if (!x) throw new Error('Elige a quién se le carga');
+  if (!(await pdvPinOk(uid, pin))) throw new Error('Código incorrecto');
+  return { nominaUid: uid, nominaNombre: x.nombre };
+}
+/** Registra el cargo en el servidor; si no hay señal, se guarda y se reintenta. */
+function nominaCargar(p, folio, ventaId, caja) {
+  if (!p || p.metodo !== 'nomina') return;
+  const o = { negocioId: PDV.nid, usuarioId: p.nominaUid, monto: p.monto, folio, ventaId, cajaId: caja ? caja.id : '', dia: caja ? caja.dia : pdvHoy() };
+  api('adelCargo', o).catch(() => { try { const l = JSON.parse(localStorage.getItem('pe_nomCargos') || '[]'); l.push(o); localStorage.setItem('pe_nomCargos', JSON.stringify(l)); } catch (e) { } toast('Sin señal: el cargo a nómina se manda en cuanto haya internet', 'warn'); });
+}
+async function nominaCargosPend() {
+  let l = []; try { l = JSON.parse(localStorage.getItem('pe_nomCargos') || '[]'); } catch (e) { }
+  if (!l.length || !navigator.onLine) return;
+  const quedan = [];
+  for (const o of l) { try { await api('adelCargo', o); } catch (e) { quedan.push(o); } }
+  try { localStorage.setItem('pe_nomCargos', JSON.stringify(quedan)); } catch (e) { }
+}
+setInterval(() => { if (S.token) nominaCargosPend(); }, 120000);
+/* colaborador: pedir un adelanto desde su app */
+function adelTarjeta(x) {
+  const a = x.adel; if (!a) return '';
+  const pend = a.lista.filter(y => y.estado === 'pendiente'), ult = a.lista.filter(y => y.estado !== 'pendiente' && y.estado !== 'cancelado').slice(0, 4);
+  const est = { aprobado: '✅ Aprobado', descontado: '✔️ Descontado', rechazado: '❌ No aprobado' };
+  return `<div class="card" style="margin-top:8px"><div class="row between"><b>💵 Adelantos de nómina</b>${a.porDescontar ? `<span class="tag t-warn">${money(a.porDescontar)} por descontar</span>` : ''}</div>
+    ${pend.map(y => `<div class="aviso info row between" style="gap:8px;margin:4px 0"><span>⏳ ${money(y.monto)} para el ${asisDiaTxt(y.para)} · en revisión</span><button class="btn sm" onclick="act(this,()=>adelCancelarMio('${y.id}'))">Cancelar</button></div>`).join('')}
+    ${ult.map(y => `<div class="small" style="margin:3px 0">${est[y.estado] || ''} · ${ADEL_TXT[y.tipo] || y.tipo} · <b>${money(y.monto)}</b>${y.fecha ? ' · ' + asisDiaTxt(y.fecha) : ''}${y.folio ? ' · ' + esc(y.folio) : ''}</div>`).join('')}
+    <button class="btn pill full" style="margin-top:6px" onclick="adelPedir('${x.negocioId}')">💵 Pedir un adelanto</button></div>`;
+}
+function adelPedir(nid) {
+  modal(`<div class="row between"><h2 style="margin:0">💵 Pedir un adelanto</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">Se descuenta de tu siguiente nómina. El dueño lo revisa y te avisa.</div>
+    <label class="f">¿Cuánto necesitas?</label><input class="i pdvNum" id="adM" inputmode="decimal" placeholder="$500">
+    <label class="f">¿Para cuándo?</label><input class="i" id="adP" type="date" min="${pdvHoy()}" value="${pdvHoy()}">
+    <label class="f">Nota (opcional)</label><input class="i" id="adN" maxlength="120" placeholder="Ej. Pago de la luz">
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>adelPedirOk('${nid}'))">Enviar solicitud</button></div>`);
+}
+async function adelPedirOk(nid) {
+  const monto = Number(String($('#adM').value || '').replace(/[^\d.]/g, ''));
+  if (!(monto > 0)) throw new Error('Escribe cuánto necesitas');
+  const l = await api('adelSolicitar', { negocioId: nid, monto, para: $('#adP').value, nota: $('#adN').value.trim() });
+  ls('asisMia', l); cerrarModal(); toast('Solicitud enviada 💵'); pintar(true);
+}
+async function adelCancelarMio(id) { const l = await api('adelCancelar', { id }); ls('asisMia', l); toast('Solicitud cancelada'); pintar(true); }
+/* dueño: Personal → Adelantos */
+function adelVistaPanel(d) {
+  const est = { aprobado: '✅ Por descontar', descontado: '✔️ Descontado', rechazado: '❌ Rechazado', cancelado: '🚫 Cancelado' };
+  return `<div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">Adelantos en efectivo que pide tu gente desde su app y consumos cobrados "a cuenta de nómina" en la caja. Se descuentan solos en la nómina.</span>${d.dueno ? `<button class="btn sm pri" style="flex:0 0 auto" onclick="adelManualModal()">✍️ Capturar</button>` : ''}</div>
+    ${d.pendientes.length ? `<h3>Por aprobar</h3>${d.pendientes.map(a => `<div class="card"><div class="row between"><b>${esc(a.nombre)}</b><b>${money(a.monto)}</b></div>
+      <div class="small muted">Para el ${asisDiaTxt(a.para)}${a.nota ? ' · ' + esc(a.nota) : ''}</div>
+      ${d.dueno ? `<div class="row" style="gap:6px;margin-top:8px"><button class="btn sm ok" style="flex:1" onclick="adelAprobarModal('${a.id}')">✅ Aprobar</button><button class="btn sm" onclick="act(this,()=>adelDecidirOk('${a.id}',false))">Rechazar</button></div>` : '<div class="small muted" style="margin-top:6px">Lo aprueba el dueño.</div>'}</div>`).join('')}` : '<div class="aviso info small">No hay solicitudes por aprobar.</div>'}
+    ${d.porDescontar.length ? `<h3>Por descontar en la nómina</h3><div class="card">${d.porDescontar.map(x => `<div class="tot"><span>${esc(x.nombre)}</span><span>${money(x.monto)}</span></div>`).join('')}</div>` : ''}
+    ${d.recientes.length ? `<h3>Últimos movimientos</h3>${d.recientes.map(a => `<div class="card row between" style="gap:8px"><div class="grow"><b>${esc(a.nombre)}</b> · ${ADEL_TXT[a.tipo] || a.tipo}<div class="small muted">${a.fecha ? asisDiaTxt(a.fecha) : ''}${a.folio ? ' · ' + esc(a.folio) : ''}${a.tipo === 'efectivo' && a.origen ? ' · ' + (a.origen === 'caja' ? 'de la caja' : 'fuera de caja') : ''}${a.decidePor ? ' · ' + esc(a.decidePor) : ''}${a.nota ? ' · ' + esc(a.nota) : ''}</div><div class="small">${est[a.estado] || a.estado}</div></div>
+      <div style="text-align:right"><b>${money(a.monto)}</b>${d.dueno && a.estado === 'aprobado' ? `<br><button class="lnk small" style="color:var(--err)" onclick="if(confirm('¿Quitar este adelanto? Ya no se descontará.'))act(this,()=>adelBorrarOk('${a.id}'))">Quitar</button>` : ''}</div></div>`).join('')}` : ''}`;
+}
+function adelAprobarModal(id) {
+  const a = PDV.per.datos.pendientes.find(x => x.id === id); if (!a) return;
+  const cajas = (PDV.cajasAbiertas || []).filter(c => c.estado === 'abierta');
+  modal(`<div class="row between"><h2 style="margin:0">💵 Aprobar adelanto</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:4px 0 8px"><b>${esc(a.nombre)}</b> · para el ${asisDiaTxt(a.para)}${a.nota ? ' · ' + esc(a.nota) : ''}</div>
+    <label class="f">Monto</label><input class="i pdvNum" id="aaM" inputmode="decimal" value="${a.monto}">
+    <label class="f">¿De dónde sale el dinero?</label>
+    <label class="opc"><input type="radio" name="aaO" value="caja" ${cajas.length ? 'checked' : 'disabled'}><span><b>🗄️ De la caja</b><br><small class="muted">${cajas.length ? 'Se registra solo como gasto de la caja' : 'No hay ninguna caja abierta'}</small></span></label>
+    ${cajas.length > 1 ? `<select class="i" id="aaC" style="margin:4px 0 6px">${cajas.map(c => `<option value="${c.id}">${esc(pdvNomCaja ? pdvNomCaja(c) : 'Caja')} · abrió ${esc((c.abre || {}).nombre || '')}</option>`).join('')}</select>` : ''}
+    <label class="opc"><input type="radio" name="aaO" value="externo" ${cajas.length ? '' : 'checked'}><span><b>🏦 Fuera de caja</b><br><small class="muted">Recursos del negocio; no afecta la caja</small></span></label>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>adelDecidirOk('${id}',true))">Aprobar</button></div>`);
+}
+async function adelDecidirOk(id, aprobar) {
+  const o = { negocioId: S.negocio.id, id, aprobar };
+  let caja = null;
+  if (aprobar) {
+    o.monto = Number(String(($('#aaM') || {}).value || '').replace(/[^\d.]/g, '')) || undefined;
+    o.origen = (document.querySelector('input[name=aaO]:checked') || {}).value || 'externo';
+    if (o.origen === 'caja') {
+      const cajas = (PDV.cajasAbiertas || []).filter(c => c.estado === 'abierta');
+      caja = cajas.find(c => c.id === ($('#aaC') || {}).value) || cajas[0];
+      if (!caja) throw new Error('No hay caja abierta: apruébalo fuera de caja');
+      o.cajaId = caja.id;
+    }
+  }
+  const r = await api('adelDecidir', o);
+  if (aprobar && o.origen === 'caja' && caja && r.adelanto) adelGastoCaja(caja, r.adelanto);
+  PDV.per.datos = r; cerrarModal(); toast(aprobar ? 'Adelanto aprobado ✅' : 'Solicitud rechazada'); pintarCaja();
+}
+/** Al aprobarlo "de la caja" se registra como gasto de esa caja (el corte cuadra). */
+function adelGastoCaja(caja, a) {
+  const ts = Date.now(), ref = pdvCol('gastos').doc();
+  const g = { dia: caja.dia, ts, cajaId: caja.id, concepto: '💵 Adelanto de nómina · ' + a.nombre, categoria: 'Adelantos de nómina', monto: a.monto, pago: 'caja', auto: 'adelanto', adelantoId: a.id, por: pdvYo(), proveedorId: '', proveedor: '', saldo: 0, comprobante: { tipo: 'sin', fotoId: '', pendiente: false } };
+  pdvGuardar(ref.set(g));
+  pdvGuardar(pdvCol('dias').doc(caja.dia).set({ gastos: pdvInc(a.monto), gasto_caja: pdvInc(a.monto), ts }, { merge: true }));
+  const gl = Object.assign({ id: ref.id }, g);
+  if (PDV.caja && caja.id === PDV.caja.id && PDV.gastos && !PDV.gastos.some(x => x.id === ref.id)) PDV.gastos.unshift(gl);
+}
+function adelManualModal() {
+  const gente = (PDV.per && PDV.per.gente) || nominaGente().map(x => ({ usuarioId: x.uid, nombre: x.nombre }));
+  modal(`<div class="row between"><h2 style="margin:0">✍️ Capturar adelanto</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Persona</label><select class="i" id="amU"><option value="">Elige…</option>${gente.map(p => `<option value="${p.usuarioId}">${esc(p.nombre)}</option>`).join('')}</select>
+    <label class="f">Monto</label><input class="i pdvNum" id="amM" inputmode="decimal" placeholder="$500">
+    <label class="f">Fecha</label><input class="i" id="amF" type="date" value="${pdvHoy()}" max="${pdvHoy()}">
+    <label class="f">Nota (opcional)</label><input class="i" id="amN" maxlength="120" placeholder="Ej. Adelanto del día 8">
+    <div class="small muted" style="margin-top:6px">No mueve la caja; solo queda para descontarse en la nómina.</div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,adelManualOk)">Guardar</button></div>`);
+  if (!PDV.per.gente) api('personalLista', { negocioId: S.negocio.id }).then(d => { PDV.per.gente = d.equipo.filter(p => p.alta); const s = $('#amU'); if (s) s.innerHTML = '<option value="">Elige…</option>' + PDV.per.gente.map(p => `<option value="${p.usuarioId}">${esc(p.nombre)}</option>`).join(''); }).catch(() => { });
+}
+async function adelManualOk() {
+  const monto = Number(String($('#amM').value || '').replace(/[^\d.]/g, ''));
+  PDV.per.datos = await api('adelManual', { negocioId: S.negocio.id, usuarioId: $('#amU').value, monto, fecha: $('#amF').value, nota: $('#amN').value.trim() });
+  cerrarModal(); toast('Adelanto guardado'); pintarCaja();
+}
+async function adelBorrarOk(id) { PDV.per.datos = await api('adelBorrar', { negocioId: S.negocio.id, id }); toast('Adelanto quitado'); pintarCaja(); }
 function consumoCampos() {
   const l = (PDV.consumo || []).filter(x => x.saldo > 0);
   if (!l.length) return '<div class="aviso warn">Nadie tiene saldo de consumo.</div>';
@@ -9355,7 +9627,7 @@ const monMesAnt = dia => { const [y, m] = dia.split('-').map(Number); const d = 
 const monSuma = (dia, dias) => pdvHoy(new Date(dia + 'T12:00:00').getTime() + dias * 864e5);
 const monTel = t => String(t || '').replace(/\D/g, '').slice(-10);
 const monFecha = dia => { const [y, m, d] = dia.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }); };
-const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada' };
+const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada', bonoPersonal: '🎁 Bono de consumo de personal', ajustePersonal: '🔧 Ajuste del bono de personal' };
 /** Saldo disponible: lo recargado más el cashback y bonos que no han vencido (lotes ordenados del que vence primero). */
 function monSaldo(x, hoy) {
   hoy = hoy || pdvHoy();
@@ -11242,7 +11514,7 @@ function pintarTablero() {
     `);
 }
 /* ============ 2.84 · INICIO DEL DUEÑO: cada burbuja abre su detalle ============ */
-const TAB_MET = { efectivo: '💵 Efectivo', tarjeta: '💳 Tarjeta', mp: '💳 Tarjeta', transferencia: '🏦 Transferencia', monedero: '👛 Monedero', consumo: '🎁 Consumo de personal', mixto: '🔀 Mixto', otro: '• Otro' };
+const TAB_MET = { efectivo: '💵 Efectivo', tarjeta: '💳 Tarjeta', mp: '💳 Tarjeta', transferencia: '🏦 Transferencia', monedero: '👛 Monedero', consumo: '🎁 Consumo de personal', nomina: '🧾 A cuenta de nómina', mixto: '🔀 Mixto', otro: '• Otro' };
 /** Lo que se ve arriba: todos los negocios o el elegido. */
 function tabVis() {
   const d = S._tab || { negocios: [] }, l = d.negocios, sel = l.find(n => n.id === S._tabSel) || (l.length === 1 ? l[0] : null);
