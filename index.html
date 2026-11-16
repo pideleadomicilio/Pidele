@@ -721,6 +721,53 @@ input.i,select.i,textarea.i{min-width:0;max-width:100%}
   .kpis{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 }
 @media (min-width:1440px){ .grid2{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
+/* 2.91.1 · revisión de pantallas */
+/* con mouse: las pestañas que no caben bajan a otra línea (con la barra oculta no se podían mover de lado) */
+@media (hover:hover) and (pointer:fine){
+  .tabChips{flex-wrap:wrap;overflow-x:visible}
+  .pdvTabs{flex-wrap:wrap;overflow-x:visible}
+  .pdvTabs button{flex:1 1 auto}
+  .catFila{flex-wrap:wrap}
+}
+/* en el celular: degradado en la orilla cuando hay más pestañas para deslizar */
+.desliza:not(.finDer){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)}
+/* computadora: pantallas de lista y formularios a un ancho cómodo de leer */
+@media (min-width:1024px){
+  body[data-vista="pedidos"] main,body[data-vista="pedido"] main,body[data-vista="carrito"] main,body[data-vista="entrega"] main,body[data-vista="pago"] main,body[data-vista="listo"] main,body[data-vista="monedero"] main,body[data-vista="perfil"] main,body[data-vista="buscar"] main,body[data-vista="seguir"] main,body[data-vista="entregas"] main,body[data-vista="historialRep"] main,body[data-vista="disponibles"] main{max-width:820px !important}
+  body[data-rol="admin"] main{max-width:980px}
+}
+/* celular: renglones de personal que no cabían */
+@media (max-width:599px){
+  .turnoFila{flex-wrap:wrap}.turnoFila>div:first-child{flex:1 1 100% !important}.turnoFila>div{min-width:0}.turnoFila input[type=time]{padding-left:8px;padding-right:2px;font-size:15px}
+  .asisFila{flex-direction:column;gap:4px}.asisFila>*{width:100%}.asisFila .asisAcc{justify-content:flex-start}
+  .consFila{flex-wrap:wrap}.consFila>div:first-child{flex:1 1 100%}.consFila>.row{width:100%;justify-content:flex-end}
+  .vacBloq{flex-wrap:wrap}.vacBloq input[type=date]{flex:1 1 140px !important}.vacBloq #vrM{flex:1 1 150px !important}
+  .pdvBar h1{font-size:15px;white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .pdvBar{gap:5px}.pdvBar button{padding:7px 8px;font-size:13px}.pdvBar .pdvTxt{display:none}
+}
+/* 2.91 · burbuja de pedidos de la app (caja y cocina) */
+#burApp{position:fixed;right:0;top:34%;z-index:190;display:flex;flex-direction:column;align-items:flex-end;gap:18px;pointer-events:none;font-family:inherit}
+#burApp>*{pointer-events:auto}
+.burGr{position:relative;display:flex;align-items:center;animation:burEntra .45s cubic-bezier(.2,1.4,.4,1)}
+.burBola{position:relative;width:104px;height:104px;margin-right:12px;border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#ffa040,#ff6a00 55%,#e0410a);font-size:52px;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 34px rgba(224,65,10,.55),inset 0 -6px 14px rgba(0,0,0,.15);z-index:3;padding:0}
+.burBola::before,.burBola::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:4px solid rgba(255,122,0,.55);animation:burOnda 1.8s ease-out infinite;pointer-events:none}
+.burBola::after{animation-delay:.9s}
+.burBola.chica{width:70px;height:70px;font-size:34px;margin-right:-8px;box-shadow:0 8px 22px rgba(224,65,10,.5)}
+.burBola.chica::before,.burBola.chica::after{display:none}
+.burBola.azul{background:radial-gradient(circle at 35% 30%,#6aa8ff,#2f80ed 55%,#1557c0);box-shadow:0 8px 22px rgba(21,87,192,.5)}
+.burN{position:absolute;top:-6px;right:-6px;background:#c40000;color:#fff;border:3px solid #fff;border-radius:20px;min-width:36px;height:36px;padding:0 6px;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.burBola.chica .burN{min-width:28px;height:28px;font-size:14px;top:-8px;right:4px}
+.burPill{position:relative;margin-right:-62px;background:#fff;border:3px solid #ff7a00;border-radius:60px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px 78px 12px 24px;max-width:min(520px,calc(100vw - 150px));color:#222;z-index:2}
+.burPill .t1{font-weight:900;font-size:18px;color:#e0410a}
+.burPill .t2{font-size:14.5px;margin-top:2px;line-height:1.35}
+.burPill .bs{display:flex;align-items:center;gap:10px;margin-top:8px}
+.burPill .go{background:#ff6a00;color:#fff;border:0;border-radius:30px;padding:8px 18px;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit}
+.burPill .x{background:none;border:0;color:#888;font-weight:700;font-size:14px;cursor:pointer;padding:8px;font-family:inherit}
+@keyframes burOnda{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.55);opacity:0}}
+@keyframes burEntra{0%{transform:translateX(130%)}100%{transform:none}}
+.cTarj.burFlash{animation:burFlash 1s ease 3}
+@keyframes burFlash{50%{box-shadow:0 0 0 8px #ff7a00}}
+@media (max-width:600px){.burBola{width:80px;height:80px;font-size:40px}.burPill{padding:10px 64px 10px 18px}.burPill .t1{font-size:16px}}
 </style>
 </head>
 <body class="sinNav">
@@ -982,7 +1029,7 @@ function bloqueoUbicacion(msg, tipo) {
   document.documentElement.classList.add('sinScroll');
   const tour = $('#tour'); if (tour) tour.remove();
   const sinUbic = `<button class="btn full" style="margin-top:10px" onclick="continuarSinUbicacion()">Continuar sin ubicación por ahora</button>`;
-  const reintentar = `<button class="btn pri pill full" onclick="reintentarUbicacion()">Intentar de nuevo</button>`;
+  const reintentar = `<button class="btn pri pill full" onclick="reintentarUbicacion()">Ya lo activé, intentar de nuevo</button>`;
   let cuerpo;
   if (tipo === 'buscando') {
     cuerpo = `<h2>Buscando tu ubicación…</h2><p class="muted">Si tu teléfono te pregunta, elige <b>Permitir</b>.</p>
@@ -997,7 +1044,7 @@ function bloqueoUbicacion(msg, tipo) {
   } else if (tipo === 'inicio') {
     cuerpo = `<h2>${S._paraCuenta ? 'Para crear tu cuenta, activa tu ubicación' : 'Activa tu ubicación'}</h2>
       <p class="muted">${S._paraCuenta ? 'Así tu cuenta queda en tu ciudad, tus pedidos llegan a donde estás y puedes pagar en efectivo.' : 'Pídele usa tu ubicación para mostrarte los negocios de tu ciudad y que tus pedidos lleguen a donde estás.'}</p>
-      <button class="btn pri pill full" onclick="reintentarUbicacion()">Activar ubicación</button>${sinUbic}`;
+      <button class="btn pri pill full" onclick="reintentarUbicacion()">📍 Activar ubicación</button>${sinUbic}`;
   } else {
     cuerpo = `<h2>${tipo === 'apagada' ? 'No encontramos tu ubicación' : tipo === 'sin' ? 'Ubicación no disponible' : 'La ubicación está bloqueada'}</h2>
       <div class="pasos">${pasosUbicacion(tipo)}</div>${tipo === 'sin' ? '' : reintentar}${sinUbic}`;
@@ -1058,7 +1105,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.90.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.93.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1079,7 +1126,7 @@ const APP_VER = '2.90.0'; // versión de esta pantalla (index.html); el servidor
 
 /* ============ ESTADO ============ */
 const S = {
-  token: ls('token'), user: ls('user'), modoTel: ls('modoTel'), negocio: ls('negocio'), negocios: ls('negocios') || [], negActivo: ls('negActivo') || '', invEquipo: ls('invEquipo') || [], conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
+  token: ls('token'), user: ls('user'), modoTel: ls('modoTel'), modPed: ls('modPed'), negocio: ls('negocio'), negocios: ls('negocios') || [], negActivo: ls('negActivo') || '', invEquipo: ls('invEquipo') || [], conf: ls('conf'), modoCliente: !!ls('modoCliente'), modoRep: !!ls('modoRep'), modoServicio: !!ls('modoServicio'),
   // un carrito por negocio: { negocioId: { negocioId, negocio, logo, lat, lng, items } }
   carritos: ls('carritos') || {},
   entrega: ls('entrega') || null,
@@ -1191,7 +1238,15 @@ function imgLigeras(h) {
   if (ahorro()) h = h.replace(/(drive\.google\.com\/thumbnail\?id=[^"'&\s]+&(?:amp;)?sz=w)(\d+)/g, (x, a, w) => a + Math.max(120, Math.round(w / 2)));
   return h;
 }
-function html(h) { $('#vista').innerHTML = barraChecar() + imgLigeras(h); if (window.revisarTeclado) revisarTeclado(); }
+function html(h) { $('#vista').innerHTML = barraChecar() + barraModPed() + imgLigeras(h); if (window.revisarTeclado) revisarTeclado(); setTimeout(marcarDeslizables, 0); }
+/** 2.91.1 · Filas de pestañas que se deslizan de lado: degradado en la orilla mientras haya más a la derecha. */
+function marcarDeslizables() {
+  document.querySelectorAll('#vista .tabChips,#vista .pdvTabs,#vista .catFila').forEach(el => {
+    const upd = () => { const mas = el.scrollWidth > el.clientWidth + 4; el.classList.toggle('desliza', mas); el.classList.toggle('finDer', !mas || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4); };
+    upd(); if (!el._desl) { el._desl = 1; el.addEventListener('scroll', upd, { passive: true }); }
+  });
+}
+window.addEventListener('resize', () => setTimeout(marcarDeslizables, 50));
 function iniciales(n) { return String(n || '?').split(' ').filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase(); }
 function estrellas(c, n) { return c ? `<span class="estrella">★</span> <b>${c}</b> <span class="muted small">(${n})</span>` : '<span class="tag t-pri">Nuevo</span>'; }
 function toast(msg, tipo) {
@@ -1498,6 +1553,206 @@ function beep() {
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 
+/* ============ 2.91 · BURBUJA DE PEDIDOS DE LA APP (caja y cocina) ============ */
+/** Pedidos de la app por aceptar y comprobantes por revisar de la pantalla actual (caja o cocina). */
+function burPendientes() {
+  const l = S.vista === 'caja' ? (typeof PDV !== 'undefined' && PDV.app && PDV.app.pedidos) || [] : S.vista === 'cocina' && !esBarra() ? (S._coc && S._coc.pedidos) || [] : null;
+  if (!l || !S.user) return null;
+  return { nuevos: l.filter(x => x.estado === 'NUEVO' && !x.servicio).sort((a, b) => (a.creado || 0) - (b.creado || 0)), pagos: l.filter(x => x.estado === 'PAGO_ENVIADO'), cambios: l.filter(x => x.cambioSol && x.puedeCambiarNeg) };
+}
+function burbujaApp() {
+  let d = $('#burApp');
+  const P = burPendientes();
+  if (!P || (!P.nuevos.length && !P.pagos.length && !P.cambios.length)) { if (d) d.remove(); if (P) S._burVistos = []; return; }
+  if (!d) { d = document.createElement('div'); d.id = 'burApp'; document.body.appendChild(d); }
+  const ids = P.nuevos.map(x => x.id), antes = S._burVistos || [];
+  if (S._burAbrio && !ids.includes(S._burAbrio)) { S._burAbrio = null; S._burMini = false; } // ya atendieron el que abrieron: si quedan otros, se vuelve a mostrar
+  const llego = ids.concat(P.cambios.map(x => 'c' + x.id)).some(id => !antes.includes(id));
+  if (llego) { S._burMini = false; if (S.vista === 'caja' && !document.hidden) { beep(); S._burBeep = Date.now(); } }
+  S._burVistos = ids.concat(P.cambios.map(x => 'c' + x.id));
+  const p = P.nuevos[0], n = P.nuevos.length, min = p ? Math.max(0, Math.round((Date.now() - (p.creado || Date.now())) / 60000)) : 0;
+  const pago = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', codi: '📲 CoDi', mp: '💳 Tarjeta', monedero: '👛 Monedero' }[p && p.metodoPago] || '';
+  const firma = JSON.stringify([ids, P.pagos.map(x => x.id), P.cambios.map(x => x.id), S._burMini, min]);
+  if (d._firma === firma) return; // sin cambios: no se repinta (no reinicia la animación)
+  const nuevaGr = !d.querySelector('.burGr') || llego;
+  d._firma = firma;
+  d.innerHTML = (p ? (S._burMini
+    ? `<button class="burBola chica" onclick="S._burMini=false;burbujaApp()" aria-label="Pedidos de la app por aceptar">🛵<span class="burN">${n}</span></button>`
+    : `<div class="burGr" style="${nuevaGr ? '' : 'animation:none'}"><div class="burPill"><div class="t1">🛵 ¡Pedido de la app!${n > 1 ? ` <span style="color:#555;font-weight:700;font-size:14px">· ${n} por aceptar</span>` : ''}</div>
+        <div class="t2"><b>${esc(appNombre(p))}</b> · <b>${money(p.total != null ? p.total : p.subtotal)}</b> · ${p.tipoEntrega === 'recoger' ? '🏪 Pasa a recoger' : '🏠 A domicilio'}${pago ? ' · ' + pago : ''} · <span style="color:#777">${min ? 'hace ' + min + ' min' : 'ahora'}</span></div>
+        <div class="bs"><button class="go" onclick="burAbrir('${p.id}')">Ver y aceptar</button><button class="x" onclick="S._burMini=true;burbujaApp()">Luego</button></div></div>
+        <button class="burBola" onclick="burAbrir('${p.id}')" aria-label="Ver pedido">🛵<span class="burN">${n}</span></button></div>`) : '')
+    + (P.cambios.length ? `<button class="burBola chica" style="background:radial-gradient(circle at 35% 30%,#ffd166,#f4a300 55%,#c77800)" onclick="burCambio('${P.cambios[0].id}')" aria-label="Cambios que piden los clientes">🔁<span class="burN">${P.cambios.length}</span></button>` : '')
+    + (P.pagos.length ? `<button class="burBola chica azul" onclick="act(this,()=>pagoRevisar('${P.pagos[0].id}'))" aria-label="Comprobantes por revisar">💳<span class="burN">${P.pagos.length}</span></button>` : '');
+}
+/** Abre el pedido para aceptarlo: en la caja, su ficha; en la cocina, lleva a su tarjeta. */
+function burAbrir(id) {
+  S._burMini = true; S._burAbrio = id; burbujaApp();
+  if (S.vista === 'caja') { pdvAppAbrir(id); return; }
+  const t = $('#ct_' + id);
+  if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.classList.remove('burFlash'); void t.offsetWidth; t.classList.add('burFlash'); }
+}
+/** Cada 5 s: tiempo transcurrido y, en la caja, vuelve a sonar cada 30 s mientras haya pedidos sin aceptar (la cocina ya insiste por su cuenta). */
+setInterval(() => {
+  try {
+    burbujaApp();
+    const P = burPendientes();
+    if (P && (P.nuevos.length || P.cambios.length) && S.vista === 'caja' && !document.hidden && Date.now() - (S._burBeep || 0) >= 30000) { beep(); S._burBeep = Date.now(); }
+  } catch (e) { }
+}, 5000);
+
+/* ============ 2.92 · CAMBIOS A UN PEDIDO ============ */
+/** Arma un carrito con lo que tiene el pedido, para cambiarlo. */
+function carritoDePedido(p) {
+  const st = p.items || [], inn = p.itemsIn || [], items = {};
+  st.forEach((x, i) => {
+    const q = inn[i] || {}, key = 'm' + i;
+    if (x.combo || q.combo) {
+      items[key] = { key, id: 'combo:' + (q.combo || x.combo), combo: q.combo || x.combo, nombre: x.nombre, precio: x.precio, cant: q.cant || x.cant, variante: '', extras: [], sin: [], nota: '', mods: [],
+        partes: (q.partes || []).map((pt, j) => Object.assign({}, pt, { nombre: ((x.partes || [])[j] || {}).nombre || '', extras: (pt.extras || []).map(n => ({ nombre: n, precio: 0 })), mods: (pt.mods || []).map(m => ({ g: m.g, o: (m.o || []).map(n => ({ nombre: n })) })) })) };
+      return;
+    }
+    const opPrecio = nom => { for (const m of x.mods || []) { const o = (m.opciones || []).find(o => o.nombre === nom); if (o) return Number(o.precio) || 0; } return 0; };
+    items[key] = Object.assign({ key, id: q.productoId || x.id, nombre: x.nombre, variante: x.variante || '', precio: x.precio, cant: q.cant || x.cant, extras: x.extras || [], sin: x.sin || [], nota: x.nota || '',
+      mods: (q.mods || []).map(m => ({ g: m.g, o: (m.o || []).map(n => ({ nombre: n, precio: opPrecio(n) })) })) }, q.sec ? { sec: q.sec } : {}, x.promo ? { promo: x.promo, antes: x.antes, base: x.antes } : {});
+  });
+  return { negocioId: p.negocio.id, negocio: p.negocio.nombre, logo: p.negocio.logo || '', lat: p.negocio.lat, lng: p.negocio.lng, items, t: Date.now() };
+}
+/** Cliente: modificar (sin aceptar) o pedir el cambio (ya aceptado). Usa el mismo carrito → entrega → pago. */
+function modPedIniciar(p, modo) {
+  if (!p) return;
+  cerrarModal();
+  S.carritos = S.carritos || {};
+  const nid = p.negocio.id;
+  S.modPed = { id: p.id, folio: p.folio, modo, negocioId: nid, metodo: p.metodoPago, respaldo: S.carritos[nid] && !S.carritos[nid].modPed ? S.carritos[nid] : null };
+  S.carritos[nid] = Object.assign(carritoDePedido(p), { modPed: p.id });
+  S.sel = Object.assign({}, S.sel || {}, { [nid]: true });
+  const rc = p.recibe || {};
+  S.entrega = Object.assign({}, S.entrega || {}, { tipo: p.tipoEntrega, metodos: { [nid]: p.metodoPago }, recibeNombre: rc.nombre || (S.user || {}).nombre || '', recibeTel: rc.telefono || (S.user || {}).telefono || '', notas: p.notas || '', prog: null },
+    p.tipoEntrega === 'domicilio' ? { direccion: p.direccion, referencia: p.referencia, lat: p.lat, lng: p.lng } : {});
+  ls('modPed', S.modPed); ls('entrega', S.entrega); guardarCarritos();
+  ir('carrito');
+  toast(modo === 'sol' ? 'Elige lo que quieres cambiar y envía tu solicitud' : 'Cambia lo que quieras y guarda');
+}
+function modPedLimpiar() {
+  const m = S.modPed; if (!m) return;
+  S.modPed = null; ls('modPed', null);
+  if (S.carritos) { if (m.respaldo) S.carritos[m.negocioId] = m.respaldo; else delete S.carritos[m.negocioId]; guardarCarritos(); }
+}
+function modPedSalir() { const id = S.modPed && S.modPed.id; modPedLimpiar(); ir(id ? 'pedido' : 'inicio', id || undefined); }
+function barraModPed() {
+  if (!S.modPed || !['negocio', 'carrito', 'entrega', 'pago', 'buscar'].includes(S.vista)) return '';
+  return `<div class="barraTel"><span style="font-size:20px">${S.modPed.modo === 'sol' ? '🔁' : '✏️'}</span><span class="grow">${S.modPed.modo === 'sol' ? 'Pidiendo un cambio a tu pedido ' : 'Modificando tu pedido '}${esc(S.modPed.folio)}</span><button onclick="modPedSalir()">Cancelar</button></div>`;
+}
+async function modPedEnviar() {
+  const m = S.modPed, e = S.entrega, c = (S.carritos || {})[m.negocioId];
+  if (!c || !Object.keys(c.items || {}).length) throw new Error('Tu pedido no tiene productos');
+  if (e.tipo === 'domicilio' && (!$('#pConfDatos') || !$('#pConfDatos').checked)) throw new Error('Confirma que tu dirección y tu teléfono son correctos');
+  let gps;
+  if (m.modo === 'mod' && e.tipo !== 'recoger' && m.metodo === 'efectivo') {
+    try { gps = await ubicacionActual(); } catch (er) { if (er.code !== undefined) ayudaUbicPago(er.code === 1 ? 'bloqueada' : 'apagada'); throw er; }
+  }
+  const datos = { id: m.id, tipoEntrega: e.tipo, direccion: e.direccion, referencia: e.referencia, lat: e.lat, lng: e.lng, notas: e.notas, recibeNombre: e.recibeNombre, recibeTel: e.recibeTel, gps,
+    subtotalEsperado: subtotalCarrito(c), items: Object.values(c.items).map(itemPedido) };
+  if (m.modo === 'sol') datos.nota = ($('#modNota') && $('#modNota').value.trim()) || '';
+  try { await api(m.modo === 'sol' ? 'solicitarCambio' : 'modificarPedido', datos); }
+  catch (err) {
+    const s = String(err.message);
+    if (s.startsWith('EFECTIVO|')) throw new Error(s.slice(9));
+    if (s.startsWith('CAMBIO|')) { modPedLimpiar(); toast(s.slice(7), 'err'); ir('pedido', m.id); return; }
+    if (s.startsWith('PRECIOS|')) {
+      const [, negId, ...msg] = s.split('|');
+      const ms = await api('menus', { ids: [negId || m.negocioId] }); ms.forEach(x => { aplicarMenuFresco(x); repreciarCarrito(x); });
+      toast(msg.join('|'), 'err'); ir('carrito'); return;
+    }
+    throw err;
+  }
+  modPedLimpiar();
+  toast(m.modo === 'sol' ? '🔁 Le enviamos tu cambio al negocio' : '✏️ Tu pedido se actualizó ✓');
+  ir('pedido', m.id);
+}
+/** Ya aceptado: mensaje, llamada o solicitud por la app. */
+function pedirCambio(id) {
+  const p = S._ped; if (!p || p.id !== id) return;
+  const tel = (p.negocio.telefono || '').replace(/\D/g, '');
+  modal(`<div class="row between"><h2 style="margin:0">🔁 Pedir un cambio</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 10px">${esc(p.negocio.nombre)} ya aceptó tu pedido, así que el cambio lo hace el negocio. ¿Cómo se lo pides?</div>
+    <div class="opcion" onclick="cerrarModal();abrirChat('${id}')"><span class="ico">💬</span><div class="grow"><b>Mandar un mensaje</b><small>Escríbele por el chat de tu pedido</small></div></div>
+    ${tel ? `<a class="opcion" href="tel:${esc(tel)}" onclick="setTimeout(cerrarModal,300)" style="text-decoration:none;color:inherit"><span class="ico">📞</span><div class="grow"><b>Llamar al negocio</b><small>${esc(tel)}</small></div></a>` : ''}
+    <div class="opcion" onclick="modPedIniciar(S._ped,'sol')"><span class="ico">📝</span><div class="grow"><b>Solicitar el cambio por la app</b><small>Eliges lo que quieres (productos, tamaños o si pasas a recoger) y el negocio lo acepta o te llama</small></div></div>`);
+}
+function resumenCambio(s) {
+  const r = s.resumen || {}, a = s.antes || {};
+  return `<div class="small" style="margin-top:6px">${(r.items || []).map(i => `${i.cant}× ${esc(i.nombre)}${i.variante ? ' (' + esc(i.variante) + ')' : ''}`).join('<br>')}</div>
+    <div class="small" style="margin-top:4px">${r.tipo !== a.tipo ? (r.tipo === 'recoger' ? '🏪 Ahora pasa a recoger · ' : '🛵 Ahora a domicilio' + (r.direccion ? ' (' + esc(r.direccion) + ')' : '') + ' · ') : ''}Total <b>${money(r.total)}</b>${r.total !== a.total ? ' <span class="muted">(antes ' + money(a.total) + ')</span>' : ''}</div>
+    ${s.nota ? `<div class="small muted">📝 ${esc(s.nota)}</div>` : ''}`;
+}
+function difPagoHTML(p, quien) {
+  const d = p.difPago, cli = quien === 'cli';
+  if (!d) return '';
+  if (typeof d === 'object' && d.monedero) return `<div class="aviso info" style="margin:0 0 8px">↩️ ${cli ? 'Te devolvimos' : 'Se le devolvieron'} <b>${money(-d.monto)}</b> ${cli ? 'a tu' : 'a su'} 👛 monedero por el cambio del pedido.</div>`;
+  if (d > 0) return `<div class="aviso warn" style="margin:0 0 8px">💵 ${cli ? 'Por el cambio, pagas' : 'Cóbrale la diferencia del cambio:'} <b>${money(d)}</b> en efectivo ${p.tipoEntrega === 'recoger' ? 'al recoger' : 'al recibir'}.</div>`;
+  return `<div class="aviso info" style="margin:0 0 8px">↩️ ${cli ? esc(p.negocio.nombre) + ' te devuelve' : 'Devuélvele'} <b>${money(-d)}</b> en efectivo por el cambio del pedido.</div>`;
+}
+function cambiosCliHTML(p) {
+  let h = '';
+  if (p.cambioSol) h += `<div class="card" style="border:2px solid var(--warn)"><b>🔁 Pediste un cambio</b><div class="muted small">Esperando a que ${esc(p.negocio.nombre)} lo acepte o te llame.</div>${resumenCambio(p.cambioSol)}
+    <div class="btns"><button class="btn sm" onclick="act(this,async()=>{await api('cancelarSolicitudCambio',{id:'${p.id}'});toast('Retiraste tu solicitud');pintar(true)})">Retirar solicitud</button>${p.negocio.telefono ? `<a class="btn sm" href="tel:${esc(String(p.negocio.telefono).replace(/\D/g, ''))}">📞 Llamar</a>` : ''}</div></div>`;
+  h += difPagoHTML(p, 'cli');
+  if (p.modificado && !p.cambioSol) h += `<div class="muted small" style="margin:-4px 0 8px">✏️ Pedido modificado a las ${hora(p.modificado)}</div>`;
+  return h;
+}
+/** Negocio: la solicitud del cliente con aceptar / llamar / no se puede. */
+function cambioSolNegHTML(p) {
+  const s = p.cambioSol, tel = String((p.recibe && p.recibe.telefono) || p.telCliente || (p.comprador && p.comprador.telefono) || '').replace(/\D/g, '');
+  return `<div class="card" style="width:100%;margin:0 0 4px;border:2px solid var(--warn)"><b>🔁 ${esc(appNombre(p))} pide un cambio</b>${resumenCambio(s)}
+    ${s.dif > 0 ? `<div class="small" style="margin-top:4px">💵 Ya pagó: la diferencia (${money(s.dif)}) se cobra en efectivo.</div>` : s.dif < 0 ? `<div class="small" style="margin-top:4px">↩️ Ya pagó: se le devuelven ${money(-s.dif)} (a su monedero si lo tiene, o en efectivo).</div>` : ''}
+    <div class="btns" style="flex-wrap:wrap"><button class="btn ok" onclick="act(this,()=>accion('responderCambio',{id:'${p.id}',aceptar:true},'Cambio aceptado ✓'))">✅ Aceptar cambio</button>
+      ${tel ? `<a class="btn" href="tel:${esc(tel)}">📞 Llamar al cliente</a>` : ''}
+      <button class="btn err" onclick="act(this,()=>{const m=prompt('¿Por qué no se puede? (se lo decimos al cliente)');if(m===null)return;return accion('responderCambio',{id:'${p.id}',aceptar:false,motivo:m},'Le avisamos al cliente')})">No se puede</button></div></div>`;
+}
+/** Burbuja 🔁: en la caja abre el pedido; en la cocina, la solicitud. */
+function burCambio(id) {
+  if (S.vista === 'caja') { pdvAppAbrir(id); return; }
+  const p = (S._pedidosVistos || {})[id]; if (!p) return;
+  modal(`<div class="row between"><h2 style="margin:0">Pedido ${esc(p.folio)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>${cambioSolNegHTML(p)}`);
+}
+/** Negocio: modificar el pedido con su menú (mismo flujo que el pedido por teléfono). */
+function negModIniciar(id) {
+  const p = (S._pedidosVistos || {})[id];
+  if (!p) throw new Error('Actualiza la pantalla e intenta de nuevo');
+  if (!S.negocio || S.negocio.id !== p.negocio.id) throw new Error('Cambia al negocio ' + p.negocio.nombre + ' para modificar este pedido');
+  cerrarModal(); S._appPed = null;
+  S.carritos = S.carritos || {};
+  const resp = S.carritos[S.negocio.id] && Object.keys(S.carritos[S.negocio.id].items || {}).length ? S.carritos[S.negocio.id] : null;
+  S.modoTel = { tel: String((p.recibe && p.recibe.telefono) || p.telCliente || '').replace(/\D/g, ''), nombre: appNombre(p), mod: p.id, folio: p.folio, volver: S.vista, respaldo: resp };
+  ls('modoTel', S.modoTel);
+  S.carritos[S.negocio.id] = carritoDePedido(p); guardarCarritos();
+  S._capT = { tipo: p.tipoEntrega, direccion: p.tipoEntrega === 'domicilio' ? p.direccion : '', referencia: p.referencia || '', lat: p.lat || 0, lng: p.lng || 0, metodo: p.metodoPago, notas: p.notas || '', mod: true };
+  S.modoCliente = true; ls('modoCliente', 1);
+  pintarNav(); ir('carrito');
+  toast('Cambia lo que necesites y guarda');
+}
+async function negModGuardar() {
+  guardarCapT();
+  const f = S._capT, t = S.modoTel, c = S.carritos[S.negocio.id];
+  if (!c || !Object.keys(c.items || {}).length) throw new Error('El pedido no tiene productos');
+  if (f.tipo === 'domicilio' && String(f.direccion || '').trim().length < 6) throw new Error('Escribe la dirección de entrega');
+  try {
+    await apiDe(PUEBLO, 'negModificarPedido', { id: t.mod, tipoEntrega: f.tipo, direccion: f.direccion, referencia: f.referencia, lat: f.lat, lng: f.lng, notas: f.notas, subtotalEsperado: subtotalCarrito(c), items: Object.values(c.items).map(itemPedido) }, S.token, true, ''); // como negocio (en la captura está en modo cliente)
+  } catch (err) {
+    const s = String(err.message);
+    if (!s.startsWith('PRECIOS|')) throw err;
+    const [, negId, ...msg] = s.split('|');
+    const ms = await api('menus', { ids: [negId || S.negocio.id] }); ms.forEach(x => { aplicarMenuFresco(x); repreciarCarrito(x); });
+    toast(msg.join('|'), 'err'); ir('carrito'); return;
+  }
+  const volverA = t.volver;
+  S._capT = null; terminarModoTel(true);
+  toast('✏️ Pedido ' + t.folio + ' actualizado · le avisamos al cliente');
+  if (volverA === 'caja') { PDV.cuentaId = ''; await ir('caja'); } else { S.tabNeg = 'curso'; ir('negPedidos'); }
+}
+
 function avisar(titulo, cuerpo) {
   beep();
   toast(titulo);
@@ -1561,6 +1816,8 @@ const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
 async function ir(v, p, sinHistoria) {
   if (v !== 'negPedidos' && v !== 'pedido') S._pedHist = false; // 2.67.1: el historial de pedidos se queda mientras se esté en él
   if (S.vista === 'cocina' && v !== 'cocina') salirCocina_();
+  if (S.modPed && !['negocio', 'carrito', 'entrega', 'pago', 'buscar'].includes(v)) modPedLimpiar(); // 2.92
+  if (v !== 'caja' && v !== 'cocina') { const b = $('#burApp'); if (b) b.remove(); } // 2.91
   if (S.vista === 'caja' && v !== 'caja' && typeof nomLoteSalir === 'function' && !nomLoteSalir()) return; // 2.88.1: cambios de nómina sin guardar
   if (S.vista === 'caja' && v !== 'caja') pdvSalir();
   if (S.modoTel && !VISTAS_TEL.includes(v)) {
@@ -1572,7 +1829,7 @@ async function ir(v, p, sinHistoria) {
   if (rolActual() === 'negocio' && S.negocio && S.negocio.eleccion && esDueno() && !['elegirPlan', 'suscripcion', 'perfil', 'pedido', 'caja', 'cocina'].includes(v)) { v = 'elegirPlan'; p = undefined; }
   if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
   clearInterval(S._carrusel);
-  S.vista = v; S.params = p; S.auto = AUTO.includes(v);
+  S.vista = v; S.params = p; S.auto = AUTO.includes(v); document.body.dataset.vista = v; // 2.91.1
   try { if (rolActual() === 'negocio' && S.negocio && !esDueno() && VISTAS_CHECAR.includes(v)) asisRefrescarMia(); } catch (e) { }
   if (!sinHistoria) history.pushState({ v, p }, '');
   window.scrollTo(0, 0);
@@ -1715,7 +1972,7 @@ function inicioRol() {
 }
 /** Salir de la caja: el dueño a su Inicio; el equipo a su Perfil (ahí está la barra con sus secciones y Cerrar sesión). */
 function pdvSalirDeCaja() { ir(esDueno() && esDuenoVarios() ? 'tablero' : 'perfil'); }
-function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length).sort((a, b) => (a.t || 0) - (b.t || 0)); }
+function carritosLista() { return Object.values(S.carritos || {}).filter(c => c && Object.keys(c.items || {}).length && (!S.modPed || c.negocioId === S.modPed.negocioId)).sort((a, b) => (a.t || 0) - (b.t || 0)); }
 function guardarCarritos() { Object.keys(S.carritos).forEach(k => { if (!Object.keys(S.carritos[k].items || {}).length) delete S.carritos[k]; }); ls('carritos', S.carritos); }
 function nCarrito() { return itemsCarrito().reduce((s, x) => s + x.cant, 0); }
 
@@ -2451,6 +2708,7 @@ function intervaloSondeo_() {
   if (r === 'comprador' && S.vista === 'pedido' && S._trk && ['EN_CAMINO', 'LISTO', 'PREPARANDO'].includes(S._trk.estado)) return S._trk.muestra ? 4000 : 15000;
   if (S._sim) return 4000;
   if (S.vista === 'cocina') return 10000; // la cocina ve los pedidos nuevos más rápido
+  if (S.vista === 'caja') return 20000; // 2.91: y la caja, para la burbuja de pedidos de la app
   return SONDEO_MS[r] || 60000;
 }
 function iniciarSondeo() {
@@ -2573,7 +2831,7 @@ function pasosUbicacion(tipo) {
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   return tipo === 'apagada'
     ? `<p>Parece que el <b>GPS del teléfono está apagado</b> o no encuentra señal.</p>
-       <ol><li>Desliza desde arriba de la pantalla y activa <b>Ubicación</b> (${ios ? 'en iPhone: Ajustes → Privacidad y seguridad → Localización' : 'el ícono 📍'}).</li><li>Sal a un lugar abierto si estás bajo techo.</li><li>Regresa y toca <b>Intentar de nuevo</b>.</li></ol>`
+       <ol><li>Desliza desde arriba de la pantalla y activa <b>Ubicación</b> (${ios ? 'en iPhone: Ajustes → Privacidad y seguridad → Localización' : 'el ícono 📍'}).</li><li>Sal a un lugar abierto si estás bajo techo.</li><li>Regresa y toca <b>Ya lo activé, intentar de nuevo</b>.</li></ol>`
     : tipo === 'sin' ? '<p>Este navegador no permite usar la ubicación. Abre Pídele en Chrome (Android) o Safari (iPhone).</p>'
     : ios
       ? `<p>El permiso de ubicación para Pídele está <b>bloqueado</b>. Para habilitarlo:</p>
@@ -2585,10 +2843,30 @@ function pasosUbicacion(tipo) {
          <li>Si instalaste Pídele como app: mantén presionado su ícono → <b>Información de la app</b> (ⓘ) → <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.</li>
          <li>Revisa que la <b>Ubicación</b> del teléfono esté encendida (desliza desde arriba de la pantalla).</li></ol>`;
 }
+/** 2.90.1 · Activar la ubicación desde la pantalla de pago: pide el permiso, o explica cómo encenderla, y al tenerla habilita el efectivo sin salir del pedido. */
+async function ubicarPago() {
+  if (!navigator.geolocation) { ayudaUbicPago('sin'); return; }
+  if (await permisoUbicacion() === 'denied') { ayudaUbicPago('bloqueada'); return; }
+  toast('Buscando tu ubicación…');
+  let g;
+  try { g = await gpsAhora('para pagar en efectivo'); }
+  catch (e) { ayudaUbicPago(e.code === 1 ? 'bloqueada' : 'apagada'); return; }
+  S._gpsCiudad = g; lsG('sinUbic', null);
+  const pb = await puebloDeUbicacion(g);
+  lsG('fuera', pb ? null : '1'); S.fueraZona = !pb || pb.id !== PID;
+  cerrarModal();
+  if (S.fueraZona) toast('Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', 'err');
+  else toast('📍 Ubicación activada · ya puedes pagar en efectivo');
+  pintar(true);
+}
+function ayudaUbicPago(tipo) {
+  modal(`<div class="row between"><h2 style="margin:0">📍 Activar ubicación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${pasosUbicacion(tipo)}${tipo === 'sin' ? '' : `<div class="btns"><button class="btn pri pill full" onclick="act(this,ubicarPago)">Ya lo activé, intentar de nuevo</button></div>`}`);
+}
 function ayudaUbicacion(tipo) {
   const pasos = pasosUbicacion(tipo);
   modal(`<div class="row between"><h2 style="margin:0">Activar ubicación</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    ${pasos}<div class="btns"><button class="btn pri pill full" onclick="cerrarModal();act(this,activarUbicacion)">Intentar de nuevo</button></div>`);
+    ${pasos}<div class="btns"><button class="btn pri pill full" onclick="cerrarModal();act(this,activarUbicacion)">Ya lo activé, intentar de nuevo</button></div>`);
 }
 
 /* ============ MAPAS ============ */
@@ -3037,7 +3315,7 @@ function pintarCaja() {
   html(`<div class="pdv">
     <div class="pdvBar"><h1>${nomina ? '👥 Personal · ' : ventasM ? '📊 Ventas · ' : simple ? '🛒 ' : '🧾 '}${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
-      ${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${esDisp() ? '' : `<button onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️</button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳 Cocina</button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
+      ${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${esDisp() ? '' : `<button onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️</button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳<span class="pdvTxt"> Cocina</span></button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${esDisp() ? `<div class="aviso info row between" style="margin:0 0 10px;gap:8px"><span>🖥️ <b>${esc(S.user.nombre)}</b> · atiende: <b>${S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? esc(S._oper.nombre.split(' ')[0]) : 'nadie'}</b></span><button class="btn sm" onclick="act(this,pdvOperElegir)">👤 ${S._oper ? 'Cambiar' : '¿Quién atiende?'}</button></div>`
       : !(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
@@ -5472,13 +5750,14 @@ function pdvAppAbrir(id) {
   const its = (p.items || []).map(i => `<div class="pdvLinea"><b class="cant">${i.cant}×</b><div class="grow">${esc(i.nombre)}${detalleItem(i) ? `<div class="small muted">${detalleItem(i)}</div>` : ''}</div><span>${money(i.importe != null ? i.importe : i.precio * i.cant)}</span></div>`).join('');
   modal(`<div class="row between"><h2 style="margin:0">${appCanal(p)} · ${esc(appNombre(p))}</h2><button class="redondo" onclick="S._appPed=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="row between" style="margin:4px 0 8px"><span class="small muted">${esc(p.folio)} · ${p.tipoEntrega === 'recoger' ? '🏪 Pasa a recoger' : '🛵 A domicilio'}${p.horaSalida ? ' · sale ' + hora(p.horaSalida) : ''}</span><span class="tag ${e[1]}">${e[0]}</span></div>
+    ${p.cambioSol && p.puedeCambiarNeg ? cambioSolNegHTML(p) : ''}${p.difPago ? difPagoHTML(p, 'neg') : ''}
     ${bloqueEntregaNeg(p)}
     <div class="card" style="padding:8px 12px">${its}
       <div class="tot"><span>Productos</span><b>${money(p.subtotal)}</b></div>${p.envio ? `<div class="tot"><span>🛵 Envío${p.envioEn === 'negocio' ? ' (para el negocio)' : ' (del repartidor)'}</span><span>${money(p.envio + (p.envioExtra || 0))}</span></div>` : ''}${p.envioExtra ? `<div class="small muted" style="text-align:right">incluye ${money(p.envioExtra)} para ti (pago sin efectivo)</div>` : ''}${p.descEfe && p.envio ? descEfeLinea(p) : ''}${p.descuento ? `<div class="tot"><span>Descuento</span><span>−${money(p.descuento)}</span></div>` : ''}
       <div class="tot g"><span>Total del cliente</span><b>${money(p.total)}</b></div>
       <div class="small muted">${PAGO_TXT[p.metodoPago] || p.metodoPago}${p.metodoPago !== 'efectivo' ? (p.pagoConfirmado ? ' · ✓ confirmada' : ' · sin confirmar') : ''}${p.notas ? ' · 📝 ' + esc(p.notas) : ''}</div></div>
     ${pedInfoExtra(p)}${!cc ? pdvAppPagoAviso(p) : ''}${!cc && pdvEnvRep(p) ? `<div class="aviso info small">🛵 <b>Paga al repartidor su envío: ${money(pdvEnvRep(p))}</b> en efectivo de la caja. Al registrar el cobro queda como salida de caja.</div>` : ''}${pvLinea(p)}${cc ? `<div class="aviso ok small">💵 Cobrado en caja: ${money(cc.monto)} · ${esc(PDV_MET[cc.metodo] || cc.metodo)} · ${esc(cc.folio)}</div>` : ''}
-    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p)}</div>`);
+    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p, false, true)}</div>`);
 }
 /* 2.66.1 · Pedidos ya pagados en la app (transferencia o CoDi confirmada) y pagos con monedero */
 const pdvAppTransf = p => (p.metodoPago === 'transferencia' || p.metodoPago === 'codi' || p.metodoPago === 'mp');
@@ -6184,6 +6463,7 @@ async function pdvCargarApp() {
     const d = await api('panelNegocio'); const antes = JSON.stringify((PDV.app && PDV.app.pedidos) || []);
     PDV.app = { t: Date.now(), pedidos: d.pedidos }; recordar(d.pedidos || []); if (d.negocio) PDV.appNeg = d.negocio;
     if (S.vista === 'caja' && ['hoy', 'mesas'].includes(PDV.tab) && !PDV.cuentaId && antes !== JSON.stringify(d.pedidos) && !$('#modal.on')) pintarCaja();
+    burbujaApp(); // 2.91
   } catch (e) { }
 }
 /** 2.62 · Mantener al día los pedidos de la app mientras se ve Mesas y pedidos. */
@@ -6642,7 +6922,7 @@ function pdvImprimirComandaCaja(id) {
  * Dueño y gerente: pestaña 👥 Personal (hoy, semana, configurar). Nómina: solo el dueño.
  */
 const ASIS_EST = { presente: ['✅', 'A tiempo'], retardo: ['⏰', 'Retardo'], falta: ['❌', 'Falta'], permiso_goce: ['🟦', 'Permiso con goce'], permiso_sin: ['🟨', 'Permiso sin goce'],
-  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['❓', 'No llegó · sin decidir'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Compensado'], cambio: ['🔄', 'Cambio de turno'] };
+  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['❓', 'No llegó · sin decidir'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Día a favor'], feriado: ['🎉', 'Feriado · descanso pagado'], cambio: ['🔄', 'Cambio de turno'] };
 const DIAS_C = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const asisHora = ms => ms ? hora(ms) : '';
 const asisDiaTxt = f => { const d = new Date(f + 'T12:00'); return DIAS_C[d.getDay()] + ' ' + d.getDate(); };
@@ -6798,7 +7078,7 @@ async function pintarMiAsis() {
       <div class="muted" style="margin:4px 0 8px">${est}</div>
       ${x.pregunta ? `<div class="aviso warn" style="margin:0 0 8px">⏰ Tu turno terminó a las <b>${x.pregunta.horario.e ? x.pregunta.horario.s : ''}</b> y no has checado salida.<div class="btns" style="margin-top:6px"><button class="btn pri pill full" onclick="asisPreguntaMia('${x.negocioId}')">Responder: ¿doblas turno u olvidaste checar?</button></div></div>` : ''}
       ${!h.salida ? `<button class="btn pri pill full" onclick="act(this,()=>asisMarcarFlujo('${x.negocioId}'))">📷 Marcar ${h.entrada ? 'salida' : 'entrada'}</button>` : ''}
-      ${x.diasFavor ? `<div class="small" style="margin-top:6px">🔁 Tienes <b>${x.diasFavor}</b> día${x.diasFavor > 1 ? 's' : ''} a favor por turno doble.</div>` : ''}
+      ${x.diasFavor ? `<div class="small" style="margin-top:6px">🔁 Tienes <b>${x.diasFavor}</b> día${x.diasFavor > 1 ? 's' : ''} a favor para descansar (por turno doble o feriado trabajado).</div>` : ''}
       ${vacTarjeta(x)}${adelTarjeta(x)}
       <details style="margin-top:8px"><summary class="small">Mi horario de los próximos días</summary><div class="asisProx">${x.proximos.map(p => `<span><b>${asisDiaTxt(p.fecha)}</b>${p.horario ? p.horario.e + '–' + p.horario.s : 'Descanso'}</span>`).join('')}</div></details>
       ${x.rotativo ? `<div class="small muted" style="margin-top:8px">🗓️ ${falta ? 'Tu descanso de la próxima semana lo define el encargado.' : 'Tu descanso de la próxima semana: ' + x.eligio.map(asisDiaTxt).join(', ')}</div>` : ''}</div>`;
@@ -8115,6 +8395,7 @@ async function asisBiometria() {
 function pdvVistaPersonal() {
   if (!pdvPuede('d')) return '<div class="aviso warn">Solo el dueño ve el personal y la nómina.</div>';
   const P = PDV.per = PDV.per || { sub: 'hoy', fecha: pdvHoy() };
+  if (!P.nomPer) P.nomPer = lsG('nomPer') || 'quincena'; // 2.91.1: antes abría en "Esta semana" aunque todos cobren por quincena
   const subs = [['equipo', '👥 Equipo'], ['hoy', '🕒 Asistencia hoy', 'asistencia'], ['semana', '📅 Semana'], ['vac', '🏖️ Vacaciones', 'vacaciones'], ['nomina', '💵 Nómina', 'nomina'], ['adel', '💵 Adelantos', 'nomina'], ['metas', '🎯 Bonos y metas', 'bonos'], ['turnos', '⏱️ Turnos'], ['config', '⚙️ Reglas y horarios'], ['consumo', '🎁 Consumo', 'consumo']].filter(x => !x[2] || funOn('personal', x[2])); // 2.68: solo las funciones prendidas
   if (!subs.some(x => x[0] === P.sub)) P.sub = 'equipo';
   if (P.todos) { // 2.75: toda su gente, de todos sus negocios, en esta misma pantalla
@@ -8361,6 +8642,7 @@ function asisVistaHoy(d) {
   return `<div class="row" style="gap:8px;align-items:center;margin:8px 0"><input class="i" type="date" value="${d.fecha}" max="${hoy}" onchange="PDV.per.fecha=this.value;asisRecargar()" style="max-width:200px">
       ${d.fecha === hoy ? '<span class="small muted">Hoy</span>' : `<button class="lnk small" onclick="PDV.per.fecha='${hoy}';asisRecargar()">Ir a hoy</button>`}<span class="grow"></span><button class="btn sm" onclick="act(this,asisMostrarQR)">🔳 Mostrar QR</button></div>
     ${(d.dobles || []).length ? `<div class="card" style="border-color:var(--warn)"><b>🔁 Turnos dobles por decidir</b>${d.dobles.map((x, i) => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--ln)"><span><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)}<br><span class="small muted">${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Dobló turno para apoyar'}${x.minutos ? ' · ' + Math.round(x.minutos / 6) / 10 + ' h de más' : ''}</span></span><button class="btn sm pri" onclick="asisDobleDecidirModal(${i})">Decidir</button></div>`).join('')}</div>` : ''}
+    ${(f => f ? `<div class="aviso info">🎉 <b>${d.fecha === hoy ? 'Hoy' : 'Este día'} es feriado: ${esc(f.feriado)}.</b> Quien no venga tiene descanso pagado; quien trabaje recibe ${(FER_TXT[f.ferModo] || '').split(' · ')[0].toLowerCase() || 'su pago extra'} en la nómina.</div>` : '')(d.personas.find(p => p.feriado))}
     ${d.adelPendientes ? `<div class="aviso info row between" style="gap:8px"><span>💵 ${d.adelPendientes} adelanto${d.adelPendientes > 1 ? 's' : ''} por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='adel';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${d.vacPendientes ? `<div class="aviso info row between" style="gap:8px"><span>🏖️ ${d.vacPendientes} solicitud${d.vacPendientes > 1 ? 'es' : ''} de vacaciones por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='vac';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${tabDeudasHTML(d.deudas)}
@@ -8408,7 +8690,7 @@ function vacVistaPanel(d) {
       ${d.dueno ? '<div class="btns"><button class="btn pri pill" onclick="act(this,vacGuardarReglas)">Guardar reglas</button></div>' : ''}
       <hr class="hr"><b>🔒 Fechas bloqueadas</b><div class="small muted" style="margin:2px 0 6px">Días importantes: nadie los puede pedir desde la app; quien los quiera lo habla contigo en persona.</div>
       ${d.bloqueadas.map(b => `<div class="pdvFila g"><span>🔒 ${dd(b.f)}<small>${esc(b.motivo || '')}</small></span><span></span>${d.dueno ? `<button class="btn sm" onclick="act(this,()=>vacReglasP({desbloquear:'${b.f}'}))">Quitar</button>` : ''}</div>`).join('') || '<div class="small muted">Ninguna.</div>'}
-      ${d.dueno ? `<div class="row" style="gap:6px;margin-top:8px"><input class="i" type="date" id="vrF" min="${pdvHoy()}" style="flex:1"><input class="i" id="vrM" maxlength="60" placeholder="Motivo (ej. Fiestas)" style="flex:1"><button class="btn sm pri" onclick="act(this,()=>{if(!$('#vrF').value)throw new Error('Elige la fecha');return vacReglasP({bloquear:$('#vrF').value,motivo:$('#vrM').value})})">Bloquear</button></div>` : ''}</div>`;
+      ${d.dueno ? `<div class="row vacBloq" style="gap:6px;margin-top:8px"><input class="i" type="date" id="vrF" min="${pdvHoy()}" style="flex:1"><input class="i" id="vrM" maxlength="60" placeholder="Motivo (ej. Fiestas)" style="flex:1"><button class="btn sm pri" onclick="act(this,()=>{if(!$('#vrF').value)throw new Error('Elige la fecha');return vacReglasP({bloquear:$('#vrF').value,motivo:$('#vrM').value})})">Bloquear</button></div>` : ''}</div>`;
 }
 /* ---------- 2.75 · Dar vacaciones directo (las pidió en persona): colaborador y fechas ---------- */
 async function vacDarForm() {
@@ -8649,6 +8931,7 @@ function asisVistaConfig(d) {
         <label>Medio día si llega tarde (min)<input class="i" id="acMed" inputmode="numeric" value="${c.retMedio == null ? 150 : c.retMedio}" ${du ? '' : 'disabled'}><small>150 = 2:30 h · 0 = no aplica</small></label></div>
       <label class="pdvChk"><input type="checkbox" id="acExt" ${c.extras ? 'checked' : ''} ${du ? '' : 'disabled'}> Pagar horas extra (a quien se le activen)</label>
       ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisGuardarCfg)">Guardar reglas</button></div>' : ''}</div>
+    ${asisFeriadosHTML(d)}
     ${du ? asisRelojHTML(c) : ''}
     <h3>Personal</h3><div class="small muted" style="margin-bottom:8px">Aquí aparece tu equipo de Pídele (invita a cada persona en <b>Mi equipo</b> para que tenga su cuenta).</div>
     ${d.equipo.map(p => `<div class="card row between" style="cursor:pointer" onclick='asisFormPersona(${JSON.stringify(p).replace(/'/g, "&#39;")})'><div><b>${esc(p.nombre)}</b>
@@ -8666,6 +8949,21 @@ function asisRelojHTML(c) {
     <hr class="hr"><label class="pdvChk"><input type="checkbox" ${c.telFijo ? 'checked' : ''} onchange="act(null,()=>asisReloj({accion:'opciones',telFijo:this.checked}))"> Cada persona solo marca desde su propio teléfono</label>
     <div class="small muted">Se registra el primer teléfono con el que marca. Si cambia de celular, lo liberas en su ficha.</div></div>`;
 }
+/* ---------- 2.93 · Días feriados ---------- */
+const FER_TXT = { doble: 'Pago doble · se le paga 1 día más', triple: 'Pago triple · se le pagan 2 días más (lo que marca la ley)', adeudo: 'Día de adeudo · le queda 1 día a favor para descansar después' };
+function asisFeriadosHTML(d) {
+  const du = d.dueno, hoy = pdvHoy(), desde = fechaLocal(new Date(Date.now() - 30 * 864e5)), l = (d.feriados || []).filter(x => x.f >= desde);
+  const btn = x => !du ? '' : x.quitado ? `<button class="btn sm" onclick="act(this,()=>asisFer({ferRestaurar:'${x.f}'}))">Volver a aplicar</button>`
+    : x.ley ? `<button class="btn sm" onclick="act(this,()=>asisFer({ferQuitar:'${x.f}'}))">No aplica</button>` : `<button class="btn sm" onclick="act(this,()=>asisFer({ferBorrar:'${x.f}'}))">Quitar</button>`;
+  return `<div class="card"><b>🎉 Días feriados</b>
+    <div class="small muted" style="margin:2px 0 8px">Ya vienen los de ley. Quien <b>no trabaja</b> ese día no pierde nada: es descanso pagado (no cuenta como falta ni le quita la puntualidad). Para quien <b>sí trabaja</b>:</div>
+    <select class="i" ${du ? '' : 'disabled'} onchange="act(null,()=>asisFer({ferPago:this.value}))">${Object.entries(FER_TXT).map(([k, t]) => `<option value="${k}" ${(d.ferPago || 'doble') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    <div class="small muted" style="margin-top:4px">Los bonos se quedan igual. Si cambias la opción, aplica de hoy en adelante. A una persona en particular se lo quitas desde la nómina.</div>
+    <div style="margin-top:8px">${l.map(x => `<div class="pdvFila g" style="${x.f < hoy ? 'opacity:.6' : ''}"><span>${x.quitado ? '<s>' : ''}🎉 ${new Date(x.f + 'T12:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}${x.f.slice(0, 4) !== hoy.slice(0, 4) ? ' ' + x.f.slice(0, 4) : ''} · ${esc(x.n)}${x.quitado ? '</s>' : ''}<small>${x.ley ? 'De ley' : 'Agregado por ti'}${x.quitado ? ' · no aplica en tu negocio' : ''}${x.f === hoy ? ' · <b>hoy</b>' : ''}</small></span><span></span>${btn(x)}</div>`).join('') || '<div class="small muted">Sin feriados próximos.</div>'}</div>
+    ${du ? `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><input class="i" type="date" id="ferF" style="flex:1 1 140px"><input class="i" id="ferN" maxlength="40" placeholder="Ej. Fiestas del pueblo" style="flex:2 1 160px"><button class="btn sm pri" onclick="act(this,()=>asisFer({ferAgregar:{f:$('#ferF').value,n:$('#ferN').value}}))">➕ Agregar feriado</button></div>` : ''}</div>`;
+}
+async function asisFer(o) { PDV.per.datos = await api('asisConfig', Object.assign({ negocioId: S.negocio.id }, o)); toast('Guardado ✓'); pintarCaja(); }
+
 async function asisReloj(o) { PDV.per.datos = await api('relojEquipo', Object.assign({ negocioId: S.negocio.id }, o)); toast('Guardado ✓'); pintarCaja(); }
 async function asisGuardarCfg() {
   PDV.per.datos = await api('asisConfig', { negocioId: S.negocio.id, tolerancia: $('#acTol').value, retardosFalta: $('#acRet').value, radioM: $('#acRad').value, extrasUmbral: $('#acUmb').value, extras: $('#acExt').checked, dobleHoras: $('#acDbl').value, bonoPunt: $('#acPun').value, retSinBono: $('#acSinB').value, retMedio: $('#acMed').value });
@@ -8717,7 +9015,7 @@ function asisPeriodoNom(k) {
 }
 function asisVistaNomina(d) {
   const per = PDV.per.nomPer || 'semana', vista = PDV.per.nomVista || 'tablero';
-  const sel = `<select class="i" style="margin:8px 0" onchange="if(!nomLoteSalir()){this.value=PDV.per.nomPer||'semana';return}PDV.per.nomPer=this.value;asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const sel = `<select class="i" style="margin:8px 0" onchange="if(!nomLoteSalir()){this.value=PDV.per.nomPer||'semana';return}PDV.per.nomPer=this.value;lsG('nomPer',this.value);asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const l = d.personas, tot = pdvR(l.reduce((s, p) => s + p.total, 0)), pend = l.filter(p => !p.pagado);
   const tabs = `<div class="pdvTipo" style="margin:0 0 8px">${[['tablero', '📋 Tablero por día'], ['lista', '📄 Resumen']].map(([k, t]) => `<button class="${vista === k ? 'on' : ''}" onclick="if('${k}'==='lista'&&!nomLoteSalir())return;PDV.per.nomVista='${k}';pintarCaja()">${t}</button>`).join('')}</div>`;
   if (vista === 'tablero' && l.length) return sel + tabs + tabDeudasHTML(d.deudas) + nomTablero(d);
@@ -8731,7 +9029,7 @@ function asisVistaNomina(d) {
     <div class="btns"><button class="btn pill" onclick="asisCsvNom()">⬇️ Descargar en Excel</button></div>`}`;
 }
 /* ---------- 2.88 · Tablero de nómina: personas × días, ventas por turno y totales con desglose ---------- */
-const NT_EST = { presente: ['ok', 'A tiempo'], retardo: ['tarde', 'Retardo'], descanso: ['desc', 'Descanso'], vacaciones: ['perm', 'Vacaciones'], permiso_goce: ['perm', 'Permiso con goce'], compensado: ['perm', 'Día a favor'], cambio: ['perm', 'Lo cubrieron (cambio de turno)'],
+const NT_EST = { presente: ['ok', 'A tiempo'], retardo: ['tarde', 'Retardo'], descanso: ['desc', 'Descanso'], vacaciones: ['perm', 'Vacaciones'], permiso_goce: ['perm', 'Permiso con goce'], compensado: ['perm', 'Día a favor'], feriado: ['perm', 'Feriado (descanso pagado)'], cambio: ['perm', 'Lo cubrieron (cambio de turno)'],
   permiso_sin: ['falta', 'Permiso sin goce'], falta: ['falta', 'Falta'], sin_decidir: ['sin', 'Sin registro'], programado: ['fut', 'Por venir'], por_llegar: ['fut', 'Por llegar'] };
 const ntLetra = i => { const t = turnosNeg()[i - 1]; return t && t.nombre ? t.nombre.trim().charAt(0).toUpperCase() : String(i); };
 /** Turnos que cuentan para el bono ese día (automático o lo que decidió el dueño). */
@@ -8754,12 +9052,14 @@ function ntGrupos(l) {
 }
 function nomTablero(d) {
   const l = d.personas, dias = l[0].detalle.map(x => x.fecha), V = d._V || { mov: [], cajas: [] }, M = d._man || {}, T = turnosNeg();
+  const FER = {}; (d.feriados || []).forEach(x => FER[x.f] = x); const hayFer = (d.feriados || []).length > 0; // 2.93
   const dTxt = f => { const x = new Date(f + 'T12:00'); return `${DIAS_C[x.getDay()]}<br>${x.getDate()}`; };
   const celda = (p, x) => {
     const [cl, tt] = NT_EST[x.estado] || ['fut', x.estado];
     const c = x.justif ? 'just' : cl, ts = ntTurnos(x).map(ntLetra).join('');
-    const sub = x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.entrada && !x.turnoBono && (x.estado === 'presente' || x.estado === 'retardo') && ntMinTrab(x) < 420 && x.fecha < pdvHoy() ? '<7h' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : x.estado === 'sin_decidir' ? '?' : '';
-    const titulo = tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (x.manual ? ' · capturado a mano' : '');
+    const trabFer = x.feriado && (x.estado === 'presente' || x.estado === 'retardo');
+    const sub = (trabFer ? (x.ferNo ? '🎉✕ ' : '🎉 ') : '') + (x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.entrada && !x.turnoBono && (x.estado === 'presente' || x.estado === 'retardo') && ntMinTrab(x) < 420 && x.fecha < pdvHoy() ? '<7h' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : (x.estado === 'sin_decidir' ? '?' : x.estado === 'feriado' ? '🎉' : ''));
+    const titulo = (x.feriado ? '🎉 ' + x.feriado + (trabFer ? (x.ferNo ? ' (sin pago de feriado)' : ' · trabajó') : '') + ' · ' : '') + tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (x.manual ? ' · capturado a mano' : '');
     const pc = nomLoteDe(p.usuarioId, x.fecha);
     if (pc) return `<td><div class="ntC ${nomLoteClase(pc, x, d)} pend" title="Pendiente: ${esc(nomLoteTxt(pc))}" onclick="nomTocar('${p.usuarioId}','${x.fecha}')">${esc(nomLoteCorto(pc))}</div></td>`;
     const pt = PDV.lote && PDV.lote.cambios[p.usuarioId + '|' + x.fecha + '|t'];
@@ -8767,17 +9067,18 @@ function nomTablero(d) {
   };
   const fila = p => `<tr><td class="ntN" onclick="asisDetalleNom('${p.usuarioId}')" title="${esc(p.nombre)}">${esc(p.nombre)}${p.pagado ? ' <small class="t-ok">✓</small>' : ''}</td>${p.detalle.map(x => celda(p, x)).join('')}
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','punt')">${p.bonoPunt ? money(p.bonoPunt) : '—'}</td>
+    ${hayFer ? `<td class="ntM" onclick="nomDesglose('${p.usuarioId}','fer')">${p.pagoFeriado ? money(p.pagoFeriado) : p.feriadosAdeudo ? '+' + p.feriadosAdeudo + ' día' : '—'}</td>` : ''}
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','ventas')">${p.incentivos ? money(p.incentivos) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','desc')">${p.descuento ? '−' + money(p.descuento) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','adel')">${p.adelantos ? '−' + money(p.adelantos) : '—'}</td>
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.sueldo)}</td>
     <td class="ntM ntTot" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.total)}</td></tr>`;
-  const nc = dias.length + 7;
+  const nc = dias.length + 7 + (hayFer ? 1 : 0);
   const ventas = turnosBono().map(([ti, t]) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + ti)}</td>${dias.map(f => {
     const k = f + '|' + ti, man = k in M, v = man ? M[k] : nomVentaCaja(V, f, ti);
     if (PDV.lote && PDV.lote.on) { const pv = PDV.lote.ventas[k]; return `<td><input class="ntIn${pv != null ? ' cmb' : ''}" inputmode="decimal" placeholder="${v ? Math.round(v) : '$'}" value="${pv != null ? esc(pv) : ''}" oninput="nomLoteVenta('${k}',this.value,this)" title="${man ? 'Capturada a mano: ' + money(v) : v ? 'Corte de caja: ' + money(v) : 'Sin dato'}"></td>`; }
     return `<td><div class="ntV ${man ? 'man' : v ? '' : 'cero'}" onclick="nomVenta('${f}',${ti})" title="${man ? 'Capturada a mano' : 'Del corte de caja'}">${v ? (man ? '✍️' : '') + money(v).replace('.00', '') : (man ? '✍️$0' : '+')}</div></td>`;
-  }).join('')}<td colspan="6" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + ti; return s + (k in M ? M[k] : nomVentaCaja(V, f, ti)); }, 0)))}</td></tr>`).join('');
+  }).join('')}<td colspan="${hayFer ? 7 : 6}" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + ti; return s + (k in M ? M[k] : nomVentaCaja(V, f, ti)); }, 0)))}</td></tr>`).join('');
   const sum = k => pdvR(l.reduce((s, p) => s + (Number(p[k]) || 0), 0));
   const LT = PDV.lote && PDV.lote.on ? PDV.lote : null, nPend = nomLoteN();
   return `<div class="row between" style="gap:8px;flex-wrap:wrap"><div class="muted small" style="flex:1 1 220px">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
@@ -8786,13 +9087,13 @@ function nomTablero(d) {
     <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
     <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
     ${l.some(p => p.sinDecidir) ? `<div class="aviso warn small" style="margin-top:6px">Hay días <b>sin registro</b> (cuadro punteado): tócalos para poner la asistencia, una falta, un descanso o un permiso. Mientras estén así cuentan como falta.</div>` : ''}
-    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th>${dTxt(f)}</th>`).join('')}<th>Puntua&shy;lidad</th><th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
+    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th${FER[f] ? ` title="🎉 ${esc(FER[f].n)}" style="color:var(--pri)"` : ''}>${dTxt(f)}${FER[f] ? '<br>🎉' : ''}</th>`).join('')}<th>Puntua&shy;lidad</th>${hayFer ? '<th>🎉 Feria&shy;do</th>' : ''}<th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
     ${ntGrupos(l).map(g => `<tr class="ntG"><td colspan="${nc}"><span>${esc(g.nombre)}</span></td></tr>${g.gente.map(fila).join('')}`).join('')}
     <tr class="ntG"><td colspan="${nc}"><span>💵 Venta por turno (toca para capturarla o corregirla)</span></td></tr>${ventas}
-    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td><td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM neg">−${money(sum('adelantos'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
+    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td>${hayFer ? `<td class="ntM">${money(sum('pagoFeriado'))}</td>` : ''}<td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM neg">−${money(sum('adelantos'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
     </tbody></table></div>
-    <div class="ntLey"><span><i class="ntC ok"></i>A tiempo</span><span><i class="ntC tarde"></i>Retardo</span><span><i class="ntC just"></i>Tarde con permiso</span><span><i class="ntC perm"></i>Permiso / vacaciones</span><span><i class="ntC falta"></i>Falta</span><span><i class="ntC desc"></i>Descanso</span><span><i class="ntC sin"></i>Sin registro</span><span>Letra = turno del bono (* elegido a mano)</span></div>
-    <div class="small muted" style="margin-top:6px">Reglas: cada día cuenta en un solo turno (el de más horas; los dos solo con turno doble autorizado) · menos de 7 h trabajadas no entra a bonos · más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas.</div>
+    <div class="ntLey"><span><i class="ntC ok"></i>A tiempo</span><span><i class="ntC tarde"></i>Retardo</span><span><i class="ntC just"></i>Tarde con permiso</span><span><i class="ntC perm"></i>Permiso / vacaciones</span><span><i class="ntC falta"></i>Falta</span><span><i class="ntC desc"></i>Descanso</span><span><i class="ntC sin"></i>Sin registro</span>${hayFer ? '<span>🎉 Feriado</span>' : ''}<span>Letra = turno del bono (* elegido a mano)</span></div>
+    <div class="small muted" style="margin-top:6px">Reglas: cada día cuenta en un solo turno (el de más horas; los dos solo con turno doble autorizado) · menos de 7 h trabajadas no entra a bonos · más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas${hayFer ? ' · feriado trabajado: ' + (FER_TXT[d.config.ferPago || 'doble'] || '').split(' · ')[0].toLowerCase() : ''}.</div>
     ${LT ? `<div class="ntBarra"><div class="grow"><b>${nPend}</b> cambio${nPend === 1 ? '' : 's'} pendiente${nPend === 1 ? '' : 's'}</div><button class="btn sm" onclick="nomLoteDescartar()">Descartar</button><button class="btn sm pri" ${nPend ? '' : 'disabled'} onclick="act(this,nomLoteGuardar)">💾 Guardar todo</button></div>` : ''}
     ${!LT && l.filter(p => !p.pagado).length ? `<div class="btns"><button class="btn pri pill full" onclick="asisPagar()">Pagar a ${l.filter(p => !p.pagado).length} · ${money(pdvR(l.filter(p => !p.pagado).reduce((s, p) => s + p.total, 0)))}</button></div>` : ''}
     <div class="btns"><button class="btn pill" onclick="asisCsvNom()">⬇️ Descargar en Excel</button></div>`;
@@ -8805,13 +9106,15 @@ function nomCelda(uid, f) {
   const futuro = f > pdvHoy();
   modal(`<div class="row between"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted">${asisDiaTxt(f)} · ${h ? 'horario ' + h.e + '–' + h.s : 'sin horario (descanso)'}</div>
+    ${x.feriado ? `<div class="aviso info" style="margin:8px 0 0">🎉 <b>Feriado: ${esc(x.feriado)}</b>${x.entrada ? (x.ferNo ? ' · trabajó, <b>sin pago de feriado</b>' : ' · trabajó: ' + (FER_TXT[x.ferModo] || '').split(' · ')[0].toLowerCase()) : ' · si no vino, es descanso pagado'}
+      ${x.entrada ? `<br><button class="lnk small" onclick="act(this,()=>nomAccion('asisFeriadoNo',{usuarioId:'${uid}',fecha:'${f}',no:${!x.ferNo}}))">${x.ferNo ? '↩️ Volver a aplicarle el feriado' : 'Quitarle el pago del feriado a esta persona'}</button>` : ''}</div>` : ''}
     <div class="aviso ${x.estado === 'retardo' ? 'warn' : 'info'}" style="margin:8px 0"><b>${esc(x.justif ? 'Retardo con permiso (cuenta a tiempo)' : tt)}</b>${x.entrada ? ' · entró ' + asisHora(x.entrada) + (x.salida ? ', salió ' + asisHora(x.salida) : '') : ''}${x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : ''}${x.medio ? ' · <b>cuenta medio día</b>' : ''}${x.sinBono ? ' · <b>sin bono de ventas</b>' : ''}${x.manual ? '<br><small>✍️ Capturado a mano por ' + esc(x.manual) + '</small>' : ''}${x.nota ? '<br><small>' + esc(x.nota) + '</small>' : ''}</div>
     ${x.estado === 'retardo' || x.justif ? `<button class="btn pill full" onclick="act(this,()=>nomAccion('asisJustificar',{usuarioId:'${uid}',fecha:'${f}',justif:${!x.justif}}))">${x.justif ? '↩️ Quitar el permiso (vuelve a ser retardo)' : '✅ Llegó tarde pero tenía permiso'}</button>` : ''}
     ${futuro ? '' : `<label class="f">Asistencia (a mano)</label>
     <div class="row" style="gap:6px"><div style="flex:1"><small class="muted">Entrada</small><input class="i" type="time" id="ncE" value="${x.entrada ? hh(x.entrada) : h ? h.e : ''}"></div><div style="flex:1"><small class="muted">Salida</small><input class="i" type="time" id="ncS" value="${x.salida ? hh(x.salida) : h ? h.s : ''}"></div></div>
     <button class="btn pri pill full" style="margin-top:6px" onclick="act(this,()=>nomAccion('asisManual',{usuarioId:'${uid}',fecha:'${f}',entrada:$('#ncE').value,salida:$('#ncS').value}))">Guardar asistencia</button>
     <label class="f">O marca el día como</label>
-    <div class="row" style="gap:6px;flex-wrap:wrap">${[['falta', 'Falta'], ['descanso', 'Descanso'], ['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['vacaciones', 'Vacaciones']].map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>nomAccion('asisDecidir',{usuarioId:'${uid}',fecha:'${f}',estado:'${k}'}))">${t}</button>`).join('')}</div>`}
+    <div class="row" style="gap:6px;flex-wrap:wrap">${[['falta', 'Falta'], ['descanso', 'Descanso'], ['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce'], ['vacaciones', 'Vacaciones']].concat(p.diasFavor > 0 || x.estado === 'compensado' ? [['compensado', '🔁 Día a favor' + (p.diasFavor ? ' (' + p.diasFavor + ')' : '')]] : []).map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>nomAccion('asisDecidir',{usuarioId:'${uid}',fecha:'${f}',estado:'${k}'}))">${t}</button>`).join('')}</div>`}
     ${x.entrada ? `<label class="f">Turno que cuenta para el bono de ventas</label>
     <select class="i" id="ncT" onchange="act(null,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:this.value}))">${PDV.lote && PDV.lote.on && PDV.lote.cambios[uid + '|' + f + '|t'] ? '<option selected disabled>Pendiente: ' + esc(PDV.lote.cambios[uid + '|' + f + '|t'].turno || 'automático') + '</option>' : ''}
       <option value="" ${!x.turnoBono ? 'selected' : ''}>Automático (${esc(auto)})</option>
@@ -8821,7 +9124,7 @@ function nomCelda(uid, f) {
     ${x.manual && !futuro ? `<div style="text-align:center;margin-top:8px"><button class="lnk small" style="color:var(--err)" onclick="act(this,()=>nomAccion('asisManual',{usuarioId:'${uid}',fecha:'${f}',quitar:true}))">Borrar la captura a mano</button></div>` : ''}`);
 }
 async function nomAccion(accion, o) {
-  if (PDV.lote && PDV.lote.on) { nomLoteDesdeAccion(accion, o); cerrarModal(); pintarCaja(); return; } // 2.88.1
+  if (PDV.lote && PDV.lote.on && accion !== 'asisFeriadoNo') { nomLoteDesdeAccion(accion, o); cerrarModal(); pintarCaja(); return; } // 2.88.1
   await api(accion, Object.assign({ negocioId: S.negocio.id }, o));
   cerrarModal(); toast('Guardado ✓'); asisRecargar();
 }
@@ -8978,11 +9281,17 @@ function nomDesglose(uid, k) {
     ${fila('Días descontados', p.diasDescontados)}
     ${p.detalle.filter(x => ['falta', 'permiso_sin', 'sin_decidir'].includes(x.estado) || x.medio).map(x => fila('<small>' + asisDiaTxt(x.fecha) + '</small>', '<small>' + (x.medio ? 'medio día (' + x.minRetardo + ' min tarde)' : (NT_EST[x.estado] || [])[1]) + '</small>')).join('')}
     ${fila('<b>Descuento</b>', '<b>−' + money(p.descuento) + '</b>', 'g')}`;
+  else if (k === 'fer') cuerpo = `${fila('Sueldo diario', money(p.diario))}
+    ${(p.ferDet || []).map(x => fila('🎉 ' + asisDiaTxt(x.fecha) + ' · ' + esc(x.nombre) + '<br><small class="muted">' + (x.no ? 'Sin pago de feriado (lo quitaste)' : (FER_TXT[x.modo] || '').split(' · ')[0]) + '</small>' + `<br><button class="lnk small" onclick="act(this,()=>nomAccion('asisFeriadoNo',{usuarioId:'${uid}',fecha:'${x.fecha}',no:${!x.no}}))">${x.no ? '↩️ Volver a aplicar' : 'Quitárselo a esta persona'}</button>`,
+      x.no ? '—' : x.modo === 'adeudo' ? '+1 día a favor' : '+' + money(pdvR(p.diario * (x.modo === 'triple' ? 2 : 1))))).join('') || '<div class="small muted">No trabajó ningún feriado en este periodo.</div>'}
+    ${p.feriadosDescanso ? '<div class="small muted" style="margin-top:6px">Descansó ' + p.feriadosDescanso + ' feriado' + (p.feriadosDescanso > 1 ? 's' : '') + ' (descanso pagado, no se descuenta).</div>' : ''}
+    ${p.feriadosAdeudo ? `<div class="aviso info small" style="margin-top:6px">Le ${p.feriadosAdeudo > 1 ? 'quedan' : 'queda'} ${p.feriadosAdeudo} día${p.feriadosAdeudo > 1 ? 's' : ''} a favor por feriados. Cuando descanse, toca ese día en el tablero → <b>Día a favor</b>. Tiene ${p.diasFavor || 0} en total.</div>` : ''}
+    ${fila('<b>Pago por feriados</b>', '<b>' + money(p.pagoFeriado || 0) + '</b>', 'g')}`;
   else if (k === 'adel') cuerpo = `${(p.adelDet || []).map(a => fila((ADEL_TXT[a.tipo] || a.tipo) + '<br><small class="muted">' + asisDiaTxt(a.fecha) + (a.folio ? ' · ' + esc(a.folio) : '') + (a.nota ? ' · ' + esc(a.nota) : '') + (a.origen === 'caja' && a.tipo === 'efectivo' ? ' · de la caja' : a.origen === 'externo' ? ' · fuera de caja' : '') + (a.decidePor ? ' · ' + esc(a.decidePor) : '') + '</small>', '−' + money(a.monto))).join('') || '<div class="small muted">Sin adelantos en este periodo.</div>'}
     ${fila('<b>Adelantos</b>', '<b>−' + money(p.adelantos || 0) + '</b>', 'g')}${p.arrastre ? `<div class="aviso warn small" style="margin-top:6px">No alcanza: ${money(p.arrastre)} pasan a la siguiente nómina.</div>` : ''}`;
-  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}
+  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}${p.pagoFeriado ? fila('Feriados trabajados', '+' + money(p.pagoFeriado)) : ''}
     ${p.pagoExtra ? fila('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.pagoDobles ? fila('Turnos dobles', '+' + money(p.pagoDobles)) : ''}${fila('<b>Total</b>', '<b>' + money(p.total) + '</b>', 'g')}`;
-  const tit = { punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
+  const tit = { fer: '🎉 Feriados', punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
   modal(`<div class="row between"><h2 style="margin:0">${tit}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted">${esc(p.nombre)} · ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}</div><div class="card" style="margin-top:8px">${cuerpo}</div>
     <div class="btns"><button class="btn pill" onclick="asisDetalleNom('${uid}')">Ver todo</button></div>`);
@@ -9051,8 +9360,8 @@ async function asisConfirmarPago() {
 }
 function asisCsvNom() {
   const d = PDV.per.datos;
-  pdvDescargar('nomina-' + d.desde + '-a-' + d.hasta + '.csv', [['Nombre', 'Desde', 'Hasta', 'Sueldo', 'Diario', 'Trabajados', 'Descansos', 'Permisos con goce', 'Permisos sin goce', 'Faltas', 'Sin decidir', 'Retardos', 'Faltas por retardos', 'Descuento', 'Horas extra', 'Pago extra', 'Bono puntualidad', 'Medios días', 'Adelantos', 'Incentivos', 'Total', 'Pagado']]
-    .concat(d.personas.map(p => [p.nombre, d.desde, d.hasta, p.sueldo, p.diario, p.trabajados, p.descansos, p.permisosGoce, p.permisosSin, p.faltas, p.sinDecidir, p.retardos, p.faltasPorRetardo, p.descuento, p.horasExtra, p.pagoExtra, p.bonoPunt || 0, p.mediosDias || 0, p.adelantos || 0, p.incentivos || 0, p.total, p.pagado ? fechaCorta(p.pagado.fecha) : ''])));
+  pdvDescargar('nomina-' + d.desde + '-a-' + d.hasta + '.csv', [['Nombre', 'Desde', 'Hasta', 'Sueldo', 'Diario', 'Trabajados', 'Descansos', 'Permisos con goce', 'Permisos sin goce', 'Faltas', 'Sin decidir', 'Retardos', 'Faltas por retardos', 'Descuento', 'Horas extra', 'Pago extra', 'Bono puntualidad', 'Medios días', 'Adelantos', 'Incentivos', 'Feriados (pago)', 'Feriados (días a favor)', 'Total', 'Pagado']]
+    .concat(d.personas.map(p => [p.nombre, d.desde, d.hasta, p.sueldo, p.diario, p.trabajados, p.descansos, p.permisosGoce, p.permisosSin, p.faltas, p.sinDecidir, p.retardos, p.faltasPorRetardo, p.descuento, p.horasExtra, p.pagoExtra, p.bonoPunt || 0, p.mediosDias || 0, p.adelantos || 0, p.incentivos || 0, p.pagoFeriado || 0, p.feriadosAdeudo || 0, p.total, p.pagado ? fechaCorta(p.pagado.fecha) : ''])));
 }
 /** Menú 🕒 de la caja y la cocina: mostrar el QR (pantalla del negocio) o marcar mi asistencia. */
 async function asisMenu() {
@@ -9343,7 +9652,7 @@ function asisVistaConsumo() {
   if (!PDV.per.gente && !PDV.per._cargGente) { PDV.per._cargGente = true; api('personalLista', { negocioId: S.negocio.id }).then(d => { PDV.per.gente = d.equipo.filter(p => p.alta); pintarCaja(); }).catch(() => { }).finally(() => { PDV.per._cargGente = false; }); }
   const saldo = uid => (l.find(x => x.id === uid) || {}).saldo || 0;
   return `<div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">Saldo para que tu personal consuma aquí. Se cobra en la caja con <b>🎁 Consumo de personal</b>.</span><button class="btn sm pri" onclick="consumoAsignar('')">🎁 Dar a todos</button></div>
-    ${gente.map(p => `<div class="card row between"><div><b>${esc(p.nombre)}</b><div class="small muted">Saldo: <b>${money(saldo(p.usuarioId))}</b></div></div><div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button><button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button><button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}`;
+    ${gente.map(p => `<div class="card row between consFila" style="gap:8px"><div><b>${esc(p.nombre)}</b><div class="small muted">Saldo: <b>${money(saldo(p.usuarioId))}</b></div></div><div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button><button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button><button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}`;
 }
 function asisVistaConsumoMon() {
   const gente = (PDV.per && PDV.per.gente) || [], sal = PDV.per.monSal;
@@ -9352,7 +9661,7 @@ function asisVistaConsumoMon() {
   const viejo = uid => ((PDV.consumo || []).find(x => x.id === uid) || {}).saldo || 0;
   return `<div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">El bono de consumo va al <b>👛 monedero</b> de cada persona: lo ve en su app y lo usa en tus negocios y al pedir por la app. Se cobra con <b>👛 Monedero</b>.</span><button class="btn sm pri" onclick="consumoAsignar('')">🎁 Dar a todos</button></div>
     ${gente.map(p => { const tel = consTel(p), v = sal ? sal[p.usuarioId] : undefined;
-      return `<div class="card row between"><div><b>${esc(p.nombre)}</b><div class="small muted">${tel.length !== 10 ? '⚠️ Sin teléfono: no tiene monedero' + (viejo(p.usuarioId) ? ' · consumo ' + money(viejo(p.usuarioId)) : '') : '👛 Monedero: <b>' + (v === undefined ? '…' : v === null ? 'sin conexión' : money(v)) + '</b>'}</div></div>
+      return `<div class="card row between consFila" style="gap:8px"><div><b>${esc(p.nombre)}</b><div class="small muted">${tel.length !== 10 ? '⚠️ Sin teléfono: no tiene monedero' + (viejo(p.usuarioId) ? ' · consumo ' + money(viejo(p.usuarioId)) : '') : '👛 Monedero: <b>' + (v === undefined ? '…' : v === null ? 'sin conexión' : money(v)) + '</b>'}</div></div>
       <div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button>${tel.length === 10 ? `<button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button>` : ''}<button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`; }).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}
     <div class="small muted" style="margin-top:6px">El saldo del monedero incluye también su cashback como cliente. Para pedir por la app con su monedero, su teléfono debe estar verificado.</div>`;
 }
@@ -9627,7 +9936,7 @@ const monMesAnt = dia => { const [y, m] = dia.split('-').map(Number); const d = 
 const monSuma = (dia, dias) => pdvHoy(new Date(dia + 'T12:00:00').getTime() + dias * 864e5);
 const monTel = t => String(t || '').replace(/\D/g, '').slice(-10);
 const monFecha = dia => { const [y, m, d] = dia.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }); };
-const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada', bonoPersonal: '🎁 Bono de consumo de personal', ajustePersonal: '🔧 Ajuste del bono de personal' };
+const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada', bonoPersonal: '🎁 Bono de consumo de personal', ajustePersonal: '🔧 Ajuste del bono de personal', devolucionCambio: '↩️ Devuelto por cambio de pedido' };
 /** Saldo disponible: lo recargado más el cashback y bonos que no han vencido (lotes ordenados del que vence primero). */
 function monSaldo(x, hoy) {
   hoy = hoy || pdvHoy();
@@ -10543,7 +10852,7 @@ async function vCocina(_, silencioso) {
   S._coc = d; try { recordar(d.pedidos || []); } catch (e) { }
   // pedido nuevo mientras la pantalla está abierta: suena (el sondeo general ya avisa, aquí se insiste hasta aceptarlo)
   if (antes && d.pedidos.some(x => x.estado === 'NUEVO' && !antes.has(x.id)) && cocCfg().sonido) beep();
-  pintarCocina();
+  pintarCocina(); burbujaApp(); // 2.91
   entrarCocina_();
   pdvCocinaConectar();
 }
@@ -10621,6 +10930,7 @@ function pintarCocina() {
   const koms = (S._cocKom || []).map(k => ({ _kom: 1, id: k.id, folio: k.folio, tipoTxt: k.etiqueta, comprador: k.mesero && k.tipo === 'mesa' ? { nombre: k.mesero.nombre } : k.cliente ? { nombre: k.cliente.nombre } : null, horaSalida: k.salida, items: k.items, notas: '',
     bandas: [(k.corr || []).slice(-3).map(t => `<div class="cBanda corr">${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${esc(t).toUpperCase()}</div>`).join(''), k.ronda > 1 && !k.correccion ? `<div class="cBanda agr">➕ AGREGADO · ${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${k.ronda}ª RONDA</div>` : '',
       k.pagado ? `<div class="cBanda pag">💵 PAGADO${k.entrega && k.entrega.hora ? ' · PASA ' + esc(horaTxt(k.entrega.hora)).toUpperCase() : ''}${k.entrega && k.entrega.nombre ? ' · ' + esc(k.entrega.nombre).toUpperCase() : ''}</div>` : ''].join('') }));
+  l.forEach(x => { if (x.cambioSol) x.bandas = '<div class="cBanda corr" style="background:#B26A00;color:#fff">🔁 EL CLIENTE PIDE UN CAMBIO · REVÍSALO</div>'; else if (x.modificado && x.modificado > (x.aceptado || 0) + 1000) x.bandas = '<div class="cBanda corr">🔁 CAMBIO · ' + esc(hora(x.modificado)).toUpperCase() + '</div>'; }); // 2.92
   prep.push(...koms);
   const caja = (S._cocPdv || []).map(v => ({ _pdv: 1, id: v.id, folio: v.folio, tipoTxt: v.tipo === 'llevar' ? '🥡 Para llevar' : '🧾 Mostrador', comprador: v.cliente ? { nombre: v.cliente.nombre } : null, horaSalida: v.cocina.salida, items: v.items, notas: v.cocina.recoge ? 'Pasa a las ' + v.cocina.recoge : '' }));
   prep.push(...caja); prep.sort((a, b) => (a.horaSalida || 9e15) - (b.horaSalida || 9e15));
@@ -10634,7 +10944,7 @@ function pintarCocina() {
     const sug = x.minutosSugeridos || (S.negocio && S.negocio.tiempoPrep) || 20, s = ops.find(m => m >= sug) || 45;
     return `<div class="cTarj nuevo" id="ct_${x.id}"><div class="cab"><span class="folio">${esc(x.folio)}</span><span class="tipo">${cocTipo(x)}</span>${x.porTelefono ? '<span class="tipo">📞</span>' : ''}
         <span class="tiempo" style="font-size:15px">hace ${Math.max(0, Math.round((ahora - x.creado) / 60000))} min</span></div>
-      <div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
+      ${x.modificado ? '<div class="cBanda corr">✏️ EL CLIENTE LO MODIFICÓ</div>' : ''}<div class="cuerpo">${quien(x) ? `<div class="small" style="font-weight:800;margin-bottom:4px">${quien(x)}</div>` : ''}${cocItems(x)}${x.notas ? `<div class="nota">📝 ${esc(x.notas)}</div>` : ''}</div>
       <div class="info">¿En cuánto estará listo? Toca para aceptar:</div>
       <div class="mins">${ops.map(m => `<button class="${m === s ? 'sug' : ''}" onclick="act(this,()=>cocAceptar('${x.id}',${m}))">${m}′</button>`).join('')}</div>
       <div class="pie"><button class="bImp" onclick="imprimirComanda('${x.id}')" aria-label="Imprimir">🖨️</button><button class="bRech" onclick="act(this,()=>cancelar('${x.id}','Rechazar'))">Rechazar</button></div></div>`;
@@ -10783,8 +11093,9 @@ function iniciarModoTel(conservar) {
 /** Apaga la captura (modo cliente, carrito) sin cambiar de pantalla. */
 function terminarModoTel(callado) {
   if (!S.modoTel) return;
+  const resp = S.modoTel.respaldo; // 2.92: al modificar un pedido desde la caja, la cuenta que estaba abierta vuelve
   S.modoTel = null; ls('modoTel', null); S.modoCliente = false; ls('modoCliente', null); S._capT = null;
-  if (S.negocio && S.carritos) { delete S.carritos[S.negocio.id]; guardarCarritos(); }
+  if (S.negocio && S.carritos) { if (resp) S.carritos[S.negocio.id] = resp; else delete S.carritos[S.negocio.id]; guardarCarritos(); }
   if ($('#modal').classList.contains('on')) cerrarModal();
   pintarNav();
   if (!callado) toast('Pedido por teléfono cancelado');
@@ -10795,8 +11106,8 @@ function preguntarSalirTel() {
   if (!S.modoTel) { volver('inicio'); return; }
   const c = S.negocio && (S.carritos || {})[S.negocio.id];
   if (!c || !Object.keys(c.items || {}).length) { salirModoTel(); return; }
-  modal(`<div style="text-align:center"><div style="font-size:40px">📞</div><h2 style="margin:4px 0">¿Cancelar el pedido de ${esc(S.modoTel.nombre.split(' ')[0])}?</h2>
-    <div class="muted">Se borra lo que llevas agregado.</div>
+  modal(`<div style="text-align:center"><div style="font-size:40px">📞</div><h2 style="margin:4px 0">${S.modoTel.mod ? '¿Salir sin guardar los cambios?' : '¿Cancelar el pedido de ' + esc(S.modoTel.nombre.split(' ')[0]) + '?'}</h2>
+    <div class="muted">${S.modoTel.mod ? 'El pedido ' + esc(S.modoTel.folio) + ' se queda como estaba.' : 'Se borra lo que llevas agregado.'}</div>
     <div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Seguir capturando</button>
     <button class="btn pill full" onclick="salirModoTel()">Sí, cancelar</button></div></div>`);
 }
@@ -10806,20 +11117,22 @@ async function vCapturaTel() {
   const c = (S.carritos || {})[S.negocio.id];
   if (!c || !Object.keys(c.items || {}).length) { ir('negocio', S.negocio.id); return; }
   const n = S.negocio, t = S.modoTel, f = S._capT = S._capT || { tipo: 'domicilio', metodo: 'efectivo' };
-  html(`<div class="titBar"><button class="redondo" onclick="ir('carrito')">${ico('atras')}</button><h2>Pedido de ${esc(t.nombre.split(' ')[0])}</h2><span class="esp"></span></div>
-    <div class="card"><b>📞 ${esc(t.nombre)}</b> · ${esc(t.tel)}<div class="muted small">${Object.values(c.items).reduce((a, x) => a + x.cant, 0)} productos · ${money(subtotalCarrito(c))}</div></div>
+  html(`<div class="titBar"><button class="redondo" onclick="ir('carrito')">${ico('atras')}</button><h2>${t.mod ? 'Modificar ' + esc(t.folio) : 'Pedido de ' + esc(t.nombre.split(' ')[0])}</h2><span class="esp"></span></div>
+    <div class="card"><b>${t.mod ? '✏️ ' + esc(t.folio) + ' · ' : '📞 '}${esc(t.nombre)}</b>${t.tel ? ' · ' + esc(t.tel) : ''}<div class="muted small">${Object.values(c.items).reduce((a, x) => a + x.cant, 0)} productos · ${money(subtotalCarrito(c))}</div></div>
     <div class="card"><b>¿Cómo se entrega?</b>
       <div class="row" style="gap:8px;margin-top:8px">${[['domicilio', '🛵 A domicilio'], ['recoger', '🏪 Pasa a recoger']].map(([k, tx]) => `<button class="btn ${f.tipo === k ? 'pri' : ''}" style="flex:1" onclick="S._capT.tipo='${k}';pintar(true)">${tx}</button>`).join('')}</div>
       ${f.tipo === 'domicilio' ? `<label class="f">Dirección</label><input class="i" id="ctDir" maxlength="150" value="${esc(f.direccion || '')}" placeholder="Calle, número, colonia">
         <label class="f">Referencia</label><input class="i" id="ctRef" maxlength="150" value="${esc(f.referencia || '')}" placeholder="Ej. casa azul, frente a la tienda">
         <label class="f">Toca el mapa donde se entrega <span class="muted">(opcional)</span></label><div id="mapaCap" class="mapa alto"></div>
         <div class="muted small" id="ctPin" style="margin-top:4px">${f.lat ? '📍 Punto marcado' : 'Sin punto: el cliente lo marca desde su enlace o el repartidor le llama para confirmar.'}</div>` : ''}</div>
-    <div class="card"><b>¿En cuánto tiempo estará listo?</b>
+    ${t.mod ? `<div class="card"><label class="f" style="margin-top:0">Notas (opcional)</label><input class="i" id="ctNot" maxlength="200" value="${esc(f.notas || '')}" placeholder="Ej. sin cebolla, tocar el timbre">
+      <div class="muted small" style="margin-top:6px">La forma de pago no cambia (${esc(PAGO_TXT[f.metodo] || f.metodo)}). Al guardar le avisamos al cliente con el nuevo total.</div></div>
+    <button class="btn pri pill full" onclick="act(this,negModGuardar)">✏️ Guardar cambios</button><div style="height:20px"></div>` : `<div class="card"><b>¿En cuánto tiempo estará listo?</b>
       <select class="i" id="ctMin" style="margin-top:8px">${[10, 15, 20, 25, 30, 40, 50, 60].map(m => `<option value="${m}" ${(f.minutos || n.tiempoPrep || 20) == m ? 'selected' : ''}>${m} minutos</option>`).join('')}</select></div>
     <div class="card"><b>¿Cómo paga?</b>
       ${[['efectivo', f.tipo === 'domicilio' ? '💵 Paga en efectivo al recibir' : '💵 Paga en efectivo al recoger'], ['transferencia', '🏦 Ya me pagó por transferencia']].map(([k, tx]) => `<label class="opc"><input type="radio" name="ctMet" value="${k}" ${f.metodo === k ? 'checked' : ''} onchange="S._capT.metodo='${k}'"><span>${tx}</span></label>`).join('')}
       <label class="f">Notas (opcional)</label><input class="i" id="ctNot" maxlength="200" value="${esc(f.notas || '')}" placeholder="Ej. sin cebolla, tocar el timbre"></div>
-    <button class="btn pri pill full" onclick="act(this,confirmarPedidoTel)">Registrar pedido</button><div style="height:20px"></div>`);
+    <button class="btn pri pill full" onclick="act(this,confirmarPedidoTel)">Registrar pedido</button><div style="height:20px"></div>`}`);
   if (f.tipo === 'domicilio') {
     await cargarLeaflet();
     const lat = f.lat || n.lat || (S.conf && S.conf.centroLat) || 23.92, lng = f.lng || n.lng || (S.conf && S.conf.centroLng) || -106.89;
@@ -11100,10 +11413,12 @@ function resumenCobro(p) {
 
 /** Botones de acción según el rol (negocio, repartidor, admin). */
 const progTxtC = ms => { const d = dZ(ms), h = dZ(), dd = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(h.getFullYear(), h.getMonth(), h.getDate())) / 864e5); return (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })) + ' ' + hora(ms); };
-function botonesPedido(p, enTarjeta) {
+function botonesPedido(p, enTarjeta, sinCambio) {
   const r = rolActual(), b = [], id = p.id;
   const efe = p.metodoPago === 'efectivo', recoger = p.tipoEntrega === 'recoger';
   if (r === 'negocio') {
+    if (p.cambioSol && p.puedeCambiarNeg && !sinCambio) b.push(cambioSolNegHTML(p)); // 2.92 (en la caja va arriba de la ficha)
+    if (p.difPago && !sinCambio) b.push(`<div style="width:100%">${difPagoHTML(p, 'neg')}</div>`);
     if (p.estado === 'NUEVO' && p.programado) {
       b.push(`<button class="btn ok" onclick="act(this,()=>accion('aceptarPedido',{id:'${id}',minutos:30},'Pedido programado confirmado'))">✅ Confirmar para ${esc(progTxtC(p.programado))}</button>`);
       b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}','Rechazar'))">Rechazar</button>`);
@@ -11143,6 +11458,7 @@ function botonesPedido(p, enTarjeta) {
       b.push(`<button class="btn ok" onclick="act(this,()=>entregadoPropio('${id}'))">${ico('check', 's')} Ya se entregó</button>`);
       if (!enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar</button>`);
     }
+    if (p.puedeCambiarNeg && !p.cambioSol && !p.servicio) b.push(`<button class="btn" onclick="act(this,()=>negModIniciar('${id}'))">✏️ Modificar</button>`); // 2.92
     if (['POR_PAGAR', 'PAGO_ENVIADO', 'PREPARANDO', 'LISTO'].includes(p.estado) && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar</button>`);
   }
   if (r === 'repartidor' && p.servicio && p.estado === 'NUEVO' && !enTarjeta) b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar servicio</button>`);
@@ -13423,7 +13739,7 @@ async function vNegocio(id, silencioso) {
   S._abrirSec = null;
   const km = distanciaTxt(n);
   const tel = S.modoTel && esStaff();
-  html(`${tel ? `<div class="barraTel"><span style="font-size:20px">📞</span><span class="grow">Pedido de ${esc(S.modoTel.nombre)}</span><button onclick="preguntarSalirTel()">Cancelar</button></div>` : ''}<div class="hero">${n.portada ? `<img src="${esc(n.portada)}" alt="">` : (ICONO_CAT[n.categoria] || '🍽️')}
+  html(`${tel ? `<div class="barraTel"><span style="font-size:20px">📞</span><span class="grow">${S.modoTel.mod ? '✏️ Modificando ' + esc(S.modoTel.folio) : 'Pedido de ' + esc(S.modoTel.nombre)}</span><button onclick="preguntarSalirTel()">Cancelar</button></div>` : ''}<div class="hero">${n.portada ? `<img src="${esc(n.portada)}" alt="">` : (ICONO_CAT[n.categoria] || '🍽️')}
       <button class="redondo" onclick="${tel ? 'preguntarSalirTel()' : "volver('inicio')"}" aria-label="Volver">${ico('atras')}</button>
       <button class="redondo compartir" onclick="compartirNegocio(this,'${n.id}',S._menu.negocio.nombre)" aria-label="Compartir">${ico('compartir')}</button></div>
     <div class="negH">
@@ -13870,7 +14186,7 @@ function vCarrito() {
       <div class="tot" style="margin-top:8px"><span>Subtotal</span><span>${money(sub)}</span></div>
       <div class="tot"><span>Envío${nSel > 1 ? 's (' + nSel + ')' : ''}</span><span>${envSin && !env ? '<span class="muted small">Se calcula con tu dirección</span>' : money(env) + (envSin ? '*' : '')}</span></div>
       <div class="tot g"><span>Total</span><span>${money(sub + env)}</span></div></div>
-    ${S.modoTel ? `<div class="aviso info">📞 <b>Pedido por teléfono de ${esc(S.modoTel.nombre)}</b> (${esc(S.modoTel.tel)}). En el siguiente paso pones cómo se entrega y cómo paga.</div>` : ''}
+    ${S.modoTel ? (S.modoTel.mod ? `<div class="aviso info">✏️ <b>Modificando el pedido ${esc(S.modoTel.folio)}</b> de ${esc(S.modoTel.nombre)}. Cambia productos o tamaños aquí; en el siguiente paso, cómo se entrega.</div>` : `<div class="aviso info">📞 <b>Pedido por teléfono de ${esc(S.modoTel.nombre)}</b> (${esc(S.modoTel.tel)}). En el siguiente paso pones cómo se entrega y cómo paga.</div>`) : ''}
     ${S.modoServicio ? `<div class="aviso info">🛵 <b>Servicio para tu cliente:</b> el negocio te dirá a qué hora pasar. Pagas en efectivo al recogerlo; el envío lo arreglas tú con tu cliente.</div>` : ''}
     <button class="btn pri pill full" ${nSel ? '' : 'disabled'} onclick="continuarCarrito()">${S.modoServicio ? 'Enviar servicio al negocio' : 'Continuar' + (nSel > 1 ? ' con ' + nSel + ' pedidos' : '')}</button><div style="height:20px"></div>`);
 }
@@ -13888,7 +14204,7 @@ function vaciarCarrito(negId) {
   delete S.carritos[negId]; guardarCarritos(); vCarrito();
 }
 /** Carritos que entran en este pedido. */
-function carritosSel() { return carritosLista().filter(c => S.sel && S.sel[c.negocioId] !== false && negocioAbierto(c.negocioId)); }
+function carritosSel() { if (S.modPed) return carritosLista(); return carritosLista().filter(c => S.sel && S.sel[c.negocioId] !== false && negocioAbierto(c.negocioId)); }
 
 function continuarCarrito() {
   if (!carritosSel().length) { toast('Elige al menos un negocio', 'err'); return; }
@@ -14021,7 +14337,7 @@ async function vPago() {
   }
   await cargarPrimera(cs.map(c => c.negocioId));
   e.metodos = e.metodos || {};
-  S._pedirVerif = false; S._sinPago = false;
+  S._pedirVerif = false; S._sinPago = false; S._sinPagoUbic = false;
   // 2.82.1: a domicilio, pague como pague, el número debe estar verificado
   S._verifDom = e.tipo === 'domicilio' && !esAdminU() && !!S.user && !S.user.telVerificado;
   if (S._verifDom) S._pedirVerif = true;
@@ -14056,15 +14372,21 @@ async function vPago() {
       // reglas de efectivo: la app avisa antes; el servidor tiene la última palabra
       const rg = reglaEfectivo(sub + envio - dx, e.tipo);
       if (rg.verificar) S._pedirVerif = true;
-      if (S.fueraZona || lsG('fuera')) ops.push(['efectivo', 'efectivo', 'Efectivo', lsG('sinUbic') ? 'Activa tu ubicación para pagar en efectivo' : 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true]);
+      // 2.90.1 · pasar a recoger no pide ubicación; a domicilio, en lugar de bloquear, se ofrece activarla aquí mismo
+      if (e.tipo !== 'recoger' && (S.fueraZona || lsG('fuera'))) ops.push(['efectivo', 'efectivo', 'Efectivo', lsG('sinUbic') ? 'Para pagar en efectivo a domicilio necesitamos tu ubicación' : 'Estás fuera de ' + PUEBLO.nombre + ': paga por transferencia', true,
+        `<button class="btn sm pri pill" style="margin-top:6px" onclick="act(this,ubicarPago)">📍 ${lsG('sinUbic') ? 'Activar ubicación' : 'Ya estoy en ' + esc(PUEBLO.nombre) + ': comprobar'}</button>`]);
       else ops.push(['efectivo', 'efectivo', 'Efectivo' + (dx ? ' · ahorras ' + money(dx) : ''), rg.ok ? (e.tipo === 'recoger' ? 'Pagas al recoger tu pedido' : 'Pagas ' + money(sub + envio - dx) + ' al repartidor al recibir' + (dx ? ' (descuento de ' + money(dx) + ' en el envío por pagar en efectivo)' : '')) + (rg.nota ? '. ' + rg.nota : '') : rg.motivo, !rg.ok]);
+    }
+    if (S.modPed) { // 2.92: al cambiar un pedido se conserva su forma de pago
+      const mt = S.modPed.metodo, ic = { efectivo: 'efectivo', transferencia: 'banco', codi: 'qr', mp: 'tarjeta', monedero: 'tienda' }[mt] || 'efectivo';
+      ops.length = 0; ops.push([mt, ic, PAGO_TXT[mt] || mt, 'La misma forma de pago de tu pedido']); e.metodos[c.negocioId] = mt;
     }
     const disp = ops.filter(o => !o[4]);
     const m = e.metodos[c.negocioId];
     if (!disp.some(o => o[0] === m)) e.metodos[c.negocioId] = disp.length === 1 ? disp[0][0] : (disp.find(o => o[0] === 'efectivo') || disp.find(o => o[0] !== 'monedero') || disp[0] || [''])[0];
-    if (!disp.length) S._sinPago = true;
+    if (!disp.length) { S._sinPago = true; if (ops.some(o => o[5])) S._sinPagoUbic = true; }
     return `${cs.length > 1 ? `<h3>${esc(c.negocio)}</h3>` : ''}
-      ${ops.map(o => o[4] ? `<div class="opcion" style="opacity:.55;cursor:default"><span class="radio"></span><span class="ico">${ico(o[1])}</span><div class="grow"><b>${o[2]}</b><small>🔒 ${esc(o[3])}</small></div></div>`
+      ${ops.map(o => o[4] ? `<div class="opcion" style="${o[5] ? '' : 'opacity:.55;'}cursor:default"><span class="radio" ${o[5] ? 'style="opacity:.55"' : ''}></span><span class="ico" ${o[5] ? 'style="opacity:.55"' : ''}>${ico(o[1])}</span><div class="grow"><b>${o[2]}</b><small>🔒 ${esc(o[3])}</small>${o[5] || ''}</div></div>`
         : `<div class="opcion ${o[0] === e.metodos[c.negocioId] ? 'on' : ''}" data-n="${c.negocioId}" data-m="${o[0]}" onclick="elegirMetodo(this)"><span class="radio"></span><span class="ico">${ico(o[1])}</span>
         <div class="grow"><b>${o[2]}</b><small>${o[3]}</small></div></div>`).join('')}
       ${n.abierto === false && !(e.prog && e.prog.on) ? `<div class="aviso warn">${esc(c.negocio)}: ${esc(n.estadoTexto || 'no recibe pedidos ahora')}${pedible(n) ? ' · prográmalo arriba 🗓️' : ''}</div>` : ''}
@@ -14072,11 +14394,11 @@ async function vPago() {
       <div class="muted small" id="nota_${c.negocioId}" style="margin:-2px 0 6px"></div>`;
   }).join('');
   ls('entrega', e);
-  const cerrado = cs.some(c => (negs[c.negocioId] || {}).abierto === false) && !(e.prog && e.prog.on && progSlots(cs, negs, e.prog.dia).includes(e.prog.hora));
+  const cerrado = !S.modPed && cs.some(c => (negs[c.negocioId] || {}).abierto === false) && !(e.prog && e.prog.on && progSlots(cs, negs, e.prog.dia).includes(e.prog.hora));
   html(`<div class="titBar"><button class="redondo" onclick="volver('entrega')">${ico('atras')}</button><h2>Método de pago</h2><span class="esp"></span></div>
     ${S._pedirVerif ? tarjetaVerificar(true, S._verifDom) : ''}
-    ${S._sinPago ? '<div class="aviso warn">Un negocio de tu pedido solo acepta efectivo y por ahora no puedes pagar así. Verifica tu teléfono o quítalo del pedido.</div>' : ''}
-    ${progHTML(cs, negs, e)}
+    ${S._sinPago ? `<div class="aviso warn">${S._sinPagoUbic ? 'Un negocio de tu pedido solo acepta efectivo: activa tu ubicación aquí abajo para pagar así, o quítalo del pedido.' : 'Un negocio de tu pedido solo acepta efectivo y por ahora no puedes pagar así. Verifica tu teléfono o quítalo del pedido.'}</div>` : ''}
+    ${S.modPed ? (S.modPed.modo === 'sol' ? '<label class="f">Nota para el negocio (opcional)</label><input class="i" id="modNota" maxlength="200" placeholder="Ej. cámbiame el refresco por uno grande">' : '') : progHTML(cs, negs, e)}
     ${bloques}
     <div class="card" style="margin-top:6px"><b style="font-size:16px">Resumen</b>
       ${cs.map(c => `<div class="tot" style="margin-top:6px"><span>${esc(c.negocio)}${S._pagoTot[c.negocioId].desc ? ' <span class="tag t-err">ahorras ' + money(S._pagoTot[c.negocioId].desc) + '</span>' : ''}</span><span>${money(S._pagoTot[c.negocioId].sub)}</span></div>`).join('')}
@@ -14091,7 +14413,7 @@ async function vPago() {
     ${esAdminU() ? `<label class="opcion" style="border-color:var(--warn)"><input type="checkbox" id="pMuestra" ${cerrado ? 'checked disabled' : S._muestra ? 'checked' : ''} onchange="S._muestra=this.checked;$('#pPractica').style.display=this.checked?'':'none';opcionesPractica()">
       <div class="grow"><b>🧪 Pedido de muestra</b><small>Para enseñar la app: el negocio lo recibe en vivo y tú lo entregas en “Ver como repartidor”. No cuenta en ventas ni ranking y se borra a las 24 h.${cerrado ? ' Un negocio de tu pedido está cerrado: solo puede ser de muestra.' : ''}</small></div></label>
       <div id="pPractica" style="${S._muestra || cerrado ? '' : 'display:none'}"></div>` : ''}
-    <button class="btn pri pill full" ${(cerrado && !esAdminU()) || S._sinPago || S._verifDom ? 'disabled' : ''} onclick="act(this,confirmarPedido)">Confirmar ${cs.length > 1 ? cs.length + ' pedidos' : 'pedido'}</button><div style="height:20px"></div>`);
+    <button class="btn pri pill full" ${(cerrado && !esAdminU()) || S._sinPago || S._verifDom ? 'disabled' : ''} onclick="act(this,confirmarPedido)">${S.modPed ? (S.modPed.modo === 'sol' ? '🔁 Enviar solicitud de cambio' : '✏️ Guardar cambios') : 'Confirmar ' + (cs.length > 1 ? cs.length + ' pedidos' : 'pedido')}</button><div style="height:20px"></div>`);
   cs.forEach(c => notaPago(c.negocioId));
   if (esAdminU()) opcionesPractica();
 }
@@ -14307,6 +14629,7 @@ async function monSaldoApp(gid, fresco) {
   return pr;
 }
 async function confirmarPedido() {
+  if (S.modPed) return modPedEnviar(); // 2.92
   const e = S.entrega, cs = carritosSel();
   if (e.prog && e.prog.on && !e.prog.hora) throw new Error('Elige a qué hora lo quieres');
   if (cs.some(c => !e.metodos[c.negocioId])) throw new Error('Elige cómo vas a pagar en cada negocio');
@@ -14324,7 +14647,10 @@ async function confirmarPedido() {
   let gps;
   // efectivo: siempre con la ubicación actual (solo se acepta dentro de la ciudad)
   const muestra = esAdminU() && !!($('#pMuestra') && $('#pMuestra').checked);
-  if (!muestra && cs.some(c => e.metodos[c.negocioId] === 'efectivo')) gps = await ubicacionActual();
+  if (!muestra && e.tipo !== 'recoger' && cs.some(c => e.metodos[c.negocioId] === 'efectivo')) {
+    try { gps = await ubicacionActual(); }
+    catch (er) { if (er.code !== undefined) ayudaUbicPago(er.code === 1 ? 'bloqueada' : 'apagada'); throw er; }
+  }
   let r;
   try {
     // todos los pedidos en UNA sola llamada; el servidor valida todos antes de crear alguno
@@ -14414,7 +14740,7 @@ async function vPedido(id, silencioso) {
   if (p.esMio && esStaff() && !S.modoCliente) { S.modoCliente = true; ls('modoCliente', 1); pintarNav(); }
   if (rolActual() !== 'comprador') { vPedidoOperacion(p); return; }
   // en refresco silencioso solo se mueven los marcadores si el mapa ya existe
-  if (silencioso && S.map && S._trk && S._trk.id === p.id && S._trk.estado === p.estado) { moverTrk(p); return; }
+  if (silencioso && S.map && S._trk && S._trk.id === p.id && S._trk.estado === p.estado && S._trk.mod === (p.modificado || 0) + '|' + (p.cambioSol ? p.cambioSol.t : '') + '|' + JSON.stringify(p.difPago || 0)) { moverTrk(p); return; } // 2.92: si cambió el pedido se repinta
   const recoger = p.tipoEntrega === 'recoger';
   const st = estadoCliente(p);
   html(`<div class="segTop"><button class="redondo" onclick="volver('pedidos')">${ico('atras')}</button><h2>Seguimiento de tu pedido</h2><span class="esp"></span></div>
@@ -14434,12 +14760,14 @@ async function vPedido(id, silencioso) {
     ${bloqueNoRecibido(p)}
     ${bloqueRecibido(p)}
     ${facBloquePedido(p)}
+    ${cambiosCliHTML(p)}
     <div class="card"><div class="row between"><b>Pedido ${p.folio}</b><span class="muted small">${fechaCorta(p.creado)}</span></div>
       <div class="muted small" style="margin:2px 0 8px">${esc(p.negocio.nombre)} · ${recoger ? 'Recoger en restaurante' : esc(p.direccion)}</div>
       ${listaItems(p.items)}<hr class="hr">${resumenCobro(p)}
       ${p.notas ? `<div class="aviso info" style="margin:10px 0 0">📝 ${esc(p.notas)}</div>` : ''}</div>
     <div class="btns" style="margin-bottom:20px">
       <button class="btn" onclick="abrirChat('${p.id}')">${ico('chat', 's')} Mensajes</button>
+      ${p.puedeModificar ? `<button class="btn pri" onclick="modPedIniciar(S._ped,'mod')">✏️ Modificar mi pedido</button>` : p.puedeSolicitar && !p.cambioSol ? `<button class="btn" onclick="pedirCambio('${p.id}')">🔁 Pedir un cambio</button>` : ''}
       ${(['NUEVO', 'POR_PAGAR'].includes(p.estado) && !(p.estado === 'POR_PAGAR' && p.prepYa)) || (p.estado === 'PROGRAMADO' && p.metodoPago === 'efectivo') ? `<button class="btn err" onclick="act(this,()=>cancelar('${p.id}'))">Cancelar pedido</button>` : ''}</div>`);
   if (p.estado !== 'CANCELADO') dibujarTrk(p);
 }
@@ -14492,7 +14820,7 @@ function dibujarTrk(p) {
   const n = p.negocio, rec = p.tipoEntrega === 'recoger';
   const m = nuevoMapa('mapaTrk', n.lat, n.lng, 15);
   const pts = [[n.lat, n.lng]];
-  S._trk = { id: p.id, estado: p.estado, muestra: !!p.muestra };
+  S._trk = { id: p.id, estado: p.estado, muestra: !!p.muestra, mod: (p.modificado || 0) + '|' + (p.cambioSol ? p.cambioSol.t : '') + '|' + JSON.stringify(p.difPago || 0) };
   L.marker([n.lat, n.lng], { icon: pinIcono('🍴', '#22281D') }).addTo(m).bindPopup(esc(n.nombre));
   if (!rec && p.lat) { L.marker([p.lat, p.lng], { icon: pinIcono('🏠', '#3B5A2C') }).addTo(m).bindPopup('Tu entrega'); pts.push([p.lat, p.lng]); }
   const u = p.repartidor && p.repartidor.ubicacion;
@@ -15115,7 +15443,7 @@ function ubicacionActual() {
     toast('Comprobando tu ubicación…');
     navigator.geolocation.getCurrentPosition(
       p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy || 0) }),
-      () => mal(new Error('Activa tu ubicación para pagar en efectivo a domicilio, o elige transferencia.')),
+      er => { const x = new Error('Activa tu ubicación para pagar en efectivo a domicilio, o elige transferencia.'); x.code = er && er.code; mal(x); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }); // siempre una ubicación nueva, nunca una guardada
   });
 }
@@ -16496,7 +16824,7 @@ async function vAdminCobros() {
       <div class="kpi"><b>${d.pendientes.length}</b><span>Comprobantes por revisar</span></div>
       <div class="kpi"><b>${porVencer}</b><span>Por vencer</span></div><div class="kpi"><b>${vencidos}</b><span>Vencidos</span></div></div>
     <div class="tabs" style="flex-wrap:wrap;border-radius:18px">
-      ${[['revisar', 'Por revisar (' + d.pendientes.length + ')'], ['negocios', 'Negocios'], ['repartidores', 'Repartidores'], ['historial', 'Historial']].map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="S.tabCob='${k}';pintar(true)">${txt}</button>`).join('')}</div>
+      ${[['revisar', 'Revisar (' + d.pendientes.length + ')'], ['negocios', 'Negocios'], ['repartidores', 'Repartidores'], ['historial', 'Historial']].map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="S.tabCob='${k}';pintar(true)">${txt}</button>`).join('')}</div>
     ${t === 'revisar' ? (d.pendientes.length ? d.pendientes.map(p => `<div class="card"><div class="row between"><div><b>${esc(p.nombre)}</b> <span class="tag ${p.tipo === 'repartidor' ? 't-info' : 't-pri'}">${p.tipo === 'repartidor' ? '🛵 Repartidor' : '🏪 Negocio'}</span>
         <div class="muted small">${fechaCorta(p.creado)} · ${esc(conceptoPago(p))}</div></div><b style="font-size:18px">${money(p.monto)}</b></div>
         ${p.nota ? `<div class="muted small">📝 ${esc(p.nota)}</div>` : ''}
