@@ -908,6 +908,9 @@ function cambiarPueblo(id, query) {
  * - Los administradores se cambian libres desde su panel.
  */
 const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('pe_' + k); if (v === null) localStorage.removeItem('pe_' + k); else localStorage.setItem('pe_' + k, String(v)); } catch (e) { return null; } };
+/** 2.94 · App de iPhone (App Store): la app de iOS abre www.pidele.app/?app=ios. Ahí no se venden planes, módulos ni mensualidades (regla de Apple). */
+try { if (/[?&]app=ios\b/.test(location.search)) { lsG('appIOS', '1'); history.replaceState(null, '', location.pathname + location.search.replace(/([?&])app=ios\b&?/, '$1').replace(/[?&]$/, '') + location.hash); } } catch (e) { }
+function enIOSApp() { return lsG('appIOS') === '1'; }
 // 2.86.1: si este equipo ya tuvo una sesión (o ya tiene datos de Pídele), no es "primera vez"
 try { if (!lsG('yaEntro') && Object.keys(localStorage).some(k => /(^|_)(token|user)$/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== 'null')) lsG('yaEntro', 1); } catch (e) { }
 /**
@@ -1105,7 +1108,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.93.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.95.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1238,7 +1241,7 @@ function imgLigeras(h) {
   if (ahorro()) h = h.replace(/(drive\.google\.com\/thumbnail\?id=[^"'&\s]+&(?:amp;)?sz=w)(\d+)/g, (x, a, w) => a + Math.max(120, Math.round(w / 2)));
   return h;
 }
-function html(h) { $('#vista').innerHTML = barraChecar() + barraModPed() + imgLigeras(h); if (window.revisarTeclado) revisarTeclado(); setTimeout(marcarDeslizables, 0); }
+function html(h) { $('#vista').innerHTML = barraChecar() + barraModPed() + imgLigeras(h); limpiarIOS($('#vista')); if (window.revisarTeclado) revisarTeclado(); setTimeout(marcarDeslizables, 0); }
 /** 2.91.1 · Filas de pestañas que se deslizan de lado: degradado en la orilla mientras haya más a la derecha. */
 function marcarDeslizables() {
   document.querySelectorAll('#vista .tabChips,#vista .pdvTabs,#vista .catFila').forEach(el => {
@@ -1261,7 +1264,12 @@ function toastIr(titulo, cuerpo, url) {
   t.onclick = () => { t.className = ''; t.onclick = null; abrirDesdeUrl(url); };
   clearTimeout(t._t); t._t = setTimeout(() => { t.className = ''; t.onclick = null; }, 7000);
 }
-function modal(h) { $('#modalCaja').innerHTML = imgLigeras(h); $('#modal').classList.add('on'); }
+function modal(h) { $('#modalCaja').innerHTML = imgLigeras(h); $('#modal').classList.add('on'); limpiarIOS($('#modalCaja')); }
+/** 2.94 · En la app de iPhone se quitan los botones para contratar o pagar planes, módulos, banners y mensualidades. */
+function limpiarIOS(r) {
+  if (!r || !enIOSApp()) return;
+  r.querySelectorAll('button,a,.lnk').forEach(e => { const o = e.getAttribute('onclick') || ''; if (/ir\('(suscripcion|elegirPlan)'\)|bannerExtra|extraAgregar|extraQuitarPreg|facComprarPaquete|suscribirPlay|inscripcionPlay|enviarPagoSusc/.test(o)) e.remove(); });
+}
 /** 2.43.2 · Tocar fuera de la ventana: solo cierra las que no tienen datos por escribir (para salir: Cancelar o ✕). */
 function modalFuera() {
   const c = $('#modalCaja');
@@ -1753,6 +1761,32 @@ async function negModGuardar() {
   if (volverA === 'caja') { PDV.cuentaId = ''; await ir('caja'); } else { S.tabNeg = 'curso'; ir('negPedidos'); }
 }
 
+/* ---------- 2.94 · Plan en la app de iPhone (sin venta) ---------- */
+async function vPlanIOS() {
+  const d = await api('miSuscripcion');
+  const rep = d.tipo === 'repartidor', s = d.suscripcion || {}, P = d.planes || {};
+  const est = rep && s.estado === 'suspendido' ? ['t-err', '⛔ Inactiva'] : EST_SUSC[s.estado] || EST_SUSC.sin;
+  const ex = !rep && S.negocio ? (S.negocio.extras || {}) : {};
+  const mods = Object.keys(EXTRA_NOM).filter(k => k !== 'caja' && ex[k] && (ex[k].plan || ex[k].activo || ex[k].src === 'transf'));
+  html(`<div class="titBar"><button class="redondo" onclick="volver('${rep ? 'perfil' : esDueno() ? 'admNegocio' : 'miNegocio'}')">${ico('atras')}</button><h2>${rep ? 'Mi cuenta de repartidor' : 'Mi plan'}</h2><span class="esp"></span></div>
+    <div class="card" style="text-align:center"><span class="tag ${est[0]}">${est[1]}</span>
+      ${rep ? '' : `<div style="font-size:22px;font-weight:900;margin-top:8px">${d.cortesia ? '🎁 Cortesía' : s.sinPlan || !d.plan ? 'Sin plan elegido' : esc(nombrePlan(d.plan, P))}</div>`}
+      ${s.vence ? `<div class="muted" style="margin-top:6px">${['gracia', 'suspendido'].includes(s.estado) ? 'Venció el' : 'Activo hasta el'} <b>${fechaLarga(s.vence)}</b></div>` : ''}</div>
+    ${mods.length ? `<div class="card"><b>Módulos activos</b><div class="small" style="margin-top:6px">${mods.map(k => '✅ ' + esc(EXTRA_NOM[k])).join('<br>')}</div></div>` : ''}
+    <div class="aviso info">En la app para iPhone no se contratan ni se pagan ${rep ? 'inscripciones ni mensualidades' : 'planes, módulos ni mensualidades'}.</div>
+    <div style="height:20px"></div>`);
+}
+/** Cómo instalar Pídele en el iPhone desde Safari (sin App Store). */
+function guiaIOS() {
+  modal(`<div class="row between"><h2 style="margin:0">📲 Instalar en iPhone</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="pasos" style="margin-top:8px"><ol>
+      <li>Abre <b>www.pidele.app</b> en <b>Safari</b> (no en otro navegador).</li>
+      <li>Toca el botón <b>Compartir</b> <span style="font-size:18px">⬆️</span> (abajo al centro; en iPad, arriba).</li>
+      <li>Desliza y toca <b>“Agregar a inicio”</b> ➕, luego <b>Agregar</b>.</li>
+      <li>Abre Pídele <b>desde el ícono</b> en tu pantalla de inicio y activa las notificaciones.</li></ol></div>
+    <div class="muted small">Así funciona como app: pantalla completa, avisos de pedidos (iOS 16.4 o más nuevo) y ubicación.</div>`);
+}
+
 function avisar(titulo, cuerpo) {
   beep();
   toast(titulo);
@@ -1803,13 +1837,13 @@ const VISTAS = {
   ventas: () => vVentas(), admNegocio: () => vAdmNegocio(),
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
-  operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, elegirPlan: vElegirPlan, adminCobros: vAdminCobros,
+  operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, planIOS: vPlanIOS, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, elegirPlan: vElegirPlan, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
 const AUTO = ['tablero', 'inicio', 'pedidos', 'pedido', 'negPedidos', 'cocina', 'disponibles', 'entregas', 'admin', 'adminPedidos', 'moderacion'];
 // pantallas a pantalla completa (sin barra inferior)
-const SIN_NAV = ['entrar', 'nuevaClave', 'elegirPlan', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'facLink', 'cliInv', 'capturaTel', 'cocina', 'caja', 'oferta'];
+const SIN_NAV = ['planIOS', 'entrar', 'nuevaClave', 'elegirPlan', 'negocio', 'carrito', 'entrega', 'pago', 'listo', 'seguir', 'facLink', 'cliInv', 'capturaTel', 'cocina', 'caja', 'oferta'];
 
 /** Pantallas del pedido por teléfono; ir a cualquier otra cancela la captura (2.24.2). */
 const VISTAS_TEL = ['negocio', 'carrito', 'capturaTel'];
@@ -1823,10 +1857,11 @@ async function ir(v, p, sinHistoria) {
   if (S.modoTel && !VISTAS_TEL.includes(v)) {
     terminarModoTel();
     // a su panel: solo pantallas del negocio que puede ver; lo demás (inicio de cliente, buscar…) lo regresa a Pedidos
-    if (!navRol().some(x => x[0] === v) && !['pedido', 'perfil', 'equipo', 'suscripcion', 'repartidores'].includes(v)) { v = inicioRol(); p = undefined; }
+    if (!navRol().some(x => x[0] === v) && !['pedido', 'perfil', 'equipo', 'suscripcion', 'repartidores', 'planIOS'].includes(v)) { v = inicioRol(); p = undefined; }
   }
   // 2.81: desde el 1 de diciembre, el dueño que no ha elegido su plan lo elige antes de seguir
-  if (rolActual() === 'negocio' && S.negocio && S.negocio.eleccion && esDueno() && !['elegirPlan', 'suscripcion', 'perfil', 'pedido', 'caja', 'cocina'].includes(v)) { v = 'elegirPlan'; p = undefined; }
+  if (enIOSApp() && (v === 'suscripcion' || v === 'elegirPlan')) { v = 'planIOS'; p = undefined; } // 2.94
+  if (!enIOSApp() && rolActual() === 'negocio' && S.negocio && S.negocio.eleccion && esDueno() && !['elegirPlan', 'suscripcion', 'perfil', 'pedido', 'caja', 'cocina'].includes(v)) { v = 'elegirPlan'; p = undefined; }
   if (S.map) { try { S.map.remove(); } catch (e) { } S.map = null; }
   clearInterval(S._carrusel);
   S.vista = v; S.params = p; S.auto = AUTO.includes(v); document.body.dataset.vista = v; // 2.91.1
@@ -2238,11 +2273,11 @@ async function entrar() {
 /* ---------- planes (2.10): Donado, Básico, Plus y Pro, configurables en Ajustes ---------- */
 const PLAN_ICO = { donado: '🎁', basico: '📱', plus: '🧾', pro: '🚀', ultra: '💎' };
 const PLANES_PAGO = ['basico', 'plus', 'pro', 'ultra'];
-const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Punto de venta', pro: 'Pro (anterior)', ultra: 'Total', completo: 'Punto de venta', '': 'Punto de venta' };
+const PLAN_NOM = { donado: 'Donado', basico: 'Básico', plus: 'Pídele', pro: 'Pro (anterior)', ultra: 'Todo incluido', completo: 'Pídele', '': 'Pídele' }; // 2.95
 /** 2.81: los planes que se ofrecen hoy. */
-const planesOferta = () => (S.conf && S.conf.planesOferta) || ['plus', 'ultra']; // 2.87: Punto de venta y Total (la app es el módulo "Pídele en línea")
+const planesOferta = () => (S.conf && S.conf.planesOferta) || ['plus', 'ultra']; // 2.95: Pídele (punto de venta + Pídele en línea) y Todo incluido
 /** 2.47: qué trae cada plan (lo marca el administrador en Ajustes → Planes). k: caja | fidelidad | factura */
-const PLAN_DEF_FUN = { donado: { app: 1 }, basico: { app: 1 }, plus: { caja: 1 }, pro: { app: 1, caja: 1, fidelidad: 1, personal: 1 }, ultra: { app: 1, caja: 1, fidelidad: 1, personal: 1, inventario: 1, operacion: 1 } };
+const PLAN_DEF_FUN = { donado: { app: 1 }, basico: { app: 1 }, plus: { app: 1, caja: 1 }, pro: { app: 1, caja: 1, fidelidad: 1, personal: 1 }, ultra: { app: 1, caja: 1, fidelidad: 1, personal: 1, inventario: 1, operacion: 1 } };
 /** 2.87 · Lo que trae el plan base y el módulo para estar en la app. */
 const TXT_PDV = 'Punto de venta completo: caja, mesas y meseros, pantallas de cocina y barra, pedidos por teléfono para llevar o a domicilio con tus repartidores, registro de clientes, cortes y reportes.';
 const TXT_EN_LINEA = 'Apareces en la app de Pídele y recibes pedidos en línea: tu menú digital con fotos, link y QR para compartir, a domicilio y para recoger.';
@@ -2292,6 +2327,7 @@ function nombrePlan(id, P) { return ((P || planesCfg())[id] || {}).nombre || PLA
 function textoPlan(p) {
   if (!p) return '';
   if (p.app !== undefined && !p.app && (p.caja || planTiene('caja', p.id))) return TXT_PDV + ' No aparece en la app: agrega 📲 Pídele en línea cuando quieras.'; // 2.87
+  if (p.app && p.caja && !p.personal && !p.fidelidad && !p.inventario && !p.operacion) return TXT_PDV + ' Incluye 📲 Pídele en línea (apareces en la app y recibes pedidos en línea); lo prendes o apagas cuando quieras.'; // 2.95
   const cats = 'Apareces en ' + p.categorias + (p.categorias > 1 ? ' categorías' : ' categoría');
   if (!p.anuncios) return cats + '. Sin anuncios en el banner de Inicio: tus promociones se ven en Promociones y dentro de tu negocio.';
   const tiene = k => p[k] !== undefined ? !!p[k] : planTiene(k, p.id);
@@ -2302,10 +2338,11 @@ function textoPlan(p) {
 }
 /** Tarjetas para elegir plan al registrar un negocio (se puede cambiar en el mes de prueba). */
 function eligePlanHTML() {
+  if (enIOSApp()) return ''; // 2.94: en la app de iPhone no se muestran precios
   const P = planesCfg(), sel = S._plan || 'plus';
   return `<label class="f">Tu plan</label><div>${planesOferta().filter(k => P[k]).map(k => `<div class="opcion ${sel === k ? 'on' : ''}" style="margin:6px 0 0" onclick="S._plan='${k}';const w=$('#rPlanes');if(w)w.innerHTML=eligePlanHTML()">
       <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k]} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${esc(textoPlan(P[k]))}</small></div></div>`).join('')}</div>
-    ${(P[sel] || {}).app === 0 || (P[sel] && !P[sel].app) ? `<label class="pdvChk" style="align-items:flex-start;margin-top:10px"><input type="checkbox" id="rEnLinea" ${S._enLinea ? 'checked' : ''} onchange="S._enLinea=this.checked" style="margin-top:3px"> <span><b>📲 Pídele en línea · +${money(((S.conf || {}).extrasPrecios || {}).app || 199)}/mes</b><br><small class="muted">${TXT_EN_LINEA}</small></span></label>` : ''}
+    ${P[sel] && P[sel].app ? `<label class="pdvChk" style="align-items:flex-start;margin-top:10px"><input type="checkbox" id="rEnLinea" ${S._enLinea !== false ? 'checked' : ''} onchange="S._enLinea=this.checked" style="margin-top:3px"> <span><b>📲 Pídele en línea · incluido</b><br><small class="muted">${TXT_EN_LINEA} Lo prendes o apagas cuando quieras.</small></span></label>` : ''}
     <div class="muted small" style="margin-top:6px">Puedes cambiarlo cuando quieras durante tu mes de prueba.</div>`;
 }
 function vRegistro(rol) {
@@ -2339,9 +2376,9 @@ function vRegistro(rol) {
 
 async function registrar(rol) {
   const v = id => { const e = $('#' + id); return e ? e.value : ''; };
-  if (rol === 'negocio' && !(await avisoPlanFactura(S._plan || 'plus'))) return;
+  if (rol === 'negocio' && !enIOSApp() && !(await avisoPlanFactura(S._plan || 'plus'))) return;
   const ci = rol === 'comprador' ? ls('cliTkPend') : null;
-  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', plan287: rol === 'negocio', enLinea: rol === 'negocio' && !!S._enLinea, aparato: aparatoId(), cliTk: ci && ci.token ? ci.token : '' });
+  const d = await api('registrar', { aceptoAviso: avisoMarcado(), rol, nombre: v('rNom'), telefono: v('rTel'), pass: v('rPass'), negocio: v('rNeg'), categoria: v('rCat'), vehiculo: v('rVeh'), plan: rol === 'negocio' ? S._plan || 'plus' : '', plan287: rol === 'negocio', enLinea: rol === 'negocio' && S._enLinea !== false, aparato: aparatoId(), cliTk: ci && ci.token ? ci.token : '' });
   if (ci && d.usuario && d.usuario.telVerificado) { ls('cliTkPend', null); toast('¡Bienvenido a ' + APP + '! Tu número ya quedó verificado ✅'); }
   else toast('¡Bienvenido a ' + APP + '!');
   guardarSesion(d);
@@ -2490,16 +2527,16 @@ function bannerPush() {
     const txt = { comprador: 'Te avisamos cuando tu pedido avance, aunque tengas la app cerrada.', negocio: 'Entérate al instante de cada pedido nuevo y cada comprobante.', repartidor: 'Recibe al momento los pedidos disponibles.', admin: 'Recibe avisos de cuentas por aprobar.' }[S.user.rol];
     h = `<div class="bannerPush"><span style="font-size:26px">🔔</span><div class="t"><b>Activa las notificaciones</b>${txt}</div>
       <button class="btn" onclick="botonActivarPush(this)">Activar</button><button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Ahora no">✕</button></div>`;
-  } else if (esIOS() && !instalada() && typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG.apiKey) {
+  } else if (esIOS() && !instalada() && !enIOSApp() && typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG.apiKey) {
     h = `<div class="bannerPush"><span style="font-size:26px">📲</span><div class="t"><b>Instala la app para recibir avisos</b>En iPhone: botón Compartir → “Agregar a inicio” y ábrela desde ahí.</div>
-      <button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Cerrar">✕</button></div>`;
+      <button class="btn" onclick="guiaIOS()">¿Cómo?</button><button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Cerrar">✕</button></div>`;
   }
   return `<div id="bannerPush">${h}</div>`;
 }
 function pintarBannerPush() { const b = $('#bannerPush'); if (b && b.outerHTML !== undefined) b.outerHTML = bannerPush(); }
 
 function estadoPushTexto() {
-  if (!pushDisponible()) return esIOS() && !instalada() ? 'Para recibir avisos en iPhone, instala la app (Compartir → Agregar a inicio).' : '';
+  if (!pushDisponible()) return esIOS() && !instalada() && !enIOSApp() ? 'Para recibir avisos en iPhone, instala la app (Compartir → Agregar a inicio).' : '';
   if (Notification.permission === 'granted') return ls('fcm') ? '🔔 Notificaciones activas en este teléfono' : '';
   if (Notification.permission === 'denied') return '🔕 Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para este sitio.';
   return '';
@@ -4438,8 +4475,8 @@ function facCuotaHTML(c, dueno) {
     <div class="muted small">${q.libres} incluidas en tu plan disponibles · se reinician el día 1 (no se acumulan)</div>
     ${lotes.length ? `<div style="margin-top:8px"><b class="small">Paquetes extra: ${q.extra} facturas</b>${lotes.map(l => `<div class="row between small" style="padding:3px 0;border-top:1px solid var(--ln)"><span>${TIPO[l.tipo] || 'Paquete'} · quedan <b>${l.n}</b> de ${l.total}</span><span class="${l.vence - Date.now() < 7 * 864e5 ? 't-warn' : 'muted'}">vence ${new Date(l.vence).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>`).join('')}
       <div class="muted small" style="margin-top:2px">Se usan cuando se acaban las incluidas, empezando por el que vence primero.</div></div>` : ''}
-    ${sinNada ? `<div class="aviso err small" style="margin:8px 0 0">Ya no quedan facturas este mes.${pq.length ? ' Compra un paquete para seguir facturando.' : ''}</div>` : ''}
-    ${pq.length && dueno ? (playCobro() ? `<div class="muted small" style="margin-top:10px">➕ Paquetes extra (cada uno vale ${q.vigencia || 6} meses):</div><div class="facPaqs">${pq.map(p => `<button class="btn ${sinNada ? 'pri' : ''} pill" onclick="act(this,()=>facComprarPaquete('${esc(p.producto)}',${p.n},${p.precio}))"><b>${p.n}</b><span>facturas</span><span class="precioFac" data-sku="${esc(p.producto)}">$${p.precio}</span></button>`).join('')}</div>`
+    ${sinNada ? `<div class="aviso err small" style="margin:8px 0 0">Ya no quedan facturas este mes.${pq.length && !enIOSApp() ? ' Compra un paquete para seguir facturando.' : ''}</div>` : ''}
+    ${pq.length && dueno && !enIOSApp() ? (playCobro() ? `<div class="muted small" style="margin-top:10px">➕ Paquetes extra (cada uno vale ${q.vigencia || 6} meses):</div><div class="facPaqs">${pq.map(p => `<button class="btn ${sinNada ? 'pri' : ''} pill" onclick="act(this,()=>facComprarPaquete('${esc(p.producto)}',${p.n},${p.precio}))"><b>${p.n}</b><span>facturas</span><span class="precioFac" data-sku="${esc(p.producto)}">$${p.precio}</span></button>`).join('')}</div>`
       : `<div class="muted small" style="margin-top:8px">➕ Paquetes extra de ${pq.map(p => p.n + ' por $' + p.precio).join(', ')} (valen ${q.vigencia || 6} meses): cómpralos desde la app de Pídele instalada de Google Play.</div>`) : ''}</div>`;
 }
 async function facComprarPaquete(sku, cant, precio) {
@@ -12190,11 +12227,12 @@ function vAdmNegocio() {
     ${fila('🛵', 'Repartidores', 'Tus repartidores, independientes y favoritos', "()=>ir('repartidores')")}
     ${fila('📦', 'Inventario', 'Existencias, producción, costos, surtido y catálogo (insumos, proveedores y almacenes)', "()=>{S._iv={lugar:S.negocio.id,tab:'exist',q:'',f:''};ir('inventario')}", modOn('inventario'))}
     ${modOn('facturas') ? fila('🧾', 'Facturar a clientes', 'Datos fiscales, sellos y facturas que emites', `()=>facIrNegocio('${n.id}')`) : ''}
-    ${fila('💳', 'Mi suscripción', 'Plan, pagos y banners', "()=>ir('suscripcion')")}
+    ${enIOSApp() ? fila('💳', 'Mi plan', 'Estado y módulos', "()=>ir('planIOS')") : fila('💳', 'Mi suscripción', 'Plan, pagos y banners', "()=>ir('suscripcion')")}
     </div>`);
 }
 /* ---------- 2.68 · MÓDULOS (solo el dueño) ---------- */
 const MOD_INFO = [
+  ['app', '📲', 'Pídele en línea', 'Apareces en la app de Pídele y recibes pedidos en línea: menú digital, link y QR, a domicilio y para recoger. Apagado, solo vendes en tu caja.', []], // 2.95
   ['caja', '🧾', 'Punto de venta', 'Caja, cortes y los pedidos de la app en la caja', [['mesas', 'Mesas', 'mapa de mesas; sin esto solo cuentas para llevar y pedidos'], ['cocina', 'Pantalla de cocina', 'comandas en una tableta de cocina'], ['gastos', 'Gastos en caja', 'pagos de gastos y proveedores desde la caja']]],
   ['personal', '👥', 'Personal y asistencia', 'Tu equipo, turnos y horarios', [['asistencia', 'Asistencia', 'checar entrada y salida con QR, retardos y faltas'], ['vacaciones', 'Vacaciones', 'días por año, solicitudes y aprobaciones'], ['nomina', 'Nómina', 'cálculo de pagos por periodo'], ['bonos', 'Bonos y metas', 'metas de venta e incentivos del turno'], ['consumo', 'Consumo de personal', 'saldo para que el equipo coma a cuenta']]],
   ['lealtad', '👛', 'Programa de lealtad', 'Monedero de tus clientes: cashback, recargas y visitas', []],
@@ -12253,7 +12291,10 @@ const MOD_REQ = { personal: 'caja', lealtad: 'caja' };
 /* ---------- 2.87 · Pídele en línea e inactivo sin plan ---------- */
 async function enLineaActivar(nid) {
   if (S.negocio && S.negocio.id !== nid) await elegirNegocio(nid);
-  await extraAgregar('app');
+  const m = (modsNeg() || {}).app;
+  if (m && m.plan) fijarNeg(await api('modulosGuardar', { negocioId: S.negocio.id, modulo: 'app', funcion: '', on: true })); // 2.95: viene en el plan, solo se prende
+  else await extraAgregar('app');
+  toast('📲 Pídele en línea prendido ✓');
   try { const d = await api('yo'); if (d && d.negocios) { S.negocios = d.negocios; ls('negocios', S.negocios); } } catch (e) { }
   pintar(true);
 }
@@ -12262,12 +12303,13 @@ const negInactivo = () => !!(S.negocio && S.negocio.suscripcion && S.negocio.sus
 function vInactivo() {
   const s = S.negocio.suscripcion || {};
   html(`<div class="vacio" style="padding:30px 16px"><div style="font-size:52px">⏸️</div><h2>${esc(S.negocio.nombre)} está inactivo</h2>
-    <p class="muted">${s.sinPlan ? 'No se eligió un plan antes del ' + fechaLarga(s.suspendeEl) + '.' : 'La suscripción está vencida.'} Tus datos están guardados: ${s.sinPlan ? 'elige tu plan' : 'registra tu pago'} y se reactiva.</p>
+    <p class="muted">${s.sinPlan ? 'No se eligió un plan antes del ' + fechaLarga(s.suspendeEl) + '.' : 'La suscripción está vencida.'} Tus datos están guardados${enIOSApp() ? '.' : ': ' + (s.sinPlan ? 'elige tu plan' : 'registra tu pago') + ' y se reactiva.'}</p>
     ${esDueno() ? `<div class="btns" style="flex-direction:column;gap:8px">${s.sinPlan ? `<button class="btn pri pill full" onclick="ir('elegirPlan')">📋 Elegir mi plan</button>` : ''}<button class="btn pill full" onclick="ir('suscripcion')">💳 Mi suscripción</button></div>` : '<div class="aviso warn">Avísale al dueño del negocio.</div>'}</div>`);
 }
 /* ---------- 2.81 · Módulos extra y cajas adicionales ---------- */
 const EXTRA_NOM = { app: 'Pídele en línea', personal: 'Personal', lealtad: 'Lealtad', facturas: 'Facturación', inventario: 'Inventario y recetas', operacion: 'Operación', caja: 'Caja adicional' };
 function extraBotonHTML(k, ex) {
+  if (enIOSApp()) return '<div class="small muted" style="margin-top:4px">No incluido en tu plan.</div>'; // 2.94
   if (!ex || !ex.precio) return `<button class="lnk small" onclick="cerrarModal();ir('suscripcion')">Ver planes ›</button>`;
   const caja = (S.negocio.planCfg || {}).caja;
   if (k !== 'facturas' && k !== 'app' && !caja) return `<div class="small muted" style="margin-top:4px">Necesita el plan ${esc(nombrePlan('plus'))}. <button class="lnk small" onclick="cerrarModal();ir('suscripcion')">Ver planes ›</button></div>`;
@@ -12277,12 +12319,13 @@ function extraBotonHTML(k, ex) {
 function extraEstadoHTML(k, ex) {
   if (!ex || ex.plan || S.negocio.cortesia) return '';
   if (ex.src === 'play' && ex.activo) return `<div class="small muted" style="margin-top:4px">💳 Agregado con Google Play · ${ex.renueva ? 'se renueva el ' : 'hasta el '}${fechaLarga(ex.vence)}</div>`;
-  if (ex.src === 'transf') return `<div class="small muted" style="margin-top:4px">➕ Agregado a tu mensualidad · +${money(ex.precio)}/mes <button class="lnk small" onclick="act(this,()=>extraQuitarPreg('${k}'))">Quitar</button></div>`;
+  if (ex.src === 'transf') return enIOSApp() ? '<div class="small muted" style="margin-top:4px">➕ Agregado a tu plan</div>' : `<div class="small muted" style="margin-top:4px">➕ Agregado a tu mensualidad · +${money(ex.precio)}/mes <button class="lnk small" onclick="act(this,()=>extraQuitarPreg('${k}'))">Quitar</button></div>`;
   if (ex.src === 'pend') return `<div class="aviso warn small" style="margin:6px 0 0">Elegiste este módulo: falta suscribirte en Google Play. <button class="lnk small" onclick="act(this,()=>extraAgregar('${k}'))">Suscribirme</button></div>`;
   return '';
 }
 function cajasHTML() {
   const c = ((S.negocio || {}).extras || {}).cajas; if (!c || S.negocio.cortesia || S.negocio.pruebaTodo) return '';
+  if (enIOSApp()) return `<div class="small" style="margin-top:8px"><b>🗄️ ${c.max} caja${c.max > 1 ? 's' : ''} abierta${c.max > 1 ? 's' : ''} a la vez</b></div>`;
   return `<div class="row between" style="gap:8px;margin-top:8px"><div class="small"><b>🗄️ ${c.max} caja${c.max > 1 ? 's' : ''} abierta${c.max > 1 ? 's' : ''} a la vez</b><div class="muted">Cada caja adicional: +${money(c.precio)}/mes</div></div>
     <div class="row" style="gap:6px">${c.transf ? `<button class="btn sm" onclick="act(this,()=>extraQuitarPreg('caja'))">−</button>` : ''}${esDueno() ? `<button class="btn sm pri" onclick="act(this,()=>extraAgregar('caja'))">+ Caja</button>` : ''}</div></div>`;
 }
@@ -12328,7 +12371,7 @@ async function extraQuitarPreg(k) {
 function modulosVer() {
   const m = modsNeg();
   if (!m) { toast('Actualiza la app y el servidor para usar los módulos', 'err'); return; }
-  const plan = k => ({ caja: 'caja', personal: 'caja', lealtad: 'fidelidad', facturas: 'factura' })[k];
+  const plan = k => ({ app: 'app', caja: 'caja', personal: 'caja', lealtad: 'fidelidad', facturas: 'factura' })[k];
   const sw = (on, dis, f) => `<label class="sw"><input type="checkbox" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''} onchange="act(null,()=>${f}).catch(()=>{})"><i></i></label>`;
   const filas = MOD_INFO.map(([k, ico, t, sub, fs]) => {
     const x = m[k] || { plan: false, on: false, f: {} }, req = MOD_REQ[k] && !(m[MOD_REQ[k]] || {}).on, ex = ((S.negocio || {}).extras || {})[k];
@@ -12343,7 +12386,7 @@ function modulosVer() {
   const pg = S.negocio.prog || {};
   modal(`<div class="row between"><h2 style="margin:0">🧩 Módulos</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small" style="margin:4px 0 10px">Prende solo lo que usas en <b>${esc(S.negocio.nombre)}</b>; lo apagado se esconde para ti y tu equipo. Puedes volver a prenderlo cuando quieras: no se borra nada.</div>
-    ${S.negocio.cortesia ? '<div class="aviso ok small">🎁 Plan Total de cortesía: todo incluido.</div>' : S.negocio.pruebaTodo ? `<div class="aviso info small">🎁 Mientras eliges tu plan conservas lo que tienes hoy. ${esDueno() ? `<button class="lnk small" onclick="cerrarModal();ir('elegirPlan')">Elegir mi plan ›</button>` : ''}</div>` : ''}
+    ${S.negocio.cortesia ? '<div class="aviso ok small">🎁 Plan Todo incluido de cortesía.</div>' : S.negocio.pruebaTodo ? `<div class="aviso info small">🎁 Mientras eliges tu plan conservas lo que tienes hoy. ${esDueno() ? `<button class="lnk small" onclick="cerrarModal();ir('elegirPlan')">Elegir mi plan ›</button>` : ''}</div>` : ''}
     ${filas}
     ${modTarjetaHTML()}
     <div class="card modCard ${pg.activo ? 'on' : ''}"><div class="row between" style="gap:8px"><div class="grow"><b>🗓️ Pedidos programados</b><div class="small muted">${pg.activo ? 'Activos · hasta ' + pg.dias + ' día(s) antes' : 'Apagados'}</div></div><button class="btn sm" onclick="progConfig()">Ajustar</button></div></div>`);
@@ -15241,7 +15284,7 @@ function vPerfil() {
     ${r === 'negocio' ? bloqueMisNegocios() : ''}
     ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' && !(u.suscripcion && u.suscripcion.sinCuota) ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
-      <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
+      <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : enIOSApp() ? 'Inscripción pendiente' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${u.almacen ? `<div class="card row between" style="cursor:pointer" onclick="ir('almacen')"><div><b>🏬 Almacén</b><div class="muted small">Pedidos de las sucursales por surtir</div></div><span class="lnk small">Abrir ›</span></div>` : ''}
     ${tarjetaRepLigado()}
     ${esStaff() && !u.ligado && !esDisp() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
@@ -15272,7 +15315,7 @@ function vPerfil() {
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
       <div class="row between" style="gap:8px;margin-bottom:10px"><div class="grow"><b>📶 Ahorro de datos</b><div class="muted small">${ahorro() ? 'Activo: fotos chicas, mapas solo cuando los abres y menos consultas.' : 'Para gastar menos datos o con mala señal.'}</div></div>
         <select class="i" style="width:auto" onchange="ls('ahorro', this.value === 'auto' ? null : Number(this.value)); toast(ahorro() ? 'Ahorro de datos activo 📶' : 'Ahorro de datos apagado'); vPerfil()">${[['auto', 'Automático'], ['1', 'Siempre'], ['0', 'Nunca']].map(([v, t]) => `<option value="${v}" ${String(ls('ahorro') == null ? 'auto' : ls('ahorro')) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => n.enLinea === false ? `<div class="card" style="box-shadow:none;border:2px dashed var(--pri);padding:10px"><b>📲 Pídele en línea${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted" style="margin:2px 0 6px">${TXT_EN_LINEA}</div>${n.dueno !== false ? `<button class="btn pri sm" onclick="act(this,()=>enLineaActivar('${n.id}'))">Activar · +${money(((S.conf || {}).extrasPrecios || {}).app || 199)}/mes</button>` : '<div class="small muted">Pídele al dueño que lo active.</div>'}</div><div style="height:6px"></div>` : `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
+      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => n.enLinea === false ? `<div class="card" style="box-shadow:none;border:2px dashed var(--pri);padding:10px"><b>📲 Pídele en línea${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted" style="margin:2px 0 6px">Está apagado. ${TXT_EN_LINEA}</div>${n.dueno !== false ? `<button class="btn pri sm" onclick="act(this,()=>enLineaActivar('${n.id}'))">Prender</button>` : '<div class="small muted">Pídele al dueño que lo active.</div>'}</div><div style="height:6px"></div>` : `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
       <button class="btn ${r === 'negocio' ? '' : 'pri'} full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
@@ -15423,7 +15466,7 @@ function pasosRepartidor() {
     ${paso(u.telVerificado, 'Verifica tu teléfono por WhatsApp', `<button class="btn sm" onclick="act(this,verificarTel)">Verificar</button>`)}
     ${u.suscripcion && u.suscripcion.sinCuota ? '' : paso(u.inscrito, 'Paga tu inscripción' + (S.conf && S.conf.inscripcionRepartidor ? '' : ''), `<button class="btn sm" onclick="ir('suscripcion')">Pagar</button>`)}
     ${paso(false, 'Validación en persona: muestra tu INE al administrador', '')}
-    <div class="muted small" style="margin-top:6px">Después pagas ${money((S.conf && S.conf.mensualidadRepartidor) || 60)} cada 30 días con Google Play para seguir recibiendo pedidos.</div>
+    ${enIOSApp() ? '' : `<div class="muted small" style="margin-top:6px">Después pagas ${money((S.conf && S.conf.mensualidadRepartidor) || 60)} cada 30 días con Google Play para seguir recibiendo pedidos.</div>`}
     <div id="verifEstado" class="muted small"></div></div>`;
 }
 
@@ -16428,9 +16471,9 @@ function avisoSuscripcion() {
   if (S.user.rol === 'negocio' && !esDueno()) return s.estado === 'suspendido' ? '<div class="aviso err">⛔ Este negocio no se muestra a los clientes por su suscripción. Avísale al dueño.</div>' : '';
   const que = S.user.rol === 'negocio' ? 'suscripción' : 'mensualidad';
   const fuera = S.user.rol === 'negocio' ? 'Tu negocio no se muestra a los clientes' : 'No estás recibiendo pedidos';
-  if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu ${que} vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}). Toca para pagar.</div>`;
-  if (s.estado === 'gracia') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⚠️ Tu ${que} venció. Se suspende el ${fechaLarga(s.suspendeEl)}. Toca para pagar.</div>`;
-  if (s.estado === 'suspendido') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⛔ ${S.user.rol === 'repartidor' ? 'Tu cuenta de repartidor está inactiva: no estás recibiendo pedidos' : fuera}. Paga tu ${que} ${S.user.rol === 'repartidor' ? 'pendiente ' : ''}para reactivarte.</div>`;
+  if (s.estado === 'por_vencer') return `<div class="aviso warn" style="cursor:pointer" onclick="ir('suscripcion')">📅 Tu ${que} vence ${s.dias === 0 ? 'hoy' : s.dias === 1 ? 'mañana' : 'en ' + s.dias + ' días'} (${fechaLarga(s.vence)}).${enIOSApp() ? '' : ' Toca para pagar.'}</div>`;
+  if (s.estado === 'gracia') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⚠️ Tu ${que} venció. Se suspende el ${fechaLarga(s.suspendeEl)}.${enIOSApp() ? '' : ' Toca para pagar.'}</div>`;
+  if (s.estado === 'suspendido') return `<div class="aviso err" style="cursor:pointer" onclick="ir('suscripcion')">⛔ ${S.user.rol === 'repartidor' ? 'Tu cuenta de repartidor está inactiva: no estás recibiendo pedidos' : fuera}.${enIOSApp() ? '' : ' Paga tu ' + que + ' ' + (S.user.rol === 'repartidor' ? 'pendiente ' : '') + 'para reactivarte.'}</div>`;
   return '';
 }
 
@@ -16517,7 +16560,7 @@ function pintarElegirPlan() {
   html(`<div class="titBar">${d.eleccion ? '<span class="esp"></span>' : `<button class="redondo" onclick="S._ep=null;volver('suscripcion')">${ico('atras')}</button>`}<h2>Elige tu plan</h2><span class="esp"></span></div>
     ${d.eleccion ? `<div class="aviso info">📋 Pídele ya tiene planes. Elige el tuyo y los módulos que usas; ${d.primerCobro ? 'tu primer pago es el <b>' + fechaLarga(d.primerCobro) + '</b>' : 'lo pagas en tu siguiente fecha de corte'}. Lo puedes cambiar cuando quieras.</div>` : ''}
     ${planesOferta().filter(k => P[k]).map(k => `<div class="opcion ${E.plan === k ? 'on' : ''}" style="margin:8px 0 0" onclick="S._ep.plan='${k}';pintarElegirPlan()">
-      <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k] || ''} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${k === 'basico' ? 'Solo la app: tu menú, pedidos a domicilio y para recoger, preventas, pedidos programados y pagos con tarjeta.' : k === 'plus' ? TXT_PDV + ' 1 caja abierta a la vez. Para aparecer en la app agrega 📲 Pídele en línea.' : 'Todo incluido: punto de venta, 📲 Pídele en línea, personal, lealtad, inventario y operación' + (suelto > P[k].precio ? '. Por separado serían ' + money(suelto) + '.' : '.') + ' La facturación se agrega aparte.'}</small></div></div>`).join('')}
+      <span class="radio"></span><div class="grow"><b>${PLAN_ICO[k] || ''} ${esc(P[k].nombre)} · ${money(P[k].precio)} al mes</b><small>${k === 'basico' ? 'Solo la app: tu menú, pedidos a domicilio y para recoger, preventas, pedidos programados y pagos con tarjeta.' : k === 'plus' ? TXT_PDV + ' 1 caja abierta a la vez. Incluye 📲 Pídele en línea: lo prendes o apagas cuando quieras.' : 'Todo incluido: punto de venta, 📲 Pídele en línea, personal, lealtad, inventario y operación' + (suelto > P[k].precio ? '. Por separado serían ' + money(suelto) + '.' : '.') + ' La facturación se agrega aparte.'}</small></div></div>`).join('')}
     ${Object.keys(flag).some(k => !pc[flag[k]]) || pc.caja ? `<h3>Agrega módulos</h3><div class="card">${Object.keys(flag).filter(k => !pc[flag[k]]).map(k => puede(k)
       ? `<label class="pdvChk" style="align-items:flex-start;margin:6px 0"><input type="checkbox" ${E.extras.includes(k) ? 'checked' : ''} onchange="epExtra('${k}',this.checked)" style="margin-top:3px"> <span class="grow"><b>${info[k][0]} ${EXTRA_NOM[k]} · +${money(pr[k])}/mes</b><br><small class="muted">${info[k][1]}</small></span></label>`
       : `<div class="small muted" style="margin:6px 0">${info[k][0]} ${EXTRA_NOM[k]} · necesita ${esc(nombrePlan('plus'))}</div>`).join('')}
