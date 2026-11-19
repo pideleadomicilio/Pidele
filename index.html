@@ -911,6 +911,7 @@ const lsG = (k, v) => { try { if (v === undefined) return localStorage.getItem('
 /** 2.94 · App de iPhone (App Store): la app de iOS abre www.pidele.app/?app=ios. Ahí no se venden planes, módulos ni mensualidades (regla de Apple). */
 try { if (/[?&]app=ios\b/.test(location.search)) { lsG('appIOS', '1'); history.replaceState(null, '', location.pathname + location.search.replace(/([?&])app=ios\b&?/, '$1').replace(/[?&]$/, '') + location.hash); } } catch (e) { }
 function enIOSApp() { return lsG('appIOS') === '1'; }
+let _mpSuscVolvio = /[?&]mpsusc=1/.test(location.search); // 2.96: regresó de registrar su tarjeta en Mercado Pago
 // 2.86.1: si este equipo ya tuvo una sesión (o ya tiene datos de Pídele), no es "primera vez"
 try { if (!lsG('yaEntro') && Object.keys(localStorage).some(k => /(^|_)(token|user)$/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== 'null')) lsG('yaEntro', 1); } catch (e) { }
 /**
@@ -1108,7 +1109,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.95.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.97.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2474,7 +2475,36 @@ async function vBloqueado() {
 }
 
 /* ============ NOTIFICACIONES ============ */
+/* 2.97 · Notificaciones nativas dentro de la app de iPhone (App Store): el puente de la app pide el permiso y entrega el token de Firebase. */
+function pushNativo() { try { return enIOSApp() && !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers['push-token']); } catch (e) { return false; } }
+function iosPost(nombre) { try { window.webkit.messageHandlers[nombre].postMessage(''); } catch (e) { } }
+function iosEsperar(evento, ms) {
+  return new Promise(res => { let listo = false; const f = e => { if (listo) return; listo = true; removeEventListener(evento, f); res(e.detail); };
+    addEventListener(evento, f); setTimeout(() => { if (!listo) { listo = true; removeEventListener(evento, f); res(null); } }, ms); });
+}
+function iosPermDe(x) { return ({ authorized: 'granted', provisional: 'granted', ephemeral: 'granted', granted: 'granted', denied: 'denied' })[x] || 'default'; }
+function iosPermSet(p) { S._iosPerm = p; lsG('iosPerm', p); }
+/** Permiso de avisos de este teléfono: 'default' (sin decidir), 'granted' o 'denied'. */
+function permPush() {
+  if (pushNativo()) return S._iosPerm || lsG('iosPerm') || 'default';
+  return 'Notification' in window ? Notification.permission : 'denied';
+}
+async function iosRegistrar(tok) {
+  if (!S.token || !S.user || typeof tok !== 'string' || tok.length < 20) return false;
+  const clave = S.user.id + '|' + tok;
+  if (ls('fcm') !== clave) { await api('registrarDispositivo', { fcm: tok, ua: 'iOS app' }); ls('fcm', clave); }
+  return true;
+}
+if (pushNativo()) {
+  addEventListener('push-permission-state', e => { const p = iosPermDe(e.detail); iosPermSet(p); if (p === 'granted' && S.token) iosPost('push-token'); try { pintarBannerPush(); } catch (x) { } });
+  addEventListener('push-token', e => { if (typeof e.detail === 'string' && e.detail.length > 20) iosRegistrar(e.detail).catch(() => { }); });
+  addEventListener('push-notification', () => { S._pushReciente = Date.now(); try { beep(); sondear(true); } catch (x) { } });
+  addEventListener('push-notification-click', e => { const d = e.detail || {}; if (d.url) setTimeout(() => { try { abrirDesdeUrl(d.url); } catch (x) { } }, 300); });
+  setTimeout(() => iosPost('push-permission-state'), 800);
+}
+
 function pushDisponible() {
+  if (pushNativo()) return true; // 2.97
   // Firebase se descarga hasta que se necesita; aquí solo se revisa que el teléfono pueda recibir avisos
   return typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG.apiKey &&
     'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
@@ -2485,6 +2515,22 @@ function instalada() { return (window.matchMedia && matchMedia('(display-mode: s
 /** Registra este teléfono para recibir notificaciones. pedir=true muestra el permiso del navegador. */
 async function activarPush(pedir) {
   if (!S.token || !pushDisponible()) return false;
+  if (pushNativo()) { // 2.97: app de iPhone
+    let p = permPush();
+    if (p === 'default') {
+      if (!pedir) return false;
+      iosPost('push-permission-request');
+      p = (await iosEsperar('push-permission-request', 90000)) === 'granted' ? 'granted' : 'denied';
+      iosPermSet(p);
+      if (p !== 'granted') { toast('Sin permiso no podemos avisarte. Puedes activarlo en Ajustes del iPhone → Pídele → Notificaciones.', 'err'); pintarBannerPush(); return false; }
+    }
+    if (p !== 'granted') return false;
+    iosPost('push-token');
+    const tok = await iosEsperar('push-token', 20000);
+    const ok = await iosRegistrar(tok);
+    pintarBannerPush();
+    return ok;
+  }
   if (Notification.permission === 'default') {
     if (!pedir) return false;
     const r = await Notification.requestPermission();
@@ -2523,7 +2569,7 @@ function quitarPush() {
 function bannerPush() {
   if (!S.token || ls('pushNo')) return '<div id="bannerPush"></div>';
   let h = '';
-  if (pushDisponible() && Notification.permission === 'default') {
+  if (pushDisponible() && permPush() === 'default') {
     const txt = { comprador: 'Te avisamos cuando tu pedido avance, aunque tengas la app cerrada.', negocio: 'Entérate al instante de cada pedido nuevo y cada comprobante.', repartidor: 'Recibe al momento los pedidos disponibles.', admin: 'Recibe avisos de cuentas por aprobar.' }[S.user.rol];
     h = `<div class="bannerPush"><span style="font-size:26px">🔔</span><div class="t"><b>Activa las notificaciones</b>${txt}</div>
       <button class="btn" onclick="botonActivarPush(this)">Activar</button><button class="x" onclick="ls('pushNo',1);pintarBannerPush()" aria-label="Ahora no">✕</button></div>`;
@@ -2537,8 +2583,8 @@ function pintarBannerPush() { const b = $('#bannerPush'); if (b && b.outerHTML !
 
 function estadoPushTexto() {
   if (!pushDisponible()) return esIOS() && !instalada() && !enIOSApp() ? 'Para recibir avisos en iPhone, instala la app (Compartir → Agregar a inicio).' : '';
-  if (Notification.permission === 'granted') return ls('fcm') ? '🔔 Notificaciones activas en este teléfono' : '';
-  if (Notification.permission === 'denied') return '🔕 Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para este sitio.';
+  if (permPush() === 'granted') return ls('fcm') ? '🔔 Notificaciones activas en este teléfono' : '';
+  if (permPush() === 'denied') return pushNativo() ? '🔕 Bloqueaste las notificaciones. Actívalas en Ajustes del iPhone → Pídele → Notificaciones.' : '🔕 Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para este sitio.';
   return '';
 }
 
@@ -15320,7 +15366,7 @@ function vPerfil() {
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
       ${estadoPushTexto() ? `<div class="muted small" style="margin-bottom:8px">${estadoPushTexto()}</div>` : ''}
-      ${pushDisponible() && Notification.permission === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
+      ${pushDisponible() && permPush() === 'default' ? `<button class="btn full" onclick="ls('pushNo',null);botonActivarPush(this).then(()=>vPerfil())">🔔 Activar notificaciones</button><div style="height:8px"></div>` : ''}
       ${wa ? `<a class="btn full" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + u.telefono)}" target="_blank">${ico('chat', 's')} Soporte técnico</a><div style="height:8px"></div>` : ''}
       <button class="btn err full" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button></div>
     <div class="muted small" style="text-align:center;margin-bottom:6px"><a href="privacidad.html" target="_blank">Aviso de privacidad</a> · <a href="terminos.html" target="_blank">Términos</a>${r !== 'admin' && S.user.rol !== 'admin' ? ` · <a href="#" style="color:var(--err)" onclick="formEliminarCuenta();return false">Eliminar mi cuenta</a>` : ''}</div>
@@ -16478,7 +16524,50 @@ function avisoSuscripcion() {
 }
 
 function conceptoPago(p) {
-  return [p.inscripcion ? 'Inscripción' : '', p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') + (p.donado ? ' 🎁 donado' + (p.meses > 1 ? 's' : '') + ' por Pídele' : '') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : '', p.plan ? 'sube a plan ' + nombrePlan(p.plan) : ''].filter(Boolean).join(' + ');
+  return [p.inscripcion ? 'Inscripción' : '', p.meses ? p.meses + (p.meses > 1 ? ' meses' : ' mes') + (p.donado ? ' 🎁 donado' + (p.meses > 1 ? 's' : '') + ' por Pídele' : '') : '', p.bannersExtra ? p.bannersExtra + ' banner' + (p.bannersExtra > 1 ? 's' : '') + ' extra' : '', p.plan ? 'sube a plan ' + nombrePlan(p.plan) : '', p.mp ? '💳 Mercado Pago automático' : ''].filter(Boolean).join(' + ');
+}
+/* ===== 2.96 · Cargo automático con Mercado Pago (solo en la web: en las apps de Google Play y iPhone no aparece) ===== */
+function mpSuscActivaV(d) { return !!(d && d.tipo !== 'repartidor' && d.mpSusc && d.mpSusc.estado === 'authorized'); }
+function mpSuscHTML(d) {
+  if (!d || d.tipo === 'repartidor' || !d.mpDisponible || enPlay() || enIOSApp()) return '';
+  const m = d.mpSusc;
+  if (m && m.estado === 'authorized') return `<h3>Forma de pago</h3><div class="card"><div class="row between" style="gap:8px;flex-wrap:wrap"><b>💳 Cargo automático con Mercado Pago</b><span class="tag t-ok">Activo</span></div>
+    <div class="tot" style="margin-top:6px"><span>Cada mes</span><b>${money(m.monto)}</b></div>
+    ${m.proximo ? `<div class="tot"><span>Próximo cobro</span><b>${fechaLarga(m.proximo)}</b></div>` : ''}
+    <div class="muted small">${esc(m.email)}${m.tarjeta ? ' · ' + esc(m.tarjeta) : ''}</div>
+    ${m.fallo ? '<div class="aviso warn" style="margin:8px 0 0">⚠️ El último cobro no pasó. Mercado Pago lo volverá a intentar: revisa tu tarjeta en tu cuenta de Mercado Pago.</div>' : ''}
+    <div class="muted small" style="margin-top:6px">Tu mensualidad se cobra sola y tu plan se renueva al aprobarse el cobro. Si cambias de plan o de módulos, el monto nuevo aplica desde el siguiente cobro.</div>
+    <div class="btns"><button class="btn sm" onclick="act(this,mpSuscRevisar)">Revisar</button><button class="btn sm err" onclick="act(this,mpSuscCancelar)">Cancelar cargo automático</button></div></div>`;
+  if (m && m.estado === 'pending' && m.url) return `<h3>Forma de pago</h3><div class="card"><b>💳 Termina de registrar tu tarjeta</b>
+    <div class="muted small">Falta confirmar tu tarjeta en Mercado Pago (${esc(m.email)}).</div>
+    <div class="btns"><a class="btn sm pri" href="${esc(m.url)}">Continuar en Mercado Pago</a><button class="btn sm" onclick="act(this,mpSuscRevisar)">Ya lo hice</button><button class="btn sm" onclick="act(this,mpSuscCancelar)">Cancelar</button></div></div>`;
+  return `<h3>Forma de pago</h3><div class="card"><b>💳 Cargo automático con Mercado Pago</b>
+    <div class="muted small" style="margin-top:4px">Registra tu tarjeta una vez y cada mes se cobra solo ${money(d.cuota)} por tu plan y módulos. Sin comprobantes. Lo cancelas cuando quieras.</div>
+    ${m && m.estado === 'paused' ? '<div class="aviso warn" style="margin:8px 0 0">Mercado Pago pausó tu cargo automático porque no pudo cobrar. Actívalo de nuevo con otra tarjeta o paga por transferencia.</div>' : ''}
+    <div class="btns"><button class="btn pri" onclick="mpSuscActivar()">Activar cargo automático</button></div></div>`;
+}
+function mpSuscActivar() {
+  const d = S._susc || {};
+  modal(`<div class="row between"><h2 style="margin:0">💳 Cargo automático</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <p class="muted small">Cada mes Mercado Pago cobrará <b>${money(d.cuota)}</b> a tu tarjeta por tu plan y módulos, y tu plan se renueva solo. Lo puedes cancelar cuando quieras desde aquí.</p>
+    <label class="f">Correo de tu cuenta de Mercado Pago</label><input class="i" id="mpsEmail" type="email" autocomplete="email" inputmode="email" placeholder="tucorreo@gmail.com">
+    <div class="muted small" style="margin-top:4px">Debe ser el mismo correo con el que entras a Mercado Pago.</div>
+    <div class="btns"><button class="btn pri full" onclick="act(this,mpSuscIr)">Continuar a Mercado Pago</button></div>`);
+}
+async function mpSuscIr() {
+  const r = await api('mpSuscIniciar', { email: $('#mpsEmail').value, enPlay: enPlay(), ios: enIOSApp() });
+  location.href = r.url;
+}
+async function mpSuscRevisar() {
+  const d = await api('mpSuscVerificar');
+  toast(d.mpSusc && d.mpSusc.estado === 'authorized' ? '💳 Cargo automático activo ✓' : 'Mercado Pago aún no lo confirma');
+  pintar(true);
+}
+async function mpSuscCancelar() {
+  if (!confirm('¿Cancelar el cargo automático? Tu plan sigue activo hasta tu fecha de corte; después podrás pagar por transferencia.')) return;
+  await api('mpSuscCancelar');
+  toast('Cargo automático cancelado');
+  pintar(true);
 }
 function tagPago(e) { return { pendiente: '<span class="tag t-warn">En revisión</span>', confirmado: '<span class="tag t-ok">Confirmado</span>', rechazado: '<span class="tag t-err">Rechazado</span>' }[e] || ''; }
 
@@ -16584,7 +16673,13 @@ async function confirmarElegirPlan() {
   ir('suscripcion');
 }
 async function vSuscripcion() {
-  const d = await api('miSuscripcion');
+  let d = await api('miSuscripcion');
+  if (_mpSuscVolvio && d.mpSusc) { // 2.96: regresó de Mercado Pago: se pregunta el estado real
+    _mpSuscVolvio = false;
+    try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])mpsusc=1&?/, '$1').replace(/[?&]$/, '')); } catch (e) { }
+    try { d = await api('mpSuscVerificar'); } catch (e) { }
+    toast(d.mpSusc && d.mpSusc.estado === 'authorized' ? '💳 Cargo automático activado ✓' : 'Mercado Pago aún no confirma tu tarjeta. Toca "Ya lo hice" en un momento.');
+  }
   // sucursal con el mismo menú: los planes se muestran (y se cobran) con su descuento
   if (d.sucursal && d.sucursal.aplica && d.planes) d.planes = Object.fromEntries(Object.entries(d.planes).map(([k, v]) => [k, Object.assign({}, v, { precio: Math.round(v.precio * (100 - d.sucursal.descuento) / 100), precioLista: v.precio })]));
   S._susc = d; S._compPago = null;
@@ -16617,8 +16712,8 @@ async function vSuscripcion() {
       : planesSusc(d, s)}</div>
     ${!rep && esDueno() ? '<div id="facPidele"></div>' : ''}
     ${d.cortesia ? `<div class="aviso ok">🎁 Tienes el plan <b>${esc(nombrePlan(d.plan, P))} de cortesía</b>: Pídele te lo regala, no tienes que pagar.</div>` : enPlay() ? seccionPlay(d) : donado ? `<div class="aviso ok">🎁 Tienes el plan <b>Donado</b>: Pídele te lo regala, no tienes que pagar mensualidad.</div>` : d.pendiente ? `<div class="aviso info">🔎 Tu comprobante está en revisión. Te avisamos en cuanto el administrador lo confirme.</div>`
-    : esperaValidacion ? '' : `
-    <h3>Pagar</h3>
+    : esperaValidacion ? '' : mpSuscActivaV(d) ? mpSuscHTML(d) : mpSuscHTML(d) + `
+    <h3>${!rep && d.mpDisponible ? '🏦 O paga por transferencia' : 'Pagar'}</h3>
     <div class="card">
       ${hayCuenta ? `<div class="muted small">Transfiere a la cuenta de Pídele y adjunta tu comprobante:</div>
         ${dp.clabe ? `<div class="copiar"><div><div class="muted small">CLABE${dp.banco ? ' · ' + esc(dp.banco) : ''}</div><div class="v">${esc(dp.clabe)}</div></div><button class="btn sm" onclick="copiar('${esc(dp.clabe)}','CLABE')">${ico('copiar', 's')}</button></div>` : ''}
@@ -16643,7 +16738,7 @@ async function vSuscripcion() {
     <div style="height:20px"></div>`);
   if (!rep && esDueno()) facPideleCargar(); // 2.78.4
   if (enPlay()) { preciosPlay(d); restaurarPlay(d); return; }
-  if (!d.pendiente && !esperaValidacion) calcSusc();
+  if (!d.pendiente && !esperaValidacion && !d.cortesia && !donado && !mpSuscActivaV(d) && $('#sMes')) calcSusc(); // 2.96: con cargo automático no hay formulario de transferencia
 }
 
 /* ---------- Suscripción con Google Play (solo en la app de Android) ---------- */
@@ -16858,7 +16953,7 @@ async function vAdminCobros() {
   const porVencer = todos.filter(n => n.estado === 'por_vencer').length, vencidos = todos.filter(n => ['gracia', 'suspendido'].includes(n.estado)).length;
   const tarjetaN = n => { const e = EST_SUSC[n.estado] || EST_SUSC.sin; const rep = n.tipo === 'repartidor';
     return `<div class="card"><div class="row between"><div><b>${esc(n.nombre)}</b>
-      <div class="muted small">${n.play ? '<span class="tag t-ok" style="margin-right:4px">▶ Google Play</span>' : ''}${n.donado ? '<span class="tag t-gray" style="margin-right:4px">🎁 Donado</span>' : ''}${n.sucursal ? `<span class="tag ${n.sucursal.aplica ? 't-info' : 't-warn'}" style="margin-right:4px">🏪 ${n.sucursal.aplica ? 'Sucursal −' + n.sucursal.descuento + '%' : 'Sucursal sin descuento'}</span>` : ''}${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
+      <div class="muted small">${n.play ? '<span class="tag t-ok" style="margin-right:4px">▶ Google Play</span>' : ''}${n.mpSusc && n.mpSusc.estado === 'authorized' ? `<span class="tag t-ok" style="margin-right:4px">💳 MP automático · ${money(n.mpSusc.monto)}${n.mpSusc.fallo ? ' ⚠️' : ''}</span>` : n.mpSusc && ['pending', 'paused'].includes(n.mpSusc.estado) ? `<span class="tag t-gray" style="margin-right:4px">💳 MP ${n.mpSusc.estado === 'paused' ? 'pausado' : 'sin tarjeta'}</span>` : ''}${n.donado ? '<span class="tag t-gray" style="margin-right:4px">🎁 Donado</span>' : ''}${n.sucursal ? `<span class="tag ${n.sucursal.aplica ? 't-info' : 't-warn'}" style="margin-right:4px">🏪 ${n.sucursal.aplica ? 'Sucursal −' + n.sucursal.descuento + '%' : 'Sucursal sin descuento'}</span>` : ''}${n.vence ? 'Corte: ' + fechaLarga(n.vence) + (n.estado === 'ok' || n.estado === 'por_vencer' ? ' · ' + (n.dias === 0 ? 'hoy' : 'en ' + n.dias + ' días') : '') : rep ? (n.inscrito ? 'Inscripción pagada · falta aprobarlo' : 'Sin inscripción') : ''}${n.bannersExtra ? ' · ' + n.bannersExtra + ' banner(s) extra' : ''}</div></div>
       ${n.vence ? `<span class="tag ${e[0]}">${e[1]}</span>` : '<span class="tag t-gray">Pendiente</span>'}</div>
       <div class="btns"><button class="btn sm pri" onclick="formPagoManual('${n.tipo}','${n.id}')">Registrar pago</button>
         ${n.telefono && n.vence ? `<a class="btn sm" href="${waLink(n.telefono, 'Hola, te recordamos que tu ' + (rep ? 'mensualidad' : 'suscripción') + ' de Pídele ' + (['gracia', 'suspendido'].includes(n.estado) ? 'venció el ' : 'vence el ') + fechaLarga(n.vence) + '. ¡Gracias!')}" target="_blank">${ico('chat', 's')} Recordar</a>` : ''}</div></div>`; };
