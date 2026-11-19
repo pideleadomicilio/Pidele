@@ -1109,7 +1109,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.97.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '2.97.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2510,7 +2510,7 @@ function pushDisponible() {
     'serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window;
 }
 function esIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent || ''); }
-function instalada() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+function instalada() { return enIOSApp() || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
 
 /** Registra este teléfono para recibir notificaciones. pedir=true muestra el permiso del navegador. */
 async function activarPush(pedir) {
