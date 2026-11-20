@@ -39,7 +39,7 @@
 <style>
 :root{
   --pri:#3B5A2C; --pri2:#2C4521; --pri-s:#E5ECDC; --pri-xs:#F0F4EA;
-  --bg:#F6F1E8; --card:#FFFDF8; --tx:#22281D; --tx2:#716C60; --ln:#E8E1D3;
+  --bg:#F6F1E8; --card:#FFFDF8; --tx:#22281D; --tx2:#5E594E; --ln:#E8E1D3;
   --ok:#3B7A2C; --ok-s:#E1F0D8; --warn:#9A6206; --warn-s:#FBEFD5; --err:#B42318; --err-s:#FBE3E0;
   --info:#2F5D8A; --info-s:#E2ECF6; --star:#E9A23B; --moto:#D9822B;
   --r:18px; --sh:0 1px 2px rgba(40,35,20,.05),0 4px 14px rgba(40,35,20,.07);
@@ -83,7 +83,7 @@ nav button.on{color:var(--pri)}
 nav .navFab{color:var(--pri);flex:1.35;white-space:nowrap}
 nav .navFab .fab{position:relative;width:60px;height:60px;margin-top:-30px;border-radius:50%;background:var(--pri);border:4px solid var(--card);box-shadow:0 6px 16px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
 nav .navFab .fab svg{width:36px;height:36px}
-.pasosCard{border:2px solid var(--pri)}.pasosBar{height:8px;border-radius:99px;background:var(--pri-s);margin:8px 0 6px;overflow:hidden}.pasosBar i{display:block;height:100%;background:var(--pri);border-radius:99px}.pasoFila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--ln)}.pasoFila.ok b{color:var(--tx2);font-weight:600}.pasoIco{font-size:20px;width:26px;text-align:center}
+.pasosCard{border:2px solid var(--pri)}.tabAbrir{display:flex;align-items:center;gap:12px;border-left:6px solid var(--err)}.tabAbrir.on{border-left-color:var(--ok)}.tabAbrir.medio{border-left-color:var(--warn)}.tabAbrir .sw{transform:scale(1.35);transform-origin:right center;margin-right:6px}.tabAbrir b.t{font-size:16px}.abrirBtn{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:999px;padding:8px 14px 8px 8px;margin:0 0 12px;cursor:pointer;font:inherit;text-align:left;background:var(--err-s,#fde8e6);color:var(--tx)}.abrirBtn .pwr{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:900;background:var(--err);box-shadow:0 0 0 4px rgba(0,0,0,.05)}.abrirBtn.on{background:var(--ok-s,#e3f3e6)}.abrirBtn.on .pwr{background:var(--ok)}.abrirBtn.medio{background:var(--warn-s,#fdf0d9)}.abrirBtn.medio .pwr{background:var(--warn)}.abrirBtn small{color:var(--tx2)}.pasosBar{height:8px;border-radius:99px;background:var(--pri-s);margin:8px 0 6px;overflow:hidden}.pasosBar i{display:block;height:100%;background:var(--pri);border-radius:99px}.pasoFila{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--ln)}.pasoFila.ok b{color:var(--tx2);font-weight:600}.pasoIco{font-size:20px;width:26px;text-align:center}
 .modCard{box-shadow:none;border:1.5px solid var(--ln);margin:8px 0;padding:10px 12px}.modCard.on{border-color:var(--pri)}.modCard.bloq{opacity:.75}.modFuns{margin-top:8px;padding-top:6px;border-top:1px solid var(--ln)}.modFuns .pdvChk{align-items:flex-start;margin:4px 0}.modFuns .pdvChk input{flex:none;width:18px;height:18px;margin-top:3px}
 nav .navFab.conNuevos .fab::after{content:'';position:absolute;bottom:-1px;left:-1px;width:16px;height:16px;border-radius:50%;background:var(--err);border:2px solid var(--card);animation:latido 1s infinite alternate}
 @keyframes latido{from{transform:scale(.8)}to{transform:scale(1.15)}}
@@ -103,8 +103,8 @@ h3{font-size:16.5px;font-weight:800;margin:18px 0 10px}
 .between{justify-content:space-between}
 .wrap{flex-wrap:wrap}
 .grow{flex:1;min-width:0}
-.muted{color:var(--tx2);font-size:13.5px}
-.small{font-size:12.5px}
+.muted{color:var(--tx2);font-size:14px}
+.small{font-size:13px}
 .b{font-weight:800}
 .hr{border:0;border-top:1px solid var(--ln);margin:12px 0}
 .titBar{display:flex;align-items:center;gap:8px;margin:0 0 14px}
@@ -768,6 +768,66 @@ input.i,select.i,textarea.i{min-width:0;max-width:100%}
 .cTarj.burFlash{animation:burFlash 1s ease 3}
 @keyframes burFlash{50%{box-shadow:0 0 0 8px #ff7a00}}
 @media (max-width:600px){.burBola{width:80px;height:80px;font-size:40px}.burPill{padding:10px 64px 10px 18px}.burPill .t1{font-size:16px}}
+/* 3.0 · Personal en 3 botones */
+.perSeg{display:flex;background:#E7E0D1;border-radius:16px;padding:4px;gap:4px;margin:4px 0 10px}
+.perSeg button{flex:1;border:0;background:none;border-radius:12px;padding:11px 4px;font:inherit;font-weight:900;font-size:15.5px;color:#5c584e;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+.perSeg button.on{background:#fff;color:var(--pri);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.perSubs2{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 10px}
+.perSubs2 button{flex:none;border:1.5px solid var(--ln);background:var(--card);border-radius:999px;padding:8px 13px;font:inherit;font-weight:800;font-size:14px;color:var(--tx);cursor:pointer}
+.perSubs2 button.on{background:var(--pri-s);border-color:var(--pri);color:var(--pri)}
+.perResumen{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-weight:800;font-size:13.5px}
+.p-ok{background:var(--ok-s);color:var(--ok)}.p-warn{background:var(--warn-s);color:var(--warn)}.p-err{background:var(--err-s);color:var(--err)}.p-gr{background:#ECE8DF;color:#5c584e}
+.perAlerta{border:2.5px solid #E7A39B;background:#FFF6F4}.perAlerta.amb{border-color:#EBC76A;background:#FFFBEF}
+.perAlertaT{font-weight:900;font-size:15.5px;margin:8px 0 10px;color:var(--err)}.perAlerta.amb .perAlertaT{color:var(--warn)}
+.perP{display:flex;gap:10px;align-items:center}.perNom{cursor:pointer;font-size:16px}.perNom:hover{text-decoration:underline}
+.perFecha{max-width:170px;min-width:150px}
+.perOpt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;border:2px solid var(--ln);border-radius:16px;margin-bottom:8px;background:#fff;font:inherit;color:var(--tx);cursor:pointer}
+.perOpt:disabled{opacity:.5;cursor:default}.perOpt:not(:disabled):active{border-color:var(--pri)}
+.perOpt .num{font-weight:900;color:#a29b8b;width:14px;flex:none}.perOpt .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:23px;flex:none}
+.perOpt b{display:block;font-size:16.5px}.perOpt small{display:block;font-size:13.5px;color:var(--tx2);line-height:1.3;margin-top:1px}
+.perMas summary{cursor:pointer;font-weight:800;color:var(--pri);padding:6px 0}
+.vacFilaL{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ln);cursor:pointer}.vacFilaL:last-child{border-bottom:0}
+.vacSaldo{font-size:24px;font-weight:900;color:var(--ok);text-align:right;line-height:1;min-width:46px}.vacSaldo small{display:block;font-size:11.5px;color:var(--tx2)}.vacSaldo.neg{color:var(--err)}
+/* 3.0 · Inicio, barra y Más del dueño */
+.iniCab{margin:2px 0 12px;align-items:flex-start}.iniCab h2{font-size:23px}
+.iniAhora{border:2.5px solid var(--ln)}.iniAhora .t{font-size:19px;font-weight:900;line-height:1.25}.iniAhora .sub{font-size:14.5px;margin:4px 0 12px;color:var(--tx2)}
+.iniAhora.warn{border-color:#E9B949;background:#FFF6DC}.iniAhora.warn .t{color:#5c3b00}
+.iniAhora.err{border-color:#E7A39B;background:#FFF4F2}.iniAhora.err .t{color:var(--err)}
+.iniAhora.info{border-color:#A9C4E0;background:#F1F6FC}.iniAhora.ok{padding:12px 14px}
+.iniVentas .iniMonto{font-size:34px;font-weight:900;line-height:1.1}
+.iniLinea{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:14.5px;color:var(--tx2)}.iniLinea .lnk{font-size:14.5px;padding:2px 0}
+.conDedo{position:relative}
+.conDedo::after{content:'👆';position:absolute;right:-6px;bottom:-30px;font-size:28px;animation:dedo 1.2s ease-in-out infinite;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+@keyframes dedo{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.pasosCard{overflow:visible}
+.masSec{font-weight:900;font-size:13.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin:14px 4px 8px}
+.masGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(min-width:700px){.masGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.masT{background:var(--card);border:0;border-radius:18px;padding:12px 6px 10px;text-align:center;box-shadow:var(--sh);font:inherit;font-weight:800;font-size:14.5px;line-height:1.2;min-height:96px;color:var(--tx);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.masT span{font-size:30px;line-height:1}.masT:active{transform:scale(.97)}
+.masFila{display:flex;align-items:center;gap:12px;padding:12px 0;border:0;border-bottom:1px solid var(--ln);background:none;width:100%;font:inherit;color:var(--tx);text-decoration:none;cursor:pointer;text-align:left}.masFila:last-child{border-bottom:0}.masFila span:first-child{font-size:22px}
+.masSalir{margin:14px 0 6px;border-color:var(--err);color:var(--err)}
+/* 3.0 · visual */
+.btn.sm{min-height:38px}
+.pCard .img.sinFoto{font-size:44px}
+.fotoFalta{display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;font-size:28px}
+.fotoFalta i{position:absolute;right:-5px;bottom:-5px;font-style:normal;font-size:13px;background:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.swWrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;min-width:64px}.swWrap small{font-size:11.5px;font-weight:900}.swWrap small.ok{color:var(--ok)}.swWrap small.err{color:var(--err)}
+.pdvBar .pdvIco{display:inline-flex;flex-direction:column;align-items:center;line-height:1.05;gap:1px}.pdvBar .pdvIco small{font-size:9.5px;font-weight:800;opacity:.92}
+.entrarDiv{display:flex;align-items:center;gap:10px;color:var(--tx2);font-weight:800;margin:18px 0 10px}.entrarDiv::before,.entrarDiv::after{content:'';flex:1;height:2px;background:var(--ln)}
+.entrarCrear{min-height:54px;font-size:17px;border:2.5px solid var(--pri);color:var(--pri);background:var(--card)}
+.entrarVer{font-size:15.5px;text-decoration:underline;text-underline-offset:3px}
+.entrarPie{margin-top:28px;padding-top:10px;border-top:1px solid var(--ln);display:flex;flex-direction:column;align-items:center;gap:2px}.entrarPie .lnk{color:var(--tx2);font-size:14.5px;text-decoration:underline;text-underline-offset:3px}
+.perfDet summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none}.perfDet summary::-webkit-details-marker{display:none}
+.listoPasos{max-width:360px;margin:0 auto 18px;text-align:left}.listoPasos .lp{display:flex;gap:12px;align-items:center;padding:7px 0}.listoPasos .lp.off{opacity:.45}
+.listoPasos .d{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:#E7E0D1;flex:none}.listoPasos .d.ok{background:var(--ok);color:#fff}.listoPasos .d.esp{background:#F2C14E}
+/* 3.0.1 · Mi monedero */
+nav .navMon .fab{font-size:30px;line-height:1}
+nav .navMon .navMonT{display:flex;flex-direction:column;align-items:center;font-size:11.5px;line-height:1.1}nav .navMon .navMonT b{font-size:12px;color:var(--ok)}
+.monRegla{font-size:14px;font-weight:700;margin:8px 0 0;padding:8px 10px;border-radius:12px;background:var(--bg)}
+.monAlta{max-width:440px;margin:0 auto;padding-top:8px}
+.eqVac{font-size:12.5px;font-weight:800;border-radius:999px;padding:3px 8px;background:var(--ok-s);color:var(--ok);white-space:nowrap;margin-left:4px}.eqVac.neg{background:var(--err-s);color:var(--err)}
 </style>
 </head>
 <body class="sinNav">
@@ -1109,7 +1169,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '2.97.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.0.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1155,6 +1215,14 @@ const EST = {
 };
 const ACTIVOS = ['NUEVO', 'POR_PAGAR', 'PAGO_ENVIADO', 'PROGRAMADO', 'PREPARANDO', 'LISTO', 'EN_CAMINO'];
 const CATEGORIAS = ['Comida', 'Mariscos', 'Tacos', 'Hamburguesas', 'Pizza', 'Antojitos', 'Café y postres', 'Bebidas', 'Abarrotes', 'Farmacia', 'Otro'];
+/* 3.0 · Productos sin foto: fondo de color con el emoji de su sección (ya no parecen rotos) */
+const EMO_CAT = [[/hambur|burger/i, '🍔'], [/taco/i, '🌮'], [/pizza/i, '🍕'], [/burr/i, '🌯'], [/hot ?dog|dogo/i, '🌭'], [/pollo|alita|wing|nugget|chicken/i, '🍗'], [/marisc|camar|pesc|ceviche|aguachile|coctel/i, '🦐'], [/sushi/i, '🍣'],
+  [/desayun|huevo|chilaquil|omelet/i, '🍳'], [/frapp|malteada|smoothie|licuado|boba/i, '🧋'], [/caf[eé]|latte|capuch|espresso/i, '☕'], [/postre|pastel|pay\b|crepa|waffle|hot ?cake|galleta|dona/i, '🍰'], [/helad|nieve|paleta/i, '🍦'],
+  [/cervez|michel/i, '🍺'], [/bebida|refresco|agua|jugo|soda|limonada/i, '🥤'], [/ensalad/i, '🥗'], [/papa|fries|botana|snack/i, '🍟'], [/sopa|caldo|pozole|menudo/i, '🍲'], [/torta|sandw|baguet|sincroniz|panini/i, '🥪'], [/pasta|spag/i, '🍝'], [/antojit|quesadill|sope|gordit|tostad/i, '🫓']];
+const emoCat = t => { const m = EMO_CAT.find(([r]) => r.test(String(t || ''))); return m ? m[1] : ''; };
+const emoProd = p => emoCat(p.categoria) || emoCat(p.nombre) || ICONO_CAT[p.categoria] || '🍽️';
+const COL_CAT = ['#F7DDB8', '#F3D3C7', '#E5DCC2', '#DCE6CF', '#F1E3C4', '#E8D9EE', '#D6E6EE', '#F4E1D0'];
+function colCat(t) { let h = 0; for (const c of String(t || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COL_CAT[h % COL_CAT.length]; }
 const ICONO_CAT = { Promociones: '🏷️', Todos: '🍽️', Comida: '🍲', Mariscos: '🦐', Tacos: '🌮', Hamburguesas: '🍔', Pizza: '🍕', Antojitos: '🫓', 'Café y postres': '☕', Bebidas: '🥤', Abarrotes: '🛒', Farmacia: '💊', Otro: '🏪' };
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const PAGO_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', codi: 'CoDi', monedero: 'Monedero', mp: 'Tarjeta en línea' };
@@ -1172,11 +1240,13 @@ const ICONOS = {
   abajo: '<path d="M6 9l6 6 6-6"/>',
   tel: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
   chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
+  cartera: '<path d="M3 7h15a3 3 0 0 1 3 3v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l12-4 2 4"/><path d="M16 13.5h2"/>',
   tienda: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v2a3 3 0 0 1-5.3 2 3 3 0 0 1-5.4 0A3 3 0 0 1 4 11z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/>',
   casa: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
   moto: '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l-2-6h-3"/><path d="M15 11h3l2 4"/><path d="M13 7h3"/>',
   basura: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   mas: '<path d="M12 5v14M5 12h14"/>',
+  hamb: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   menos: '<path d="M5 12h14"/>',
   reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
@@ -1811,7 +1881,10 @@ const NAV = {
 };
 function navRol() {
   const r = rolActual();
-  if (r === 'invitado' && !lsG('yaEntro')) return NAV.invitado.map(x => x[0] === 'entrar' ? ['entrar', 'user', 'Crear cuenta'] : x); // 2.86.1: equipo nuevo
+  // 3.0.1: cliente e invitado: botón grande "Mi monedero" al centro (mucha gente baja la app solo para usar su saldo)
+  const conMon = l => l.slice(0, 2).concat([['monedero', 'fabMon', 'Mi monedero']], l.slice(2));
+  if (r === 'invitado' && !lsG('yaEntro')) return conMon(NAV.invitado.map(x => x[0] === 'entrar' ? ['entrar', 'user', 'Crear cuenta'] : x)); // 2.86.1: equipo nuevo
+  if (r === 'invitado' || r === 'comprador') return conMon(NAV[r]);
   let l = NAV[r === 'admin' && S.user && S.user.local ? (S.user.ciudad ? 'adminCiudad' : 'adminLocal') : r] || [];
   // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
   if (r === 'negocio') {
@@ -1822,10 +1895,14 @@ function navRol() {
     // Con permiso de pedidos, Pedidos sigue siendo la primera (para no perder los de la app)
     const tabV = S.negocio && pdvTieneAcceso() ? ['vender', 'fab', 'Nuevo pedido'] : S.negocio && !planTiene('caja') && puedo('pedidos') && S.negocio.estado === 'activo' ? ['nuevoPedido', 'fab', 'Nuevo pedido'] : null;
     if (tabV) l = l[0] && l[0][0] === 'negPedidos' ? [l[0], tabV].concat(l.slice(1)) : [tabV].concat(l);
+    if (S.negocio && !esDueno() && !esDisp() && l.length < 5) l = l.filter(x => x[0] !== 'perfil').concat([['monedero', 'cartera', 'Monedero']], l.filter(x => x[0] === 'perfil')); // 3.0.1: su personal ve su saldo (bonos) en un toque
     // 2.57: tareas del turno (plan Total) para el equipo; el dueño entra desde su perfil o el tablero
     if (S.negocio && !esDueno() && opDisponible()) { const ip = l.findIndex(x => x[0] === 'perfil'); l.splice(ip < 0 ? l.length : ip, 0, ['operacion', 'lista', 'Tareas']); }
     // 2.60: el dueño: Inicio (administración) primero; Banners y Negocio viven en ⚙️ Negocio
-    if (esDuenoVarios() && esDueno()) l = [['tablero', 'home', 'Inicio']].concat(l.filter(x => x[0] !== 'promos' && x[0] !== 'miNegocio'));
+    if (esDuenoVarios() && esDueno()) { // 3.0: 5 botones fijos con nombre; lo demás vive en "Más"
+      const fab = l.find(x => x[1] === 'fab');
+      l = [['tablero', 'home', 'Inicio'], ['pedidosD', 'recibo', 'Pedidos']].concat(fab ? [[fab[0], 'fab', pdvTieneAcceso() ? 'Cobrar' : fab[2]]] : [], [['menu', 'menu', 'Menú'], ['mas', 'hamb', 'Más']]);
+    }
     else if (esDuenoVarios()) l = [['tablero', 'home', 'Inicio']].concat(l);
   }
   // el administrador viendo como cliente o repartidor: pestaña para regresar a su panel
@@ -1835,9 +1912,9 @@ const esLocal = () => !!(S.user && S.user.rol === 'admin' && S.user.local);
 /** 2.49: administrador de ciudad (con comisión por los negocios que da de alta). */
 const esAdminCiudad = () => !!(esLocal() && S.user.ciudad);
 const VISTAS = {
-  ventas: () => vVentas(), admNegocio: () => vAdmNegocio(),
+  ventas: () => vVentas(), admNegocio: () => vMas(), mas: () => vMas(),
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
-  pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
+  pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, monederoAlta: vMonederoAlta, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
   operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, planIOS: vPlanIOS, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, elegirPlan: vElegirPlan, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
@@ -2032,17 +2109,48 @@ function pintarNav() {
   const verNav = !SIN_NAV.includes(S.vista);
   $('#nav').style.display = verNav ? 'flex' : 'none';
   document.body.classList.toggle('sinNav', !verNav);
-  const raiz = { pedido: rol === 'comprador' ? 'pedidos' : rol === 'negocio' ? 'negPedidos' : rol === 'admin' || rol === 'moderador' ? 'adminPedidos' : 'entregas' }[S.vista] || S.vista;
+  let raiz = { pedido: rol === 'comprador' ? 'pedidos' : rol === 'negocio' ? 'negPedidos' : rol === 'admin' || rol === 'moderador' ? 'adminPedidos' : 'entregas' }[S.vista] || S.vista;
+  if (rol === 'negocio' && esDueno() && esDuenoVarios()) { if (raiz === 'negPedidos') raiz = 'pedidosD'; else if (MAS_V.includes(raiz)) raiz = 'mas'; } // 3.0
   // 2.38: el botón de nuevo pedido (logo de Pídele) va al centro de la barra, más grande
-  const items = navRol().slice(), iF = items.findIndex(x => x[1] === 'fab');
-  if (iF >= 0) { const f = items.splice(iF, 1)[0]; items.splice(Math.floor(items.length / 2), 0, f); }
+  const items = navRol().slice(), iF = items.findIndex(x => x[1] === 'fab' || x[1] === 'fabMon');
+  if (iF >= 0) { const f = items.splice(iF, 1)[0]; items.splice(f[1] === 'fabMon' ? Math.ceil(items.length / 2) : Math.floor(items.length / 2), 0, f); }
   $('#nav').innerHTML = items.map(([v, i, t]) => {
+    if (i === 'fabMon') { const tot = monTotCache(); return `<button class="navFab navMon ${raiz === v || raiz === 'monederoAlta' ? 'on' : ''}" onclick="irMonedero()" aria-label="Mi monedero"><span class="fab">👛</span><span class="navMonT">Mi monedero${tot > 0 ? '<b>' + money(tot) + '</b>' : ''}</span></button>`; }
     if (i === 'fab') return `<button class="navFab ${S.nuevos && v === 'vender' ? 'conNuevos' : ''} ${raiz === v || (v === 'vender' && S.vista === 'caja' && S.params === 'simple') ? 'on' : ''}" onclick="ir('${v}')" aria-label="${t}"><span class="fab">${LOGO_PIDELE}<i>+</i></span>${t}</button>`;
-    const badge = (v === 'negPedidos' || v === 'disponibles' || v === 'cocina') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
-    return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
+    const badge = (v === 'negPedidos' || v === 'pedidosD' || v === 'disponibles' || v === 'cocina') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
+    return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : v === 'pedidosD' ? 'act(null,irPedidosD)' : v === 'monedero' ? 'irMonedero()' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
 }
 
+/* ============ 3.0.1 · MI MONEDERO A UN TOQUE ============ */
+/** Saldo guardado en este teléfono (para mostrarlo en el botón sin esperar a internet). */
+function monTotCache() {
+  try { const c = ls('monCache'); if (!c || !S.user || c.uid !== S.user.id || !c.l) return 0; return pdvR(c.l.reduce((s, e) => s + (e.x ? monSaldo(e.x).total : 0), 0)); } catch (e) { return 0; }
+}
+function irMonedero() {
+  if (!S.user) return ir('monederoAlta');
+  S._monAuto = true; return ir('monedero');
+}
+/** Primera vez: crear su cuenta (o entrar) con el mismo número que dio en la caja, y de ahí directo a su saldo. */
+function vMonederoAlta() {
+  if (S.user) return ir('monedero');
+  html(`<div class="monAlta"><div style="font-size:54px;text-align:center">👛</div><h2 style="text-align:center;margin:0">Tu monedero</h2>
+    <div class="muted" style="text-align:center;margin:4px 0 14px">Aquí ves el saldo que juntaste en los negocios (cashback, recargas y bonos) y lo usas para pagar.</div>
+    <div class="card"><b style="font-size:17px">Usa el mismo número que diste en la caja</b>
+      <label class="f">Tu nombre</label><input class="i" id="rNom" autocomplete="name">
+      <label class="f">Tu teléfono (10 dígitos)</label><input class="i" id="rTel" inputmode="tel" maxlength="14" autocomplete="tel">
+      <label class="f">Crea una contraseña (mínimo 6)</label><input class="i" id="rPass" type="password" autocomplete="new-password">
+      ${casillaAviso()}
+      <div class="btns"><button class="btn pri pill full" style="min-height:54px;font-size:17px" onclick="act(this,()=>{S.despues='monedero';return registrar('comprador')})">Ver mi saldo</button></div></div>
+    <div class="entrarDiv">¿Ya tienes cuenta?</div>
+    <button class="btn pill full entrarCrear" onclick="S.despues='monedero';ir('entrar')">Entrar</button></div>`);
+}
+/** 3.0 · Pedidos del dueño: con caja, la pestaña "Mesas y pedidos"; sin caja, la lista de pedidos. */
+async function irPedidosD() {
+  if (pdvTieneAcceso()) { await ir('caja', 'simple'); PDV.tab = 'mesas'; PDV.cuentaId = ''; pintarCaja(); return; }
+  return ir('negPedidos');
+}
+const MAS_V = ['mas', 'admNegocio', 'miNegocio', 'promos', 'repartidores', 'suscripcion', 'planIOS', 'perfil', 'equipo', 'inventario', 'inventarioCfg', 'operacion', 'monedero', 'almacen'];
 function botonSesion() { if (S.user && confirm('¿Cerrar sesión de ' + S.user.nombre + '?')) salir(); }
 
 /* ============ ARRANQUE Y SESIÓN ============ */
@@ -2217,12 +2325,13 @@ function vLogin() {
     <div class="card" id="cajaLogin"${nuevo ? ' style="display:none"' : ''}>
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
-      <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
-      <div style="text-align:center;margin-top:10px"><button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button></div>
+      <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)" style="min-height:52px;font-size:17px">Entrar</button></div>
     </div>
-    <div class="card row between" style="cursor:pointer" onclick="dispEntrarModal()"><div><b>🖥️ Entrar como equipo del negocio</b><div class="muted small">Caja, cocina, mesas o barra: con el código que te da el dueño</div></div><span class="lnk small">›</span></div>
-    <div class="vacio" style="padding:10px">${nuevo ? '' : `¿No tienes cuenta?<br><button class="btn" style="margin-top:8px" onclick="vRegistro()">Crear cuenta</button><br><br>`}
-      <button class="lnk" onclick="ir('inicio')">Ver negocios sin cuenta</button></div>
+    ${nuevo ? '' : `<div class="entrarDiv">¿Primera vez?</div><button class="btn pill full entrarCrear" onclick="vRegistro()">Crear mi cuenta gratis</button>`}
+    <div style="text-align:center;margin-top:6px"><button class="lnk entrarVer" onclick="ir('inicio')">Solo quiero ver restaurantes ›</button></div>
+    <div class="entrarPie">
+      <button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button>
+      <button class="lnk" onclick="dispEntrarModal()">¿Trabajas en un negocio? Entrar como equipo</button></div>
   </div>`);
 }
 
@@ -2618,7 +2727,7 @@ function abrirDesdeUrl(url) {
   if (!S.token || (!ped && !v)) return false;
   if (v === 'disponibles' && esAdminU()) { modoRepartidor(true); return true; } // aviso de un pedido de muestra
   if (ped && rolActual() === 'negocio' && conPdvPedidos() && pdvTieneAcceso()) { pdvIrPedido(ped); return true; }
-  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || ((v === 'suscripcion' || v === 'elegirPlan') && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user) || (v === 'facturas' && rolActual() === 'negocio'))) ir(v); else return false;
+  if (ped) ir('pedido', ped); else if (VISTAS[v] && (navRol().some(x => x[0] === v) || ((v === 'adminComisiones' || v === 'moderacion' || v === 'ciudades') && rolActual() === 'admin') || (v === 'repartidores' && rolActual() === 'negocio') || ((v === 'suscripcion' || v === 'elegirPlan') && ['negocio', 'repartidor'].includes(rolActual())) || ((v === 'equipo' || v === 'perfil') && rolActual() === 'negocio') || (v === 'monedero' && S.user) || (v === 'monederoAlta' && !S.user) || (v === 'facturas' && rolActual() === 'negocio'))) ir(v); else return false;
   return true;
 }
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir) { cerrarModal(); abrirDesdeUrl(e.data.abrir); } });
@@ -3293,7 +3402,7 @@ function pdvSuscribir() {
   sub(pdvCol('gastos').where('dia', '==', pdvHoy()), s => { PDV.gastosDia = docs(s); });
   // metas del negocio y saldos de consumo del personal (2.30)
   sub(pdvCol('metas'), s => { const l = docs(s); PDV.metasCfg = l.find(m => m.id === '_cfg') || {}; PDV.metas = l.filter(m => m.id !== '_cfg'); });
-  sub(pdvCol('consumo'), s => { PDV.consumo = docs(s).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); });
+  sub(pdvCol('consumo'), s => { PDV.consumo = docs(s).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); consMonAuto(); });
   // monedero de clientes del dueño (2.32)
   PDV.monCfg = null; PDV.monCli = null;
   if (PDV.gid) PDV.subs.push(monRef().onSnapshot(s => { PDV.monCfg = s.exists ? s.data() : null; if (vivo()) pdvRepintar(); }, e => console.warn(e)));
@@ -3398,10 +3507,10 @@ function pintarCaja() {
   html(`<div class="pdv">
     <div class="pdvBar"><h1>${nomina ? '👥 Personal · ' : ventasM ? '📊 Ventas · ' : simple ? '🛒 ' : '🧾 '}${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
-      ${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button onclick="act(this,asisMenu)" aria-label="Asistencia">🕒</button>' : ''}${esDisp() ? '' : `<button onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️</button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯</button>' : ''}<button onclick="pdvFormPin()" aria-label="Mi código">🔑</button><button onclick="pdvAjustes()" aria-label="Ajustes">⚙️</button>${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳<span class="pdvTxt"> Cocina</span></button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
+      ${nomina || ventasM ? '' : `${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button class="pdvIco" onclick="act(this,asisMenu)" aria-label="Asistencia">🕒<small>Checar</small></button>' : ''}${esDisp() ? '' : `<button class="pdvIco" onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️<small>Pedir</small></button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button class="pdvIco" onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯<small>Metas</small></button>' : ''}<button class="pdvIco" onclick="pdvFormPin()" aria-label="Mi código">🔑<small>Código</small></button><button class="pdvIco" onclick="pdvAjustes()" aria-label="Ajustes">⚙️<small>Ajustes</small></button>`}${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳<span class="pdvTxt"> Cocina</span></button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${esDisp() ? `<div class="aviso info row between" style="margin:0 0 10px;gap:8px"><span>🖥️ <b>${esc(S.user.nombre)}</b> · atiende: <b>${S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? esc(S._oper.nombre.split(' ')[0]) : 'nadie'}</b></span><button class="btn sm" onclick="act(this,pdvOperElegir)">👤 ${S._oper ? 'Cambiar' : '¿Quién atiende?'}</button></div>`
-      : !(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
+      : !nomina && !ventasM && !(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
     ${nomina ? '' : `<div class="tabs pdvTabs">`}${tabs.map(([k, txt]) => `<button class="${t === k ? 'on' : ''}" onclick="PDV.tab='${k}';PDV.cuentaId='';pintarCaja()">${txt}${k === 'ventas' ? ((n => n ? ' (' + n + ')' : '')(pdvVentasTurno().filter(v => v.estado !== 'cancelada' && (!simple || [v.por, v.mesero].some(x => x && x.uid === S.user.id))).length)) : ''}</button>`).join('')}${nomina ? '' : '</div>'}
     ${PDV.cuentaId ? pdvVistaCuenta() : t === 'facturas' ? facCajaHTML() : t === 'cortes' ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'cortes', pdvVistaReportes()) : t === 'reportes' && ventasM ? ((PDV.rep = PDV.rep || { per: 'semana', neg: PDV.nid }).vista = 'res', pdvVistaReportes()) : t === 'vender' ? pdvVistaVender() : t === 'mesas' ? pdvVistaMesas() : t === 'ventas' ? pdvVistaVentas() : t === 'gastos' ? pdvVistaGastos() : t === 'hoy' ? pdvVistaHoy() : t === 'reportes' ? pdvVistaReportes() : t === 'personal' ? pdvVistaPersonal() : t === 'monedero' ? monVista() : pdvVistaCaja()}
   </div>`);
@@ -3914,8 +4023,8 @@ function pdvPintarCobro() {
     ${k.app ? '' : cliCobroHTML({ tel: PDV.venta.tel, nombre: PDV.venta.nombre }, 'cliCobroVenta')}
     ${k.app ? '' : monCampoCobro(PDV.venta.tel)}
     ${k.pagos.map((p, i) => p.anticipo ? `<div class="pdvLinea"><div class="grow">${p.etq ? esc(p.etq) : '🎟️ Anticipo (' + PDV_MET[p.metodo] + ')'}</div><b>${money(p.monto)}</b></div>` : `<div class="pdvLinea"><div class="grow">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}${p.cambio ? ' · cambio ' + money(p.cambio) : ''}</div><b>${money(p.monto)}</b><button class="redondo" style="width:32px;height:32px" onclick="PDV.cobro.pagos.splice(${i},1);pdvPintarCobro()" aria-label="Quitar">✕</button></div>`).join('')}
-    ${saldo > 0 ? `<div class="pdvMets">${pdvMetsCobro().filter(([m]) => m !== 'monedero' || !k.pagos.length).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="PDV.cobro.met='${m}';pdvPintarCobro()">${t}</button>`).join('')}</div>
-      ${k.met === 'monedero' ? '<div class="aviso info small" style="margin:6px 0">👛 El monedero paga el ticket <b>completo</b>. Si solo quiere usarlo en parte, cobra por separado lo que paga con monedero.</div>' : ''}
+    ${saldo > 0 ? `<div class="pdvMets">${pdvMetsCobro().filter(([m]) => m !== 'monedero' || !k.pagos.length || monCfg().parcial).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="PDV.cobro.met='${m}';pdvPintarCobro()">${t}</button>`).join('')}</div>
+      ${k.met === 'monedero' ? monAvisoCaja() : ''}
       <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${saldo}" oninput="pdvCambio()">
       ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[...new Set([saldo, ...[50, 100, 200, 500, 1000].filter(b => b > saldo)].slice(0, 5))].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
         <input class="i pdvNum" id="cbRecibe" inputmode="decimal" placeholder="${saldo}" oninput="pdvCambio()"><div class="pdvCambio" id="cbCambio"></div>` : ''}
@@ -3997,9 +4106,9 @@ async function pdvAgregarPago() {
   }
   if (k.met === 'tarjeta') { const pr = pdvR(($('#cbProp') || {}).value); if (pr < 0) throw new Error('Propina inválida'); if (pr) p.propina = pr; }
   if (k.met === 'monedero') {
-    // 2.50: el monedero solo paga el ticket completo (sin parcialidades)
-    if (k.pagos.length || m < pdvR(k.total)) throw new Error('El monedero solo paga el ticket completo (' + money(k.total) + ').');
-    Object.assign(p, await monValidarPago(m));
+    // 3.0.1: el dueño elige si acepta el monedero en parte o solo por el total (antes: siempre el total)
+    if (!monCfg().parcial && (k.pagos.length || m < pdvR(k.total))) throw new Error('Este negocio solo acepta el monedero por el total de la cuenta (' + money(k.total) + ').');
+    Object.assign(p, await monValidarPago(m, pdvR(k.pagos.filter(x => x.metodo === 'monedero').reduce((s, x) => s + x.monto, 0))));
   }
   if (k.met === 'consumo') { const ya = pdvR(k.pagos.filter(x => x.metodo === 'consumo' && x.consumoUid === ($('#cbCons') || {}).value).reduce((s, x) => s + x.monto, 0)); Object.assign(p, await consumoValidar(pdvR(m + ya))); }
   if (k.met === 'nomina') Object.assign(p, await nominaValidar());
@@ -5810,7 +5919,7 @@ function pdvBarraPedidos() {
   const pv = ((PDV.app && PDV.app.pedidos) || []).filter(x => x.preventa && ['POR_PAGAR', 'PROGRAMADO', 'PAGO_ENVIADO'].includes(x.estado) && pdvHoy(x.programado) !== pdvHoy()).length;
   return `<div class="card row between pdvBarraPed" style="gap:8px;padding:8px 12px"><div class="grow"><div class="small" style="color:${n.abierto ? 'var(--ok)' : 'var(--tx2)'};font-weight:700">${n.recibiendo === false ? '⏸️ Pausado: no recibes pedidos de la app' : (n.abierto ? '🟢 ' : '🕒 ') + esc(n.estadoTexto || 'Recibiendo pedidos')}</div>
     <div class="row" style="gap:10px;flex-wrap:wrap"><button class="lnk small" onclick="S._pedHist=true;ir('negPedidos')">📋 Historial de pedidos</button>${pv ? `<button class="lnk small" onclick="act(null,()=>pvPanel())">🎟️ ${pv} preventa(s) apartada(s)</button>` : ''}</div></div>
-    ${puedo('abrir') && n.estado === 'activo' ? `<label class="sw" title="Recibir pedidos"><input type="checkbox" ${n.recibiendo !== false ? 'checked' : ''} onchange="act(null,()=>pdvAbrirCerrar(this))"><i></i></label>` : ''}</div>`;
+    ${puedo('abrir') && n.estado === 'activo' && esDueno() ? `<button class="lnk small" onclick="ir('tablero')">Abrir o cerrar en 🏠 Inicio ›</button>` : ''}</div>`; // 2.98: el interruptor vive en Inicio
 }
 async function pdvAbrirCerrar(chk) {
   try { const n = await api('abrirCerrar', { abierto: chk.checked }); fijarNeg(n); PDV.appNeg = Object.assign({}, PDV.appNeg || {}, n); toast(chk.checked ? 'Recibiendo pedidos en tu horario 🟢' : 'Pedidos en pausa ⏸️'); pintarCaja(); }
@@ -6430,8 +6539,8 @@ function pdvPintarCobroCuenta() {
     ${c.pagado ? '' : pdvEntregaHTML(k.ent, true)}
     ${cliCobroHTML(c.cliente, 'cliCobroCuenta')}
     ${monCampoCobro(k.tel, k.telAnt)}
-    <div class="pdvMets">${pdvMetsCobro().filter(([m]) => m !== 'monedero' || !pdvR(c.pagado)).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="pdvGuardarCampoCobro();PDV.cobro.met='${m}';${m === 'monedero' ? "PDV.cobro.modo='monto';PDV.cobro.monto=null;" : ''}pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
-    ${k.met === 'monedero' ? '<div class="aviso info small" style="margin:6px 0">👛 El monedero paga el ticket <b>completo</b>. Si solo quiere usarlo en parte, divide la cuenta y que pague con monedero su propia cuenta.</div>' : ''}
+    <div class="pdvMets">${pdvMetsCobro().filter(([m]) => m !== 'monedero' || !pdvR(c.pagado) || monCfg().parcial).map(([m, t]) => `<button class="${k.met === m ? 'on' : ''}" onclick="pdvGuardarCampoCobro();PDV.cobro.met='${m}';${m === 'monedero' ? "PDV.cobro.modo='monto';PDV.cobro.monto=null;" : ''}pdvPintarCobroCuenta()">${t}</button>`).join('')}</div>
+    ${k.met === 'monedero' ? monAvisoCaja() : ''}
     <label class="f">Monto de este pago</label><input class="i pdvNum" id="cbMonto" inputmode="decimal" value="${k.monto != null && k.modo === 'monto' ? k.monto : monto}" ${k.modo === 'productos' ? 'readonly' : ''} oninput="pdvCambio()">
     ${k.met === 'efectivo' ? `<label class="f">Recibe</label><div class="pdvBilletes">${[50, 100, 200, 500, 1000].map(b => `<button onclick="$('#cbRecibe').value=${b};pdvCambio()">${money(b)}</button>`).join('')}</div>
       <input class="i pdvNum" id="cbRecibe" inputmode="decimal" placeholder="Igual al monto" oninput="pdvCambio()"><div class="pdvCambio" id="cbCambio"></div>` : ''}
@@ -6463,8 +6572,8 @@ async function pdvPagarCuenta() {
   const telC = monTel(k.tel);
   if (telC && telC.length !== 10) throw new Error('El teléfono del cliente debe tener 10 dígitos');
   if (k.met === 'monedero') {
-    // 2.50: el monedero solo paga el ticket completo (sin parcialidades)
-    if (pdvR(c.pagado) || m < saldo || saldo < pdvTotalCuenta(c)) throw new Error('El monedero solo paga el ticket completo (' + money(pdvTotalCuenta(c)) + '). Para usarlo en una parte, divide la cuenta.');
+    // 3.0.1: en parte solo si el dueño lo permite
+    if (!monCfg().parcial && (pdvR(c.pagado) || m < saldo || saldo < pdvTotalCuenta(c))) throw new Error('Este negocio solo acepta el monedero por el total de la cuenta (' + money(pdvTotalCuenta(c)) + ').');
     Object.assign(p, await monValidarPago(m)); await monDescontar(p, c.folio, c.id);
   }
   // monedero (2.32): cashback de este pago (lo pagado con monedero o consumo no gana) y su visita del día
@@ -7005,7 +7114,7 @@ function pdvImprimirComandaCaja(id) {
  * Dueño y gerente: pestaña 👥 Personal (hoy, semana, configurar). Nómina: solo el dueño.
  */
 const ASIS_EST = { presente: ['✅', 'A tiempo'], retardo: ['⏰', 'Retardo'], falta: ['❌', 'Falta'], permiso_goce: ['🟦', 'Permiso con goce'], permiso_sin: ['🟨', 'Permiso sin goce'],
-  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['❓', 'No llegó · sin decidir'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Día a favor'], feriado: ['🎉', 'Feriado · descanso pagado'], cambio: ['🔄', 'Cambio de turno'] };
+  descanso: ['😴', 'Descanso'], vacaciones: ['🏖️', 'Vacaciones'], sin_decidir: ['🔴', 'No ha llegado'], aviso_tarde: ['⏰', 'Avisó que llega tarde'], por_llegar: ['🕗', 'Por llegar'], programado: ['📅', 'Programado'], compensado: ['🔁', 'Día a favor'], feriado: ['🎉', 'Feriado · descanso pagado'], cambio: ['🔄', 'Cambio de turno'] };
 const DIAS_C = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const asisHora = ms => ms ? hora(ms) : '';
 const asisDiaTxt = f => { const d = new Date(f + 'T12:00'); return DIAS_C[d.getDay()] + ' ' + d.getDate(); };
@@ -8480,13 +8589,13 @@ function pdvVistaPersonal() {
   const P = PDV.per = PDV.per || { sub: 'hoy', fecha: pdvHoy() };
   if (!P.nomPer) P.nomPer = lsG('nomPer') || 'quincena'; // 2.91.1: antes abría en "Esta semana" aunque todos cobren por quincena
   const subs = [['equipo', '👥 Equipo'], ['hoy', '🕒 Asistencia hoy', 'asistencia'], ['semana', '📅 Semana'], ['vac', '🏖️ Vacaciones', 'vacaciones'], ['nomina', '💵 Nómina', 'nomina'], ['adel', '💵 Adelantos', 'nomina'], ['metas', '🎯 Bonos y metas', 'bonos'], ['turnos', '⏱️ Turnos'], ['config', '⚙️ Reglas y horarios'], ['consumo', '🎁 Consumo', 'consumo']].filter(x => !x[2] || funOn('personal', x[2])); // 2.68: solo las funciones prendidas
-  if (!subs.some(x => x[0] === P.sub)) P.sub = 'equipo';
+  if (!subs.some(x => x[0] === P.sub)) P.sub = subs.some(x => x[0] === 'hoy') ? 'hoy' : 'equipo';
   if (P.todos) { // 2.75: toda su gente, de todos sus negocios, en esta misma pantalla
     if (!navigator.onLine) return perNegChips() + '<div class="aviso warn">📴 Necesitas internet para ver a todo tu personal.</div>';
     if (!S._perTodos || Date.now() - S._perTodos.t > 60000) { if (!P.todosCarga) { P.todosCarga = true; perTodosCargar(true).catch(e => { S._perTodos = { negocios: [], t: Date.now(), _error: e.message }; }).finally(() => { P.todosCarga = false; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); }); } if (!S._perTodos) return perNegChips() + '<div class="cargando">Cargando…</div>'; }
     return perNegChips() + (S._perTodos._error ? `<div class="aviso err">${esc(S._perTodos._error)}</div>` : perTodosHTML(S._perTodos, P.todosF, true)) + '<div class="muted small" style="margin-top:8px">Para asistencia, vacaciones, nómina o editar a alguien, elige arriba el negocio.</div>';
   }
-  const cab = perNegChips() + `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="muted small">Tu gente, asistencia, vacaciones, nómina y bonos</span><button class="btn sm pri" onclick="act(this,altaColab)">➕ Agregar colaborador</button></div><div class="tabChips perSubs">${subs.map(([k, t]) => `<button class="${P.sub === k ? 'on' : ''}" onclick="if(!nomLoteSalir())return;PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()">${t}</button>`).join('')}</div>`;
+  const cab = perNegChips() + perCabecera(subs, P); // 3.0: Hoy · Mi equipo · Pagos
   if (P.sub === 'metas') return cab + asisVistaMetas();
   if (P.sub === 'turnos') return cab + asisVistaTurnos();
   if (P.sub === 'consumo') return cab + asisVistaConsumo();
@@ -8503,6 +8612,16 @@ function pdvVistaPersonal() {
   }
   if (P.datos._error) return cab + `<div class="aviso err">${esc(P.datos._error)}</div>`;
   return cab + (P.sub === 'equipo' ? equipoVista(P.datos) : P.sub === 'hoy' ? asisVistaHoy(P.datos) : P.sub === 'vac' ? vacVistaPanel(P.datos) : P.sub === 'adel' ? adelVistaPanel(P.datos) : P.sub === 'semana' ? asisVistaSemana(P.datos) : P.sub === 'config' ? asisVistaConfig(P.datos) : asisVistaNomina(P.datos));
+}
+/* ============ 3.0 · PERSONAL EN 3 BOTONES: Hoy, Mi equipo y Pagos (las 10 pestañas de antes quedan dentro) ============ */
+const PER_GRUPOS = [['hoy', '📋', 'Hoy', ['hoy', 'semana']], ['eq', '👥', 'Mi equipo', ['equipo', 'vac', 'turnos', 'config']], ['pagos', '💵', 'Pagos', ['nomina', 'adel', 'metas', 'consumo']]];
+const PER_SUB = { hoy: '📋 Hoy', semana: '📅 Semana', equipo: '👥 Personas', vac: '🏖️ Vacaciones', turnos: '🕒 Turnos', config: '⚙️ Reglas', nomina: '💵 Nómina', adel: '💸 Adelantos', metas: '🎯 Bonos', consumo: '🍔 Consumo' };
+function perCabecera(subs, P) {
+  const disp = subs.map(x => x[0]), gs = PER_GRUPOS.map(g => [g[0], g[1], g[2], g[3].filter(k => disp.includes(k))]).filter(g => g[3].length);
+  const g = gs.find(x => x[3].includes(P.sub)) || gs[0];
+  const ir = k => `if(!nomLoteSalir())return;PDV.per.sub='${k}';PDV.per.datos=null;pintarCaja()`;
+  return `<div class="perSeg">${gs.map(x => `<button class="${x === g ? 'on' : ''}" onclick="${ir(x[3][0])}"><span>${x[1]}</span>${x[2]}</button>`).join('')}</div>
+    ${g[3].length > 1 ? `<div class="perSubs2">${g[3].map(k => `<button class="${P.sub === k ? 'on' : ''}" onclick="${ir(k)}">${PER_SUB[k]}</button>`).join('')}</div>` : ''}`;
 }
 /* ============ 2.61 · EQUIPO: lista, alta en una pantalla y ficha de cada persona ============ */
 const PUESTOS = {
@@ -8527,9 +8646,10 @@ function equipoVista(d) {
     const e = ASIS_EST[x.estado]; return e ? `<span class="eqSt ${x.estado === 'sin_decidir' || x.estado === 'falta' ? 'err' : ''}">${e[0]} ${e[1]}</span>` : ''; };
   const sub = p => { const t = turnoDeHorario(p.horario); return [puestoTxt(p.puesto), p.alta ? (t.turno ? t.turno.nombre : t.mixto ? 'Horario mixto' : '') : '', p.alta && t.descanso.length && t.descanso.length < 7 ? 'descansa ' + t.descanso.map(k => DIAS[k].toLowerCase()).join(', ') : ''].filter(Boolean).join(' · '); };
   return `<div class="row between" style="margin:4px 0 8px"><b>Tu equipo (${d.equipo.length})</b></div>
-    <div class="card eqLista">${d.equipo.map(p => `<div class="eqP" role="button" onclick="fichaAbrir('${p.usuarioId}')"><div class="eqAv">${ini(p.nombre)}</div><div class="grow"><b>${esc(p.nombre)}</b><div class="small muted">${esc(sub(p)) || 'Toca para ponerle puesto y turno'}</div></div>${est(p)}</div>`).join('') || '<div class="muted small">Aún no hay nadie en tu equipo.</div>'}
+    <div class="card eqLista">${d.equipo.map(p => `<div class="eqP" role="button" onclick="fichaAbrir('${p.usuarioId}')"><div class="eqAv">${ini(p.nombre)}</div><div class="grow"><b>${esc(p.nombre)}</b><div class="small muted">${esc(sub(p)) || 'Toca para ponerle puesto y turno'}</div></div>${est(p)}${p.alta && funOn('personal', 'vacaciones') ? (v => `<span class="eqVac ${v < 0 ? 'neg' : ''}">🏖️ ${v}</span>`)((p.vacaciones || 0) - (p.vacUsadas || 0)) : ''}</div>`).join('') || '<div class="muted small">Aún no hay nadie en tu equipo.</div>'}
     ${(d.invitados || []).map(x => `<div class="eqP"><div class="eqAv">${ini(x.nombre)}</div><div class="grow"><b>${esc(x.nombre)}</b><div class="small muted">${esc(puestoTxt(x.puesto))}${x.puesto ? ' · ' : ''}invitado ${fechaCorta(x.creado)}</div></div><button class="btn sm" onclick="event.stopPropagation();equipoReenviar('${x.equipoId}')">⏳ Reenviar</button></div>`).join('')}</div>
-    <div class="muted small" style="text-align:center">Toca a alguien para ver su ficha</div>`;
+    <div class="muted small" style="text-align:center;margin-bottom:10px">👆 Toca un nombre para ver su ficha</div>
+    <button class="btn pill full" onclick="act(this,altaColab)">＋ Agregar persona</button>`;
 }
 function equipoReenviar(id) {
   const x = ((PDV.per.datos || {}).invitados || []).find(y => y.equipoId === id); if (!x) return;
@@ -8602,31 +8722,41 @@ async function altaEnviar() {
   pintarCaja();
 }
 /* ---------- la ficha ---------- */
+const fichaD = () => S._fichaD || PDV.per.datos || {};
+/** 3.0: al guardar desde la ficha abierta en otro botón (Hoy, Pagos…), esa pantalla se vuelve a cargar. */
+function fichaSet(r) { if (S._fichaD) { S._fichaD = r; PDV.per.datos = null; } else PDV.per.datos = Object.assign(r, { hoyAsis: (PDV.per.datos || {}).hoyAsis }); }
 async function fichaAbrir(uid) {
-  const d = PDV.per.datos || {}, p = (d.equipo || []).find(x => x.usuarioId === uid); if (!p) return;
+  let d = PDV.per.datos || {};
+  S._fichaD = null;
+  if (!(d.equipo || []).some(x => x.usuarioId === uid)) { d = S._fichaD = await api('personalLista', { negocioId: S.negocio.id }); } // 3.0: la ficha se abre desde cualquier botón
+  const p = (d.equipo || []).find(x => x.usuarioId === uid); if (!p) { toast('Aún no tiene ficha: dale de alta en 👥 Mi equipo', 'err'); return; }
   S._ficha = { uid, res: null }; fichaPintar();
   try { S._ficha.res = await api('personaResumen', { negocioId: S.negocio.id, usuarioId: uid }); } catch (e) { S._ficha.res = { error: e.message }; }
   if (S._ficha && S._ficha.uid === uid && $('#modal.on .ficha')) fichaPintar();
 }
 function fichaPintar() {
-  const d = PDV.per.datos || {}, f = S._ficha, p = (d.equipo || []).find(x => x.usuarioId === f.uid); if (!p) return cerrarModal();
+  const d = fichaD(), f = S._ficha, p = (d.equipo || []).find(x => x.usuarioId === f.uid); if (!p) return cerrarModal();
   const t = turnoDeHorario(p.horario), r = f.res, du = d.dueno, pin = PDV.personal && PDV.personal[p.usuarioId] && PDV.personal[p.usuarioId].pin;
   const kv = (k, v, fn) => `<div class="fKv"><span>${k}</span><span><b>${v}</b>${fn ? `<button class="lnk" onclick="${fn}">Cambiar</button>` : ''}</span></div>`;
   modal(`<div class="ficha"><div class="row between"><div class="row" style="gap:12px"><div class="eqAv g">${esc(iniciales(p.nombre))}</div><div><h2 style="margin:0">${esc(p.nombre)}</h2>
       <div>${p.puesto ? `<span class="tag">${esc(puestoTxt(p.puesto))}</span>` : ''}<span class="tag">${esc(S.negocio.nombre)}</span></div><div class="small muted">${esc(p.telefono)}${p.desde ? ' · desde ' + new Date(p.desde).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: new Date(p.desde).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }) : ''}</div></div></div>
       <button class="redondo" onclick="S._ficha=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="row fichaCom" style="gap:8px;margin-top:10px">${p.telefono ? `<a class="btn pill" style="flex:1" href="tel:${esc(p.telefono)}">📞 Llamar</a><a class="btn pill" style="flex:1" href="${waLink(p.telefono, '')}" target="_blank">💬 WhatsApp</a>` : ''}</div>
     <div class="card" style="margin-top:10px">
       ${kv('Turno', p.alta ? (t.turno ? esc(t.turno.nombre) + ' ' + horaCorta(t.turno.e) + '–' + horaCorta(t.turno.s) : t.mixto ? 'Horario mixto' : esc(t.h0.e + '–' + t.h0.s)) : 'Sin turno', `fichaTurno()`)}
       ${kv('Descansa', p.alta ? (t.descanso.length ? t.descanso.map(k => DIAS[k].toLowerCase()).join(', ') : 'no descansa') : '—', `fichaTurno()`)}
       ${du ? kv('Sueldo', p.sueldo != null && p.alta ? money(p.sueldo) + ' ' + (p.periodo || 'semanal') : '—', `fichaSueldo()`) : ''}
       ${kv('Puesto y permisos', p.puesto ? esc(PUESTOS[p.puesto] ? PUESTOS[p.puesto].nombre : p.puesto) : 'Personalizado', du ? `fichaPuesto()` : '')}
       ${(d.areas || []).length ? kv('Área (operación)', esc(p.area || 'Sin área'), `fichaArea()`) : ''}
+      ${p.alta && funOn('personal', 'vacaciones') ? kv('🏖️ Vacaciones', (v => `<span style="color:${v < 0 ? 'var(--err)' : 'var(--ok)'}">${v} día${Math.abs(v) === 1 ? '' : 's'}</span>`)((p.vacaciones || 0) - (p.vacUsadas || 0)), du ? `vacAjusteForm('${p.usuarioId}')` : '') : ''}
+      ${p.alta && funOn('personal', 'vacaciones') ? kv('Fecha de ingreso', p.ingreso ? new Date(p.ingreso + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '<span style="color:var(--warn)">Sin capturar</span>', du ? `vacAjusteForm('${p.usuarioId}')` : '') : ''}
     </div>
     <h3 style="margin:12px 0 6px">Este mes</h3>
     ${!r ? '<div class="muted small">Cargando…</div>' : r.error ? `<div class="aviso err small">${esc(r.error)}</div>` : `<div class="fMini"><div><b>${r.aTiempo}</b>a tiempo</div><div><b>${r.tarde}</b>tarde</div><div><b>${r.faltas}</b>faltas</div><div><b>${r.vac ? r.vac.usadas + '/' + r.vac.total : '—'}</b>vacaciones</div></div>`}
     <h3 style="margin:12px 0 6px">Acciones</h3>
     <div class="fAcc">
       <button onclick="S._ficha=null;cerrarModal();PDV.per.sub='semana';PDV.per.datos=null;pintarCaja()">🕒 Su asistencia</button>
+      ${du && funOn('personal', 'nomina') ? `<button onclick="S._ficha=null;cerrarModal();PDV.per.sub='nomina';PDV.per.datos=null;pintarCaja()">💵 Sus pagos</button>` : ''}
       <button onclick="act(this,()=>vacFicha('${p.usuarioId}'))">🏖️ Sus vacaciones</button>
       <button onclick='cerrarModal();asisFormPersona(${JSON.stringify(p).replace(/'/g, "&#39;")})'>🗓️ Horario por día y más</button>
       ${p.telRegistrado ? `<button onclick="act(this,async()=>{await asisReloj({accion:'liberar',usuarioId:'${p.usuarioId}'});cerrarModal()})">📱 Liberar su teléfono</button>` : `<button disabled>📱 ${(d.config || {}).telFijo ? 'Aún no checa con su teléfono' : 'Checa desde cualquier teléfono'}</button>`}
@@ -8636,7 +8766,7 @@ function fichaPintar() {
     <div class="small muted" style="margin-top:6px">Si olvida su código de caja, lo cambia él mismo desde 🔑 en la caja.</div></div>`);
 }
 function fichaTurno() {
-  const d = PDV.per.datos, p = d.equipo.find(x => x.usuarioId === S._ficha.uid), t = turnoDeHorario(p.horario), ts = turnosNeg();
+  const d = fichaD(), p = d.equipo.find(x => x.usuarioId === S._ficha.uid), t = turnoDeHorario(p.horario), ts = turnosNeg();
   S._ft = { turno: Math.max(0, ts.findIndex(x => t.turno && x.e === t.turno.e && x.s === t.turno.s)), descanso: p.alta ? t.descanso : [] };
   const pintarFt = () => modal(`<h2 style="margin:0 0 4px">⏱️ Turno de ${esc(p.nombre.split(' ')[0])}</h2>${t.mixto ? '<div class="aviso warn small">Hoy tiene horario mixto (distinto por día). Si eliges un turno, se reemplaza.</div>' : ''}
     <label class="f">Turno</label><div class="pdvTipo" style="margin-top:0">${ts.map((x, i) => `<button class="${S._ft.turno === i ? 'on' : ''}" onclick="S._ft.turno=${i};S._ftP()">${esc(x.nombre)} ${horaCorta(x.e)}–${horaCorta(x.s)}</button>`).join('')}</div>
@@ -8647,19 +8777,19 @@ function fichaTurno() {
 async function fichaTurnoGuardar() {
   const t = turnosNeg()[S._ft.turno];
   if (S._ft.descanso.length >= 7) throw new Error('Debe trabajar al menos un día');
-  PDV.per.datos = Object.assign(await api('fichaGuardar', { negocioId: S.negocio.id, usuarioId: S._ficha.uid, horario: horarioDeTurno(t, S._ft.descanso) }), { hoyAsis: PDV.per.datos.hoyAsis });
+  fichaSet(await api('fichaGuardar', { negocioId: S.negocio.id, usuarioId: S._ficha.uid, horario: horarioDeTurno(t, S._ft.descanso) }));
   toast('Turno guardado ✓'); fichaPintar(); pintarCaja();
 }
 function fichaSueldo() {
-  const p = PDV.per.datos.equipo.find(x => x.usuarioId === S._ficha.uid);
+  const p = fichaD().equipo.find(x => x.usuarioId === S._ficha.uid);
   S._fs = p.periodo || 'semanal';
   modal(`<h2 style="margin:0 0 4px">💵 Sueldo de ${esc(p.nombre.split(' ')[0])}</h2>
     <input class="i pdvNum" id="fsMonto" inputmode="decimal" value="${p.sueldo || ''}">
     <div class="pdvTipo">${['semanal', 'quincenal'].map(k => `<button class="${S._fs === k ? 'on' : ''}" onclick="S._fs='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this))">${k === 'semanal' ? 'Semanal' : 'Quincenal'}</button>`).join('')}</div>
-    <div class="btns"><button class="btn pri pill" onclick="act(this,async()=>{PDV.per.datos=Object.assign(await api('fichaGuardar',{negocioId:S.negocio.id,usuarioId:S._ficha.uid,sueldo:pdvR($('#fsMonto').value),periodo:S._fs}),{hoyAsis:PDV.per.datos.hoyAsis});toast('Sueldo guardado ✓');fichaPintar();pintarCaja()})">Guardar</button><button class="btn pill" onclick="fichaPintar()">Cancelar</button></div>`);
+    <div class="btns"><button class="btn pri pill" onclick="act(this,async()=>{fichaSet(await api('fichaGuardar',{negocioId:S.negocio.id,usuarioId:S._ficha.uid,sueldo:pdvR($('#fsMonto').value),periodo:S._fs}));toast('Sueldo guardado ✓');fichaPintar();pintarCaja()})">Guardar</button><button class="btn pill" onclick="fichaPintar()">Cancelar</button></div>`);
 }
 function fichaPuesto() {
-  const p = PDV.per.datos.equipo.find(x => x.usuarioId === S._ficha.uid);
+  const p = fichaD().equipo.find(x => x.usuarioId === S._ficha.uid);
   S._fp = { puesto: p.puesto || 'personalizado', perms: p.permisos || [] };
   const pintarFp = () => modal(`<h2 style="margin:0 0 4px">Puesto de ${esc(p.nombre.split(' ')[0])}</h2>
     <div class="alPuestos">${Object.keys(PUESTOS).filter(k => k !== 'repartidor').map(k => `<button class="${S._fp.puesto === k ? 'on' : ''}" onclick="S._fp.puesto='${k}';if('${k}'!=='personalizado')S._fp.perms=PUESTOS['${k}'].perms.slice();S._fpP()"><span>${PUESTOS[k].ico}</span>${PUESTOS[k].nombre}</button>`).join('')}</div>
@@ -8670,23 +8800,23 @@ function fichaPuesto() {
   S._fpP = pintarFp; pintarFp();
 }
 async function fichaPuestoGuardar() {
-  const p = PDV.per.datos.equipo.find(x => x.usuarioId === S._ficha.uid);
+  const p = fichaD().equipo.find(x => x.usuarioId === S._ficha.uid);
   if (!S._fp.perms.length) throw new Error('Elige al menos un permiso');
   await api('guardarColaborador', { nombre: p.nombre, telefono: p.telefono, negocios: [S.negocio.id], permisos: S._fp.perms });
-  PDV.per.datos = Object.assign(await api('fichaGuardar', { negocioId: S.negocio.id, usuarioId: p.usuarioId, puesto: S._fp.puesto }), { hoyAsis: PDV.per.datos.hoyAsis });
+  fichaSet(await api('fichaGuardar', { negocioId: S.negocio.id, usuarioId: p.usuarioId, puesto: S._fp.puesto }));
   toast('Puesto guardado ✓'); fichaPintar(); pintarCaja();
 }
 function fichaArea() {
-  const d = PDV.per.datos, p = d.equipo.find(x => x.usuarioId === S._ficha.uid);
+  const d = fichaD(), p = d.equipo.find(x => x.usuarioId === S._ficha.uid);
   modal(`<h2 style="margin:0 0 4px">Área de ${esc(p.nombre.split(' ')[0])}</h2><div class="muted small">Para las tareas de Operación.</div>
-    <div class="btns" style="flex-direction:column">${d.areas.map(a => `<button class="btn pill full ${p.area === a ? 'pri' : ''}" onclick="act(this,async()=>{await api('opAjustes',{negocioId:S.negocio.id,persona:{usuarioId:'${p.usuarioId}',area:${esc(JSON.stringify(a))},enc:${!!p.opEnc},encT:${!!p.opEncT},sup:${esc(JSON.stringify(p.opSup || ''))}}});PDV.per.datos.equipo.find(x=>x.usuarioId==='${p.usuarioId}').area=${esc(JSON.stringify(a))};toast('Área guardada ✓');fichaPintar()})">${esc(a)}</button>`).join('')}</div>
+    <div class="btns" style="flex-direction:column">${d.areas.map(a => `<button class="btn pill full ${p.area === a ? 'pri' : ''}" onclick="act(this,async()=>{await api('opAjustes',{negocioId:S.negocio.id,persona:{usuarioId:'${p.usuarioId}',area:${esc(JSON.stringify(a))},enc:${!!p.opEnc},encT:${!!p.opEncT},sup:${esc(JSON.stringify(p.opSup || ''))}}});fichaD().equipo.find(x=>x.usuarioId==='${p.usuarioId}').area=${esc(JSON.stringify(a))};toast('Área guardada ✓');fichaPintar()})">${esc(a)}</button>`).join('')}</div>
     <div class="btns"><button class="btn pill" onclick="fichaPintar()">Cancelar</button></div>`);
 }
 async function fichaBaja(equipoId) {
-  const p = PDV.per.datos.equipo.find(x => x.equipoId === equipoId);
+  const p = fichaD().equipo.find(x => x.equipoId === equipoId);
   if (!confirm('¿Dar de baja a ' + (p ? p.nombre : 'esta persona') + ' de ' + S.negocio.nombre + '? Ya no podrá entrar ni checar aquí.')) return;
   await api('estadoColaborador', { equipoId, estado: 'quitado' });
-  S._ficha = null; cerrarModal(); PDV.per.datos = null; toast('Dado de baja'); pintarCaja();
+  S._ficha = null; S._fichaD = null; cerrarModal(); PDV.per.datos = null; toast('Dado de baja'); pintarCaja();
 }
 /* ---------- turnos del negocio (2.40): se configuran aquí y se usan al dar horarios ---------- */
 const TURNOS_DEF = [{ nombre: 'Matutino', e: '08:00', s: '16:00' }, { nombre: 'Vespertino', e: '16:00', s: '23:00' }];
@@ -8721,46 +8851,132 @@ const turnoBotones = (fn) => turnosNeg().map(t => `<button class="btn sm" onclic
 function asisRecargar() { if (PDV.per) PDV.per.datos = null; pintarCaja(); }
 function asisVistaHoy(d) {
   const hoy = pdvHoy(), chip = e => { const x = ASIS_EST[e] || ['', e]; return `<span class="asisEst ${e}">${x[0]} ${x[1]}</span>`; };
-  if (!d.personas.length) return '<div class="vacio"><span class="big">👥</span>Aún no hay personal dado de alta. Ve a <b>Configurar</b>.</div>';
-  return `<div class="row" style="gap:8px;align-items:center;margin:8px 0"><input class="i" type="date" value="${d.fecha}" max="${hoy}" onchange="PDV.per.fecha=this.value;asisRecargar()" style="max-width:200px">
-      ${d.fecha === hoy ? '<span class="small muted">Hoy</span>' : `<button class="lnk small" onclick="PDV.per.fecha='${hoy}';asisRecargar()">Ir a hoy</button>`}<span class="grow"></span><button class="btn sm" onclick="act(this,asisMostrarQR)">🔳 Mostrar QR</button></div>
-    ${(d.dobles || []).length ? `<div class="card" style="border-color:var(--warn)"><b>🔁 Turnos dobles por decidir</b>${d.dobles.map((x, i) => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--ln)"><span><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)}<br><span class="small muted">${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Dobló turno para apoyar'}${x.minutos ? ' · ' + Math.round(x.minutos / 6) / 10 + ' h de más' : ''}</span></span><button class="btn sm pri" onclick="asisDobleDecidirModal(${i})">Decidir</button></div>`).join('')}</div>` : ''}
-    ${(f => f ? `<div class="aviso info">🎉 <b>${d.fecha === hoy ? 'Hoy' : 'Este día'} es feriado: ${esc(f.feriado)}.</b> Quien no venga tiene descanso pagado; quien trabaje recibe ${(FER_TXT[f.ferModo] || '').split(' · ')[0].toLowerCase() || 'su pago extra'} en la nómina.</div>` : '')(d.personas.find(p => p.feriado))}
-    ${d.adelPendientes ? `<div class="aviso info row between" style="gap:8px"><span>💵 ${d.adelPendientes} adelanto${d.adelPendientes > 1 ? 's' : ''} por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='adel';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
+  if (!d.personas.length) return `<div class="vacio"><span class="big">👥</span>Aún no hay personal dado de alta.<br><br><button class="btn pri pill" onclick="act(this,altaColab)">＋ Agregar persona</button></div>`;
+  const az = dZ(), ahora = az.getHours() * 60 + az.getMinutes(), hm = x => { const [h, m] = String(x).split(':').map(Number); return h * 60 + (m || 0); };
+  const dur = m => m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min';
+  const nom = p => `<b class="perNom" role="button" onclick="act(this,()=>fichaAbrir('${p.usuarioId}'))">${esc(p.nombre)}</b>`;
+  const av = n => `<div class="eqAv">${esc(iniciales(n))}</div>`;
+  const sinD = p => p.estado === 'sin_decidir' && !p.entrada, decidido = p => ['falta', 'permiso_goce', 'permiso_sin', 'vacaciones', 'compensado', 'cambio', 'aviso_tarde'].includes(p.estado) && !p.entrada;
+  const P = d.personas, dobles = d.dobles || [];
+  const res = [[P.filter(sinD).length, 'p-err', 'no ha llegado', 'no han llegado'], [dobles.length, 'p-warn', 'por decidir', 'por decidir'], [P.filter(p => p.entrada && !p.salida).length, 'p-ok', 'trabajando', 'trabajando'],
+    [P.filter(p => !p.entrada && ['por_llegar', 'aviso_tarde'].includes(p.estado)).length, 'p-warn', 'por llegar', 'por llegar'], [P.filter(p => !p.entrada && ['descanso', 'vacaciones', 'feriado'].includes(p.estado)).length, 'p-gr', 'descansa', 'descansan']].filter(x => x[0]);
+  const linea = p => `${p.horario ? (turnoDe(p.horario) ? esc(turnoDe(p.horario).nombre) + ' · ' : '') + horaTxt(p.horario.e) + '–' + horaTxt(p.horario.s) + (p.horario.cambio ? ' (cambiado)' : '') : 'Sin horario este día'}${p.entrada ? ' · entró ' + asisHora(p.entrada) + (p.minRetardo ? ' (' + p.minRetardo + ' min tarde)' : '') : ''}${p.salida ? ' · salió ' + asisHora(p.salida) + (p.extraMin ? ' · ' + p.extraMin + ' min extra' : '') : ''}`;
+  const extra = p => [p.metodo === 'encargado' ? 'lo registró ' + esc(p.por) : '', p.decide ? 'decidió ' + esc(p.decide) : '', p.salMetodo === 'olvido' ? '🙈 olvidó checar salida' : '', p.doble && p.dobleEstado === 'decidido' ? '🔁 ' + ({ dia: 'dobló turno (día extra)', horas: 'horas extra', falta_pasada: 'repuso una falta', falta_futura: 'día a favor', cambio: 'cambio de turno' }[p.doblePago] || 'turno extra') : '', p.cubiertoPor ? 'lo cubrió ' + esc(p.cubiertoPor) : '', p.estado === 'cambio' && p.cambioCon ? 'lo cubrió ' + esc(p.cambioCon) : '', p.diasFavor ? p.diasFavor + ' día(s) a favor' : ''].filter(Boolean).join(' · ');
+  const reg = p => d.fecha === hoy && p.estado !== 'descanso' && !p.salida && !sinD(p) ? `<button class="lnk small" onclick="asisEncargado('${p.usuarioId}','${p.entrada ? 'salida' : 'entrada'}',${esc(JSON.stringify(p.nombre))})">✍️ Registrar ${p.entrada ? 'salida' : 'entrada'}</button>` : '';
+  const tarjeta = p => sinD(p) ? `<div class="card perAlerta"><div class="perP">${av(p.nombre)}<div class="grow">${nom(p)}<div class="small muted">${p.horario ? 'Entraba ' + horaTxt(p.horario.e) : ''}</div></div></div>
+      <div class="perAlertaT">⚠️ ${d.fecha === hoy && p.horario ? 'No ha llegado · van ' + dur(Math.max(0, ahora - hm(p.horario.e))) : 'No vino · falta decidir qué pasó'}</div>
+      <button class="btn pri pill full" onclick="asisDecidirHoja('${p.usuarioId}')">Decidir qué pasó</button></div>`
+    : `<div class="card"><div class="perP">${av(p.nombre)}<div class="grow">${nom(p)}<div class="small muted">${linea(p)}</div>${extra(p) ? `<div class="small muted">${extra(p)}</div>` : ''}</div><div style="text-align:right">${chip(p.estado)}</div></div>
+      ${decidido(p) || reg(p) ? `<div class="row" style="gap:12px;justify-content:flex-end;margin-top:4px">${decidido(p) ? `<button class="lnk small" onclick="asisDecidirHoja('${p.usuarioId}')">Cambiar</button>` : ''}${reg(p)}</div>` : ''}</div>`;
+  const orden = p => sinD(p) ? 0 : 1;
+  return `<div class="row" style="gap:8px;align-items:center;margin:4px 0 8px"><input class="i perFecha" type="date" value="${d.fecha}" max="${hoy}" onchange="PDV.per.fecha=this.value;asisRecargar()">
+      ${d.fecha === hoy ? '<span class="small muted">Hoy</span>' : `<button class="lnk small" onclick="PDV.per.fecha='${hoy}';asisRecargar()">Ir a hoy</button>`}<span class="grow"></span><button class="btn sm" onclick="act(this,asisMostrarQR)">🔳 QR</button></div>
+    ${res.length ? `<div class="perResumen">${res.map(x => `<span class="pill ${x[1]}">${x[0]} ${x[0] === 1 ? x[2] : x[3]}</span>`).join('')}</div>` : ''}
+    ${dobles.map((x, i) => `<div class="card perAlerta amb"><div class="perP">${av(x.nombre)}<div class="grow"><b class="perNom" role="button" onclick="act(this,()=>fichaAbrir('${x.usuarioId}'))">${esc(x.nombre)}</b><div class="small muted">${asisDiaTxt(x.fecha)}${x.entrada ? ' · llegó ' + asisHora(x.entrada) : ''}${x.horario ? ' · su turno ' + horaTxt(x.horario.e) + '–' + horaTxt(x.horario.s) : ' · era su descanso'}</div></div></div>
+      <div class="perAlertaT">🔁 ${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Llegó fuera de su turno'}</div><button class="btn pri pill full" onclick="asisDobleDecidirModal(${i})">Decidir cómo se cuenta</button></div>`).join('')}
+    ${(f => f ? `<div class="aviso info">🎉 <b>${d.fecha === hoy ? 'Hoy' : 'Este día'} es feriado: ${esc(f.feriado)}.</b> Quien no venga tiene descanso pagado; quien trabaje recibe ${(FER_TXT[f.ferModo] || '').split(' · ')[0].toLowerCase() || 'su pago extra'} en la nómina.</div>` : '')(P.find(p => p.feriado))}
+    ${d.adelPendientes ? `<div class="aviso info row between" style="gap:8px"><span>💸 ${d.adelPendientes} adelanto${d.adelPendientes > 1 ? 's' : ''} por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='adel';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${d.vacPendientes ? `<div class="aviso info row between" style="gap:8px"><span>🏖️ ${d.vacPendientes} solicitud${d.vacPendientes > 1 ? 'es' : ''} de vacaciones por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='vac';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${tabDeudasHTML(d.deudas)}
     ${(d.rotPendientes || []).length ? `<div class="aviso warn row between" style="gap:8px"><span>🗓️ Falta definir el descanso de la próxima semana de <b>${d.rotPendientes.map(esc).join(', ')}</b>.</span><button class="btn sm pri" onclick="act(this,asisDescansosModal)">Definir</button></div>` : ''}
-    ${d.personas.slice().sort((a, b) => ((a.horario || {}).e || '99').localeCompare((b.horario || {}).e || '99')).map(p => `<div class="card asisFila"><div class="grow"><b>${esc(p.nombre)}</b><div class="small muted">${p.horario ? (turnoDe(p.horario) ? '⏱️ ' + esc(turnoDe(p.horario).nombre) + ' · ' : 'Horario ') + p.horario.e + '–' + p.horario.s + (p.horario.cambio ? ' (cambiado)' : '') : 'Sin horario este día'}</div>
-        <div class="small">${p.entrada ? 'Entró ' + asisHora(p.entrada) + (p.minRetardo ? ' (' + p.minRetardo + ' min tarde)' : '') : ''}${p.salida ? ' · salió ' + asisHora(p.salida) + (p.extraMin ? ' · ' + p.extraMin + ' min extra' : '') : ''}${p.metodo === 'encargado' ? ' · lo registró ' + esc(p.por) : ''}${p.decide ? ' · decidió ' + esc(p.decide) : ''}${p.salMetodo === 'olvido' ? ' · 🙈 olvidó checar salida' : ''}${p.doble ? ' · 🔁 ' + (p.cubreNombre ? 'cubrió a ' + esc(p.cubreNombre) : 'turno doble') + (p.dobleEstado === 'decidido' ? ' (' + ({ dia: 'día extra', horas: 'horas extra', falta_pasada: 'compensa falta', falta_futura: 'día a favor' }[p.doblePago] || '') + ')' : ' · por decidir') : ''}${p.cubiertoPor ? ' · lo cubrió ' + esc(p.cubiertoPor) : ''}${p.diasFavor ? ' · ' + p.diasFavor + ' día(s) a favor' : ''}</div></div>
-      <div style="text-align:right">${chip(p.estado)}
-        ${p.estado === 'cambio' && p.cambioCon ? `<div class="small muted">Lo cubrió ${esc(p.cambioCon)}</div>` : ''}
-        ${['sin_decidir', 'falta', 'permiso_goce', 'permiso_sin', 'vacaciones', 'compensado', 'cambio'].includes(p.estado) && !p.entrada ? `<div class="asisAcc">${[['permiso_goce', 'Permiso con goce'], ['permiso_sin', 'Permiso sin goce']].concat(p.vacRestan > 0 || p.estado === 'vacaciones' ? [['vacaciones', '🏖️ Vacaciones (' + Math.max(0, p.vacRestan) + ')']] : []).concat(p.diasFavor > 0 && pdvPuede('d') ? [['compensado', '🔁 Usar día a favor (' + p.diasFavor + ')']] : []).concat([['falta', 'Falta'], ['descanso', 'Descansó']]).filter(([k]) => k !== p.estado).map(([k, t]) => `<button class="btn sm" onclick="act(this,()=>asisDecidir('${p.usuarioId}','${d.fecha}','${k}'))">${t}</button>`).join('')}</div>` : ''}
-        ${d.fecha === hoy && p.estado !== 'descanso' && !p.salida ? `<div class="asisAcc"><button class="btn sm" onclick="asisEncargado('${p.usuarioId}','${p.entrada ? 'salida' : 'entrada'}',${esc(JSON.stringify(p.nombre))})">✍️ Registrar ${p.entrada ? 'salida' : 'entrada'}</button></div>` : ''}</div></div>`).join('')}`;
+    ${P.slice().sort((a, b) => orden(a) - orden(b) || ((a.horario || {}).e || '99').localeCompare((b.horario || {}).e || '99')).map(tarjeta).join('')}
+    <button class="lnk" style="display:block;margin:4px auto" onclick="PDV.per.sub='semana';PDV.per.datos=null;pintarCaja()">📅 Ver la semana completa ›</button>`;
 }
-function asisDobleDecidirModal(i, x0) {
-  const x = x0 || PDV.per.datos.dobles[i]; S._dd = x;
-  const h = Math.round(x.minutos / 6) / 10;
-  modal(`<div class="row between"><h2 style="margin:0">🔁 Turno doble</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="muted" style="margin:6px 0 10px"><b>${esc(x.nombre)}</b> · ${asisDiaTxt(x.fecha)} · ${x.cubreNombre ? 'cubrió a ' + esc(x.cubreNombre) : 'dobló turno para apoyar'}<br>${x.entrada ? 'Entró ' + asisHora(x.entrada) : ''}${x.salida ? ' · salió ' + asisHora(x.salida) : ' · aún no checa salida'}${x.horario ? ' · su horario: ' + x.horario.e + '–' + x.horario.s : ' · era su descanso'}</div>
-    <div class="small muted">¿Cómo se le paga?</div>
-    ${x.cubreNombre ? `<button class="btn pill full ok" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('cambio'))">🔄 Fue cambio de turno (no cobra extra; ${esc(x.cubreNombre)} le debe un turno)</button>` : ''}
-    <button class="btn pill full" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('dia'))">📅 Día extra en la nómina (un día de sueldo)</button>
-    <button class="btn pill full" style="margin-top:6px" onclick="act(this,()=>asisDobleOk('horas'))">⏱️ Horas extra${x.salida ? ' · ' + h + ' h' + (x.extraHora ? ' × ' + money(x.extraHora) + ' = ' + money(pdvR(h * x.extraHora)) : ' (ponle precio por hora en su ficha)') : ''}</button>
-    ${x.faltas.length ? `<label class="f">Acuerdo por una falta pasada</label><div class="row" style="gap:6px"><select class="i" id="ddFalta" style="flex:1">${x.faltas.map(f => `<option value="${f.fecha}">${asisDiaTxt(f.fecha)} · ${(ASIS_EST[f.estado] || ['', f.estado])[1]}</option>`).join('')}</select><button class="btn sm" onclick="act(this,()=>asisDobleOk('falta_pasada'))">Compensar</button></div>` : '<div class="small muted" style="margin-top:8px">No tiene faltas recientes para compensar.</div>'}
-    <button class="btn pill full" style="margin-top:8px" onclick="act(this,()=>asisDobleOk('falta_futura'))">🤝 Acuerdo por una falta futura (le queda 1 día a favor${x.diasFavor ? '; ya tiene ' + x.diasFavor : ''})</button>`);
+/** 3.0 · "¿Qué pasó?" con las opciones de siempre, explicadas, en una hoja. */
+function asisDecidirHoja(uid) {
+  const d = PDV.per.datos || {}, p = (d.personas || []).find(x => x.usuarioId === uid); if (!p) return;
+  const hoy = d.fecha === pdvHoy(), du = pdvPuede('d'), az = dZ(), ahora = az.getHours() * 60 + az.getMinutes();
+  const fin = p.horario ? (([h, m]) => h * 60 + (m || 0))(String(p.horario.s).split(':').map(Number)) : 0;
+  const vr = Number(p.vacRestan) || 0; let n = 0;
+  const op = (ic, bg, t, sub, f) => `<button class="perOpt" onclick="${f}"><span class="num">${++n}</span><span class="ic" style="background:${bg}">${ic}</span><span class="grow"><b>${t}</b><small>${sub}</small></span></button>`;
+  const dec = k => `act(this,()=>asisDecidirHojaOk('${uid}','${d.fecha}','${k}'))`;
+  const mini = (t, k) => `<button class="btn sm pill" onclick="${dec(k)}">${t}</button>`;
+  modal(`<div class="perHoja"><div class="perP" style="margin-bottom:12px"><div class="eqAv">${esc(iniciales(p.nombre))}</div><div class="grow"><h2 style="margin:0">¿Qué pasó con ${esc(p.nombre.split(' ')[0])}?</h2><div class="muted">${hoy ? 'Hoy' : asisDiaTxt(d.fecha)}${p.horario ? ' · entraba ' + horaTxt(p.horario.e) : ''}</div></div><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${op('❌', 'var(--err-s)', 'Falta', 'No vino y no avisó. Se descuenta el día.', dec('falta'))}
+    ${hoy && p.horario && ahora < fin && !p.entrada ? op('⏰', 'var(--warn-s)', 'Llegará tarde', 'Avisó. No se marca falta; cuando llegue cuenta su retardo. Si no llega, vuelve a preguntarte.', dec('aviso_tarde')) : ''}
+    ${op('✅', 'var(--ok-s)', 'Falta con goce', 'Permiso pagado. No se descuenta.', dec('permiso_goce'))}
+    ${funOn('personal', 'vacaciones') ? (vr > 0 ? op('🏖️', '#E3EEF8', 'Vacaciones', `Usa 1 de sus ${vr} días. Le quedarían ${vr - 1}.`, dec('vacaciones')) : du ? op('🏖️', '#E3EEF8', 'Vacaciones adelantadas', `No tiene días disponibles: quedará en ${vr - 1} y se descuentan cuando los gane.`, dec('vacaciones_adel')) : '') : ''}
+    ${op('🔄', '#EEE7F6', 'Cambió de turno', 'Eliges quién lo cubre o con quién cambió el turno.', `cerrarModal();asisCubrirForm('${d.fecha}','${uid}')`)}
+    <details class="perMas"><summary>Otras opciones</summary><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:4px">
+      ${mini('Permiso sin goce', 'permiso_sin')}${mini('😴 Descansó', 'descanso')}${p.diasFavor > 0 && du ? mini('🔁 Usar día a favor (' + p.diasFavor + ')', 'compensado') : ''}
+      ${hoy && !p.entrada ? `<button class="btn sm pill" onclick="cerrarModal();asisEncargado('${uid}','entrada',${esc(JSON.stringify(p.nombre))})">✍️ Sí vino: registrar su entrada</button>` : ''}</div></details></div>`);
 }
-async function asisDobleOk(pago) {
+async function asisDecidirHojaOk(uid, fecha, k) {
+  const adel = k === 'vacaciones_adel';
+  PDV.per.datos = await api('asisDecidir', { negocioId: S.negocio.id, usuarioId: uid, fecha, estado: adel ? 'vacaciones' : k, adelanto: adel });
+  cerrarModal(); toast(k === 'aviso_tarde' ? 'Listo: lo esperamos sin marcar falta ⏰' : 'Guardado ✓'); pintarCaja();
+}
+function asisDobleDecidirModal(i, x0, paso) {
+  const x = x0 || (i != null ? PDV.per.datos.dobles[i] : S._dd); S._dd = x;
+  const h = Math.round(x.minutos / 6) / 10, n0 = esc(x.nombre.split(' ')[0]), cub = x.cubreNombre ? esc(x.cubreNombre.split(' ')[0]) : '';
+  const faltas = x.faltas || [], hayPend = faltas.length || cub;
+  const cab = `<div class="row between"><h2 style="margin:0">🔁 ${n0} ${cub ? 'cubrió a ' + cub : 'llegó fuera de su turno'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted" style="margin:6px 0 10px">${asisDiaTxt(x.fecha)}${x.entrada ? ' · llegó ' + asisHora(x.entrada) : ''}${x.salida ? ' · salió ' + asisHora(x.salida) : ''}${x.horario ? ' · su turno: ' + horaTxt(x.horario.e) + '–' + horaTxt(x.horario.s) : ' · era su descanso'}</div>`;
+  if (paso === 'pend') return modal(cab + `<b style="display:block;margin-bottom:8px">¿Qué turno pendiente cubre?</b>
+    ${faltas.map(f => `<button class="perOpt" onclick="act(this,()=>asisDobleOk('falta_pasada','${f.fecha}'))"><span class="ic" style="background:#E3EEF8">📅</span><span class="grow"><b>Repone su falta del ${asisDiaTxt(f.fecha)}</b><small>${(ASIS_EST[f.estado] || ['', f.estado])[1]}. Ese día queda compensado y no se paga extra.</small></span></button>`).join('')}
+    ${cub ? `<button class="perOpt" onclick="act(this,()=>asisDobleOk('cambio'))"><span class="ic" style="background:#EEE7F6">🔄</span><span class="grow"><b>Fue cambio de turno con ${cub}</b><small>No cobra extra. Si le debía un turno a ${cub}, quedan a mano; si no, ${cub} le queda debiendo uno.</small></span></button>` : ''}
+    <button class="lnk" onclick="asisDobleDecidirModal(null,S._dd)">← Volver</button>`);
+  const una = !hayPend ? '' : faltas.length + (cub ? 1 : 0) === 1 ? (cub ? "asisDobleOk('cambio')" : `asisDobleOk('falta_pasada','${faltas[0].fecha}')`) : '';
+  modal(cab + `${hayPend ? `<div class="aviso info small" style="margin:0 0 10px">📌 ${n0} ${[faltas.length ? 'tiene ' + faltas.length + ' falta' + (faltas.length > 1 ? 's' : '') + ' sin reponer' : '', cub ? 'cubrió el turno de ' + cub : ''].filter(Boolean).join(' y ')}.</div>` : ''}
+    <button class="perOpt" ${hayPend ? '' : 'disabled'} onclick="${una ? `act(this,()=>${una})` : "asisDobleDecidirModal(null,S._dd,'pend')"}"><span class="num">1</span><span class="ic" style="background:#E3EEF8">🔁</span><span class="grow"><b>Cubre un turno pendiente</b><small>${hayPend ? 'Repone una falta o un turno que debía. No se paga extra.' : 'No tiene faltas ni turnos pendientes.'}</small></span></button>
+    <button class="perOpt" onclick="act(this,()=>asisDobleOk('dia'))"><span class="num">2</span><span class="ic" style="background:var(--ok-s)">➕</span><span class="grow"><b>Dobla turno</b><small>Trabajó de más. Se le suma 1 día en su pago.</small></span></button>
+    <button class="perOpt" onclick="act(this,()=>asisDobleOk('falta_futura'))"><span class="num">3</span><span class="ic" style="background:var(--warn-s)">📅</span><span class="grow"><b>Cubre una falta futura</b><small>Le queda 1 día a favor: su próxima falta se justifica sola.${x.diasFavor ? ' Ya tiene ' + x.diasFavor + '.' : ''}</small></span></button>
+    <details class="perMas"><summary>Otras opciones</summary><button class="btn sm pill" style="margin-top:4px" onclick="act(this,()=>asisDobleOk('horas'))">⏱️ Pagar como horas extra${x.salida ? ' · ' + h + ' h' + (x.extraHora ? ' = ' + money(pdvR(h * x.extraHora)) : '') : ''}</button></details>`);
+}
+async function asisDobleOk(pago, ff) {
   const x = S._dd;
-  const r = await api('asisDobleDecidir', { negocioId: x.negocioId || S.negocio.id, usuarioId: x.usuarioId, fecha: x.fecha, pago, faltaFecha: pago === 'falta_pasada' ? $('#ddFalta').value : '' });
+  const r = await api('asisDobleDecidir', { negocioId: x.negocioId || S.negocio.id, usuarioId: x.usuarioId, fecha: x.fecha, pago, faltaFecha: pago === 'falta_pasada' ? ff || ($('#ddFalta') || {}).value || '' : '' });
   cerrarModal(); toast(pago === 'cambio' ? 'Cambio de turno registrado ✓' : 'Turno doble decidido ✓');
   if (x.alVolver) return x.alVolver(r);
   asisRecargar();
 }
 /* ---------- 2.56 · vacaciones: panel del dueño o gerente ---------- */
+const vacFechaL = f => new Date(f + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+/** 3.0 · Ley Federal del Trabajo (reforma 2023): 12, 14, 16, 18, 20 días y después +2 cada 5 años. */
+const vacLFT = a => a < 1 ? 0 : a <= 5 ? 10 + 2 * a : 20 + 2 * Math.ceil((a - 5) / 5);
+function vacProxAniv(ing, hoy) { let y = Number(ing.slice(0, 4)) + 1; while ((y + ing.slice(4)) <= hoy) y++; return { f: y + ing.slice(4), anios: y - Number(ing.slice(0, 4)) }; }
+function vacListaHTML(d) {
+  if (!(d.lista || []).length) return '';
+  return `<div class="card"><b>🏖️ Días de vacaciones de cada uno</b><div class="small muted" style="margin:2px 0 4px">Con la <b>fecha de ingreso</b>, en cada aniversario se suman solos los días que marca la ley (12 el primer año, 14 el segundo, 16, 18, 20 y después 2 más cada 5 años). Toca a alguien para ajustar.</div>
+    ${d.lista.map(x => `<div class="vacFilaL" role="button" onclick="vacAjusteForm('${x.usuarioId}')"><div class="grow"><b>${esc(x.nombre)}</b>
+      <div class="small muted">${x.ingreso ? 'Entró ' + vacFechaL(x.ingreso) : '<span style="color:var(--warn);font-weight:800">⚠️ Falta su fecha de ingreso</span>'}</div>
+      ${x.saldo < 0 && x.prox ? `<div class="small" style="color:var(--err);font-weight:800">Debe ${-x.saldo} · se descuentan el ${vacFechaL(x.prox)}</div>` : x.prox && x.proxSuma ? `<div class="small" style="color:var(--ok);font-weight:800">+${x.proxSuma} el ${vacFechaL(x.prox)}</div>` : ''}</div>
+      <div class="vacSaldo ${x.saldo < 0 ? 'neg' : ''}">${x.saldo}<small>día${Math.abs(x.saldo) === 1 ? '' : 's'}</small></div></div>`).join('')}</div>`;
+}
+/** 3.0 · Fecha de ingreso y días que tiene hoy (por si ya usó días que no se registraron). */
+async function vacAjusteForm(uid) {
+  const D = await api('vacPersona', { negocioId: S.negocio.id, usuarioId: uid });
+  if (!D.dueno) return vacFicha(uid);
+  S._va = D;
+  modal(`<div class="row between"><h2 style="margin:0">🏖️ Vacaciones de ${esc(D.nombre.split(' ')[0])}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <label class="f">Fecha de ingreso</label><input class="i" type="date" id="vaIng" value="${esc(D.ingreso || '')}" max="${pdvHoy()}" oninput="vacAjustePrev()">
+    <label class="f">Días que tiene hoy</label><input class="i pdvNum" id="vaSal" inputmode="numeric" value="${D.saldo}" oninput="vacAjustePrev()">
+    <div class="small muted">Si ya usó días que no se registraron aquí, réstalos. Puede ser negativo si se le adelantaron.</div>
+    <div id="vaPrev" class="aviso info small" style="margin-top:10px"></div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,vacAjusteGuardar)">Guardar</button></div>
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="act(this,async()=>{await vacFicha('${uid}');S._vf.modo='asignar';S._vf.adel=true;vacFichaPintar()})">⏩ Adelantar días</button><button class="btn pill" style="flex:1" onclick="act(this,()=>vacFicha('${uid}'))">📅 Ver sus fechas</button></div>`);
+  vacAjustePrev();
+}
+function vacAjustePrev() {
+  const ing = ($('#vaIng') || {}).value, box = $('#vaPrev'); if (!box) return;
+  const sal = Math.round(Number(($('#vaSal') || {}).value) || 0);
+  if (!ing) { box.className = 'aviso warn small'; box.innerHTML = 'Sin fecha de ingreso los días no se suman solos.'; return; }
+  const p = vacProxAniv(ing, pdvHoy()), suma = vacLFT(p.anios);
+  box.className = 'aviso ' + (sal < 0 ? 'warn' : 'info') + ' small';
+  box.innerHTML = `El <b>${vacFechaL(p.f)}</b> cumple ${p.anios} año${p.anios === 1 ? '' : 's'} y se le suman <b>${suma} días</b>${sal < 0 ? `: se le descuentan los ${-sal} que debe y le quedan ${suma + sal}.` : ` (tendrá ${sal + suma}).`}`;
+}
+async function vacAjusteGuardar() {
+  const D = S._va, sal = $('#vaSal').value.trim();
+  if (sal !== '' && !/^-?\d+$/.test(sal)) throw new Error('Escribe los días con número (puede ser negativo)');
+  await api('vacAsignar', { negocioId: S.negocio.id, usuarioId: D.usuarioId, ajuste: { ingreso: $('#vaIng').value, saldoHoy: sal } });
+  cerrarModal(); toast('Vacaciones guardadas ✓');
+  if (S._ficha) { S._fichaD = null; PDV.per.datos = null; }
+  if (PDV.per) { PDV.per.datos = null; PDV.per.clave = ''; } pintarCaja();
+}
 function vacVistaPanel(d) {
   const dd = f => asisDiaTxt(f) + ' ' + new Date(f + 'T12:00').toLocaleDateString('es-MX', { month: 'short' });
   const prox = {}; d.proximas.forEach(x => (prox[x.fecha] = prox[x.fecha] || []).push(x.nombre));
-  return `${d.pendientes.length ? d.pendientes.map(v => `<div class="card"><div class="row between"><b>🏖️ ${esc(v.nombre)}</b><span class="small muted">${fechaCorta(v.creado)}</span></div>
+  return `${vacListaHTML(d)}${d.pendientes.length ? d.pendientes.map(v => `<div class="card"><div class="row between"><b>🏖️ ${esc(v.nombre)}</b><span class="small muted">${fechaCorta(v.creado)}</span></div>
       <div style="margin:4px 0">${v.fechas.length} día${v.fechas.length > 1 ? 's' : ''}: <b>${v.fechas.map(dd).join(', ')}</b></div>
       <div class="small muted">Le quedan ${v.disponibles} días${v.nota ? ' · “' + esc(v.nota) + '”' : ''}</div>
       <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,()=>vacDecidirP('${v.id}',true))">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,()=>vacDecidirP('${v.id}',false))">No aprobar</button></div></div>`).join('')
@@ -8850,18 +9066,21 @@ function vacFichaPintar() {
     };
     const desc = sel.filter(f => !D.laborables.includes(f)).length;
     return modal(`<div class="row between"><h2 style="margin:0">➕ Vacaciones a ${esc(D.nombre.split(' ')[0])}</h2><button class="redondo" onclick="S._vf.modo='';S._vf.sel=[];vacFichaPintar()" aria-label="Volver">←</button></div>
-      <div class="muted small" style="margin:6px 0">Le quedan <b>${D.disponibles}</b> día${D.disponibles === 1 ? '' : 's'}. Toca los días; quedan programados de una vez y le llega aviso. Los días en gris son su descanso.</div>
+      <div class="muted small" style="margin:6px 0">Le quedan <b>${D.saldo}</b> día${Math.abs(D.saldo) === 1 ? '' : 's'}. ${V.adel ? 'Los días de más quedan en negativo y se descuentan cuando gane más. ' : ''}Toca los días; quedan programados de una vez y le llega aviso. Los días en gris son su descanso.</div>
       <div style="max-height:52vh;overflow:auto" id="vfCal">${meses.map(cal).join('')}</div>
-      <div class="tot g"><span>Días elegidos</span><span>${sel.length} de ${D.disponibles}</span></div>
+      <div class="tot g"><span>Días elegidos</span><span>${sel.length}${V.adel ? '' : ' de ' + D.disponibles}</span></div>
+      ${V.adel && sel.length ? `<div class="aviso ${D.saldo - sel.length < 0 ? 'warn' : 'ok'} small">Quedará en <b>${D.saldo - sel.length} días</b>${D.saldo - sel.length < 0 && D.reinicio ? '. El ' + vacFechaL(D.reinicio) + ' gana ' + D.suma + ' y se descuentan.' : ''}</div>` : ''}
       ${desc ? `<div class="aviso warn small">⚠️ ${desc} de esos días es su descanso: se gastaría un día de vacaciones sin necesidad.</div>` : ''}
-      <div class="btns"><button class="btn pri pill full" ${sel.length ? '' : 'disabled'} onclick="act(this,()=>vacFichaAccion({fechas:S._vf.sel.slice().sort()},'Vacaciones asignadas 🏖️'))">🏖️ Asignar ${sel.length || ''} día${sel.length === 1 ? '' : 's'}</button></div>`);
+      <div class="btns"><button class="btn pri pill full" ${sel.length ? '' : 'disabled'} onclick="act(this,()=>vacFichaAccion({fechas:S._vf.sel.slice().sort(),adelanto:!!S._vf.adel},'Vacaciones asignadas 🏖️'))">🏖️ ${V.adel ? 'Adelantar' : 'Asignar'} ${sel.length || ''} día${sel.length === 1 ? '' : 's'}</button></div>`);
   }
   modal(`<div class="row between"><h2 style="margin:0">🏖️ Vacaciones de ${esc(D.nombre.split(' ')[0])}</h2>${volver}</div>
-    <div class="card vfSaldo" style="margin-top:10px"><div class="row between"><span>Le quedan</span><b style="font-size:22px">${D.disponibles} de ${D.total} días</b></div>
+    <div class="card vfSaldo" style="margin-top:10px"><div class="row between"><span>Le quedan</span><b style="font-size:22px;color:${D.saldo < 0 ? 'var(--err)' : 'inherit'}">${D.saldo} día${Math.abs(D.saldo) === 1 ? '' : 's'}</b></div>
       <div class="small muted">${D.usadas} tomados o programados${D.pendientes.length ? ' · ' + D.pendientes.reduce((s, v) => s + v.fechas.length, 0) + ' pedidos por aprobar' : ''}${D.reinicio ? ' · se le suman ' + D.suma + ' el ' + vacDD(D.reinicio) : ''}</div>
-      ${D.dueno ? `<button class="lnk small" onclick="S._vf.modo='saldo';vacFichaPintar()">Cambiar días asignados y reinicio</button>` : ''}</div>
-    <button class="btn pri pill full" ${D.disponibles ? '' : 'disabled'} onclick="S._vf.modo='asignar';S._vf.sel=[];vacFichaPintar()">➕ Asignarle vacaciones</button>
-    ${!D.disponibles ? `<div class="small muted" style="margin-top:4px">No le quedan días.${D.dueno ? ' Súbele los días asignados si le corresponden más.' : ''}</div>` : ''}
+      ${D.ingreso ? `<div class="small muted">Entró el ${vacFechaL(D.ingreso)}</div>` : ''}
+      ${D.dueno ? `<button class="lnk small" onclick="act(this,()=>vacAjusteForm('${D.usuarioId}'))">Fecha de ingreso y ajuste de días</button>` : ''}</div>
+    <div class="row" style="gap:8px"><button class="btn pri pill" style="flex:1" ${D.disponibles ? '' : 'disabled'} onclick="S._vf.modo='asignar';S._vf.adel=false;S._vf.sel=[];vacFichaPintar()">➕ Asignar vacaciones</button>
+      ${D.dueno ? `<button class="btn pill" style="flex:1" onclick="S._vf.modo='asignar';S._vf.adel=true;S._vf.sel=[];vacFichaPintar()">⏩ Adelantar días</button>` : ''}</div>
+    ${!D.disponibles ? `<div class="small muted" style="margin-top:4px">No le quedan días.${D.dueno ? ' Puedes adelantarle días: quedan en negativo y se descuentan cuando los gane.' : ''}</div>` : ''}
     ${D.pendientes.map(v => `<div class="card" style="margin-top:10px"><b>📨 Pidió ${v.fechas.length} día${v.fechas.length > 1 ? 's' : ''}</b><div style="margin:4px 0">${v.fechas.map(vacDD).join(', ')}</div>${v.nota ? `<div class="small muted">“${esc(v.nota)}”</div>` : ''}
       <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,async()=>{await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:true});toast('Aprobadas 🏖️');await vacFicha('${D.usuarioId}')})">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,async()=>{const nota=prompt('¿Por qué no se aprueban? (le llega a la persona)')||'';await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:false,nota});toast('No aprobada');await vacFicha('${D.usuarioId}')})">No aprobar</button></div></div>`).join('')}
     <h3 style="margin:14px 0 6px">📅 Programadas</h3>
@@ -8871,14 +9090,15 @@ function vacFichaPintar() {
 function vacFichaTocar(f) {
   const V = S._vf;
   if (V.sel.includes(f)) V.sel = V.sel.filter(y => y !== f);
-  else if (V.sel.length >= V.D.disponibles) { toast('Solo le quedan ' + V.D.disponibles + ' días', 'err'); return; }
+  else if (!V.adel && V.sel.length >= V.D.disponibles) { toast('Solo le quedan ' + V.D.disponibles + ' días. Usa “Adelantar días” para darle más.', 'err'); return; }
   else V.sel.push(f);
   const sc = $('#vfCal'), top = sc ? sc.scrollTop : 0; vacFichaPintar(); if ($('#vfCal')) $('#vfCal').scrollTop = top;
 }
 async function vacFichaAccion(o, msg) {
   const V = S._vf;
   V.D = await api('vacAsignar', Object.assign({ negocioId: S.negocio.id, usuarioId: V.uid }, o));
-  V.modo = ''; V.sel = []; toast(msg); vacFichaPintar();
+  V.modo = ''; V.sel = []; V.adel = false; toast(msg); vacFichaPintar();
+  if (PDV.per) { PDV.per.datos = null; PDV.per.clave = ''; }
 }
 async function vacDecidirP(id, aprobar) {
   const nota = aprobar ? '' : (prompt('¿Por qué no se aprueban? (le llega a la persona)') || '');
@@ -8965,7 +9185,8 @@ async function asisCubrirGuardar() {
   const modo = document.querySelector('input[name=cuM]:checked').value, a = $('#cuA').value, b = $('#cuB').value, f = $('#cuF').value;
   if (!a || !b) throw new Error('Elige a quién se cubre y quién lo cubre');
   const desp = modo === 'cambio' && $('#cuDesp') && $('#cuDesp').checked;
-  PDV.per.datos = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' && !desp ? $('#cuF2').value : '', regresa: desp ? 'despues' : '' });
+  const rc = await api('turnoCubrir', { negocioId: S.negocio.id, fecha: f, falta: a, cubre: b, modo, fecha2: modo === 'cambio' && !desp ? $('#cuF2').value : '', regresa: desp ? 'despues' : '' });
+  PDV.per.datos = PDV.per.sub === 'semana' ? rc : null; // 3.0: también se registra desde Hoy
   PDV.per.fecha = f; cerrarModal(); toast(modo === 'cambio' ? 'Cambio de turno registrado ✓ · se les avisó' : modo === 'mover' ? 'Listo ✓ · cubre en ese turno (sin extra) · se les avisó' : 'Registrado ✓ · se les avisó'); pintarCaja();
 }
 function asisDiaTurno(e, s) { $('#cdE').value = e; $('#cdS').value = s; }
@@ -9707,27 +9928,60 @@ async function metaMiAvance() {
 const consMon = () => monActivo();
 const consTel = p => monTel(p && p.telefono);
 async function consMonCargar() {
-  const gente = (PDV.per && PDV.per.gente) || [], o = {};
-  await Promise.all(gente.filter(p => consTel(p).length === 10).map(async p => { try { const x = await monLeer(consTel(p), true); o[p.usuarioId] = monSaldo(x).total; } catch (e) { o[p.usuarioId] = null; } }));
-  PDV.per.monSal = o; PDV.per._monCarg = false;
+  const gente = (PDV.per && PDV.per.gente) || [], o = {}, ven = {}, hoy = pdvHoy();
+  await Promise.all(gente.filter(p => consTel(p).length === 10).map(async p => { try { const x = await monLeer(consTel(p), true); o[p.usuarioId] = monSaldo(x).total; ven[p.usuarioId] = pdvR(Object.entries((x && x.cb) || {}).filter(([k, v]) => k < hoy && Number(v) > 0).reduce((s, [, v]) => s + Number(v), 0)); } catch (e) { o[p.usuarioId] = null; } }));
+  PDV.per.monSal = o; PDV.per.monVen = ven; PDV.per._monCarg = false;
   await consMonMigrar();
   pintarCaja();
 }
 /** Una vez: los saldos de consumo que ya tenían se pasan a su monedero. */
-async function consMonMigrar() {
-  if (PDV.per._migrado) return; PDV.per._migrado = true;
-  const gente = (PDV.per && PDV.per.gente) || [], dias = 30, vence = monSuma(pdvHoy(), dias);
+async function consMonMigrar(g0) {
+  const per = PDV.per || {};
+  if (!g0) { if (per._migrado) return; per._migrado = true; }
+  const gente = g0 || per.gente || [], vence = MON_SIN_VENCE; // 3.0.1: lo que tenían de consumo ya no vence
   let n = 0;
   (PDV.consumo || []).filter(x => x.saldo > 0).forEach(x => {
     const p = gente.find(g => g.usuarioId === x.id), tel = consTel(p); if (tel.length !== 10) return;
     const m = pdvR(x.saldo), ts = Date.now();
     pdvGuardar(monCol('monedero').doc(tel).set({ tel, nombre: p.nombre, cb: { [vence]: pdvInc(m) }, act: ts }, { merge: true }));
-    pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, vence, nota: 'Saldo de consumo que tenía' })));
+    pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, nota: 'Saldo de consumo que tenía' })));
     pdvGuardar(pdvCol('consumo').doc(x.id).set({ saldo: pdvInc(-m), actualizado: ts }, { merge: true }));
     pdvGuardar(pdvCol('consumoMov').doc().set({ uid: x.id, nombre: p.nombre, tipo: 'pasado', monto: m, nota: 'Pasado a su monedero', ts, dia: pdvHoy(), por: pdvYo() }));
-    x.saldo = 0; PDV.per.monSal = PDV.per.monSal || {}; PDV.per.monSal[x.id] = pdvR((PDV.per.monSal[x.id] || 0) + m); n++;
+    x.saldo = 0; if (PDV.per) { PDV.per.monSal = PDV.per.monSal || {}; PDV.per.monSal[x.id] = pdvR((PDV.per.monSal[x.id] || 0) + m); } n++;
   });
   if (n) toast('👛 Se pasaron ' + n + ' saldo(s) de consumo a su monedero');
+}
+/** 3.0.1 · Al abrir la caja (dueño), el saldo de consumo viejo pasa solo al monedero de cada persona. */
+async function consMonAuto() {
+  if (PDV._migAuto || !PDV.consumo || !consMon() || !pdvPuede('d') || !PDV.consumo.some(x => x.saldo > 0)) return;
+  PDV._migAuto = true;
+  try { const d = await api('personalLista', { negocioId: PDV.nid || S.negocio.id }); await consMonMigrar(d.equipo.filter(p => p.alta)); } catch (e) { console.warn('consMonAuto', e); }
+}
+/** 3.0.1 · Regresa al monedero (ya sin vencimiento) los bonos de personal que vencieron sin usarse. */
+async function consReponerVencidos(uid) {
+  if (!navigator.onLine) throw new Error('Para reponer se necesita internet');
+  const gente = ((PDV.per && PDV.per.gente) || []).filter(p => (!uid || p.usuarioId === uid) && consTel(p).length === 10), hoy = pdvHoy();
+  let tot = 0, n = 0;
+  for (const p of gente) {
+    const tel = consTel(p), ref = monCol('monedero').doc(tel), porV = {};
+    (await monCol('movs').where('tel', '==', tel).get()).docs.map(d => d.data()).filter(x => x.tipo === 'bonoPersonal' && x.vence && x.vence < hoy)
+      .forEach(x => { porV[x.vence] = pdvR((porV[x.vence] || 0) + (Number(x.monto) || 0)); });
+    if (!Object.keys(porV).length) continue;
+    let r = 0;
+    await PDV.db.runTransaction(async t => {
+      const sd = await t.get(ref); r = 0; if (!sd.exists) return;
+      const x = sd.data(), cb = x.cb || {}, rp = x.rep || {}, upd = { act: Date.now() };
+      Object.entries(porV).forEach(([k, m]) => { const q = pdvR(Math.min(Number(cb[k]) || 0, m - (Number(rp[k]) || 0))); if (q > 0) { upd['cb.' + k] = pdvR((Number(cb[k]) || 0) - q); upd['rep.' + k] = pdvR((Number(rp[k]) || 0) + q); r = pdvR(r + q); } });
+      if (r > 0) { upd['cb.' + MON_SIN_VENCE] = pdvR((Number(cb[MON_SIN_VENCE]) || 0) + r); t.update(ref, upd); }
+    });
+    if (r > 0) {
+      tot = pdvR(tot + r); n++;
+      pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: r, nota: 'Bono vencido repuesto (ya no vence)' })));
+      if (PDV.per.monSal) PDV.per.monSal[p.usuarioId] = pdvR((PDV.per.monSal[p.usuarioId] || 0) + r);
+      if (PDV.per.monVen) PDV.per.monVen[p.usuarioId] = Math.max(0, pdvR((PDV.per.monVen[p.usuarioId] || 0) - r));
+    }
+  }
+  toast(n ? `👛 Se repusieron ${money(tot)} a ${n} persona${n > 1 ? 's' : ''}` : 'No hay bonos de personal vencidos por reponer'); pintarCaja();
 }
 function asisVistaConsumo() {
   if (consMon()) return asisVistaConsumoMon();
@@ -9746,7 +10000,8 @@ function asisVistaConsumoMon() {
     ${gente.map(p => { const tel = consTel(p), v = sal ? sal[p.usuarioId] : undefined;
       return `<div class="card row between consFila" style="gap:8px"><div><b>${esc(p.nombre)}</b><div class="small muted">${tel.length !== 10 ? '⚠️ Sin teléfono: no tiene monedero' + (viejo(p.usuarioId) ? ' · consumo ' + money(viejo(p.usuarioId)) : '') : '👛 Monedero: <b>' + (v === undefined ? '…' : v === null ? 'sin conexión' : money(v)) + '</b>'}</div></div>
       <div class="row" style="gap:6px"><button class="btn sm" onclick="consumoHistorial('${p.usuarioId}')">Historial</button>${tel.length === 10 ? `<button class="btn sm" onclick="consumoAjustar('${p.usuarioId}')">✏️ Ajustar</button>` : ''}<button class="btn sm pri" onclick="consumoAsignar('${p.usuarioId}')">🎁 Dar</button></div></div>`; }).join('') || '<div class="muted">Da de alta a tu personal en Configurar.</div>'}
-    <div class="small muted" style="margin-top:6px">El saldo del monedero incluye también su cashback como cliente. Para pedir por la app con su monedero, su teléfono debe estar verificado.</div>`;
+    ${(t => t > 0 ? `<div class="card row between" style="gap:8px;border:2px solid #EBC76A;background:#FFFBEF"><div><b>⌛ ${money(t)} vencidos</b><div class="small muted">Los bonos de personal que vencieron sin usarse regresan a su monedero y ya no vencen.</div></div><button class="btn sm pri" onclick="act(this,()=>consReponerVencidos(''))">Reponer bonos vencidos</button></div>` : '')(Object.values(PDV.per.monVen || {}).reduce((s, v) => s + (v || 0), 0))}
+    <div class="small muted" style="margin-top:6px">El saldo del monedero incluye también su cashback como cliente. Los bonos de personal no vencen, salvo que les pongas días.</div>`;
 }
 function consumoAsignar(uid) {
   const gente = (PDV.per && PDV.per.gente) || [], p = gente.find(x => x.usuarioId === uid);
@@ -9754,7 +10009,7 @@ function consumoAsignar(uid) {
     <div class="muted small" style="margin:6px 0">${p ? '' : 'Se le suma a cada una de las ' + gente.length + ' personas dadas de alta.'}</div>
     <label class="f">Monto</label><input class="i pdvNum" id="csMonto" inputmode="decimal" placeholder="300">
     <label class="f">Nota (opcional)</label><input class="i" id="csNota" maxlength="60" placeholder="Ej. Consumo del mes de noviembre">
-    ${consMon() ? `<label class="f">Vence en (días)</label><input class="i pdvNum" id="csDias" inputmode="numeric" value="${lsG('consDias') || 30}"><div class="small muted">Va a su 👛 monedero; lo que no use en ese tiempo vence.</div>` : ''}
+    ${consMon() ? `<label class="f">Vence en (días)</label><input class="i pdvNum" id="csDias" inputmode="numeric" value="${lsG('consDias') || ''}" placeholder="Sin vencimiento"><div class="small muted">Va a su 👛 monedero. Déjalo vacío para que no venza.</div>` : ''}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>consumoGuardar('${uid}'))">Dar bono</button></div>`);
 }
 async function consumoGuardar(uid) {
@@ -9762,13 +10017,13 @@ async function consumoGuardar(uid) {
   if (!(m > 0)) throw new Error('Escribe el monto');
   const gente = ((PDV.per && PDV.per.gente) || []).filter(p => !uid || p.usuarioId === uid), ts = Date.now();
   if (consMon()) { // 2.90: al monedero
-    const dias = Math.max(1, Math.min(365, Math.round(Number($('#csDias') && $('#csDias').value) || 30))), vence = monSuma(pdvHoy(), dias); lsG('consDias', dias);
+    const dd = Math.round(Number($('#csDias') && $('#csDias').value) || 0), dias = dd > 0 ? Math.min(365, dd) : 0, vence = dias ? monSuma(pdvHoy(), dias) : MON_SIN_VENCE; lsG('consDias', dias || null); // 3.0.1: vacío = no vence
     let sinTel = 0;
     gente.forEach(p => {
       const tel = consTel(p);
       if (tel.length !== 10) { sinTel++; pdvGuardar(pdvCol('consumo').doc(p.usuarioId).set({ nombre: p.nombre, saldo: pdvInc(m), actualizado: ts }, { merge: true })); pdvGuardar(pdvCol('consumoMov').doc().set({ uid: p.usuarioId, nombre: p.nombre, tipo: 'asignado', monto: m, nota, ts, dia: pdvHoy(), por: pdvYo() })); return; }
       pdvGuardar(monCol('monedero').doc(tel).set({ tel, nombre: p.nombre, cb: { [vence]: pdvInc(m) }, act: ts }, { merge: true }));
-      pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, vence, nota })));
+      pdvGuardar(monCol('movs').doc().set(monMov(Object.assign({ tel, nombre: p.nombre, uid: p.usuarioId, tipo: 'bonoPersonal', monto: m, nota }, dias ? { vence } : {}))));
       if (PDV.per.monSal && PDV.per.monSal[p.usuarioId] != null) PDV.per.monSal[p.usuarioId] = pdvR(PDV.per.monSal[p.usuarioId] + m);
     });
     cerrarModal(); toast('🎁 Bono enviado a su monedero' + (sinTel ? ' · ' + sinTel + ' sin teléfono quedó como consumo de personal' : '')); pintarCaja(); return;
@@ -9783,8 +10038,10 @@ async function consumoGuardar(uid) {
 async function consumoHistorialMon(p) {
   modal('<div class="cargando">Cargando…</div>');
   const tel = consTel(p);
-  const l = (await monCol('movs').where('tel', '==', tel).get()).docs.map(d => d.data()).sort((a, b) => b.ts - a.ts).slice(0, 60);
-  const menos = x => x.tipo === 'uso' || x.tipo === 'recargaCancelada' || x.tipo === 'cashbackCancelado' || ((x.tipo === 'ajuste' || x.tipo === 'ajustePersonal') && x.signo < 0);
+  const l = (await monCol('movs').where('tel', '==', tel).get()).docs.map(d => d.data());
+  try { const x = await monLeer(tel, true), hoy = pdvHoy(); Object.entries((x && x.cb) || {}).filter(([k, v]) => k < hoy && Number(v) > 0).forEach(([k, v]) => l.push({ tipo: 'vencido', monto: Number(v), ts: new Date(k + 'T23:59:00').getTime(), signo: -1, nota: 'Sin usar' })); } catch (e) { } // 3.0.1
+  l.sort((a, b) => b.ts - a.ts); l.splice(60);
+  const menos = x => x.tipo === 'vencido' || x.tipo === 'uso' || x.tipo === 'recargaCancelada' || x.tipo === 'cashbackCancelado' || ((x.tipo === 'ajuste' || x.tipo === 'ajustePersonal') && x.signo < 0);
   modal(`<div class="row between"><h2 style="margin:0">👛 Monedero · ${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${l.map(x => `<div class="pdvFila g"><span>${fechaCorta(x.ts)} · ${MON_MOV[x.tipo] || x.tipo}<small>${esc(x.negocio || '')}${x.folio ? ' · ' + esc(x.folio) : ''}${x.nota ? ' · ' + esc(x.nota) : ''}${x.vence ? ' · vence ' + monFecha(x.vence) : ''}</small></span><span></span><b style="color:${menos(x) ? 'inherit' : 'var(--ok)'}">${menos(x) ? '−' : '+'}${money(x.monto)}</b></div>`).join('') || '<div class="muted">Sin movimientos</div>'}`);
 }
@@ -9821,7 +10078,7 @@ async function consumoAjusteMonGuardar(uid) {
     const sd = await t.get(ref), x = sd.exists ? sd.data() : null, sal = monSaldo(x, hoy);
     antes = sal.total; dif = pdvR(nuevo - antes);
     if (!dif) return;
-    if (dif > 0) { const vence = monSuma(hoy, Number(lsG('consDias')) || 30); if (sd.exists) t.update(ref, { ['cb.' + vence]: pdvR(((x.cb || {})[vence] || 0) + dif), act: ts }); else t.set(ref, { tel, nombre: p.nombre, cb: { [vence]: dif }, act: ts, creado: ts }); return; }
+    if (dif > 0) { const vence = Number(lsG('consDias')) ? monSuma(hoy, Number(lsG('consDias'))) : MON_SIN_VENCE; if (sd.exists) t.update(ref, { ['cb.' + vence]: pdvR(((x.cb || {})[vence] || 0) + dif), act: ts }); else t.set(ref, { tel, nombre: p.nombre, cb: { [vence]: dif }, act: ts, creado: ts }); return; }
     let resto = pdvR(-dif); const upd = { act: ts };
     for (const [k, v] of sal.lotes) { if (resto <= 0) break; const q = pdvR(Math.min(v, resto)); upd['cb.' + k] = pdvR(v - q); resto = pdvR(resto - q); }
     if (resto > 0) upd.rec = pdvR(sal.rec - resto);
@@ -10009,7 +10266,9 @@ function consumoDescontar(p, folio, ventaId) {
  * Visita = compra con su teléfono, máximo una por día. Con la meta de visitas del mes gana el extra desde la siguiente compra,
  * el resto del mes y todo el mes siguiente. Lo pagado con monedero (o consumo de personal) no genera cashback.
  */
-const MON_DEF = { activo: false, cashback: 5, cashbackTarjeta: null, vigencia: 90, bonoDesde: 500, bonoPct: 5, visitas: 8, extra: 3 };
+const MON_DEF = { activo: false, cashback: 5, cashbackTarjeta: null, vigencia: 90, bonoDesde: 500, bonoPct: 5, visitas: 8, extra: 3, parcial: false };
+/** 3.0.1 · Lote que no vence (bonos de personal). */
+const MON_SIN_VENCE = '2099-12-31';
 const monCfg = () => Object.assign({}, MON_DEF, PDV.monCfg || {});
 const monActivo = () => !!(PDV.gid && PDV.db && monCfg().activo);
 const monRef = () => PDV.db.collection('monederos').doc(PDV.gid);
@@ -10019,7 +10278,7 @@ const monMesAnt = dia => { const [y, m] = dia.split('-').map(Number); const d = 
 const monSuma = (dia, dias) => pdvHoy(new Date(dia + 'T12:00:00').getTime() + dias * 864e5);
 const monTel = t => String(t || '').replace(/\D/g, '').slice(-10);
 const monFecha = dia => { const [y, m, d] = dia.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }); };
-const MON_MOV = { recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada', bonoPersonal: '🎁 Bono de consumo de personal', ajustePersonal: '🔧 Ajuste del bono de personal', devolucionCambio: '↩️ Devuelto por cambio de pedido' };
+const MON_MOV = { vencido: '⌛ Venció', recarga: '💳 Recarga', bono: '🎁 Bono por recarga', cashback: '💚 Cashback', uso: '🛒 Pagó con monedero', devolucion: '↩️ Devuelto por cancelación', ajuste: '✍️ Ajuste del dueño', importado: '📥 Saldo de la app anterior', recargaCancelada: '✖️ Recarga cancelada', cashbackCancelado: '✖️ Cashback de venta cancelada', bonoPersonal: '🎁 Bono de consumo de personal', ajustePersonal: '🔧 Ajuste del bono de personal', devolucionCambio: '↩️ Devuelto por cambio de pedido' };
 /** Saldo disponible: lo recargado más el cashback y bonos que no han vencido (lotes ordenados del que vence primero). */
 function monSaldo(x, hoy) {
   hoy = hoy || pdvHoy();
@@ -10155,11 +10414,14 @@ async function monInfoCobro() {
     const x = await monLeer(tel, navigator.onLine);
     if (($('#cbMonTel') || {}).value && monTel($('#cbMonTel').value) !== tel) return;
     if (!x) { e.innerHTML = '<span style="color:var(--err)">Ese teléfono no tiene monedero</span>'; return; }
-    const s = monSaldo(x);
+    const s = monSaldo(x), mi = $('#cbMonto'), pide = Number(mi && mi.value) || 0;
     e.innerHTML = `${esc(x.nombre || '')} · saldo <b>${money(s.total)}</b>`;
-    const mi = $('#cbMonto'); if (mi && !mi.readOnly && Number(mi.value) > s.total) { mi.value = s.total; pdvCambio(); }
+    // 3.0.1: si solo se acepta por el total y no alcanza, se dice claro
+    if (!monCfg().parcial && pide > s.total + 0.001) { e.innerHTML += `<div class="aviso warn small" style="margin-top:6px">Su saldo (${money(s.total)}) no cubre el total de la cuenta (${money(pide)}). Para usarlo, su saldo debe cubrir el total de la cuenta.</div>`; return; }
+    if (mi && !mi.readOnly && pide > s.total) { mi.value = s.total; pdvCambio(); }
   } catch (er) { e.textContent = 'Sin internet: para pagar con monedero se necesita conexión.'; }
 }
+const monAvisoCaja = () => monCfg().parcial ? '<div class="aviso info small" style="margin:6px 0">👛 Cobra con su saldo lo que alcance; el resto, con otra forma de pago.</div>' : '<div class="aviso info small" style="margin:6px 0">👛 Aquí el monedero solo se acepta si cubre el total de la cuenta.</div>';
 /** Valida el pago con monedero: saldo y el código del cliente (o un gerente). Devuelve los datos del pago. */
 async function monValidarPago(monto, yaUsado) {
   if (!navigator.onLine) throw new Error('Para pagar con monedero se necesita internet');
@@ -10527,6 +10789,10 @@ function monConfig() {
     ${campo('mcCb', 'Cashback en efectivo (%)', c.cashback, 'Efectivo, transferencia y CoDi. Sobre lo que pagan sin monedero, en cada compra con su teléfono.')}
     ${campo('mcCbT', 'Cashback con tarjeta (%)', c.cashbackTarjeta === null || c.cashbackTarjeta === undefined ? 1 : c.cashbackTarjeta, 'Terminal de la caja y pagos con tarjeta en la app. Menor porque la comisión del banco ya es un costo para ti. Si pagan una parte con tarjeta, cada parte gana su porcentaje.')}
     ${campo('mcVig', 'Vigencia del cashback y bonos (días)', c.vigencia, 'Lo recargado no vence (es dinero del cliente).')}
+    <label class="f">Pago con monedero</label>
+    <div class="opcion ${c.parcial ? '' : 'on'}" id="mcTot" onclick="$('#mcTot').classList.add('on');$('#mcPar').classList.remove('on')"><span class="radio"></span><div class="grow"><b>Solo si cubre toda la cuenta</b><small>Si no le alcanza, paga de otra forma.</small></div></div>
+    <div class="opcion ${c.parcial ? 'on' : ''}" id="mcPar" onclick="$('#mcPar').classList.add('on');$('#mcTot').classList.remove('on')"><span class="radio"></span><div class="grow"><b>También en parte</b><small>Paga lo que alcance con su saldo y el resto con otra forma de pago.</small></div></div>
+    <div class="small muted">En pedidos de la app el saldo debe cubrir los productos completos; el envío nunca se paga con monedero.</div>
     <div class="row" style="gap:8px"><div style="flex:1">${campo('mcBd', 'Bono al recargar desde ($)', c.bonoDesde)}</div><div style="flex:1">${campo('mcBp', 'Bono (%)', c.bonoPct)}</div></div>
     <div class="row" style="gap:8px"><div style="flex:1">${campo('mcVis', 'Visitas al mes para el extra', c.visitas)}</div><div style="flex:1">${campo('mcEx', 'Extra (%)', c.extra)}</div></div>
     <div class="small muted">Visita = una compra con su teléfono, máximo una por día. Al llegar a la meta gana el extra desde la siguiente compra, el resto del mes y el mes siguiente.</div>
@@ -10534,7 +10800,7 @@ function monConfig() {
 }
 async function monGuardarConfig() {
   const n = id => Number($('#' + id).value);
-  const c = { activo: $('#mcAct').classList.contains('on'), cashback: n('mcCb'), cashbackTarjeta: n('mcCbT'), vigencia: Math.round(n('mcVig')), bonoDesde: n('mcBd'), bonoPct: n('mcBp'), visitas: Math.round(n('mcVis')), extra: n('mcEx') };
+  const c = { activo: $('#mcAct').classList.contains('on'), cashback: n('mcCb'), cashbackTarjeta: n('mcCbT'), vigencia: Math.round(n('mcVig')), bonoDesde: n('mcBd'), bonoPct: n('mcBp'), visitas: Math.round(n('mcVis')), extra: n('mcEx'), parcial: $('#mcPar').classList.contains('on') };
   if (!(c.cashback >= 0 && c.cashback <= 50)) throw new Error('El cashback debe ser de 0 a 50%');
   if (!(c.cashbackTarjeta >= 0 && c.cashbackTarjeta <= c.cashback)) throw new Error('El cashback con tarjeta va de 0% al de efectivo (' + c.cashback + '%)');
   if (!(c.vigencia >= 7 && c.vigencia <= 730)) throw new Error('La vigencia debe ser de 7 a 730 días');
@@ -10553,7 +10819,12 @@ async function vMonedero() {
   if (c && c.uid === S.user.id && c.tel === tel && c.l) { S._mon = { tel, l: c.l, viejo: true, t: c.t }; pintarMonedero(); }
   else html('<div class="cargando">Abriendo tu monedero…</div>');
   S._monListo = monRefrescar(tel, c);
-  try { await S._monListo; } catch (e) { if (S.vista !== 'monedero') return; if (S._mon && S._mon.viejo) { S._mon.err = e.message; pintarMonedero(); } else throw e; }
+  try {
+    await S._monListo;
+    // 3.0.1: desde el botón, si solo tiene saldo en un negocio, el código para pagar sale de una vez
+    if (S._monAuto && S.vista === 'monedero' && S._mon && document.querySelector('.monTarj')) { const con = S._mon.l.filter(e => e.x && monSaldo(e.x).total > 0); if (con.length === 1) monCodigo(con[0].g.gid).catch(() => { }); }
+    S._monAuto = false;
+  } catch (e) { S._monAuto = false; if (S.vista !== 'monedero') return; if (S._mon && S._mon.viejo) { S._mon.err = e.message; pintarMonedero(); } else throw e; }
 }
 /** Conecta con Firebase (reusa la sesión si sigue vigente) y lee el saldo de cada monedero. Los movimientos, hasta que se abren. */
 async function monRefrescar(tel, c) {
@@ -10621,18 +10892,21 @@ function pintarMonedero() {
   const nomDe = g => g.negocios.map(n => esc(n.nombre)).join(' · ');
   const tarjeta = ({ g, cfg, x }) => {
     const s = monSaldo(x, hoy), vis = (x.vis || {})[monMes(hoy)] || 0, extra = monExtra(x, hoy, cfg), prox = s.lotes[0], faltan = Math.max(0, cfg.visitas - vis);
-    return `<div class="card"><div class="small muted">Sirve en: <b>${nomDe(g)}</b></div>
+    const venc = Object.entries((x && x.cb) || {}).filter(([k, v]) => k < hoy && k >= monSuma(hoy, -60) && Number(v) > 0).sort((a, b) => a[0] < b[0] ? 1 : -1); // 3.0.1: lo vencido se ve
+    return `<div class="card monTarj"><div class="small muted">Sirve en: <b>${nomDe(g)}</b></div>
       <div class="row between" style="margin:4px 0"><b style="font-size:30px">${money(s.total)}</b><button class="btn pri pill" onclick="act(this,()=>monCodigo('${g.gid}'))">Pagar con mi saldo</button></div>
       <div class="tot"><span>Recargado (no vence)</span><span>${money(s.rec)}</span></div>
       <div class="tot"><span>Cashback y bonos</span><span>${money(s.cb)}</span></div>
-      ${prox ? `<div class="small muted">${money(prox[1])} vence el ${monFecha(prox[0])}</div>` : ''}
+      ${prox && prox[0] !== MON_SIN_VENCE ? `<div class="small muted">${money(prox[1])} vence el ${monFecha(prox[0])}</div>` : ''}
+      ${venc.map(([k, v]) => `<div class="small" style="color:var(--warn)">⌛ Vencieron ${money(v)} el ${monFecha(k)}</div>`).join('')}
+      <div class="monRegla">${cfg.parcial ? '✅ En ' + nomDe(g) + ' puedes pagar parte de tu cuenta con tu saldo.' : 'ℹ️ En ' + nomDe(g) + ' tu saldo solo se usa si cubre toda la cuenta.'}</div>
       <div class="aviso ${extra ? 'ok' : 'info'}" style="margin:10px 0 4px">${extra ? `⭐ Ganas <b>${pdvR(cfg.cashback + cfg.extra)}%</b> en cada compra.` : `Ganas <b>${cfg.cashback}%</b> en cada compra.`}
         ${vis >= cfg.visitas ? ` Ya llevas ${vis} visitas este mes: tienes el extra también el mes que entra.` : ` Llevas ${vis} de ${cfg.visitas} visitas este mes: ${faltan === 1 ? 'te falta 1' : 'te faltan ' + faltan} para ganar +${cfg.extra}%.`}</div>
       <div class="small muted">Una visita es una compra con tu teléfono (máximo una por día).</div>
       <details style="margin-top:8px" ${movs[g.gid] ? 'open' : ''} ontoggle="monMovs('${g.gid}',this)"><summary class="small">Movimientos</summary><div class="monMovs">${movs[g.gid] ? monMovsHTML(movs[g.gid]) : ''}</div></details></div>`;
   };
   const con = m.l.filter(e => e.x), sin = m.l.filter(e => !e.x);
-  html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="ir('perfil')" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
+  html(`<div class="row" style="gap:8px;align-items:center"><button class="redondo" onclick="history.length > 1 ? history.back() : ir(inicioRol())" aria-label="Volver">←</button><h2 style="margin:0">👛 Mi monedero</h2></div>
     <div class="muted small" style="margin:4px 0 10px">Tu teléfono: ${esc(m.tel)}${m.viejo ? ' · <span id="monAct">⏳ actualizando…</span>' : ''}</div>
     ${m.err ? `<div class="aviso warn small">No se pudo actualizar (${esc(m.err)}). Es tu saldo de ${esc(fechaCorta(m.t))} ${hora(m.t)}.</div>` : ''}
     ${con.map(tarjeta).join('')}
@@ -11894,23 +12168,42 @@ function pintarTablero() {
       <div class="tabMini"><span>🟢 <b>${n.personal.presentes}</b> trabajando</span><span>✅ <b>${n.personal.aTiempo}</b> a tiempo</span><span>🟠 <b>${n.personal.retardos}</b> tarde</span><span>⏳ <b>${n.personal.porLlegar}</b> por llegar</span><span>🔴 <b>${n.personal.faltan}</b> no han llegado</span></div>
       ${personal(n)}</div>
     <div class="btns">${n.caja ? `<button class="btn pri pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','caja'))">🧾 Caja de ${esc(n.nombre.split(' ')[0])}</button>` : ''}${n.caja ? '' : `<button class="btn pill" style="flex:1" onclick="act(this,()=>tabEntrar('${n.id}','negPedidos'))">📥 Pedidos</button>`}</div>`;
-  html(`<div class="row between"><h2>🏠 Inicio</h2><button class="btn sm" onclick="act(this,vTablero)">↻ Actualizar</button></div>
-    <div class="muted small" style="margin:-6px 0 10px">Hoy, ${new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · se actualiza solo</div>
-    ${l.length < 2 ? '' : `<div class="tabChips"><button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>`}
-    <div class="tabKpis">
-      ${kpi('Ventas de hoy', money(sum('ventas')), sel ? '' : 'En ' + l.length + ' negocios', '💵', 'ventas')}
-      ${kpi('Órdenes completadas', sum('completadas'), 'Caja y app', '🧾', 'completadas')}
-      ${kpi('Órdenes abiertas', sum('abiertas'), 'Mesas y pedidos en curso', '🍽️', 'abiertas')}
-      ${kpi('Personal activo', per('presentes') + ' de ' + per('total'), per('aTiempo') + ' a tiempo · ' + per('retardos') + ' tarde', '👥', 'personal')}
-    </div>
+  const fecha = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  html(`<div class="row between iniCab"><div><h2 style="margin:0">Hola, ${esc(((S.user || {}).nombre || '').split(' ')[0])} 👋</h2><div class="muted">${fecha.charAt(0).toUpperCase() + fecha.slice(1)}</div></div><button class="btn sm pill" onclick="act(this,vTablero)" aria-label="Actualizar">↻</button></div>
+    ${l.length < 2 ? '' : `<div class="tabChips">
+<button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>`}
+    ${inicioAhora(vis, l.length > 1 && !sel)}
+    ${vis.map(tarjetaAbierto).join('')}
+    ${inicioVentasCard(vis, sel ? '' : l.length > 1 ? 'En ' + l.length + ' negocios' : '')}
     ${inicioPasos(vis)}
-    ${inicioGastos(vis, l.length > 1)}
     ${inicioPendientes(vis, l.length > 1)}
-    ${inicioSecciones(vis, sel)}
-    ${inicioCortes(vis)}
-    ${tabAbiertasHTML(vis, l.length > 1)}
-    ${sel ? detalle(sel) : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
+    ${sel || l.length < 2 ? '' : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
     `);
+}
+/** 3.0 · "¿Qué hago ahora?": lo más urgente arriba, con un solo botón. */
+function inicioAhora(vis, varios) {
+  const sumP = f => vis.reduce((s, n) => s + f(n), 0), de = n => varios ? ' · ' + esc(n.nombre) : '';
+  const card = (tipo, t, sub, btn, f) => `<div class="card iniAhora ${tipo}"><div class="t">${t}</div><div class="sub">${sub}</div><button class="btn pri pill full" onclick="act(this,${f})">${btn}</button></div>`;
+  const pa = sumP(n => n.app.porAceptar || 0), nA = vis.find(n => n.app.porAceptar);
+  S._heroK = '';
+  if (pa) { S._heroK = 'app'; return card('warn', `🟡 Tienes ${pa} pedido${pa > 1 ? 's' : ''} esperando`, 'Acéptalos para que el cliente sepa que ya los vas a preparar.', 'Ver y aceptar pedidos', nA.caja ? `()=>tabEntrar('${nA.id}','caja').then(()=>{PDV.tab='mesas';pintarCaja()})` : `()=>tabEntrar('${nA.id}','negPedidos')`); }
+  const sinD = n => (n.personal.lista || []).filter(p => p.estado === 'sin_decidir' && !p.entrada);
+  const nF = vis.find(n => sinD(n).length && n.caja && n.modPersonal !== false), nf = sumP(n => n.caja && n.modPersonal !== false ? sinD(n).length : 0);
+  if (nF) { S._heroK = 'per'; const ns = sinD(nF).map(p => esc(p.nombre.split(' ')[0])); return card('err', `🔴 ${nf === 1 ? ns[0] + ' no ha llegado' : nf + ' personas no han llegado'}`, (nf > 1 ? ns.join(', ') + '. ' : '') + 'Decide si es falta, permiso, vacaciones o si llegará tarde.' + de(nF), 'Decidir qué pasó', `()=>inicioPersonal('${nF.id}','hoy')`); }
+  const nD = vis.find(n => n.pend && n.pend.dobles);
+  if (nD) { S._heroK = 'dob'; const k = sumP(n => (n.pend && n.pend.dobles) || 0); return card('warn', `🔁 ${k} turno${k > 1 ? 's' : ''} de más por decidir`, 'Alguien llegó fuera de su turno o cubrió a un compañero: decide cómo se cuenta.' + de(nD), 'Decidir', `()=>inicioPersonal('${nD.id}','hoy')`); }
+  const nV = vis.find(n => n.pend && n.pend.vacaciones);
+  if (nV) { S._heroK = 'vac'; const k = sumP(n => (n.pend && n.pend.vacaciones) || 0); return card('info', `🏖️ ${k} solicitud${k > 1 ? 'es' : ''} de vacaciones`, 'Apruébalas o recházalas; a la persona le llega el aviso.' + de(nV), 'Revisar', `()=>inicioPersonal('${nV.id}','vac')`); }
+  return `<div class="card iniAhora ok row" style="gap:10px"><span style="font-size:26px">✅</span><div class="grow"><b>Todo en orden</b><div class="sub" style="margin:0">No hay nada urgente por atender.</div></div></div>`;
+}
+/** 3.0 · Una sola tarjeta de ventas (antes eran 4 burbujas y otra tarjeta abajo). */
+function inicioVentasCard(vis, sub) {
+  const sum = k => vis.reduce((s, n) => s + (n[k] || 0), 0), per = k => vis.reduce((s, n) => s + (n.personal[k] || 0), 0);
+  const tot = per('total'), gas = vis.reduce((s, n) => s + ((n.cajaD && n.cajaD.gastosHoy) || 0), 0);
+  return `<div class="card iniVentas"><div class="muted" style="font-weight:800">Vendido hoy${sub ? ' · ' + sub : ''}</div>
+    <div class="row between" style="gap:8px"><div class="iniMonto">${money(sum('ventas'))}</div><button class="btn sm pill" onclick="act(this,()=>tabVer('ventas'))">Ver ventas</button></div>
+    <div class="iniLinea"><button class="lnk" onclick="act(this,()=>tabVer('completadas'))">${sum('completadas')} completada${sum('completadas') === 1 ? '' : 's'}</button><span>·</span><button class="lnk" onclick="act(this,()=>tabVer('abiertas'))">${sum('abiertas')} en curso</button>${gas ? `<span>·</span><button class="lnk" onclick="act(this,()=>tabVer('gastos'))">gastos ${money(gas)}</button>` : ''}</div>
+    ${tot ? `<div class="iniLinea">👥 <button class="lnk" onclick="act(this,()=>tabVer('personal'))">${per('presentes')} de ${tot} trabajando ahora</button></div>` : ''}</div>`;
 }
 /* ============ 2.84 · INICIO DEL DUEÑO: cada burbuja abre su detalle ============ */
 const TAB_MET = { efectivo: '💵 Efectivo', tarjeta: '💳 Tarjeta', mp: '💳 Tarjeta', transferencia: '🏦 Transferencia', monedero: '👛 Monedero', consumo: '🎁 Consumo de personal', nomina: '🧾 A cuenta de nómina', mixto: '🔀 Mixto', otro: '• Otro' };
@@ -12134,9 +12427,10 @@ function inicioPendientes(vis, varios) {
   // 2.60.2: marcar como vistos (vuelven si cambia algo) y contraer la sección
   let vistos = ls('pendVistos') || {};
   if (!S._tabSel) { const vivas = new Set(it.map(x => x[4])); Object.keys(vistos).forEach(k => { if (!vivas.has(k)) delete vistos[k]; }); ls('pendVistos', vistos); }
-  const nuevos = it.filter(x => !vistos[x[4]]), ocultos = it.length - nuevos.length;
+  const hk = { app: 'app|', dob: 'dob|', vac: 'vac|' }[S._heroK] || '!'; // 3.0: lo que ya está en "¿Qué hago ahora?" no se repite
+  const nuevos = it.filter(x => !vistos[x[4]] && !x[4].startsWith(hk)), ocultos = it.filter(x => vistos[x[4]]).length;
   const recup = ocultos ? `<button class="lnk small" onclick="pendRestaurar()">Ver los que marqué (${ocultos})</button>` : '';
-  if (!nuevos.length) return `<div class="card row" style="gap:10px;padding:12px 14px"><span style="font-size:22px">✅</span><span class="grow"><b>Todo al día</b><div class="muted small">No hay nada nuevo por aprobar ni revisar</div></span>${recup}</div>`;
+  if (!nuevos.length) return recup ? `<div style="text-align:center;margin:-4px 0 10px">${recup}</div>` : '';
   const cerrado = !!ls('pendCerrado');
   return `<div class="card inicioPend"><div class="row between" style="cursor:pointer" onclick="pendContraer()"><h3 style="margin:0">🔔 Pendientes (${nuevos.length})</h3><span class="pendFl">${cerrado ? '▸' : '▾'}</span></div>
     ${cerrado ? '' : nuevos.map(([i, t, f, b, k]) => `<div class="pdvFila g pendFila"><span>${i} ${t}</span><button class="btn sm pri" onclick="act(this,()=>${f})">${b}</button><button class="pendOk" onclick="pendVisto('${esc(k)}')" title="Marcar como visto" aria-label="Marcar como visto">✓</button></div>`).join('') + (recup ? '<div style="margin-top:6px">' + recup + '</div>' : '')}</div>`;
@@ -12183,6 +12477,7 @@ function pasosLista(n) {
   const ir = (v, extra) => `tabEntrar('${n.id}','${v}')${extra ? '.then(()=>{' + extra + '})' : ''}`;
   return [
     ['datos', '📍', 'Datos, ubicación y horario', 'Sin ubicación y horario no apareces en la app', !!p.datos, ir('miNegocio')],
+    ['abrir', '🟢', 'Abre tu negocio', 'Prende el interruptor para empezar a recibir pedidos en la app', !!p.abrir, `tabAbrirCerrar('${n.id}',true)`], // 2.98
     ['imagen', '🖼️', 'Portada y logo', 'Es lo primero que ven tus clientes', !!p.imagen, ir('miNegocio')],
     ['menu', '🍔', 'Tu menú con fotos', `Al menos 5 productos con foto (llevas ${p.nProds || 0} · ${p.nFotos || 0} con foto)`, !!p.menu, ir('menu')],
     ['pagos', '💳', 'Formas de pago', 'Efectivo y/o los datos para transferencia', !!p.pagos, ir('miNegocio'), 'Solo efectivo'],
@@ -12192,21 +12487,56 @@ function pasosLista(n) {
     ['rep', '🛵', 'Repartidores', 'Invita a los tuyos o usa los de Pídele', !!p.rep, ir('repartidores'), 'Uso los de Pídele']
   ].filter(Boolean);
 }
+/* 2.98 · Abierto / cerrado, arriba del Inicio del negocio (antes estaba escondido en la caja) */
+function tarjetaAbierto(n) {
+  if (!n || !n.puedeAbrir) return '';
+  const on = !!n.abierto, listo = on && n.horaAbierto && n.ubic && n.enLinea !== false;
+  const motivo = !n.ubic ? ['📍 Falta marcar la ubicación de tu negocio: sin ella no apareces en la app.', 'miNegocio', 'Marcar ubicación']
+    : n.enLinea === false ? ['📲 Pídele en línea está apagado: no apareces en la app.', 'perfil', 'Prender']
+    : on && !n.horaAbierto ? ['🕒 ' + (n.estadoTexto || 'Fuera de tu horario') + '. Se abre solo en tu horario.', 'miNegocio', 'Ver horario'] : null;
+  const cls = listo ? 'on' : on ? 'medio' : '';
+  const varios = S._tab && S._tab.negocios.length > 1;
+  const exp = (S._abrirExp = S._abrirExp || {})[n.id];
+  // plegada: botón de encendido con color; al tocarlo se despliega. Desplegada la primera vez (aún no abre su negocio).
+  if (!exp && (exp === false || !n.pasos || n.pasos.abrir || lsG('abrirUsado_' + n.id))) {
+    const corto = !on ? 'Cerrado' : listo ? 'Abierto' : 'Encendido · falta algo';
+    const det = listo ? (n.estadoTexto && n.estadoTexto !== 'Abierto' ? n.estadoTexto : 'Recibiendo pedidos') : !on ? 'No recibes pedidos de la app' : (motivo ? motivo[0].replace(/^\S+\s/, '').split(':')[0] : '');
+    return `<button class="abrirBtn ${cls}" onclick="S._abrirExp['${n.id}']=true;pintarTablero()" aria-label="Abrir o cerrar el negocio"><span class="pwr">⏻</span>
+      <span class="grow"><b>${varios ? esc(n.nombre) + ' · ' : ''}${corto}</b> <small>${esc(det)}</small></span><span class="muted">›</span></button>`;
+  }
+  const titulo = !on ? '🔴 Cerrado · no recibes pedidos de la app' : listo ? '🟢 Abierto · recibiendo pedidos de la app' : '🟠 Encendido, pero aún no recibes pedidos';
+  return `<div class="card tabAbrir ${cls}"><div class="grow"><b class="t">${titulo}</b>${varios ? `<div class="small muted">${esc(n.nombre)}</div>` : ''}
+      ${listo && n.estadoTexto ? `<div class="small" style="color:var(--ok);font-weight:700">${esc(n.estadoTexto)}</div>` : ''}
+      ${motivo ? `<div class="small" style="margin-top:4px">${esc(motivo[0])} <button class="lnk small" onclick="act(this,()=>tabEntrar('${n.id}','${motivo[1]}'))">${motivo[2]} ›</button></div>` : ''}
+      <div class="row" style="gap:8px;margin-top:8px">${!on ? `<button class="btn pri sm" onclick="act(this,()=>tabAbrirCerrar('${n.id}',true))">Abrir ahora</button>` : ''}${n.pasos && n.pasos.abrir || lsG('abrirUsado_' + n.id) || exp ? `<button class="lnk small" onclick="S._abrirExp['${n.id}']=false;pintarTablero()">Ocultar ⌃</button>` : ''}</div></div>
+    <label class="sw" title="${on ? 'Cerrar: dejar de recibir pedidos' : 'Abrir: recibir pedidos'}"><input type="checkbox" ${on ? 'checked' : ''} onchange="act(null,()=>tabAbrirCerrar('${n.id}',this.checked).catch(e=>{this.checked=!this.checked;throw e}))"><i></i></label></div>`;
+}
+async function tabAbrirCerrar(nid, abrir) {
+  const prev = S.negActivo; S.negActivo = nid;
+  try { const r = await api('abrirCerrar', { abierto: !!abrir }); if (S.negocio && S.negocio.id === nid) fijarNeg(r); }
+  finally { S.negActivo = prev; }
+  toast(abrir ? 'Negocio abierto: recibes pedidos en tu horario 🟢' : 'Negocio cerrado: no recibes pedidos ⏸️');
+  lsG('abrirUsado_' + nid, '1');
+  if (S._abrirExp) S._abrirExp[nid] = false; // 2.98: después de usarla se repliega a su botón de encendido
+  if (S.vista === 'tablero') await vTablero();
+}
 function inicioPasos(vis) {
   const l = vis.filter(n => n.dueno && n.pasos && !n.pasos.oculto);
   return l.map(n => {
     const ps = pasosLista(n), hechos = ps.filter(x => x[4]).length;
     if (hechos === ps.length) return '';
-    return `<div class="card pasosCard"><div class="row between" style="gap:8px"><div><b>🚀 Primeros pasos${vis.length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted">Deja listo tu negocio: ${hechos} de ${ps.length}</div></div><button class="lnk small" onclick="act(this,()=>pasoOmitir('${n.id}','oculto'))">Ocultar</button></div>
+    const todos = (S._pasosTodos || {})[n.id], sig = ps.find(x => !x[4]), faltan = ps.length - hechos; // 3.0: un paso a la vez
+    return `<div class="card pasosCard"><div class="row between" style="gap:8px"><div><b>🚀 Te falta${faltan === 1 ? '' : 'n'} ${faltan} paso${faltan === 1 ? '' : 's'}${vis.length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted">Para dejar listo tu negocio · ${hechos} de ${ps.length}</div></div><button class="lnk small" onclick="act(this,()=>pasoOmitir('${n.id}','oculto'))">Ocultar</button></div>
       <div class="pasosBar"><i style="width:${Math.round(hechos * 100 / ps.length)}%"></i></div>
-      ${ps.map(([k, ico, t, sub, ok, f, omitir]) => `<div class="pasoFila ${ok ? 'ok' : ''}"><span class="pasoIco">${ok ? '✅' : ico}</span><div class="grow"><b>${t}</b>${ok ? '' : `<div class="small muted">${sub}</div>`}</div>
-        ${ok ? '' : `<span class="row" style="gap:4px">${omitir ? `<button class="lnk small" onclick="act(this,()=>pasoOmitir('${n.id}','${k}'))">${omitir}</button>` : ''}<button class="btn sm pri" onclick="act(this,()=>${f})">Ir</button></span>`}</div>`).join('')}</div>`;
+      ${(todos ? ps : [sig]).map(([k, ico, t, sub, ok, f, omitir]) => `<div class="pasoFila ${ok ? 'ok' : ''}"><span class="pasoIco">${ok ? '✅' : ico}</span><div class="grow"><b>${t}</b>${ok ? '' : `<div class="small muted">${sub}</div>`}</div>
+        ${ok ? '' : `<span class="row" style="gap:4px">${omitir ? `<button class="lnk small" onclick="act(this,()=>pasoOmitir('${n.id}','${k}'))">${omitir}</button>` : ''}<button class="btn sm pri ${!todos && !lsG('dedo_' + k) ? 'conDedo' : ''}" onclick="lsG('dedo_${k}','1');act(this,()=>${f})">${todos ? 'Ir' : 'Hacerlo'}</button></span>`}</div>`).join('')}
+      <button class="lnk small" style="margin-top:4px" onclick="(S._pasosTodos=S._pasosTodos||{})['${n.id}']=${todos ? 'false' : 'true'};pintarTablero()">${todos ? 'Ver solo el siguiente ⌃' : 'Ver todos los pasos (' + ps.length + ') ⌄'}</button></div>`;
   }).join('');
 }
 async function pasoOmitir(nid, paso) {
   const p = await api('pasoOmitir', { negocioId: nid, paso });
   const n = S._tab && S._tab.negocios.find(x => x.id === nid); if (n) n.pasos = p;
-  if (paso === 'oculto') toast('Listo. Puedes volver a verla en ⚙️ Negocio → 🚀 Primeros pasos');
+  if (paso === 'oculto') toast('Listo. Puedes volver a verla en ☰ Más → 🚀 Primeros pasos');
   pintarTablero();
 }
 async function pasosMostrar(nid) {
@@ -12250,7 +12580,48 @@ async function inicioOperacion(nid) {
   const n = l.find(x => x.id === nid) || l[0];
   await tabEntrar(n.id, 'operacion');
 }
-/** ⚙️ Negocio: todo lo que se configura, en un solo lugar. */
+/* ============ 3.0 · MÁS: todo lo del negocio en cuadros grandes, a 2 toques ============ */
+function compartirMiNeg(btn) {
+  const n = S.negocio; if (!n) return;
+  return compartir(btn, n.nombre + ' en Pídele', '😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.', urlApp('negocio=' + n.id), 'Comparte ' + n.nombre, n.nombre, true);
+}
+function vMas() {
+  const n = S.negocio; if (!n) return ir(inicioRol());
+  if (!esDueno()) return vAdmNegocio();
+  const l = (S.negocios || []).filter(x => x.dueno), caja = pdvTieneAcceso(), per = caja && modOn('personal'), wa = S.conf && S.conf.soporteWhatsApp;
+  const t = (i, txt, f) => `<button class="masT" onclick="act(this,${f})"><span>${i}</span>${txt}</button>`;
+  const sec = (tit, items) => { const h = items.filter(Boolean).join(''); return h ? `<div class="masSec">${tit}</div><div class="masGrid">${h}</div>` : ''; };
+  html(`<h2 style="margin:4px 0 6px">Más opciones</h2>
+    ${l.length > 1 ? `<div class="tabChips">${l.map(x => `<button class="${x.id === n.id ? 'on' : ''}" onclick="act(this,()=>tabEntrar('${x.id}','mas'))">${esc(x.nombre)}</button>`).join('')}</div>` : ''}
+    ${sec('Tu negocio', [
+      t('🏪', 'Datos y horario', "()=>ir('miNegocio')"),
+      t('📲', 'Compartir mi negocio', 'compartirMiNeg'),
+      t('📣', 'Banners y promociones', "()=>ir('promos')"),
+      t('🛵', 'Repartidores', "()=>ir('repartidores')"),
+      t('🗓️', 'Pedidos programados', '()=>progConfig()'),
+      modOn('preventas') ? t('🎟️', 'Preventas', '()=>pvPanel()') : ''])}
+    ${sec('Tu equipo y tu dinero', [
+      per ? t('👥', 'Personal', "()=>{PDV.per={sub:funOn('personal','asistencia')?'hoy':'equipo',fecha:pdvHoy()};ir('nomina')}") : t('👥', 'Equipo y permisos', "()=>ir('equipo')"),
+      caja ? t('📊', 'Ventas y cortes', "()=>{PDV.rep={per:'semana',neg:S.negocio.id,vista:'cortes'};PDV.tab='cortes';ir('ventas')}") : '',
+      caja && funOn('caja', 'gastos') ? t('💸', 'Gastos', "async()=>{await ir('caja');PDV.tab='gastos';PDV.cuentaId='';pintarCaja()}") : '',
+      opDisponible() ? t('✅', 'Tareas y limpieza', "()=>ir('operacion')") : '',
+      modOn('inventario') ? t('📦', 'Inventario', "()=>{S._iv={lugar:S.negocio.id,tab:'exist',q:'',f:''};ir('inventario')}") : '',
+      modOn('facturas') ? t('🧾', 'Facturar a clientes', `()=>facIrNegocio('${n.id}')`) : '',
+      opDisponible() && funOn('operacion', 'sanitario') ? t('🧼', 'Registro sanitario', '()=>higIrRegistro()') : ''])}
+    ${sec('Ajustes', [
+      enIOSApp() ? t('💳', 'Mi plan', "()=>ir('planIOS')") : t('💳', 'Mi plan', "()=>ir('suscripcion')"),
+      t('🧩', 'Funciones extra', '()=>modulosVer()'),
+      t('🚀', 'Primeros pasos', `()=>pasosMostrar('${n.id}')`),
+      t('🏬', 'Mis negocios y sucursales', "()=>ir('equipo')"),
+      t('👤', 'Mi cuenta', "()=>ir('perfil')"),
+      t('🛍️', 'Pedir comida', "()=>{modoCliente(true);ir('inicio')}")])}
+    <div class="masSec">Ayuda</div>
+    <div class="card" style="padding:4px 14px">
+      <button class="masFila" onclick="repetirTour()"><span>🧭</span><b class="grow">Ver cómo se usa</b><span class="muted">›</span></button>
+      ${wa ? `<a class="masFila" href="${waLink(wa, 'Hola, necesito ayuda con ' + APP + '. Mi teléfono: ' + S.user.telefono)}" target="_blank"><span>💬</span><b class="grow">Escribir a soporte</b><span class="muted">›</span></a>` : ''}</div>
+    <button class="btn pill full masSalir" onclick="if(confirm('¿Cerrar sesión?'))salir()">${ico('salir', 's')} Cerrar sesión</button>`);
+}
+/** ⚙️ Negocio: todo lo que se configura, en un solo lugar (colaboradores con permisos; el dueño usa "Más"). */
 function vAdmNegocio() {
   const n = S.negocio; if (!n) return ir(inicioRol());
   const l = (S.negocios || []).filter(x => x.dueno);
@@ -13954,7 +14325,7 @@ function pintarProductos() {
   const tarjeta = p => `<div class="pCard" onclick="abrirProducto('${p.id}'${p._sec ? ',' + esc(JSON.stringify(p._sec)).replace(/"/g, '&quot;') : ''})">
       ${enCarrito[p.id] ? `<span class="enCarrito">${enCarrito[p.id]}</span>` : ''}
       ${p.preventa && S.vista !== 'caja' ? `<span class="tagPromo tagPv">🎟️ Preventa</span>` : (et => et ? `<span class="tagPromo">${esc(et)}</span>` : '')(etiquetaProducto(d.negocio.id, p.id))}
-      <div class="img">${p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async">` : enS ? '🛒' : '🍽️'}</div>
+      <div class="img ${p.foto ? '' : 'sinFoto'}" ${p.foto ? '' : `style="background:${colCat(p.categoria)}"`}>${p.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async">` : enS ? '🛒' : emoProd(p)}</div>
       <div class="info"><b class="clamp2">${esc(p.nombre)}</b>
         ${p.descripcion ? `<div class="desc clamp2">${esc(p.descripcion)}</div>` : ''}
         <div class="pie"><div><span class="precio">${precioTxt(p)}</span>${p.preventa && S.vista !== 'caja' ? `<span class="min">🎟️ Entrega ${esc(pvFecha(p.preventa.entrega))}</span>` : enS ? '' : `<span class="min">${ico('reloj', 's')} ${p.tiempoPrep || d.negocio.tiempoPrep} min</span>`}</div>
@@ -14259,15 +14630,15 @@ function vCarrito() {
         <button class="lnk" onclick="vaciarCarrito('${c.negocioId}')">Quitar</button></div>
       ${abierto ? (((S._negs || []).find(x => x.id === c.negocioId) || {}).abierto === false ? '<div class="aviso info" style="margin:6px 0">🗓️ Está cerrado ahora: al pagar eliges para cuándo lo quieres.</div>' : '') : '<div class="aviso warn" style="margin:6px 0">Este negocio no recibe pedidos ahora. Guardamos tu carrito para después.</div>'}
       ${its.map((x, i) => { const dd = detalleItem(x); return `<div class="linea">
-        ${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="">` : '<div class="thumb">🍽️</div>'}
+        ${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="">` : `<div class="thumb" style="background:${colCat(x.categoria || x.nombre)}">${emoCat(x.categoria) || emoCat(x.nombre) || '🍽️'}</div>`}
         <div class="grow"><b>${esc(x.nombre)}</b>${x.promo ? ' <span class="tag t-err">PROMO</span>' : ''}${ds.porLinea[i] ? ' <span class="tag t-err">−' + money(ds.porLinea[i]) + '</span>' : ''}${dd ? `<div class="detalle">${dd}</div>` : ''}<div class="b" style="margin:6px 0 8px">${x.antes ? `<span class="tachado">${money(x.antes * x.cant)}</span><span class="precioPromo">${money(x.precio * x.cant)}</span>` : money(x.precio * x.cant)}</div>
           <div class="cant" style="display:inline-flex"><button onclick="cambiarCarrito('${c.negocioId}',${i},-1)">${ico('menos', 's')}</button><b>${x.cant}</b><button onclick="cambiarCarrito('${c.negocioId}',${i},1)">${ico('mas', 's')}</button></div></div>
         <button class="basura" onclick="cambiarCarrito('${c.negocioId}',${i},-99)" aria-label="Quitar">${ico('basura')}</button></div>`; }).join('')}
       ${ds.regalos.map(g => `<div class="aviso ok" style="margin:8px 0;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="agregarRegalo('${c.negocioId}','${g.promo.id}')"><span style="font-size:22px">🎁</span><span class="grow"><b>¡Te toca ${g.faltan > 1 ? g.faltan + ' regalos' : 'un regalo'}!</b><br><span class="small">${esc(g.promo.titulo)}</span></span><span class="btn sm pri">Agrega tu regalo</span></div>`).join('')}
       <button class="lnk" onclick="ir('negocio','${c.negocioId}')">${ico('mas', 's')} Agregar más de ${esc(c.negocio)}</button>
       ${ds.total || ds.primeraNota ? `<div class="tot" style="margin-top:6px"><span>Productos</span><span>${money(ds.bruto)}</span></div>${lineasDesc(c, ds)}` : ''}
-      <div class="tot" style="margin-top:6px"><span>Subtotal</span><span>${money(s)}</span></div>
-      <div class="tot"><span>Envío</span><span>${e === null ? '<span class="muted small">Se calcula con tu dirección</span>' : e < 0 ? '<span style="color:var(--err)" class="small">Fuera del área</span>' : money(e)}</span></div></div>`;
+      ${lista.length > 1 ? `<div class="tot" style="margin-top:6px"><span>Subtotal</span><span>${money(s)}</span></div>
+      <div class="tot"><span>Envío</span><span>${e === null ? '<span class="muted small">Se calcula con tu dirección</span>' : e < 0 ? '<span style="color:var(--err)" class="small">Fuera del área</span>' : money(e)}</span></div>` : e !== null && e < 0 ? '<div class="aviso warn small" style="margin-top:6px">Tu dirección queda fuera del área de envío de este negocio.</div>' : ''}</div>`; // 3.0: con un solo negocio, el subtotal y el envío salen una vez (en el resumen)
   }).join('');
   html(top + bloques + `
     <div class="card"><b style="font-size:16px">Resumen</b>
@@ -14453,8 +14824,8 @@ async function vPago() {
       if (ms === undefined) { monSaldoApp(n.monGid); ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Consultando tu saldo…', true]); }
       else if (ms && ms.activo) {
         if (ms.sinVerif) ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Verifica tu teléfono para pagar con tu monedero', true]);
-        else if (ms.saldo + 0.001 < montoT) ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + ': no alcanza. El monedero debe cubrir todo el pedido (' + money(montoT) + ')', true]);
-        else ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + ' · se descuentan ' + money(montoT) + (conEnvio ? ' (comida y envío)' : '') + ' al entregarte' + (!conEnvio && envio ? '; el envío se paga al repartidor' : '')]);
+        else if (ms.saldo + 0.001 < sub) ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + '. Para usarlo, tu saldo debe cubrir el total de tu cuenta (' + money(sub) + ').', true]); // 3.0.1: el envío no se paga con monedero
+        else ops.push(['monedero', 'tienda', '👛 Mi monedero', 'Tienes ' + money(ms.saldo) + ' · se descuentan ' + money(sub) + ' al entregarte']);
       }
     }
     if (pg.efectivo) {
@@ -14729,8 +15100,8 @@ async function confirmarPedido() {
   // 2.66.1: con monedero, revisa el saldo justo antes de pedir (debe cubrir todo)
   for (const c of cs.filter(c => e.metodos[c.negocioId] === 'monedero')) {
     const n = (S._negs || []).find(x => x.id === c.negocioId) || {}, t = S._pagoTot[c.negocioId] || { sub: 0, envio: 0 };
-    const ms = await monSaldoApp(n.monGid, true), monto = t.sub + (n.envioEnTransfer ? t.envio : 0);
-    if (!ms || !ms.activo || ms.saldo + 0.001 < monto) { pintar(true); throw new Error('Tu monedero ya no alcanza para ' + c.negocio + ' (tienes ' + money(ms ? ms.saldo : 0) + '). Elige otra forma de pago.'); }
+    const ms = await monSaldoApp(n.monGid, true), monto = t.sub; // 3.0.1: solo los productos
+    if (!ms || !ms.activo || ms.saldo + 0.001 < monto) { pintar(true); throw new Error('Tienes ' + money(ms ? ms.saldo : 0) + ' en tu monedero de ' + c.negocio + '. Para usarlo, tu saldo debe cubrir el total de tu cuenta (' + money(monto) + ').'); }
   }
   // efectivo a domicilio: se toma la ubicación actual para comprobar que el cliente está en el punto de entrega
   let gps;
@@ -14790,7 +15161,8 @@ function vListo() {
     <p class="muted" style="max-width:320px;margin:12px auto 26px">${transf
       ? 'Cuando ' + (varios ? 'cada negocio' : 'lo') + ' confirme verás sus datos para transferir y adjuntar tu comprobante.'
       : 'En cuanto ' + (varios ? 'cada negocio lo' : 'lo') + ' confirme empezará a prepararlo. ' + (l[0].tipo === 'recoger' ? 'Te avisamos cuando puedas pasar por él.' : 'Pagas en efectivo al recibirlo.')}</p>
-    <button class="btn pri pill full" style="max-width:340px" onclick="${varios ? "ir('pedidos')" : `ir('pedido','${l[0].id}')`}">${varios ? 'Ver mis pedidos' : 'Ver pedido'}</button>
+    ${varios ? '' : `<div class="card listoPasos"><div class="lp"><span class="d ok">✓</span><b>Pedido enviado</b></div><div class="lp"><span class="d esp">⏳</span><div><b>Esperando que lo acepten</b><div class="muted small">Te avisamos en cuanto lo acepten</div></div></div><div class="lp off"><span class="d">🍳</span><b>Preparando</b></div><div class="lp off"><span class="d">${l[0].tipo === 'recoger' ? '📦' : '🛵'}</span><b>${l[0].tipo === 'recoger' ? 'Listo para recoger' : 'En camino a tu casa'}</b></div></div>`}
+    <button class="btn pri pill full" style="max-width:340px;min-height:54px;font-size:17px" onclick="${varios ? "ir('pedidos')" : `ir('pedido','${l[0].id}')`}">${varios ? 'Ver mis pedidos' : 'Ver mi pedido'}</button>
     <div style="margin-top:40px;color:var(--pri)"><div class="marcaTxt" style="font-size:34px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="font-size:10px;color:var(--tx2)">Tu comida favorita, a un click</div></div>
   </div>`);
 }
@@ -15202,8 +15574,7 @@ async function vEquipo() {
     <div class="muted small" style="margin:-4px 2px 8px">Cuentas para la tableta de la caja, la cocina, las mesas o la barra: sin teléfono, siempre abiertas. Cada persona se identifica con su código de caja, y solo en estos equipos aparece el QR de asistencia.</div>
     ${d.negocios.filter(n => n.estado === 'activo').map(n => `<div class="card" id="disp_${n.id}"><b>${esc(n.nombre)}</b><div class="cargando" style="padding:8px">Cargando…</div></div>`).join('')}
     <h3 style="margin-top:20px">👥 Tu equipo</h3>
-    ${enPer ? `<div class="card"><b>Tu equipo (${d.equipo.length}) se maneja en 👥 Personal</b><div class="muted small" style="margin:4px 0 8px">Ahí das de alta a cada persona y eliges su puesto y permisos, turno, horario, sueldo y vacaciones.</div>
-      <button class="btn pri pill full" onclick="PDV.per={sub:'equipo',fecha:pdvHoy()};ir('nomina')">👥 Abrir Personal</button></div>
+    ${enPer ? `<div class="muted small" style="margin:-4px 2px 8px">Tu gente (${d.equipo.length}) se da de alta y se maneja en <b>☰ Más → 👥 Personal</b>: puesto, permisos, turno, sueldo y vacaciones.</div>
     <details class="card"><summary class="small"><b>Accesos por negocio</b> (pausar, quitar, códigos de invitación)</summary>` : `<div class="muted small" style="margin:-4px 2px 8px">Cada colaborador entra desde su teléfono y solo ve lo que le permites. Plan, suscripción, equipo y sucursales son solo tuyos.</div>`}
     ${d.equipo.length ? d.equipo.map((x, i) => `<div class="card"><div class="row between"><div style="min-width:0"><b>${esc(x.nombre)}</b><div class="muted small">${esc(x.telefono)}</div></div>
         <button class="btn sm" onclick="formColaborador(${i})">Editar</button></div>
@@ -15320,6 +15691,7 @@ function vPerfil() {
   if (!u) { ir('entrar'); return; }
   if (u.rol === 'negocio') setTimeout(() => { if (S.vista === 'perfil') pintarMiAsis(); }, 0);
   const r = u.rol, wa = S.conf && S.conf.soporteWhatsApp;
+  const dM = r === 'negocio' && !S.modoCliente && esDueno() && esDuenoVarios(); // 3.0: lo del negocio vive en ☰ Más
   S._perfPos = { lat: u.lat, lng: u.lng };
   html(`<div class="card row" style="margin-top:4px"><div class="avatar">${iniciales(u.nombre)}</div>
       <div class="grow"><b style="font-size:17px">${esc(u.nombre)}</b><div class="muted">${esc(u.telefono)} ${u.telVerificado ? '<span title="Verificado" style="color:var(--ok)">✔</span>' : ''} · ${esc(rolNombre(r))}</div></div>
@@ -15327,16 +15699,16 @@ function vPerfil() {
     ${u.telVerificado ? '' : tarjetaVerificar()}
     ${avisoInvEquipo()}
     ${r === 'negocio' ? '<div id="miAsis"></div>' : ''}
-    ${r === 'negocio' ? bloqueMisNegocios() : ''}
+    ${r === 'negocio' && !dM ? bloqueMisNegocios() : ''}
     ${PUEBLOS.length > 1 ? `<div class="card row between"><div><b>📍 Ciudad</b><div class="muted small">${esc(PUEBLO.nombre)}${r === 'admin' ? '' : ' · se define con tu ubicación'}</div></div>${r === 'admin' ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : ''}</div>` : ''}
     ${r === 'repartidor' && !(u.suscripcion && u.suscripcion.sinCuota) ? `<div class="card row between" style="cursor:pointer" onclick="ir('suscripcion')"><div><b>Mi mensualidad</b>
       <div class="muted small">${u.suscripcion && u.suscripcion.vence ? (['gracia', 'suspendido'].includes(u.suscripcion.estado) ? 'Venció el ' : 'Activa hasta el ') + fechaLarga(u.suscripcion.vence) : u.inscrito ? 'Inscripción pagada' : enIOSApp() ? 'Inscripción pendiente' : 'Paga tu inscripción'}</div></div><span class="lnk small">Ver ›</span></div>` : ''}
     ${u.almacen ? `<div class="card row between" style="cursor:pointer" onclick="ir('almacen')"><div><b>🏬 Almacén</b><div class="muted small">Pedidos de las sucursales por surtir</div></div><span class="lnk small">Abrir ›</span></div>` : ''}
-    ${tarjetaRepLigado()}
-    ${esStaff() && !u.ligado && !esDisp() ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
+    ${dM ? '' : tarjetaRepLigado()}
+    ${esStaff() && !u.ligado && !esDisp() && !dM ? (S.modoCliente ? `<button class="btn pri pill full" style="margin-bottom:12px" onclick="modoCliente(false)">← Volver a mi ${r === 'negocio' ? 'negocio' : 'panel de repartidor'}</button>`
       : `<div class="card row between" style="cursor:pointer" onclick="modoCliente(true)"><div><b>🛍️ Pedir</b><div class="muted small">A cualquier negocio, también al tuyo (con tu monedero)</div></div><span class="lnk small">Abrir ›</span></div>`) : ''}
     ${esDisp() ? `<div class="card"><b>🖥️ ${esc(u.nombre)}</b><div class="muted small">Equipo del negocio (${esc((DISP_TIPO[u.equipoTipo] || DISP_TIPO.caja)[1])}). La sesión se queda abierta; el dueño lo desconecta desde Mi equipo.</div></div>` : ''}
-    ${esDisp() ? '' : `<div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Mis facturas</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
+    ${esDisp() || dM ? '' : `<div class="card row between" style="cursor:pointer" onclick="act(null,facAbrir)"><div><b>🧾 Mis facturas</b><div class="muted small">Tus datos fiscales y las facturas de tus compras</div></div><span class="lnk small">Abrir ›</span></div>
     <div class="card row between" style="cursor:pointer" onclick="ir('monedero')"><div><b>👛 Mi monedero</b><div class="muted small">Tu saldo, cashback y código para pagar en los negocios con monedero</div></div><span class="lnk small">Abrir ›</span></div>`}
     ${r === 'comprador' ? `<div class="card"><b>🚀 Súmate a Pídele</b><div class="muted small" style="margin:4px 0 10px">¿Tienes un negocio o quieres repartir? Envía tu solicitud; mientras la revisamos sigues pidiendo como siempre.</div>
       <div class="row" style="gap:8px"><button class="btn sm" style="flex:1" onclick="formAlta('negocio')">🏪 Registrar mi negocio</button>${u.repId ? '' : `<button class="btn sm" style="flex:1" onclick="act(this,formRep)">🛵 Quiero repartir</button>`}</div></div>` : ''}
@@ -15353,15 +15725,15 @@ function vPerfil() {
         <div id="mapaPerfil" class="mapa" style="margin-top:6px"></div>` : ''}
       <div class="btns"><button class="btn pri" onclick="act(this,guardarPerfil)">Guardar</button></div></div>
     ${r === 'repartidor' ? '<div id="miPts"></div>' + tarjetaHorarioRep() : ''}
-    <div class="card"><b>Cambiar contraseña</b>
+    <details class="card perfDet"><summary><b>🔒 Cambiar contraseña</b><span class="muted">⌄</span></summary>
       <label class="f">Contraseña actual</label><input class="i" id="pAct" type="password">
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
-      <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></div>
+      <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></details>
     <div class="card">
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
       <div class="row between" style="gap:8px;margin-bottom:10px"><div class="grow"><b>📶 Ahorro de datos</b><div class="muted small">${ahorro() ? 'Activo: fotos chicas, mapas solo cuando los abres y menos consultas.' : 'Para gastar menos datos o con mala señal.'}</div></div>
         <select class="i" style="width:auto" onchange="ls('ahorro', this.value === 'auto' ? null : Number(this.value)); toast(ahorro() ? 'Ahorro de datos activo 📶' : 'Ahorro de datos apagado'); vPerfil()">${[['auto', 'Automático'], ['1', 'Siempre'], ['0', 'Nunca']].map(([v, t]) => `<option value="${v}" ${String(ls('ahorro') == null ? 'auto' : ls('ahorro')) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja').map(n => n.enLinea === false ? `<div class="card" style="box-shadow:none;border:2px dashed var(--pri);padding:10px"><b>📲 Pídele en línea${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted" style="margin:2px 0 6px">Está apagado. ${TXT_EN_LINEA}</div>${n.dueno !== false ? `<button class="btn pri sm" onclick="act(this,()=>enLineaActivar('${n.id}'))">Prender</button>` : '<div class="small muted">Pídele al dueño que lo active.</div>'}</div><div style="height:6px"></div>` : `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>' : ''}
+      ${r === 'negocio' && !esDisp() ? (S.negocios || []).filter(n => n.estado !== 'baja' && !(dM && n.enLinea !== false)).map(n => n.enLinea === false ? `<div class="card" style="box-shadow:none;border:2px dashed var(--pri);padding:10px"><b>📲 Pídele en línea${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</b><div class="small muted" style="margin:2px 0 6px">Está apagado. ${TXT_EN_LINEA}</div>${n.dueno !== false ? `<button class="btn pri sm" onclick="act(this,()=>enLineaActivar('${n.id}'))">Prender</button>` : '<div class="small muted">Pídele al dueño que lo active.</div>'}</div><div style="height:6px"></div>` : `<button class="btn pri full" onclick="compartirNegocio(this,'${n.id}',${esc(JSON.stringify(n.nombre))})">🍽️ Compartir mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:4px"></div><button class="btn full" onclick="compartir(this,${esc(JSON.stringify(n.nombre + ' en Pídele'))},${esc(JSON.stringify('😋 Pide en ' + n.nombre + ' desde Pídele, a domicilio o para recoger.'))},urlApp('negocio=${n.id}'),${esc(JSON.stringify('QR de ' + n.nombre))},${esc(JSON.stringify(n.nombre))},true)">📱 QR de mi menú${(S.negocios || []).length > 1 ? ' · ' + esc(n.nombre) : ''}</button><div style="height:8px"></div>`).join('') + (dM ? '' : '<div class="muted small" style="margin:-2px 0 10px">El enlace abre directo tu menú en Pídele. Pégalo en tu WhatsApp, Facebook o Instagram.</div>') : ''}
       <button class="btn ${r === 'negocio' ? '' : 'pri'} full" onclick="compartirApp(this)">${ico('compartir', 's')} Compartir Pídele</button><div style="height:8px"></div>
       <button class="btn full" onclick="compartir(this,'Pídele',TXT_APP,urlApp(),'Comparte Pídele','Pidele',true)">📱 Mostrar QR de la app</button><div style="height:8px"></div>
       ${!instalada() ? `<button class="btn full" onclick="instalarApp()">⬇ Instalar la app en este teléfono</button><div style="height:8px"></div>` : ''}
@@ -15445,7 +15817,42 @@ async function olvideRevisar() {
   if (tel.length !== 10) throw new Error('Escribe tu teléfono a 10 dígitos');
   let r; try { r = await api('telCuenta', { telefono: tel }); } catch (e) { if (/acción|accion|desconocida/i.test(e.message)) r = { cuenta: true }; else throw e; } // servidor anterior: sigue como antes
   if (!r.cuenta) { sinCuentaModal(tel, 'Ese teléfono no tiene cuenta'); return; }
-  olvideClaveAyuda(tel);
+  // 2.99: código por WhatsApp que se activa solo al enviarlo desde el número de la cuenta
+  let c = null; try { c = await api('claveRecuperar', { telefono: tel }); } catch (e) { if (/acción|accion|desconocida/i.test(e.message)) c = null; else throw e; }
+  if (!c || !c.codigo || c.sinWhatsapp) { olvideClaveAyuda(tel); return; }
+  olvideCodigo(tel, c);
+}
+function olvideCodigo(tel, c) {
+  const msj = 'PIDELE CLAVE ' + c.codigo + '\nAl enviar este mensaje, ' + c.codigo + ' queda como tu contraseña temporal. Regresa a Pídele y entra con ella.';
+  modal(`<div class="row between"><h2 style="margin:0">🔑 Recupera tu contraseña</h2><button class="redondo" onclick="olvideParar();cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <ol class="muted" style="padding-left:20px;margin:10px 0">
+      <li>Envía el mensaje por WhatsApp <b>desde tu número ${esc(c.mascara || '')}</b>, sin cambiarlo.</li>
+      <li>Regresa aquí: tu contraseña temporal será <b style="font-size:20px;letter-spacing:2px;color:var(--tx)">${esc(c.codigo)}</b></li>
+    </ol>
+    <a class="btn pri pill full" href="${waLink(c.whatsapp, msj)}" target="_blank" onclick="olvideEsperar('${tel}','${c.codigo}')">${ico('chat', 's')} Enviar por WhatsApp</a>
+    <div id="olvEstado" class="small muted" style="text-align:center;margin-top:10px"></div>
+    <div class="btns" style="flex-direction:column;gap:6px;margin-top:6px">
+      <button class="btn full" onclick="olvideParar();cerrarModal();const t=$('#lTel');if(t)t.value='${tel}';const p=$('#lPass');if(p){p.value='${c.codigo}';p.focus()}">Ya lo envié, entrar con ${esc(c.codigo)}</button>
+      <button class="lnk small" onclick="olvideParar();olvideClaveAyuda('${tel}')">¿No puedes? Pedir ayuda</button></div>`);
+}
+function olvideParar() { clearInterval(S._olvT); S._olvT = null; }
+function olvideEsperar(tel, codigo) {
+  olvideParar();
+  const e = $('#olvEstado'); if (e) e.innerHTML = '⏳ Esperando tu mensaje… regresa a Pídele después de enviarlo.';
+  let n = 0;
+  S._olvT = setInterval(async () => {
+    if (++n > 120 || !$('#olvEstado')) { olvideParar(); return; } // ~8 min
+    let r; try { r = await api('claveRecuperarEstado', { telefono: tel, codigo }); } catch (x) { return; }
+    if (r.vencido) { olvideParar(); const e2 = $('#olvEstado'); if (e2) e2.innerHTML = 'El código venció. Ciérralo y pide uno nuevo.'; return; }
+    if (!r.listo) return;
+    olvideParar();
+    try {
+      const d = await api('login', { telefono: tel, pass: codigo, aparato: aparatoId() });
+      cerrarModal(); toast('✅ Listo, crea tu nueva contraseña');
+      if (d.usuario.cambiarPass) S._claveTemp = codigo;
+      guardarSesion(d);
+    } catch (x) { const e3 = $('#olvEstado'); if (e3) e3.innerHTML = '✅ Activada. Entra con tu teléfono y la contraseña <b>' + esc(codigo) + '</b>.'; }
+  }, 4000);
 }
 function olvideClaveAyuda(tel) {
   const n = numPidele(), sop = (S.conf && S.conf.soporteWhatsApp) || '';
@@ -15739,14 +16146,16 @@ async function vMenu() {
   // 2.49.1: mercadotecnia solo cambia fotos; quien marca agotados solo usa el interruptor
   const grupos = {}, ed = puedo('menu'), disp = puedo(['menu', 'agotados']), fot = puedo(['menu', 'mercadotecnia']);
   lista.forEach(p => (grupos[p.categoria] = grupos[p.categoria] || []).push(p));
-  html(`${pendienteAviso()}<div class="row between"><h2 style="white-space:nowrap">${ed ? 'Mi menú' : disp ? 'Disponibilidad' : 'Fotos del menú'}</h2>${ed ? `<div class="row" style="gap:6px"><button class="btn" style="white-space:nowrap" onclick="modificarMenu()" title="Modificar menú">✏️ Modificar</button><button class="btn pri" onclick="formProducto()">${ico('mas', 's')} Producto</button></div>` : ''}</div>
+  html(`${pendienteAviso()}<div class="row between"><h2 style="white-space:nowrap">${ed ? 'Mi menú' : disp ? 'Disponibilidad' : 'Fotos del menú'}</h2>${ed ? `<button class="lnk small" onclick="modificarMenu()">✏️ Cambios en bloque</button>` : ''}</div>
+    ${ed ? `<button class="btn pri pill full" style="min-height:52px;font-size:17px;margin-bottom:12px" onclick="formProducto()">${ico('mas', 's')} Agregar producto</button>` : ''}
+    ${ed && l.length && !lsG('menuTip') ? '<div class="muted" style="text-align:center;margin:-4px 0 10px;font-weight:700">👆 Toca un producto para cambiar su nombre, precio o foto</div>' : ''}
     ${!ed && disp ? '<div class="aviso info">Marca con el interruptor lo que se acabó; vuelve a encenderlo cuando lo tengas otra vez.</div>' : ''}${!ed && fot ? '<div class="aviso info">📷 Toca la foto de un producto para subirla o cambiarla.</div>' : ''}
-    ${sinFoto ? `<div class="aviso ${S._soloSinFoto ? 'info' : 'warn'}" style="cursor:pointer" onclick="S._soloSinFoto=!S._soloSinFoto;pintar(true)">📷 ${sinFoto} producto${sinFoto > 1 ? 's' : ''} sin foto · ${S._soloSinFoto ? 'ver todos' : 'ver solo esos'}</div>` : ''}
+    ${sinFoto ? `<div class="aviso ${S._soloSinFoto ? 'info' : 'warn'} row between" style="gap:8px"><span>📷 <b>${sinFoto} producto${sinFoto > 1 ? 's' : ''} sin foto</b><br><span class="small">Con foto se venden más. Toca 📷 en cada uno para tomarla.</span></span><button class="btn sm pill" onclick="S._soloSinFoto=!S._soloSinFoto;pintar(true)">${S._soloSinFoto ? 'Ver todos' : 'Ver solo esos'}</button></div>` : ''}
     ${Object.keys(grupos).map(g => `<h3>${esc(g)}</h3><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
-      ${p.foto ? (!ed && fot ? `<label style="cursor:pointer;flex:none"><img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy"><input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>` : `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">`) : !fot ? '<span class="fotoP"></span>' : `<label class="fotoP" style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--pri);border:2px dashed var(--pri);text-align:center;cursor:pointer">📷<br>Foto<input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
-      <div class="grow" ${ed ? `onclick="formProducto('${p.id}')" style="cursor:pointer"` : ''}><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
-        <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', (p.tambien || []).length ? '➕ También en ' + esc(p.tambien.join(', ')) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? '🧩 ' + gruposDe(p, S._grupos).map(g => esc(g.nombre)).join(', ') : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-gray">Agotado</span>'}</div>
-      ${disp ? `<label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="act(null,()=>dispProducto('${p.id}',this))"><i></i></label>` : ''}</div>`).join('')}</div>`).join('')}
+      ${p.foto ? (!ed && fot ? `<label style="cursor:pointer;flex:none"><img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy"><input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>` : `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">`) : !fot ? '<span class="fotoP"></span>' : `<label class="fotoP fotoFalta" style="background:${colCat(p.categoria)}" title="Tomar o subir la foto"><span>${emoProd(p)}</span><i>📷</i><input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
+      <div class="grow" ${ed ? `onclick="lsG('menuTip','1');formProducto('${p.id}')" style="cursor:pointer"` : ''}><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
+        <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', (p.tambien || []).length ? '➕ También en ' + esc(p.tambien.join(', ')) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? '🧩 ' + gruposDe(p, S._grupos).map(g => esc(g.nombre)).join(', ') : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-err">Hoy no aparece</span>'}</div>
+      ${disp ? `<div class="swWrap"><label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="(s=>{s.textContent=this.checked?'Disponible':'Agotado';s.className=this.checked?'ok':'err'})(this.closest('.swWrap').querySelector('small'));act(null,()=>dispProducto('${p.id}',this))"><i></i></label><small class="${p.disponible === 'si' ? 'ok' : 'err'}">${p.disponible === 'si' ? 'Disponible' : 'Agotado'}</small></div>` : ''}</div>`).join('')}</div>`).join('')}
     ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos uno por uno o sube tu menú completo con la plantilla de Excel.${ed ? '<div class="btns" style="justify-content:center"><button class="btn sm" onclick="descargarPlantilla()">⬇ Plantilla de Excel</button><label class="btn sm pri">⬆ Subir Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="importarExcel(this)"></label></div>' : ''}</div>` : ''}`);
 }
 /** Todo lo que cambia el menú en bloque, en un solo lugar para que no estorbe en la pantalla. */
@@ -16596,7 +17005,7 @@ async function facPideleCargar() {
       : !p.cerrado ? '' : p.total <= 0 ? '' : `<button class="btn pri sm" onclick="act(this,()=>facPidelePedir('${p.mes}'))">🧾 Pedir mi factura</button>`}</div></div>`;
   box.innerHTML = `<h3>🧾 Facturas de Pídele</h3>
     <div class="muted small" style="margin:-4px 2px 8px">Una sola factura por periodo con tu suscripción y las comisiones de Pídele por cobros con tarjeta (IVA incluido). El corte es el día <b>${d.corte}</b> de cada mes; la pides a partir del día siguiente y se emite al momento.</div>
-    ${!d.disponible ? '<div class="aviso info small">La facturación de Pídele estará disponible muy pronto.</div>' : ''}
+
     ${d.datos ? `<div class="small muted" style="margin:0 2px 6px">Se factura a <b>${esc(d.datos.nombre)}</b> · ${esc(d.datos.rfc)} <button class="lnk small" onclick="act(this,facPideleDatos)">Cambiar</button></div>` : `<div class="aviso warn small">Para facturar, guarda tus datos fiscales. <button class="lnk small" onclick="act(this,facPideleDatos)">Capturarlos</button></div>`}
     <div class="card facPer" style="margin:8px 0;padding:12px;border-style:dashed"><div class="row between"><div><b>Periodo en curso</b><div class="small muted">${fd(cur.desde)} al ${fd(cur.hasta)} · cierra el día ${d.corte}</div></div><b>${money(cur.total)}</b></div>
       <div class="small muted">Suscripción ${money(cur.suscripcion)} · Comisiones por tarjeta ${money(cur.comisiones)}${cur.cobros ? ' (' + cur.cobros + ' cobros por ' + money(cur.cobrado) + ')' : ''}</div>
@@ -18217,20 +18626,21 @@ const conCajaPlan = () => planTiene('caja'), conFidPlan = () => planTiene('fidel
 /* ---- 2.50.1 · guías por tipo de cuenta ---- */
 function tourDueno() {
   return [
-    { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos en unos pasos cómo dejar listo tu negocio y todo lo que trae tu plan. Puedes verla otra vez en Perfil → Ver guía de uso.' },
-    { sel: navDe('miNegocio'), titulo: '1 · Completa tu negocio', texto: 'En <b>Negocio</b>: ubicación en el mapa, horario (abre y cierra solo), logo, portada y formas de pago. Sin ubicación no apareces en la app.' },
-    { sel: navDe('menu'), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> agrega productos uno por uno, o todos con Excel en <b>✏️ Modificar</b>. Ahí mismo creas las <b>opciones de sección</b> (ej. tipo de leche en todas las bebidas): se aplican a todos los productos de esa sección.' },
-    { sel: navDe('promos'), titulo: '3 · Promociones y anuncios', texto: 'En <b>Banners</b> creas un 2x1, un descuento o un anuncio para salir en el inicio de la app. Tu plan trae un número de anuncios por día; puedes comprar extras.' },
-    { sel: navDe('negPedidos'), si: () => !conCajaPlan(), titulo: '4 · Pedidos de la app', texto: 'Aquí llegan con aviso. Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>. También capturas <b>📞 pedidos por teléfono</b>.' },
-    { sel: navDe('vender'), si: conCajaPlan, titulo: '🧾 4 · Tu caja (punto de venta)', texto: 'Los <b>pedidos de la app</b> llegan aquí, a <b>Mesas y pedidos</b>: los aceptas, los cobras y buscas repartidor desde la caja. Con <b>Nuevo pedido</b> vendes en mostrador, en mesas o para llevar. La caja se abre y se cierra <b>paso a paso</b>: con cuánto abres, quién eres y tu código. Al cerrar: cuánto dejas, cuánto retiras y quién se lleva el retiro (con su código).' },
+    { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos en unos pasos cómo dejar listo tu negocio. Abajo tienes 5 botones fijos: Inicio, Pedidos, Cobrar, Menú y Más. Puedes ver esta guía otra vez en ☰ Más → Ver cómo se usa.' },
+    { sel: navDe('tablero'), titulo: '🏠 Inicio', texto: 'Arriba te decimos lo más importante del momento (pedidos esperando, quién no ha llegado) con un solo botón. Abajo, lo que vendiste hoy y los pasos que te faltan.' },
+    { sel: navDe('mas'), titulo: '1 · Completa tu negocio', texto: 'En <b>☰ Más → 🏪 Datos y horario</b>: ubicación en el mapa, horario (abre y cierra solo), logo, portada y formas de pago. Sin ubicación no apareces en la app.' },
+    { sel: navDe('menu'), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> toca <b>Agregar producto</b>. Para subir todo con Excel o crear opciones para toda una sección (ej. tipo de leche), usa <b>✏️ Cambios en bloque</b>.' },
+    { sel: navDe('mas'), titulo: '3 · Promociones y anuncios', texto: 'En <b>☰ Más → 📣 Banners y promociones</b> creas un 2x1, un descuento o un anuncio para salir en el inicio de la app.' },
+    { sel: '#nav button[onclick*="irPedidosD"]', titulo: '4 · Pedidos de la app', texto: 'En <b>Pedidos</b> llegan los de la app con aviso (el número rojo dice cuántos esperan). Eliges en cuántos minutos estará listo y tocas <b>Aceptar</b>.' },
+    { sel: navDe('vender'), si: conCajaPlan, titulo: '💵 5 · Cobrar', texto: 'El botón grande del centro es tu caja: vendes en mostrador, mesas o para llevar, y cobras. Los pedidos de la app también se cobran aquí.' },
     { si: conCajaPlan, titulo: '🍽️ Mesas, cocina y cuentas', texto: 'En <b>Mesas y pedidos</b> ves las cuentas abiertas. Lo nuevo se manda a cocina por rondas. Con <b>👥 Dividir cuenta</b> separas la cuenta por persona (producto por producto, o ➗ compartido), cada una con su preventa, su cliente y su cobro. Cada cobro puede pagarse en partes con varios métodos.' },
     { si: conCajaPlan, titulo: '🔑 Tu código personal', texto: 'Para abrir y cerrar caja, autorizar cancelaciones y retiros, cada persona usa su código. Créalo en la caja → <b>🔑 Mi código</b>. Si tienes varias cajas (terraza, barra…), se configuran en ⚙️ de la caja.' },
-    { si: conCajaPlan, titulo: '👥 Tu equipo', texto: 'En Inicio → <b>👥 Personal</b> → ➕ Agregar colaborador das de alta a cada persona con su puesto y permisos (cajero, mesero, cocina, gerente…), turno, horario y sueldo. Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
-    { ir: 'perfil', si: () => !conCajaPlan(), titulo: '👥 Tu equipo', texto: 'En Perfil → <b>Mis negocios y equipo</b> invitas a tus colaboradores y eliges sus funciones: pedidos, cocina, cajero, mesero, gerente, mercadotecnia (fotos y banners)… Cada quien entra con su propia cuenta y solo ve lo que le permites.' },
-    { si: conCajaPlan, titulo: '🕒 Asistencia, metas y reportes', texto: 'En la caja: asistencia y nómina de tu equipo, metas e incentivos del turno, y reportes de ventas por caja, día, semana, mes y año. Solo tú ves la nómina. Con el plan Total tienes <b>Operación</b> (desde Inicio): actividades de cada turno con hora de corte, limpiezas programadas, fallas de equipo, entrega y cierre de turno. En <b>Personal</b> decides cómo se paga cada <b>turno doble</b> (día extra, horas extra o acuerdo por una falta) y apruebas las <b>vacaciones</b>; ahí pones cuántas personas pueden salir el mismo día, la anticipación y las fechas bloqueadas.' },
+    { si: conCajaPlan, sel: navDe('mas'), titulo: '👥 Tu equipo', texto: 'En <b>☰ Más → 👥 Personal</b> hay 3 botones: <b>Hoy</b> (quién llegó y qué pasó con quien no), <b>Mi equipo</b> (altas, turnos y vacaciones) y <b>Pagos</b> (nómina, adelantos y bonos). Toca cualquier nombre para ver su ficha.' },
+    { si: () => !conCajaPlan(), sel: navDe('mas'), titulo: '👥 Tu equipo', texto: 'En <b>☰ Más → 👥 Equipo y permisos</b> invitas a tus colaboradores y eliges sus funciones: pedidos, cocina, cajero, mesero, gerente o mercadotecnia.' },
+    { si: conCajaPlan, titulo: '📊 Ventas y cortes', texto: 'En <b>☰ Más → 📊 Ventas y cortes</b> ves tus cortes por turno y los reportes por día, semana, mes y año.' },
     { si: conFidPlan, titulo: '👛 Programa de fidelidad', texto: 'En la caja → <b>👛 Lealtad</b>: tus clientes acumulan cashback, recargas con bono y premios por visitas. El monedero paga el ticket <b>completo</b>; si solo quieren usarlo en parte, se divide la cuenta.' },
-    { si: conFacPlan, titulo: '🧾 Facturar a clientes', texto: 'En Inicio → <b>⚙️ Negocio → 🧾 Facturar a clientes</b>: tus datos fiscales y tus <b>sellos digitales (CSD)</b> del SAT (no la e.firma). Tu plan trae 50 facturas al mes y puedes comprar paquetes extra.' },
-    { titulo: '💳 Tu suscripción', texto: () => pruebaTxt().replace('Aquí ves', 'En Inicio → ⚙️ Negocio → 💳 Mi suscripción ves') + ' En Perfil puedes <b>Pedir comida</b> a otros negocios con tu misma cuenta.' }
+    { si: conFacPlan, titulo: '🧾 Facturar a clientes', texto: 'En <b>☰ Más → 🧾 Facturar a clientes</b>: tus datos fiscales y tus <b>sellos digitales (CSD)</b> del SAT (no la e.firma).' },
+    { titulo: '💳 Tu plan', texto: () => pruebaTxt().replace('Aquí ves', 'En ☰ Más → 💳 Mi plan ves') + ' En ☰ Más también puedes <b>Pedir comida</b> a otros negocios con tu misma cuenta.' }
   ];
 }
 /** Guía del colaborador: solo lo que su dueño le permite hacer. */
