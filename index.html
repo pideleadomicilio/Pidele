@@ -1173,7 +1173,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.0.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.0.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -9287,6 +9287,7 @@ function asisVistaConfig(d) {
         <label>Medio día si llega tarde (min)<input class="i" id="acMed" inputmode="numeric" value="${c.retMedio == null ? 150 : c.retMedio}" ${du ? '' : 'disabled'}><small>150 = 2:30 h · 0 = no aplica</small></label></div>
       <label class="pdvChk"><input type="checkbox" id="acExt" ${c.extras ? 'checked' : ''} ${du ? '' : 'disabled'}> Pagar horas extra (a quien se le activen)</label>
       ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisGuardarCfg)">Guardar reglas</button></div>' : ''}</div>
+    ${asisPrimaHTML(c, du)}
     ${asisFeriadosHTML(d)}
     ${du ? asisRelojHTML(c) : ''}
     <h3>Personal</h3><div class="small muted" style="margin-bottom:8px">Aquí aparece tu equipo de Pídele (invita a cada persona en <b>Mi equipo</b> para que tenga su cuenta).</div>
@@ -9317,6 +9318,35 @@ function asisFeriadosHTML(d) {
     <div class="small muted" style="margin-top:4px">Los bonos se quedan igual. Si cambias la opción, aplica de hoy en adelante. A una persona en particular se lo quitas desde la nómina.</div>
     <div style="margin-top:8px">${l.map(x => `<div class="pdvFila g" style="${x.f < hoy ? 'opacity:.6' : ''}"><span>${x.quitado ? '<s>' : ''}🎉 ${new Date(x.f + 'T12:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}${x.f.slice(0, 4) !== hoy.slice(0, 4) ? ' ' + x.f.slice(0, 4) : ''} · ${esc(x.n)}${x.quitado ? '</s>' : ''}<small>${x.ley ? 'De ley' : 'Agregado por ti'}${x.quitado ? ' · no aplica en tu negocio' : ''}${x.f === hoy ? ' · <b>hoy</b>' : ''}</small></span><span></span>${btn(x)}</div>`).join('') || '<div class="small muted">Sin feriados próximos.</div>'}</div>
     ${du ? `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><input class="i" type="date" id="ferF" style="flex:1 1 140px"><input class="i" id="ferN" maxlength="40" placeholder="Ej. Fiestas del pueblo" style="flex:2 1 160px"><button class="btn sm pri" onclick="act(this,()=>asisFer({ferAgregar:{f:$('#ferF').value,n:$('#ferN').value}}))">➕ Agregar feriado</button></div>` : ''}</div>`;
+}
+/* ---------- 3.0.3 · Prima vacacional ---------- */
+const PRIMA_TXT = { despues: ['En el pago siguiente a su aniversario', 'Si cumple el 5 de diciembre, se paga el 15 de diciembre.'], cercano: ['En el pago más cercano a su aniversario', 'Puede ser antes o después de que cumpla.'],
+  vac_dias: ['Cuando tome vacaciones · por los días tomados', 'Se paga la prima de cada día de vacaciones en la nómina donde los toma.'], vac_total: ['Cuando tome vacaciones · la prima completa', 'Toda la prima del año en la nómina donde toma su primer día de vacaciones después de cumplir.'] };
+function asisPrimaHTML(c, du) {
+  const p = c.prima || { on: false, pct: 25, cuando: 'despues' }, ds = du ? '' : 'disabled';
+  return `<div class="card"><b>🏖️ Prima vacacional</b><div class="small muted" style="margin:2px 0 8px">Se calcula sola con su fecha de ingreso: días de vacaciones que le tocan × salario diario (pago ÷ días del periodo) × porcentaje, y se suma a su nómina.</div>
+    <label class="pdvChk"><input type="checkbox" id="prOn" ${p.on ? 'checked' : ''} ${ds}> Pagar la prima vacacional automáticamente</label>
+    <div class="asisCfg"><label>Porcentaje (%)<input class="i" id="prPct" inputmode="decimal" value="${p.pct == null ? 25 : p.pct}" ${ds}><small>La ley pide mínimo 25%</small></label></div>
+    <label class="f">¿Cuándo se paga?</label>
+    ${Object.entries(PRIMA_TXT).map(([k, [t, sub]]) => `<div class="opcion ${p.cuando === k || (!p.cuando && k === 'despues') ? 'on' : ''}" data-pr="${k}" ${du ? `onclick="document.querySelectorAll('[data-pr]').forEach(x=>x.classList.toggle('on',x===this))"` : ''}><span class="radio"></span><div class="grow"><b>${t}</b><small>${sub}</small></div></div>`).join('')}
+    ${p.on && p.desde ? `<div class="small muted">Activa desde el ${asisDiaTxt(p.desde)}: aplica a los aniversarios de ahí en adelante. Quien no tenga fecha de ingreso no la recibe (ponla en Mi equipo → Vacaciones).</div>` : ''}
+    ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisPrimaGuardar)">Guardar prima vacacional</button></div>' : ''}</div>`;
+}
+async function asisPrimaGuardar() {
+  const sel = document.querySelector('[data-pr].on');
+  PDV.per.datos = await api('asisConfig', { negocioId: S.negocio.id, prima: { on: $('#prOn').checked, pct: $('#prPct').value, cuando: sel ? sel.dataset.pr : 'despues' } });
+  toast($('#prOn').checked ? 'Prima vacacional activada ✓' : 'Prima vacacional apagada'); pintarCaja();
+}
+function primaDetTxt(x) {
+  if (!x) return '';
+  const base = x.modo === 'vac_dias' ? `${x.dias} día${x.dias === 1 ? '' : 's'} de vacaciones tomados` : `Cumple ${x.anios} año${x.anios === 1 ? '' : 's'} el ${vacFechaL(x.aniv)} · le tocan ${x.dias} días`;
+  return `${base}<br><small class="muted">${x.dias} días × ${money(x.diario)} × ${x.pct}% = ${money(x.calc)}</small>`;
+}
+async function nomPrimaAjustar(uid, monto) {
+  const d = PDV.per.datos;
+  await api('nominaPrimaAjustar', { negocioId: S.negocio.id, usuarioId: uid, desde: d.desde, hasta: d.hasta, periodo: d.periodo, monto });
+  cerrarModal(); toast(monto === '' ? 'Prima recalculada' : monto === 0 ? 'Prima quitada de esta nómina' : 'Prima cambiada ✓');
+  try { API_CACHE.clear(); } catch (e) { } asisRecargar();
 }
 async function asisFer(o) { PDV.per.datos = await api('asisConfig', Object.assign({ negocioId: S.negocio.id }, o)); toast('Guardado ✓'); pintarCaja(); }
 
@@ -9409,6 +9439,7 @@ function ntGrupos(l) {
 function nomTablero(d) {
   const l = d.personas, dias = l[0].detalle.map(x => x.fecha), V = d._V || { mov: [], cajas: [] }, M = d._man || {}, T = turnosNeg();
   const FER = {}; (d.feriados || []).forEach(x => FER[x.f] = x); const hayFer = (d.feriados || []).length > 0; // 2.93
+  const hayPr = l.some(p => p.prima || p.primaDet || p.primaAviso); // 3.0.3
   const dTxt = f => { const x = new Date(f + 'T12:00'); return `${DIAS_C[x.getDay()]}<br>${x.getDate()}`; };
   const celda = (p, x) => {
     const [cl, tt] = NT_EST[x.estado] || ['fut', x.estado];
@@ -9424,17 +9455,18 @@ function nomTablero(d) {
   const fila = p => `<tr><td class="ntN" onclick="asisDetalleNom('${p.usuarioId}')" title="${esc(p.nombre)}">${esc(p.nombre)}${p.pagado ? ' <small class="t-ok">✓</small>' : ''}</td>${p.detalle.map(x => celda(p, x)).join('')}
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','punt')">${p.bonoPunt ? money(p.bonoPunt) : '—'}</td>
     ${hayFer ? `<td class="ntM" onclick="nomDesglose('${p.usuarioId}','fer')">${p.pagoFeriado ? money(p.pagoFeriado) : p.feriadosAdeudo ? '+' + p.feriadosAdeudo + ' día' : '—'}</td>` : ''}
+    ${hayPr ? `<td class="ntM" onclick="nomDesglose('${p.usuarioId}','prima')" title="${esc(p.primaAviso || '')}">${p.prima ? money(p.prima) : p.primaAviso ? '⚠️' : p.primaDet ? '$0' : '—'}</td>` : ''}
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','ventas')">${p.incentivos ? money(p.incentivos) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','desc')">${p.descuento ? '−' + money(p.descuento) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','adel')">${p.adelantos ? '−' + money(p.adelantos) : '—'}</td>
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.sueldo)}</td>
     <td class="ntM ntTot" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.total)}</td></tr>`;
-  const nc = dias.length + 7 + (hayFer ? 1 : 0);
+  const nc = dias.length + 7 + (hayFer ? 1 : 0) + (hayPr ? 1 : 0);
   const ventas = turnosBono().map(([ti, t]) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + ti)}</td>${dias.map(f => {
     const k = f + '|' + ti, man = k in M, v = man ? M[k] : nomVentaCaja(V, f, ti);
     if (PDV.lote && PDV.lote.on) { const pv = PDV.lote.ventas[k]; return `<td><input class="ntIn${pv != null ? ' cmb' : ''}" inputmode="decimal" placeholder="${v ? Math.round(v) : '$'}" value="${pv != null ? esc(pv) : ''}" oninput="nomLoteVenta('${k}',this.value,this)" title="${man ? 'Capturada a mano: ' + money(v) : v ? 'Corte de caja: ' + money(v) : 'Sin dato'}"></td>`; }
     return `<td><div class="ntV ${man ? 'man' : v ? '' : 'cero'}" onclick="nomVenta('${f}',${ti})" title="${man ? 'Capturada a mano' : 'Del corte de caja'}">${v ? (man ? '✍️' : '') + money(v).replace('.00', '') : (man ? '✍️$0' : '+')}</div></td>`;
-  }).join('')}<td colspan="${hayFer ? 7 : 6}" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + ti; return s + (k in M ? M[k] : nomVentaCaja(V, f, ti)); }, 0)))}</td></tr>`).join('');
+  }).join('')}<td colspan="${6 + (hayFer ? 1 : 0) + (hayPr ? 1 : 0)}" class="small muted" style="text-align:left">${money(pdvR(dias.reduce((s, f) => { const k = f + '|' + ti; return s + (k in M ? M[k] : nomVentaCaja(V, f, ti)); }, 0)))}</td></tr>`).join('');
   const sum = k => pdvR(l.reduce((s, p) => s + (Number(p[k]) || 0), 0));
   const LT = PDV.lote && PDV.lote.on ? PDV.lote : null, nPend = nomLoteN();
   return `<div class="row between" style="gap:8px;flex-wrap:wrap"><div class="muted small" style="flex:1 1 220px">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)} · ${d.dias} días${d.abierto ? ' · <b>el periodo aún no termina</b>' : ''} · toca un día para corregirlo</div>
@@ -9443,10 +9475,10 @@ function nomTablero(d) {
     <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
     <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
     ${l.some(p => p.sinDecidir) ? `<div class="aviso warn small" style="margin-top:6px">Hay días <b>sin registro</b> (cuadro punteado): tócalos para poner la asistencia, una falta, un descanso o un permiso. Mientras estén así cuentan como falta.</div>` : ''}
-    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th${FER[f] ? ` title="🎉 ${esc(FER[f].n)}" style="color:var(--pri)"` : ''}>${dTxt(f)}${FER[f] ? '<br>🎉' : ''}</th>`).join('')}<th>Puntua&shy;lidad</th>${hayFer ? '<th>🎉 Feria&shy;do</th>' : ''}<th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
+    <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th${FER[f] ? ` title="🎉 ${esc(FER[f].n)}" style="color:var(--pri)"` : ''}>${dTxt(f)}${FER[f] ? '<br>🎉' : ''}</th>`).join('')}<th>Puntua&shy;lidad</th>${hayFer ? '<th>🎉 Feria&shy;do</th>' : ''}${hayPr ? '<th>🏖️ Prima</th>' : ''}<th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
     ${ntGrupos(l).map(g => `<tr class="ntG"><td colspan="${nc}"><span>${esc(g.nombre)}</span></td></tr>${g.gente.map(fila).join('')}`).join('')}
     <tr class="ntG"><td colspan="${nc}"><span>💵 Venta por turno (toca para capturarla o corregirla)</span></td></tr>${ventas}
-    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td>${hayFer ? `<td class="ntM">${money(sum('pagoFeriado'))}</td>` : ''}<td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM neg">−${money(sum('adelantos'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
+    <tr><td class="ntN">Total</td>${dias.map(() => '<td></td>').join('')}<td class="ntM">${money(sum('bonoPunt'))}</td>${hayFer ? `<td class="ntM">${money(sum('pagoFeriado'))}</td>` : ''}${hayPr ? `<td class="ntM">${money(sum('prima'))}</td>` : ''}<td class="ntM">${money(sum('incentivos'))}</td><td class="ntM neg">−${money(sum('descuento'))}</td><td class="ntM neg">−${money(sum('adelantos'))}</td><td class="ntM">${money(sum('sueldo'))}</td><td class="ntM ntTot">${money(sum('total'))}</td></tr>
     </tbody></table></div>
     <div class="ntLey"><span><i class="ntC ok"></i>A tiempo</span><span><i class="ntC tarde"></i>Retardo</span><span><i class="ntC just"></i>Tarde con permiso</span><span><i class="ntC perm"></i>Permiso / vacaciones</span><span><i class="ntC falta"></i>Falta</span><span><i class="ntC desc"></i>Descanso</span><span><i class="ntC sin"></i>Sin registro</span>${hayFer ? '<span>🎉 Feriado</span>' : ''}<span>Letra = turno del bono (* elegido a mano)</span></div>
     <div class="small muted" style="margin-top:6px">Reglas: cada día cuenta en un solo turno (el de más horas; los dos solo con turno doble autorizado) · menos de 7 h trabajadas no entra a bonos · más de ${d.config.retSinBono || 60} min tarde no suma bono de ventas ese día · más de ${Math.floor((d.config.retMedio || 150) / 60)}:${String((d.config.retMedio || 150) % 60).padStart(2, '0')} h tarde cuenta medio día · puntualidad ${money(d.config.bonoPunt || 0)} por quincena sin retardos ni faltas${hayFer ? ' · feriado trabajado: ' + (FER_TXT[d.config.ferPago || 'doble'] || '').split(' · ')[0].toLowerCase() : ''}.</div>
@@ -9628,6 +9660,11 @@ function nomDesglose(uid, k) {
     ${!p.bonoPuntBase ? '<div class="small muted">No hay bono de puntualidad configurado (Personal → Reglas).</div>' : p.puntMotivos && p.puntMotivos.length ? `<div class="aviso warn small" style="margin-top:6px">No lo gana por: ${esc(p.puntMotivos.join(', '))}.</div>
       ${p.detalle.filter(x => ['retardo', 'falta', 'permiso_sin', 'sin_decidir'].includes(x.estado)).map(x => fila(asisDiaTxt(x.fecha), (NT_EST[x.estado] || [])[1] + (x.minRetardo ? ' · ' + x.minRetardo + ' min' : ''))).join('')}` : '<div class="aviso info small" style="margin-top:6px">✅ Sin retardos ni faltas.</div>'}
     ${fila('<b>Bono de puntualidad</b>', '<b>' + money(p.bonoPunt || 0) + '</b>', 'g')}`;
+  else if (k === 'prima') cuerpo = p.primaAviso ? `<div class="aviso warn small">⚠️ ${esc(p.primaAviso)}. Ponla en Personal → Mi equipo → 🏖️ Vacaciones.</div>`
+    : p.primaDet ? `${fila(primaDetTxt(p.primaDet), money(p.primaDet.calc))}${p.primaDet.ajustada ? fila('Cambiada a mano', money(p.prima)) : ''}${fila('<b>Prima vacacional</b>', '<b>' + money(p.prima) + '</b>', 'g')}
+      ${p.pagado ? '<div class="small muted">Esta nómina ya se pagó.</div>' : `<label class="f">Cambiar el monto</label><div class="row" style="gap:6px"><input class="i pdvNum" id="prMon" inputmode="decimal" value="${p.prima}"><button class="btn sm pri" onclick="act(this,()=>nomPrimaAjustar('${uid}',$('#prMon').value===''?'':Number($('#prMon').value)))">Guardar</button></div>
+      <div class="row" style="gap:6px;margin-top:8px">${p.prima ? `<button class="btn sm pill" style="border-color:var(--err);color:var(--err)" onclick="act(this,()=>nomPrimaAjustar('${uid}',0))">Quitar de esta nómina</button>` : ''}${p.primaDet.ajustada ? `<button class="btn sm pill" onclick="act(this,()=>nomPrimaAjustar('${uid}',''))">Regresar al cálculo</button>` : ''}</div>`}`
+    : '<div class="small muted">No le toca prima vacacional en este periodo.</div>';
   else if (k === 'ventas') cuerpo = `${(p.incDetalle || []).map(x => fila(esc(x.meta) + '<br><small class="muted">' + esc(x.ventana) + ' · vendido ' + money(x.ventas) + '</small>', money(x.bono))).join('') || '<div class="small muted">Sin bonos de ventas en este periodo.</div>'}
     ${p.detalle.filter(x => x.sinBono).length ? `<div class="small muted" style="margin-top:6px">Sin bono por llegar más de ${d.config.retSinBono || 60} min tarde: ${p.detalle.filter(x => x.sinBono).map(x => asisDiaTxt(x.fecha)).join(', ')}.</div>` : ''}
     ${fila('<b>Bono de ventas</b>', '<b>' + money(p.incentivos || 0) + '</b>', 'g')}`;
@@ -9645,9 +9682,9 @@ function nomDesglose(uid, k) {
     ${fila('<b>Pago por feriados</b>', '<b>' + money(p.pagoFeriado || 0) + '</b>', 'g')}`;
   else if (k === 'adel') cuerpo = `${(p.adelDet || []).map(a => fila((ADEL_TXT[a.tipo] || a.tipo) + '<br><small class="muted">' + asisDiaTxt(a.fecha) + (a.folio ? ' · ' + esc(a.folio) : '') + (a.nota ? ' · ' + esc(a.nota) : '') + (a.origen === 'caja' && a.tipo === 'efectivo' ? ' · de la caja' : a.origen === 'externo' ? ' · fuera de caja' : '') + (a.decidePor ? ' · ' + esc(a.decidePor) : '') + '</small>', '−' + money(a.monto))).join('') || '<div class="small muted">Sin adelantos en este periodo.</div>'}
     ${fila('<b>Adelantos</b>', '<b>−' + money(p.adelantos || 0) + '</b>', 'g')}${p.arrastre ? `<div class="aviso warn small" style="margin-top:6px">No alcanza: ${money(p.arrastre)} pasan a la siguiente nómina.</div>` : ''}`;
-  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}${p.pagoFeriado ? fila('Feriados trabajados', '+' + money(p.pagoFeriado)) : ''}
+  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}${p.pagoFeriado ? fila('Feriados trabajados', '+' + money(p.pagoFeriado)) : ''}${p.prima ? fila('🏖️ Prima vacacional', '+' + money(p.prima)) : ''}
     ${p.pagoExtra ? fila('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.pagoDobles ? fila('Turnos dobles', '+' + money(p.pagoDobles)) : ''}${fila('<b>Total</b>', '<b>' + money(p.total) + '</b>', 'g')}`;
-  const tit = { fer: '🎉 Feriados', punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
+  const tit = { prima: '🏖️ Prima vacacional', fer: '🎉 Feriados', punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
   modal(`<div class="row between"><h2 style="margin:0">${tit}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted">${esc(p.nombre)} · ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}</div><div class="card" style="margin-top:8px">${cuerpo}</div>
     <div class="btns"><button class="btn pill" onclick="asisDetalleNom('${uid}')">Ver todo</button></div>`);
@@ -9684,13 +9721,13 @@ function asisDetalleNom(uid) {
       ${p.vacaciones ? `<div class="tot"><span>Vacaciones (pagadas)</span><span>${p.vacaciones}</span></div>` : ''}<div class="tot g"><span>Total a pagar</span><span>${money(p.total)}</span></div></div>
     <div class="btns"><button class="btn pill" onclick="asisRecibo('${uid}')">🖨️ Recibo</button><a class="btn pill" target="_blank" href="${esc('https://wa.me/?text=' + encodeURIComponent(asisTxtRecibo(d, p)))}">${ico('chat', 's')} WhatsApp</a></div>`);
 }
-const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${money(p.sueldo)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}${p.adelantos ? 'Adelantos: −' + money(p.adelantos) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
+const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${money(p.sueldo)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}${p.prima ? 'Prima vacacional: +' + money(p.prima) + '\n' : ''}${p.adelantos ? 'Adelantos: −' + money(p.adelantos) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
 function asisRecibo(uid) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid); if (!p) return;
   const r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(d.negocio)}</div><div class="t">RECIBO DE NÓMINA</div><div>${esc(p.nombre)}</div><div>${d.desde} al ${d.hasta}</div></div><hr>
     ${r('Sueldo del periodo', money(p.sueldo))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}${p.cambios ? r('Lo cubrieron por cambio de turno (se paga normal)', p.cambios) : ''}${p.doblesCambio ? r('Cubrió por cambio de turno (sin extra)', p.doblesCambio) : ''}
-    ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.bonoPunt ? r('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}${p.adelantos ? r('Adelantos', '−' + money(p.adelantos)) : ''}<hr>
+    ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.bonoPunt ? r('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.prima ? r('🏖️ Prima vacacional', '+' + money(p.prima)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}${p.adelantos ? r('Adelantos', '−' + money(p.adelantos)) : ''}<hr>
     <div class="r t"><span>TOTAL</span><span>${money(p.total)}</span></div>${p.pagado ? `<div>Pagado ${fechaCorta(p.pagado.fecha)} · ${esc(p.pagado.forma)}</div>` : ''}<hr>
     <div class="c p">Recibí de conformidad</div><div class="c p" style="margin-top:14mm">______________________</div>`, 'Recibo ' + p.nombre));
 }
