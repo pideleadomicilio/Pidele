@@ -471,6 +471,17 @@ body.enCaja{padding-bottom:0}
 .tabKpi span{font-size:12px;font-weight:800;color:var(--tx2,#666);text-transform:uppercase;letter-spacing:.3px}
 .tabKpi b{display:block;font-size:26px;margin-top:4px;line-height:1.1}.tabKpi small{display:block;color:var(--tx2,#666);font-weight:600;margin-top:2px}
 .tabGrid{display:grid;grid-template-columns:1fr;gap:12px}
+.iniKs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}@media(min-width:520px){.iniKs{grid-template-columns:repeat(4,1fr)}}
+.iniK{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--ln);background:var(--bg,#f7f4ee);border-radius:14px;padding:9px 10px;font:inherit;text-align:left;cursor:pointer;color:var(--tx);min-width:0}
+.iniK:active{transform:scale(.97)}.iniKt{font-size:12px;color:var(--tx2);font-weight:700;white-space:nowrap}.iniK b{font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.iniK small{font-size:11.5px;color:var(--tx2)}.iniK.act{border-color:var(--warn);background:var(--warn-s,#fdf0d9)}
+.iniDia{border:2px solid var(--pri)}.iniNeg{border-left:6px solid var(--pri)}.iniNegN{font-size:16px;display:flex;align-items:center;gap:6px;min-width:0}.iniNegN img{width:28px;height:28px;border-radius:8px;object-fit:cover}
+.iniEst{font-size:12px;font-weight:800;color:var(--err);white-space:nowrap}.iniEst.on{color:var(--ok)}.iniVer{margin-top:10px}
+.abrirFab{position:fixed;right:12px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:61;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:0;cursor:pointer;font:inherit}
+.abrirFab .pwr{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--err);box-shadow:0 4px 14px rgba(0,0,0,.25);border:3px solid var(--card,#fff)}
+.abrirFab small{font-size:10.5px;font-weight:800;background:var(--card,#fff);border-radius:99px;padding:1px 7px;box-shadow:0 1px 4px rgba(0,0,0,.15);color:var(--tx)}
+.abrirFab.on .pwr{background:var(--ok)}.abrirFab.medio .pwr{background:var(--warn)}
+.abrirFab.pulso .pwr{animation:pwrPulso 1.6s ease-out infinite}@keyframes pwrPulso{0%{box-shadow:0 0 0 0 rgba(200,60,40,.55)}100%{box-shadow:0 0 0 16px rgba(200,60,40,0)}}
+.pwrMini{display:inline-grid;vertical-align:-4px}.pwrMini svg{width:20px;height:20px}#abrirHoja .tabAbrir{margin-bottom:10px}
 .tabNeg{background:var(--card,#fff);border-radius:16px;padding:14px;border-left:6px solid var(--pri);box-shadow:0 2px 10px rgba(0,0,0,.05)}
 .tabNeg2{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.tabNeg2 small{display:block;color:var(--tx2,#666);font-size:12px}.tabNeg2 b{font-size:17px}
 .asisRes .nomFila{grid-template-columns:minmax(78px,1.6fr) repeat(7,minmax(28px,1fr));min-width:0;gap:2px}.asisRes .nomFila.cab span{font-size:17px;text-align:center}.asisRes .nomFila > :not(:first-child){text-align:center}
@@ -1173,7 +1184,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.0.3'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.0.4'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -12262,11 +12273,10 @@ function pintarTablero() {
     ${l.length < 2 ? '' : `<div class="tabChips">
 <button class="${sel ? '' : 'on'}" onclick="S._tabSel='';pintarTablero()">Todos</button>${l.map(n => `<button class="${sel && sel.id === n.id ? 'on' : ''}" onclick="S._tabSel='${n.id}';pintarTablero()">${esc(n.nombre)}</button>`).join('')}</div>`}
     ${inicioAhora(vis, l.length > 1 && !sel)}
-    ${vis.map(tarjetaAbierto).join('')}
-    ${inicioVentasCard(vis, sel ? '' : l.length > 1 ? 'En ' + l.length + ' negocios' : '')}
+    ${sel || l.length < 2 ? inicioNegCard(vis[0], false) : inicioDiaCard(l) + l.map(n => inicioNegCard(n, true)).join('')}
     ${inicioPasos(vis)}
     ${inicioPendientes(vis, l.length > 1)}
-    ${sel || l.length < 2 ? '' : `<div class="tabGrid">${l.map(tarjeta).join('')}</div>`}
+    ${abrirFabHTML(l)}
     `);
 }
 /** 3.0 · "¿Qué hago ahora?": lo más urgente arriba, con un solo botón. */
@@ -12285,6 +12295,43 @@ function inicioAhora(vis, varios) {
   if (nV) { S._heroK = 'vac'; const k = sumP(n => (n.pend && n.pend.vacaciones) || 0); return card('info', `🏖️ ${k} solicitud${k > 1 ? 'es' : ''} de vacaciones`, 'Apruébalas o recházalas; a la persona le llega el aviso.' + de(nV), 'Revisar', `()=>inicioPersonal('${nV.id}','vac')`); }
   return `<div class="card iniAhora ok row" style="gap:10px"><span style="font-size:26px">✅</span><div class="grow"><b>Todo en orden</b><div class="sub" style="margin:0">No hay nada urgente por atender.</div></div></div>`;
 }
+/* ============ 3.0.4 · Inicio: cuadro del día y uno por negocio, con 4 cuadritos que ya traen el dato ============ */
+function iniKpis(l, nid) {
+  const sum = f => l.reduce((s, n) => s + (Number(f(n)) || 0), 0);
+  const ven = pdvR(sum(n => n.ventas)), comp = sum(n => n.completadas), ab = sum(n => n.abiertas);
+  const cur = pdvR(sum(n => ((n.cajaD || {}).abiertasMonto || 0) + ((n.app || {}).activosMonto || 0)));
+  const gas = pdvR(sum(n => (n.cajaD || {}).gastosHoy || 0));
+  const conPer = l.filter(n => n.modPersonal !== false && n.personal && n.personal.total);
+  const pre = conPer.reduce((s, n) => s + n.personal.presentes, 0), tot = conPer.reduce((s, n) => s + n.personal.total, 0);
+  const k = (key, ico, t, v, sub, cls) => `<button class="iniK ${cls || ''}" onclick="act(this,()=>tabVer('${key}','${nid || ''}'))"><span class="iniKt">${ico} ${t}</span><b>${v}</b><small>${sub}</small></button>`;
+  return `<div class="iniKs">${k('ventas', '💵', 'Ventas', money(ven), comp + ' completada' + (comp === 1 ? '' : 's'))}${k('abiertas', '🍽️', 'En curso', money(cur), ab + ' orden' + (ab === 1 ? '' : 'es'), ab ? 'act' : '')}${k('gastos', '💸', 'Gastos', money(gas), 'hoy')}${k('personal', '👥', 'Personal', tot ? String(pre) : '—', tot ? 'de ' + tot + ' trabajando' : 'sin registro')}</div>`;
+}
+function inicioDiaCard(l) {
+  return `<div class="card iniDia"><div class="row between"><b>📊 Hoy en tus ${l.length} negocios</b><span class="muted small">Toca un cuadro para ver el detalle</span></div>${iniKpis(l, '')}</div>`;
+}
+function inicioNegCard(n, varios) {
+  if (!n) return '';
+  const est = n.puedeAbrir ? (n.abierto ? '<span class="iniEst on">● Abierto</span>' : '<span class="iniEst">● Cerrado</span>') : '';
+  const prog = n.app.progHoy || n.app.progManana ? `<div class="small" style="margin-top:8px">🗓️ Programados: <b>${n.app.progHoy || 0}</b> hoy · <b>${n.app.progManana || 0}</b> mañana</div>` : '';
+  return `<div class="card iniNeg"><div class="row between" style="gap:8px"><b class="iniNegN">${n.logo ? `<img src="${esc(n.logo)}" alt="">` : '🏪 '}${varios ? esc(n.nombre) : 'Hoy · ' + esc(n.nombre)}</b>${est}</div>
+    ${iniKpis([n], n.id)}${prog}
+    <button class="btn pill full iniVer" onclick="act(this,()=>tabEntrar('${n.id}','mas'))">Ver detalle de ${esc(n.nombre.split(' ')[0])} ›</button></div>`;
+}
+const ICO_PWR = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7a7.6 7.6 0 1 0 10.8 0"/></svg>';
+function abrirEstado(n) { const on = !!n.abierto, listo = on && n.horaAbierto && n.ubic && n.enLinea !== false; return listo ? 'on' : on ? 'medio' : 'off'; }
+/** Botón flotante lateral: abierto / cerrado de todos los negocios (antes eran barras grandes en el Inicio). */
+function abrirFabHTML(l) {
+  const ns = (l || []).filter(n => n.puedeAbrir); if (!ns.length) return '';
+  const e = ns.map(abrirEstado), nuevo = ns.some(n => n.pasos && !n.pasos.abrir && !lsG('abrirUsado_' + n.id));
+  const cls = e.every(x => x === 'on') ? 'on' : e.every(x => x === 'off') ? 'off' : 'medio';
+  const txt = cls === 'on' ? 'Abierto' : cls === 'off' ? 'Cerrado' : ns.length > 1 && e.includes('on') ? 'Revisar' : 'Falta algo';
+  return `<button class="abrirFab ${cls}${nuevo ? ' pulso' : ''}" onclick="abrirHoja()" aria-label="Abrir o cerrar ${ns.length > 1 ? 'tus negocios' : 'tu negocio'}: ${txt}"><span class="pwr">${ICO_PWR}</span><small>${txt}</small></button>`;
+}
+function abrirHoja() {
+  const ns = ((S._tab || {}).negocios || []).filter(n => n.puedeAbrir); if (!ns.length) return;
+  modal(`<div id="abrirHoja"><div class="row between"><h3 style="margin:0">⏻ Abrir o cerrar</h3><button class="btn sm" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted" style="margin:4px 0 10px">Abierto = recibes pedidos de la app en tu horario.</div>${ns.map(n => tarjetaAbierto(n, true)).join('')}</div>`.replace('⏻', '<span class="pwrMini">' + ICO_PWR + '</span>'));
+}
 /** 3.0 · Una sola tarjeta de ventas (antes eran 4 burbujas y otra tarjeta abajo). */
 function inicioVentasCard(vis, sub) {
   const sum = k => vis.reduce((s, n) => s + (n[k] || 0), 0), per = k => vis.reduce((s, n) => s + (n.personal[k] || 0), 0);
@@ -12298,13 +12345,14 @@ function inicioVentasCard(vis, sub) {
 const TAB_MET = { efectivo: '💵 Efectivo', tarjeta: '💳 Tarjeta', mp: '💳 Tarjeta', transferencia: '🏦 Transferencia', monedero: '👛 Monedero', consumo: '🎁 Consumo de personal', nomina: '🧾 A cuenta de nómina', mixto: '🔀 Mixto', otro: '• Otro' };
 /** Lo que se ve arriba: todos los negocios o el elegido. */
 function tabVis() {
-  const d = S._tab || { negocios: [] }, l = d.negocios, sel = l.find(n => n.id === S._tabSel) || (l.length === 1 ? l[0] : null);
+  const d = S._tab || { negocios: [] }, l = d.negocios, sel = l.find(n => n.id === (S._tabVerN || S._tabSel)) || (l.length === 1 ? l[0] : null);
   return { l, vis: sel ? [sel] : l, varios: !sel && l.length > 1 };
 }
 const tabCab = (t, sub) => `<div class="row between"><h2 style="margin:0">${t}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>${sub ? `<div class="muted small" style="margin:4px 0 8px">${sub}</div>` : ''}`;
 function tabSubVis() { const { vis, varios } = tabVis(); return varios ? 'Hoy · todos tus negocios' : 'Hoy · ' + esc((vis[0] || {}).nombre || ''); }
-async function tabVer(k) {
+async function tabVer(k, nid) {
   if (!S._tab) return;
+  S._tabVerN = nid || ''; // 3.0.4: el cuadro de un negocio abre el detalle solo de ese negocio
   if (k === 'ventas') return tabVerVentas();
   if (k === 'gastos') return tabVerGastos();
   if (k === 'personal') return tabVerPersonal();
@@ -12577,7 +12625,7 @@ function pasosLista(n) {
   ].filter(Boolean);
 }
 /* 2.98 · Abierto / cerrado, arriba del Inicio del negocio (antes estaba escondido en la caja) */
-function tarjetaAbierto(n) {
+function tarjetaAbierto(n, hoja) {
   if (!n || !n.puedeAbrir) return '';
   const on = !!n.abierto, listo = on && n.horaAbierto && n.ubic && n.enLinea !== false;
   const motivo = !n.ubic ? ['📍 Falta marcar la ubicación de tu negocio: sin ella no apareces en la app.', 'miNegocio', 'Marcar ubicación']
@@ -12587,17 +12635,17 @@ function tarjetaAbierto(n) {
   const varios = S._tab && S._tab.negocios.length > 1;
   const exp = (S._abrirExp = S._abrirExp || {})[n.id];
   // plegada: botón de encendido con color; al tocarlo se despliega. Desplegada la primera vez (aún no abre su negocio).
-  if (!exp && (exp === false || !n.pasos || n.pasos.abrir || lsG('abrirUsado_' + n.id))) {
+  if (!hoja && !exp && (exp === false || !n.pasos || n.pasos.abrir || lsG('abrirUsado_' + n.id))) {
     const corto = !on ? 'Cerrado' : listo ? 'Abierto' : 'Encendido · falta algo';
     const det = listo ? (n.estadoTexto && n.estadoTexto !== 'Abierto' ? n.estadoTexto : 'Recibiendo pedidos') : !on ? 'No recibes pedidos de la app' : (motivo ? motivo[0].replace(/^\S+\s/, '').split(':')[0] : '');
-    return `<button class="abrirBtn ${cls}" onclick="S._abrirExp['${n.id}']=true;pintarTablero()" aria-label="Abrir o cerrar el negocio"><span class="pwr">⏻</span>
+    return `<button class="abrirBtn ${cls}" onclick="S._abrirExp['${n.id}']=true;pintarTablero()" aria-label="Abrir o cerrar el negocio"><span class="pwr">${ICO_PWR}</span>
       <span class="grow"><b>${varios ? esc(n.nombre) + ' · ' : ''}${corto}</b> <small>${esc(det)}</small></span><span class="muted">›</span></button>`;
   }
   const titulo = !on ? '🔴 Cerrado · no recibes pedidos de la app' : listo ? '🟢 Abierto · recibiendo pedidos de la app' : '🟠 Encendido, pero aún no recibes pedidos';
   return `<div class="card tabAbrir ${cls}"><div class="grow"><b class="t">${titulo}</b>${varios ? `<div class="small muted">${esc(n.nombre)}</div>` : ''}
       ${listo && n.estadoTexto ? `<div class="small" style="color:var(--ok);font-weight:700">${esc(n.estadoTexto)}</div>` : ''}
-      ${motivo ? `<div class="small" style="margin-top:4px">${esc(motivo[0])} <button class="lnk small" onclick="act(this,()=>tabEntrar('${n.id}','${motivo[1]}'))">${motivo[2]} ›</button></div>` : ''}
-      <div class="row" style="gap:8px;margin-top:8px">${!on ? `<button class="btn pri sm" onclick="act(this,()=>tabAbrirCerrar('${n.id}',true))">Abrir ahora</button>` : ''}${n.pasos && n.pasos.abrir || lsG('abrirUsado_' + n.id) || exp ? `<button class="lnk small" onclick="S._abrirExp['${n.id}']=false;pintarTablero()">Ocultar ⌃</button>` : ''}</div></div>
+      ${motivo ? `<div class="small" style="margin-top:4px">${esc(motivo[0])} <button class="lnk small" onclick="act(this,()=>(cerrarModal(),tabEntrar('${n.id}','${motivo[1]}')))">${motivo[2]} ›</button></div>` : ''}
+      <div class="row" style="gap:8px;margin-top:8px">${!on ? `<button class="btn pri sm" onclick="act(this,()=>tabAbrirCerrar('${n.id}',true))">Abrir ahora</button>` : ''}${!hoja && (n.pasos && n.pasos.abrir || lsG('abrirUsado_' + n.id) || exp) ? `<button class="lnk small" onclick="S._abrirExp['${n.id}']=false;pintarTablero()">Ocultar ⌃</button>` : ''}</div></div>
     <label class="sw" title="${on ? 'Cerrar: dejar de recibir pedidos' : 'Abrir: recibir pedidos'}"><input type="checkbox" ${on ? 'checked' : ''} onchange="act(null,()=>tabAbrirCerrar('${n.id}',this.checked).catch(e=>{this.checked=!this.checked;throw e}))"><i></i></label></div>`;
 }
 async function tabAbrirCerrar(nid, abrir) {
@@ -12608,6 +12656,7 @@ async function tabAbrirCerrar(nid, abrir) {
   lsG('abrirUsado_' + nid, '1');
   if (S._abrirExp) S._abrirExp[nid] = false; // 2.98: después de usarla se repliega a su botón de encendido
   if (S.vista === 'tablero') await vTablero();
+  if ($('#abrirHoja')) abrirHoja(); // 3.0.4: la hoja se queda abierta con el estado nuevo
 }
 function inicioPasos(vis) {
   const l = vis.filter(n => n.dueno && n.pasos && !n.pasos.oculto);
@@ -18716,7 +18765,7 @@ const conCajaPlan = () => planTiene('caja'), conFidPlan = () => planTiene('fidel
 function tourDueno() {
   return [
     { titulo: '🏪 ¡Bienvenido a Pídele!', texto: 'Te mostramos en unos pasos cómo dejar listo tu negocio. Abajo tienes 5 botones fijos: Inicio, Pedidos, Cobrar, Menú y Más. Puedes ver esta guía otra vez en ☰ Más → Ver cómo se usa.' },
-    { sel: navDe('tablero'), titulo: '🏠 Inicio', texto: 'Arriba te decimos lo más importante del momento (pedidos esperando, quién no ha llegado) con un solo botón. Abajo, lo que vendiste hoy y los pasos que te faltan.' },
+    { sel: navDe('tablero'), titulo: '🏠 Inicio', texto: 'Arriba te decimos lo más importante del momento (pedidos esperando, quién no ha llegado) con un solo botón. Abajo, tus ventas, órdenes en curso, gastos y personal de hoy (toca un cuadro para ver el detalle). El botón redondo de la derecha abre o cierra tu negocio.' },
     { sel: navDe('mas'), titulo: '1 · Completa tu negocio', texto: 'En <b>☰ Más → 🏪 Datos y horario</b>: ubicación en el mapa, horario (abre y cierra solo), logo, portada y formas de pago. Sin ubicación no apareces en la app.' },
     { sel: navDe('menu'), titulo: '2 · Sube tu menú', texto: 'En <b>Menú</b> toca <b>Agregar producto</b>. Para subir todo con Excel o crear opciones para toda una sección (ej. tipo de leche), usa <b>✏️ Cambios en bloque</b>.' },
     { sel: navDe('mas'), titulo: '3 · Promociones y anuncios', texto: 'En <b>☰ Más → 📣 Banners y promociones</b> creas un 2x1, un descuento o un anuncio para salir en el inicio de la app.' },
