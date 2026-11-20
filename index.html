@@ -33,6 +33,7 @@
 (function () { try { var q = new URLSearchParams(location.search).get('demo'), c = null;
   if (q) { c = JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, '+').replace(/_/g, '/'))))); sessionStorage.setItem('pideleDemoCfg', JSON.stringify(c)); }
   else c = JSON.parse(sessionStorage.getItem('pideleDemoCfg') || 'null');
+  if (c && c.dios && window.top === window) { sessionStorage.removeItem('pideleDemoCfg'); c = null; } /* 3.1.0: el negocio de ejemplo del modo dios solo vive dentro de su marco */
   if (c) { window.PIDELE_DEMO = c; document.write('<script src="demo.js?v=2.90.0"><\/script>'); } } catch (e) { } })();
 </script>
 <script src="firebase-config.js"></script>
@@ -471,6 +472,18 @@ body.enCaja{padding-bottom:0}
 .tabKpi span{font-size:12px;font-weight:800;color:var(--tx2,#666);text-transform:uppercase;letter-spacing:.3px}
 .tabKpi b{display:block;font-size:26px;margin-top:4px;line-height:1.1}.tabKpi small{display:block;color:var(--tx2,#666);font-weight:600;margin-top:2px}
 .tabGrid{display:grid;grid-template-columns:1fr;gap:12px}
+#uxBar{position:fixed;top:0;left:0;right:0;z-index:1001;display:flex;align-items:center;gap:6px;padding:calc(6px + env(safe-area-inset-top)) 8px 6px;background:#3b2a07;color:#fff;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#uxBar .uxT{flex:1;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#uxBar button{border:0;border-radius:99px;padding:6px 10px;font:inherit;font-weight:800;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;white-space:nowrap}
+#uxBar button.on{background:#f0b429;color:#3b2a07}#uxBar button.pub{background:#2f9e44}
+body.conUx{padding-top:44px}body.conUx header{top:44px}
+#uxMarco{position:fixed;left:0;right:0;bottom:0;top:calc(44px + env(safe-area-inset-top));z-index:1000;background:var(--bg,#fff)}#uxMarco iframe{width:100%;height:100%;border:0;display:block}
+body.uxEdit [data-uxk],body.uxEdit [data-uxn]{outline:2px dashed #e8590c;outline-offset:1px;cursor:pointer}body.uxEdit [data-uxn]{outline-color:#2f9e44}
+body.uxPick [data-uxk],body.uxPick [data-uxn]{outline:3px solid #1c7ed6}
+.uxOcultoV{opacity:.35;text-decoration:line-through}
+#uxHoja{position:fixed;inset:auto 0 0 0;z-index:1002;display:none;justify-content:center}#uxHoja.on{display:flex}
+#uxHoja .uxHojaIn{width:100%;max-width:560px;max-height:82vh;overflow:auto;background:var(--card,#fff);color:var(--tx);border-radius:20px 20px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3);border-top:4px solid #e8590c}
+#uxHoja .f{display:block;margin-top:10px;font-weight:800;font-size:13px}.uxFila{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.uxComo{display:grid;grid-template-columns:1fr 1fr;gap:8px}.uxCam{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--ln)}
 .iniKs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}@media(min-width:520px){.iniKs{grid-template-columns:repeat(4,1fr)}}
 .iniK{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--ln);background:var(--bg,#f7f4ee);border-radius:14px;padding:9px 10px;font:inherit;text-align:left;cursor:pointer;color:var(--tx);min-width:0}
 .iniK:active{transform:scale(.97)}.iniKt{font-size:12px;color:var(--tx2);font-weight:700;white-space:nowrap}.iniK b{font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.iniK small{font-size:11.5px;color:var(--tx2)}.iniK.act{border-color:var(--warn);background:var(--warn-s,#fdf0d9)}
@@ -1184,7 +1197,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.0.4'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.1.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2137,6 +2150,386 @@ function pintarNav() {
   }).join('');
 }
 
+/* ============ 3.1.0 · MODO ADMINISTRADOR VISUAL ("modo dios") ============
+ * El administrador general ve la app como cliente, negocio o repartidor y acomoda cualquier botón:
+ * ocultar, renombrar, cambiar lo que hace, moverlo o crear botones nuevos. Los cambios se guardan como
+ * reglas (no cambian el código): ui/global (todas las ciudades) y ui/c_<ciudad> en Firestore; todos las leen al abrir. */
+const UX_CAND = 'button, a[href], [onclick], [role="button"], summary, label.sw';
+const UX_ROOTS = ['#vista', '#nav', '#modalCaja', '#top'];
+var UX = { pub: { global: { r: {}, n: [] }, ciudad: { r: {}, n: [] } }, ef: null, obs: null, pick: null };
+window.S = S; // 3.1.0: el negocio de ejemplo (en su marco) lee el modo dios de esta ventana
+const uxVacio = () => ({ r: {}, n: [] });
+const uxScopeId = sc => sc === 'global' ? 'global' : 'c_' + (PUEBLO && PUEBLO.id || 'x');
+function uxEnMarco() { try { return !!(window.PIDELE_DEMO && PIDELE_DEMO.dios && window.parent !== window && window.parent.S && window.parent.UX); } catch (e) { return false; } }
+/** El modo dios activo (el de esta ventana o, dentro del negocio de ejemplo, el de la ventana del administrador). */
+function uxD() { try { if (uxEnMarco()) return window.parent.S.dios || null; } catch (e) { } return S.dios || null; }
+const uxP = () => uxEnMarco() ? window.parent : window;
+function uxEf() {
+  if (UX.ef) return UX.ef;
+  const P = uxP().UX, d = uxD();
+  const g = d && d.sc === 'global' ? d.borr.global : P.pub.global, c = d && d.sc === 'ciudad' ? d.borr.ciudad : P.pub.ciudad;
+  const ef = { r: Object.assign({}, (g && g.r) || {}, (c && c.r) || {}), n: [].concat((g && g.n) || [], (c && c.n) || []) };
+  ef.hay = !!(Object.keys(ef.r).length || ef.n.length);
+  return (UX.ef = ef);
+}
+/** Lee las reglas publicadas (sin esperar: primero la copia guardada, luego la de Firestore). */
+async function uxCargar() {
+  if (uxEnMarco()) return;
+  const id = PUEBLO && PUEBLO.id;
+  const c = ls('uxPub_' + id); if (c && c.global) { UX.pub = c; UX.ef = null; uxAplicar(); }
+  try {
+    if (typeof FIREBASE_CONFIG === 'undefined') return;
+    const base = 'projects/' + FIREBASE_CONFIG.projectId + '/databases/(default)/documents';
+    const r = await fetch('https://firestore.googleapis.com/v1/' + base + ':batchGet?key=' + FIREBASE_CONFIG.apiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documents: [base + '/ui/global', base + '/ui/c_' + id] }) });
+    if (!r.ok) return;
+    const l = await r.json(), pub = { global: uxVacio(), ciudad: uxVacio() };
+    (Array.isArray(l) ? l : []).forEach(x => {
+      if (!x.found) return; const nom = x.found.name.split('/').pop(), j = x.found.fields && x.found.fields.j && x.found.fields.j.stringValue;
+      try { const v = JSON.parse(j || '{}'); pub[nom === 'global' ? 'global' : 'ciudad'] = { r: v.r || {}, n: v.n || [] }; } catch (e) { }
+    });
+    if (JSON.stringify(pub) === JSON.stringify(UX.pub)) return;
+    UX.pub = pub; ls('uxPub_' + id, pub); UX.ef = null; uxRefrescar();
+  } catch (e) { console.warn('ux', e); }
+}
+function uxIniciar() {
+  if (UX.obs) return;
+  UX.obs = new MutationObserver(() => uxAplicar());
+  uxObservar();
+  document.addEventListener('click', uxCaptura, true);
+  uxCargar();
+  if (window.PIDELE_DEMO && PIDELE_DEMO.dios) { // negocio de ejemplo del modo dios: sin recorrido guiado
+    const t0 = Date.now(), iv = setInterval(() => { const b = document.querySelector('[data-a="solo"]'); if (b) b.click(); if (Date.now() - t0 > 20000) clearInterval(iv); }, 400);
+    setTimeout(uxRefrescar, 1500);
+  }
+}
+function uxObservar() { UX_ROOTS.forEach(s => { const el = document.querySelector(s); if (el) UX.obs.observe(el, { childList: true, subtree: true }); }); }
+/* ---------- identificar cada botón ---------- */
+function uxNorm(t) { return String(t || '').replace(/\$?\s?[\d][\d.,:]*/g, ' ').replace(/[›‹▾▸⌄✓✔✕×→←]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 40); }
+function uxZona(el) {
+  if (el.closest('#nav')) return 'nav';
+  if (el.closest('#top')) return 'top';
+  const m = el.closest('#modalCaja'); if (m) { const h = m.querySelector('h2,h3,b'); return 'modal:' + uxNorm(h ? h.textContent : ''); }
+  return 'v:' + S.vista + (S.vista === 'caja' && window.PDV ? ':' + (PDV.tab || '') : '');
+}
+function uxRolK() { const r = rolActual(); return r === 'invitado' ? 'comprador' : r; }
+function uxKey(el) {
+  const fn = String(el.getAttribute('onclick') || el.getAttribute('href') || '').replace(/'[^']*'|"[^"]*"|`[^`]*`/g, '').replace(/\d+/g, '').replace(/\s+/g, '').slice(0, 40);
+  let t = uxNorm(el.textContent || el.getAttribute('aria-label') || el.title || '');
+  if (!t) { const c = el.closest('.card,.pdvFila,.row'); t = '@' + uxNorm(c ? c.textContent : ''); }
+  return [uxRolK(), uxZona(el), t, fn].join('|');
+}
+const uxBuscar = k => !k ? null : k.startsWith('n:') ? document.querySelector('[data-uxn="' + CSS.escape(k.slice(2)) + '"]') : document.querySelector('[data-uxk="' + CSS.escape(k) + '"]');
+const uxKeyDe = el => el.dataset.uxn ? 'n:' + el.dataset.uxn : el.dataset.uxk;
+/* ---------- aplicar las reglas ---------- */
+function uxAplicar() {
+  const d = uxD(), E = uxEf();
+  if (!d && !E.hay) return;
+  UX.obs && UX.obs.disconnect();
+  try {
+    const mov = [];
+    UX_ROOTS.forEach(s => { const root = document.querySelector(s); if (!root) return;
+      root.querySelectorAll(UX_CAND).forEach(el => {
+        if (el.dataset.uxk || el.dataset.uxn || el.closest('.uxNo,[data-uxn]')) return;
+        const k = el.dataset.uxk = uxKey(el), r = E.r[k];
+        if (r) { uxRegla(el, r, d); if (r.antes || r.despues) mov.push([el, r]); }
+      }); });
+    E.n.forEach(n => {
+      if (document.querySelector('[data-uxn="' + CSS.escape(n.id) + '"]')) return;
+      const a = uxBuscar(n.junto); if (!a) return;
+      const b = uxNuevoEl(a, n, d); if (n.pos === 'antes') a.before(b); else a.after(b);
+    });
+    mov.forEach(([el, r]) => { const t = uxBuscar(r.antes || r.despues); if (!t || t === el) return;
+      if (!el._uxO) el._uxO = uxFoto(el); if (!el._uxO.pos) el._uxO.pos = { p: el.parentNode, s: el.nextSibling };
+      if (r.antes && el.nextElementSibling !== t) t.before(el); else if (r.despues && t.nextElementSibling !== el) t.after(el); });
+  } catch (e) { console.warn('ux', e); }
+  finally { uxObservar(); }
+}
+function uxFoto(el) { return { html: el.innerHTML, on: el.getAttribute('onclick'), href: el.getAttribute('href'), disp: el.style.display, cls: el.className }; }
+function uxTxt(el) { return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+function uxPonTexto(el, t) {
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentNode.closest('.badge,svg') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const l = []; let n; while ((n = w.nextNode())) if (n.nodeValue.trim()) l.push(n);
+  if (!l.length) { el.appendChild(document.createTextNode(t)); return; }
+  l[0].nodeValue = t; l.slice(1).forEach(x => { x.nodeValue = ''; });
+}
+function uxRegla(el, r, d) {
+  if (!el._uxO) el._uxO = uxFoto(el);
+  if (r.texto) uxPonTexto(el, r.texto);
+  if (r.accion && r.accion.t) { el.removeAttribute('onclick'); if (el.tagName === 'A') el.removeAttribute('href'); el.onclick = e => { e.preventDefault(); e.stopPropagation(); uxAccion(r.accion, el, e); }; }
+  if (r.oculto) { if (d && d.edit) el.classList.add('uxOcultoV'); else el.style.display = 'none'; }
+}
+function uxNuevoEl(a, n, d) {
+  const b = a.cloneNode(true);
+  b.removeAttribute('data-uxk'); b.removeAttribute('id'); b.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+  b.querySelectorAll('[data-uxk]').forEach(x => x.removeAttribute('data-uxk'));
+  b.querySelectorAll('[onclick]').forEach(x => x.removeAttribute('onclick')); b.querySelectorAll('.badge').forEach(x => x.remove());
+  b.dataset.uxn = n.id; b.style.display = ''; b.classList.remove('on', 'uxOcultoV', 'conNuevos');
+  b.removeAttribute('onclick'); if (b.tagName === 'A') b.removeAttribute('href');
+  uxPonTexto(b, n.texto || 'Nuevo botón');
+  b.onclick = e => { e.preventDefault(); e.stopPropagation(); uxAccion(n.accion || {}, b, e); };
+  if (n.oculto) { if (d && d.edit) b.classList.add('uxOcultoV'); else b.style.display = 'none'; }
+  return b;
+}
+function uxAccion(a, el, ev) {
+  try {
+    if (a.t === 'vista') return a.v === 'monedero' ? irMonedero() : ir(a.v);
+    if (a.t === 'link') return window.open(/^https?:\/\//.test(a.v) ? a.v : 'https://' + a.v, '_blank');
+    if (a.t === 'wa') return window.open(waLink(a.v, a.x || ''), '_blank');
+    if (a.t === 'tel') { location.href = 'tel:' + String(a.v).replace(/\D/g, ''); return; }
+    if (a.t === 'msg') return modal(`<h3 style="margin-top:0">${esc(a.v || '')}</h3><div style="white-space:pre-wrap">${esc(a.x || '')}</div><div class="btns"><button class="btn pri pill full" onclick="cerrarModal()">Entendido</button></div>`);
+    if (a.t === 'js') return new Function('event', a.v).call(el, ev);
+    toast('Este botón aún no tiene acción');
+  } catch (e) { toast(e.message || 'No se pudo', 'err'); }
+}
+/** Quita lo aplicado y lo vuelve a aplicar (después de editar). También en el negocio de ejemplo. */
+function uxRefrescar() {
+  UX.ef = null;
+  const d = uxD();
+  UX.obs && UX.obs.disconnect();
+  document.querySelectorAll('[data-uxn]').forEach(x => x.remove());
+  document.querySelectorAll('[data-uxk]').forEach(el => {
+    const o = el._uxO;
+    if (o) { el.innerHTML = o.html; if (o.on == null) el.removeAttribute('onclick'); else el.setAttribute('onclick', o.on); if (o.href != null) el.setAttribute('href', o.href); el.style.display = o.disp; el.className = o.cls; el.onclick = null;
+      if (o.pos && o.pos.p && o.pos.p.isConnected) { try { o.pos.p.insertBefore(el, o.pos.s && o.pos.s.parentNode === o.pos.p ? o.pos.s : null); } catch (e) { } } }
+    el._uxO = null; el.removeAttribute('data-uxk');
+  });
+  document.querySelectorAll('[data-uxk]').forEach(x => x.removeAttribute('data-uxk')); // los que volvieron con el HTML guardado
+  document.body.classList.toggle('uxEdit', !!(d && d.edit));
+  uxObservar(); uxAplicar();
+  if (window.top === window) { const f = document.querySelector('#uxMarco iframe'); try { if (f && f.contentWindow.uxRefrescar) f.contentWindow.uxRefrescar(); } catch (e) { } uxBarra(); }
+}
+/* ---------- editor ---------- */
+function uxCaptura(e) {
+  const d = uxD(); if (!d || !d.edit) return;
+  if (e.target.closest('.uxNo,#uxBar,#uxHoja,#uxMarco')) return;
+  const el = e.target.closest('[data-uxn],[data-uxk]'); if (!el) return;
+  e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  if (UX.pick) { const f = UX.pick; UX.pick = null; document.body.classList.remove('uxPick'); f(el); return; }
+  uxEditar(el);
+}
+const UX_PANT = [['inicio', '🏠 Inicio (cliente)'], ['buscar', '🔎 Buscar'], ['pedidos', '🧾 Mis pedidos'], ['monedero', '👛 Mi monedero'], ['perfil', '👤 Perfil'],
+  ['tablero', '📊 Inicio del dueño'], ['pedidosD', '📥 Pedidos (dueño)'], ['negPedidos', '📥 Pedidos del negocio'], ['caja', '🧾 Caja'], ['cocina', '🍳 Cocina'], ['menu', '🍔 Menú'], ['promos', '🏷️ Banners y promociones'], ['miNegocio', '🏪 Datos y horario'],
+  ['mas', '☰ Más'], ['nomina', '👥 Personal y nómina'], ['inventario', '📦 Inventario'], ['operacion', '✅ Tareas'], ['repartidores', '🛵 Repartidores'], ['equipo', '👥 Equipo y permisos'], ['suscripcion', '💳 Mi plan'],
+  ['disponibles', '🛵 Pedidos disponibles'], ['entregas', '📦 Mis entregas'], ['historialRep', '📜 Historial de entregas'],
+  ['admin', '📊 Resumen (admin)'], ['adminUsuarios', '👥 Usuarios (admin)'], ['adminPedidos', '🧾 Pedidos (admin)'], ['adminCobros', '💵 Cobros (admin)'], ['adminConfig', '⚙️ Ajustes (admin)']];
+const UX_ACC = [['', 'Lo de siempre'], ['vista', 'Ir a una pantalla'], ['js', 'Hacer lo mismo que otro botón'], ['link', 'Abrir un enlace'], ['wa', 'Mandar WhatsApp'], ['tel', 'Llamar'], ['msg', 'Mostrar un mensaje']];
+function uxBorr() { const d = uxD(); return d.borr[d.sc]; }
+function uxGuardarBorr() { const d = S.dios; if (!d) return; ls('uxBorr_' + uxScopeId(d.sc), d.borr[d.sc]); }
+function uxGuardar() { uxP().uxGuardarBorr(); uxP().uxRefrescar(); if (uxEnMarco()) uxRefrescar(); }
+function uxZonaTxt(k) { const z = String(k || '').split('|')[1] || ''; return z === 'nav' ? 'Barra de abajo' : z === 'top' ? 'Barra de arriba' : z.startsWith('modal:') ? 'Ventana «' + z.slice(6) + '»' : 'Pantalla ' + ((UX_PANT.find(x => x[0] === z.slice(2).split(':')[0]) || [, z.slice(2).split(':')[0]])[1]) + (z.split(':')[2] ? ' · ' + z.split(':')[2] : ''); }
+function uxEditar(el) {
+  const B = uxBorr(), nid = el.dataset.uxn;
+  let o;
+  if (nid) { o = B.n.find(x => x.id === nid); if (!o) return toast('Este botón es de otro alcance (cambia “Aplica a” para editarlo)'); }
+  else o = B.r[el.dataset.uxk] || {};
+  const t0 = el._uxO ? uxTxt(Object.assign(document.createElement('div'), { innerHTML: el._uxO.html })) : uxTxt(el);
+  S._uxE = { el, k: el.dataset.uxk, nid, o: JSON.parse(JSON.stringify(o)), t0 };
+  S._uxE.o.accion = S._uxE.o.accion || (nid ? { t: 'msg', v: '', x: '' } : { t: '' });
+  uxHoja(uxEditorHTML());
+}
+function uxEditorHTML() {
+  const E = S._uxE, o = E.o, a = o.accion || {}, nuevo = !!E.nid;
+  const txt = o.texto || (E.el ? uxTxt(E.el) : '');
+  const campo = (id, ph, v, area) => area ? `<textarea class="i" id="${id}" rows="3" placeholder="${ph}">${esc(v || '')}</textarea>` : `<input class="i" id="${id}" placeholder="${ph}" value="${esc(v || '')}">`;
+  const pant = UX_PANT.filter(([k]) => VISTAS[k] || k === 'pedidosD');
+  const det = a.t === 'vista' ? `<select class="i" id="uxV">${pant.map(([k, t]) => `<option value="${k}" ${a.v === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`
+    : a.t === 'link' ? campo('uxV', 'https://…', a.v)
+    : a.t === 'wa' ? campo('uxV', 'Teléfono a 10 dígitos', a.v) + campo('uxX', 'Mensaje (opcional)', a.x, 1)
+    : a.t === 'tel' ? campo('uxV', 'Teléfono a 10 dígitos', a.v)
+    : a.t === 'msg' ? campo('uxV', 'Título', a.v) + campo('uxX', 'Texto del mensaje', a.x, 1)
+    : a.t === 'js' ? `<div class="small">${a.v ? '✅ Hará lo mismo que: <b>' + esc(a.x || 'otro botón') + '</b>' : 'Aún no eliges el botón.'}</div><button class="btn sm" onclick="uxElegirCopia()">👆 Tocar el botón que quiero copiar</button>` : '';
+  return `<div class="row between"><b>✏️ ${esc(txt.slice(0, 40) || 'Botón')}</b><button class="btn sm" onclick="uxHojaCerrar()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small">${nuevo ? '🆕 Botón nuevo · ' : ''}${esc(uxZonaTxt(E.k || (uxBorr().n.find(x => x.id === E.nid) || {}).junto))} · ${esc({ comprador: 'Cliente', negocio: 'Negocio', repartidor: 'Repartidor', admin: 'Administrador' }[String(E.k || (uxBorr().n.find(x => x.id === E.nid) || {}).junto || '').split('|')[0]] || '')}</div>
+    <label class="f">Texto del botón</label><input class="i" id="uxT" value="${esc(txt)}" maxlength="60">
+    <label class="f">Qué hace al tocarlo</label><select class="i" id="uxA" onchange="uxLeer();S._uxE.o.accion={t:this.value};uxHoja(uxEditorHTML())">${UX_ACC.filter(([k]) => !(nuevo && !k)).map(([k, t]) => `<option value="${k}" ${(a.t || '') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    <div id="uxDet" style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${det}</div>
+    <div class="uxFila"><button class="btn sm" onclick="uxLeer();S._uxE.o.oculto=!S._uxE.o.oculto;uxHoja(uxEditorHTML())">${o.oculto ? '👁️ Volver a mostrar' : '🙈 Ocultar'}</button>${o.oculto ? '<span class="small" style="color:var(--err);font-weight:800">Oculto para todos</span>' : ''}</div>
+    <div class="f">Mover</div><div class="uxFila"><button class="btn sm" onclick="uxMover(-1)">⬆️ Antes</button><button class="btn sm" onclick="uxMover(1)">⬇️ Después</button><button class="btn sm" onclick="uxLlevar()">📍 Junto a otro botón</button></div>
+    <div class="uxFila" style="margin-top:10px"><button class="btn sm" onclick="uxAgregar()">➕ Agregar botón nuevo aquí</button>
+      ${nuevo ? '<button class="btn sm err" onclick="uxQuitar()">🗑️ Borrar este botón</button>' : `<button class="btn sm" onclick="uxQuitar()">↩️ Dejarlo como era</button>`}</div>
+    <button class="btn pri pill full" style="margin-top:12px" onclick="act(this,uxGuardarEdicion)">Guardar</button>`;
+}
+function uxLeer() {
+  const E = S._uxE; if (!E) return; const o = E.o, g = id => { const x = document.getElementById(id); return x ? x.value.trim() : undefined; };
+  const t = g('uxT'); if (t !== undefined) o.texto = t;
+  const a = o.accion || (o.accion = { t: '' }); const v = g('uxV'), x = g('uxX');
+  if (a.t !== 'js') { if (v !== undefined) a.v = v; if (x !== undefined) a.x = x; }
+}
+function uxGuardarEdicion() {
+  uxLeer(); const E = S._uxE, o = E.o, B = uxBorr();
+  const a = o.accion || {};
+  if (a.t === 'vista' && !a.v) throw new Error('Elige la pantalla');
+  if (a.t === 'js' && !a.v) throw new Error('Toca el botón que quieres copiar');
+  if (['link', 'wa', 'tel'].includes(a.t) && !a.v) throw new Error('Falta el enlace o el teléfono');
+  if (a.t === 'msg' && !a.x) throw new Error('Escribe el mensaje');
+  if (!E.nid && (o.texto === E.t0 || !o.texto)) delete o.texto; // sin cambio de texto
+  uxLimpia(o);
+  if (E.nid) { const i = B.n.findIndex(x => x.id === E.nid); if (i >= 0) B.n[i] = Object.assign(B.n[i], o, { texto: o.texto || B.n[i].texto }); }
+  else if (Object.keys(o).length) B.r[E.k] = o; else delete B.r[E.k];
+  uxHojaCerrar(); uxGuardar(); toast('Guardado en el borrador ✓ (toca 🚀 Publicar para que lo vean todos)');
+}
+function uxLimpia(o) { if (o.accion && !o.accion.t) delete o.accion; Object.keys(o).forEach(k => { if (o[k] === undefined || o[k] === '' || o[k] === false) delete o[k]; }); return o; }
+function uxQuitar() {
+  const E = S._uxE, B = uxBorr();
+  if (E.nid) { B.n.splice(B.n.findIndex(x => x.id === E.nid), 1); B.n.forEach(x => { if (x.junto === 'n:' + E.nid) x.junto = (B.n.find(y => y.id === E.nid) || {}).junto || x.junto; }); }
+  else delete B.r[E.k];
+  uxHojaCerrar(); uxGuardar(); toast('Listo');
+}
+function uxMover(dir) {
+  uxLeer(); const E = S._uxE, el = E.el;
+  let s = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+  while (s && !(s.dataset && (s.dataset.uxk || s.dataset.uxn))) s = dir < 0 ? s.previousElementSibling : s.nextElementSibling;
+  if (!s) return toast(dir < 0 ? 'Ya es el primero de su grupo' : 'Ya es el último de su grupo');
+  uxPonJunto(E, uxKeyDe(s), dir < 0 ? 'antes' : 'despues');
+}
+function uxPonJunto(E, k, pos) {
+  const B = uxBorr();
+  if (E.nid) { const n = B.n.find(x => x.id === E.nid); Object.assign(n, uxLimpia(Object.assign({}, E.o))); n.junto = k; n.pos = pos; }
+  else { const o = Object.assign({}, B.r[E.k] || {}, E.o); if (!E.nid && o.texto === E.t0) delete o.texto; delete o.antes; delete o.despues; o[pos] = k; B.r[E.k] = uxLimpia(o); }
+  uxHojaCerrar(); uxGuardar();
+  setTimeout(() => { const el = uxBuscar(E.nid ? 'n:' + E.nid : E.k); if (el) { el.scrollIntoView({ block: 'center' }); uxEditar(el); } }, 120);
+}
+function uxLlevar() {
+  uxLeer(); const E = S._uxE; uxHojaCerrar();
+  document.body.classList.add('uxPick'); toast('Toca el botón junto al que lo quieres poner');
+  UX.pick = t => { if (t === E.el) return; uxPonJunto(E, uxKeyDe(t), 'despues'); };
+}
+function uxElegirCopia() {
+  uxLeer(); const E = S._uxE; uxHojaCerrar();
+  document.body.classList.add('uxPick'); toast('Toca el botón que quieres copiar (puedes apagar ✏️ para ir a otra pantalla y volver a prenderlo)');
+  UX.pick = t => {
+    const B = uxBorr(), n = t.dataset.uxn && B.n.find(x => x.id === t.dataset.uxn), r = !n && B.r[t.dataset.uxk];
+    const src = n ? n.accion : r && r.accion && r.accion.t ? r.accion : null, o = t._uxO || {};
+    const js = src ? null : (o.on != null ? o.on : t.getAttribute('onclick'));
+    const href = !src && !js ? (o.href != null ? o.href : t.getAttribute('href')) : '';
+    E.o.accion = src ? JSON.parse(JSON.stringify(src)) : js ? { t: 'js', v: js, x: uxTxt(t).slice(0, 40) } : href ? { t: 'link', v: href } : { t: 'js', v: '', x: '' };
+    if (E.el && !E.el.isConnected) E.el = uxBuscar(E.nid ? 'n:' + E.nid : E.k) || E.el;
+    uxHoja(uxEditorHTML());
+  };
+}
+function uxAgregar() {
+  uxLeer(); const E = S._uxE, B = uxBorr();
+  const n = { id: 'b' + Date.now().toString(36), junto: E.nid ? 'n:' + E.nid : E.k, pos: 'despues', texto: '🆕 Nuevo botón', accion: { t: 'msg', v: 'Aviso', x: '' } };
+  B.n.push(n); uxHojaCerrar(); uxGuardar();
+  setTimeout(() => { const el = uxBuscar('n:' + n.id); if (el) { el.scrollIntoView({ block: 'center' }); uxEditar(el); } else toast('Creado. Si no se ve, revisa “Cambios”.'); }, 150);
+}
+function uxHoja(h) { let x = document.getElementById('uxHoja'); if (!x) { x = document.createElement('div'); x.id = 'uxHoja'; x.className = 'uxNo'; document.body.appendChild(x); } x.innerHTML = `<div class="uxHojaIn">${h}</div>`; x.classList.add('on'); }
+function uxHojaCerrar() { const x = document.getElementById('uxHoja'); if (x) x.classList.remove('on'); }
+/* ---------- barra del modo dios (ventana del administrador) ---------- */
+const UX_COMO = { cliente: '🛍️ Cliente', negocio: '🏪 Negocio', repartidor: '🛵 Repartidor', admin: '🛠️ Administrador' };
+function uxDiosMenu() {
+  const sc = ls('uxSc') || 'global';
+  modal(`<h2 style="margin-top:0">🛠️ Modo administrador visual</h2><div class="muted small">Ve la app como la ve cada quien y acomoda cualquier botón: ocultar, cambiar texto, cambiar qué hace, moverlo o crear botones nuevos. Todo queda en un borrador hasta que tocas <b>🚀 Publicar</b>.</div>
+    <label class="f">Los cambios aplican a</label><div class="uxFila"><label class="pdvChk"><input type="radio" name="uxSc" value="global" ${sc === 'global' ? 'checked' : ''}> 🌎 Todas las ciudades</label><label class="pdvChk"><input type="radio" name="uxSc" value="ciudad" ${sc === 'ciudad' ? 'checked' : ''}> 📍 Solo ${esc(PUEBLO.nombre)}</label></div>
+    <label class="f">Ver la app como</label><div class="uxComo">${Object.keys(UX_COMO).map(k => `<button class="btn" onclick="act(this,()=>uxDiosEntrar('${k}'))">${UX_COMO[k]}</button>`).join('')}</div>
+    <div class="muted small" style="margin-top:6px">El negocio se ve con un negocio de ejemplo (datos simulados), para que nada real se mueva.</div>
+    <hr class="hr"><div class="uxFila"><button class="btn sm" onclick="act(this,uxHistorial)">🕘 Historial</button><button class="btn sm" onclick="act(this,uxIdeas)">💡 Pedir función</button></div>`);
+}
+function uxDiosEntrar(como) {
+  const sc = (document.querySelector('input[name="uxSc"]:checked') || {}).value || 'global'; ls('uxSc', sc);
+  const borr = {}; ['global', 'ciudad'].forEach(k => { borr[k] = ls('uxBorr_' + uxScopeId(k)) || JSON.parse(JSON.stringify(UX.pub[k] || uxVacio())); });
+  S.dios = { sc, como, borr, edit: true };
+  cerrarModal(); uxMarcoCerrar();
+  if (como === 'cliente') modoCliente(true);
+  else if (como === 'repartidor') modoRepartidor(true);
+  else { if (S.modoCliente || S.modoRep) modoCliente(false); else ir('admin'); }
+  if (como === 'negocio') uxMarcoAbrir();
+  setTimeout(uxRefrescar, 50);
+  toast('✏️ Toca cualquier botón para cambiarlo. Apaga ✏️ para navegar.');
+}
+function uxBarra() {
+  let b = document.getElementById('uxBar'); const d = S.dios;
+  document.body.classList.toggle('conUx', !!d);
+  if (!d) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'uxBar'; b.className = 'uxNo'; document.body.appendChild(b); }
+  const B = d.borr[d.sc], n = Object.keys(B.r).length + B.n.length;
+  const pub = JSON.stringify(B) !== JSON.stringify(UX.pub[d.sc] || uxVacio());
+  b.innerHTML = `<span class="uxT">🛠️ ${UX_COMO[d.como]} · ${d.sc === 'global' ? '🌎 Todas' : '📍 ' + esc(PUEBLO.nombre)}</span>
+    <button class="${d.edit ? 'on' : ''}" onclick="uxEditToggle()">✏️ ${d.edit ? 'Editando' : 'Navegando'}</button>
+    <button onclick="uxCambios()">📋 ${n}</button><button class="${pub ? 'pub' : ''}" onclick="act(this,uxPublicar)">🚀${pub ? ' Publicar' : ''}</button><button onclick="uxDiosSalir()" aria-label="Salir del modo">✕</button>`;
+}
+function uxEditToggle() { S.dios.edit = !S.dios.edit; UX.pick = null; document.body.classList.remove('uxPick'); try { const f = document.querySelector('#uxMarco iframe'); f && f.contentDocument.body.classList.remove('uxPick'); f && (f.contentWindow.UX.pick = null); } catch (e) { } uxRefrescar(); }
+function uxDiosSalir() {
+  const d = S.dios; if (!d) return;
+  const B = d.borr[d.sc], pend = JSON.stringify(B) !== JSON.stringify(UX.pub[d.sc] || uxVacio());
+  if (pend && !confirm('Tienes cambios sin publicar. Se quedan guardados en el borrador de este teléfono. ¿Salir?')) return;
+  S.dios = null; uxMarcoCerrar(); uxHojaCerrar(); UX.pick = null; document.body.classList.remove('uxPick');
+  if (S.modoCliente || S.modoRep) modoCliente(false); else ir('admin');
+  uxRefrescar();
+}
+function uxMarcoAbrir() {
+  const c = { n: 'Negocio de ejemplo', g: 'hamburguesas', m: DEMO_MODS.map(x => x[0]), c: PUEBLO.id, dios: 1 };
+  const m = document.createElement('div'); m.id = 'uxMarco'; m.className = 'uxNo';
+  m.innerHTML = `<iframe src="${demoLink(c)}" title="Negocio de ejemplo"></iframe>`;
+  document.body.appendChild(m);
+}
+function uxMarcoCerrar() { const m = document.getElementById('uxMarco'); if (m) m.remove(); try { sessionStorage.removeItem('pideleDemoCfg'); } catch (e) { } }
+function uxDesc(k, r) {
+  const p = String(k).split('|'), q = [];
+  if (r.oculto) q.push('🙈 oculto'); if (r.texto) q.push('✏️ «' + r.texto + '»');
+  if (r.accion && r.accion.t) q.push('👆 ' + (UX_ACC.find(x => x[0] === r.accion.t) || [])[1]);
+  if (r.antes || r.despues) q.push('↕️ movido');
+  return `<b>${esc(p[2] || '(sin texto)')}</b><div class="muted small">${esc({ comprador: 'Cliente', negocio: 'Negocio', repartidor: 'Repartidor', admin: 'Admin' }[p[0]] || p[0])} · ${esc(uxZonaTxt(k))}</div><div class="small">${esc(q.join(' · '))}</div>`;
+}
+function uxCambios() {
+  const d = S.dios, B = d.borr[d.sc], ks = Object.keys(B.r);
+  uxHoja(`<div class="row between"><b>📋 Cambios en el borrador (${ks.length + B.n.length})</b><button class="btn sm" onclick="uxHojaCerrar()">✕</button></div>
+    <div class="muted small" style="margin-bottom:8px">${d.sc === 'global' ? '🌎 Todas las ciudades' : '📍 Solo ' + esc(PUEBLO.nombre)}</div>
+    ${ks.map(k => `<div class="uxCam"><div class="grow">${uxDesc(k, B.r[k])}</div><button class="btn sm" onclick="uxDeshacer('r',${esc(JSON.stringify(k)).replace(/"/g, '&quot;')})">↩️</button></div>`).join('')}
+    ${B.n.map(n => `<div class="uxCam"><div class="grow"><b>🆕 ${esc(n.texto)}</b><div class="muted small">Junto a: ${esc(String(n.junto).split('|')[2] || n.junto)} · ${esc(uxZonaTxt(n.junto))}</div><div class="small">👆 ${esc((UX_ACC.find(x => x[0] === (n.accion || {}).t) || [, ''])[1])}</div></div><button class="btn sm" onclick="uxDeshacer('n','${n.id}')">🗑️</button></div>`).join('')}
+    ${ks.length + B.n.length ? '' : '<div class="muted">Aún no hay cambios.</div>'}
+    <div class="uxFila" style="margin-top:10px"><button class="btn sm" onclick="uxDescartar()">↩️ Descartar el borrador</button><button class="btn sm err" onclick="uxOriginal()">🧹 Dejar la app como venía</button></div>`);
+}
+function uxDeshacer(t, k) { const B = S.dios.borr[S.dios.sc]; if (t === 'r') delete B.r[k]; else B.n = B.n.filter(x => x.id !== k); uxGuardarBorr(); uxRefrescar(); uxCambios(); }
+function uxDescartar() { if (!confirm('¿Descartar los cambios sin publicar?')) return; const d = S.dios; d.borr[d.sc] = JSON.parse(JSON.stringify(UX.pub[d.sc] || uxVacio())); uxGuardarBorr(); uxRefrescar(); uxCambios(); }
+function uxOriginal() { if (!confirm('Se quitan todos los cambios de este alcance (la app queda como venía). Para que aplique, después toca 🚀 Publicar. ¿Seguir?')) return; const d = S.dios; d.borr[d.sc] = uxVacio(); uxGuardarBorr(); uxRefrescar(); uxCambios(); }
+async function uxPublicar() {
+  const d = S.dios, B = d.borr[d.sc];
+  if (!confirm(`¿Publicar ${Object.keys(B.r).length + B.n.length} cambio(s) para ${d.sc === 'global' ? 'TODAS las ciudades' : PUEBLO.nombre}? Lo verán todos al abrir la app.`)) return;
+  const db = await dirAdminDb(), id = uxScopeId(d.sc), doc = { j: JSON.stringify(B), t: Date.now(), por: (S.user && S.user.nombre) || '' };
+  await db.collection('ui').doc(id).set(doc);
+  await db.collection('ui').doc(id).collection('hist').add(doc).catch(e => console.warn(e));
+  UX.pub[d.sc] = JSON.parse(doc.j); ls('uxPub_' + PUEBLO.id, UX.pub); uxGuardarBorr();
+  uxRefrescar(); toast('🚀 Publicado. Lo verán al abrir o actualizar la app.');
+}
+async function uxHistorial() {
+  const sc = (document.querySelector('input[name="uxSc"]:checked') || {}).value || (S.dios && S.dios.sc) || 'global';
+  const db = await dirAdminDb();
+  const q = await db.collection('ui').doc(uxScopeId(sc)).collection('hist').orderBy('t', 'desc').limit(20).get();
+  S._uxH = q.docs.map(x => x.data());
+  modal(`<h3 style="margin-top:0">🕘 Historial · ${sc === 'global' ? '🌎 Todas' : '📍 ' + esc(PUEBLO.nombre)}</h3>
+    ${S._uxH.length ? S._uxH.map((h, i) => { let v = {}; try { v = JSON.parse(h.j); } catch (e) { } const n = Object.keys(v.r || {}).length + (v.n || []).length;
+      return `<div class="uxCam"><div class="grow"><b>${new Date(h.t).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</b><div class="muted small">${n} cambio(s)${h.por ? ' · ' + esc(h.por) : ''}</div></div><button class="btn sm" onclick="uxUsarHist(${i},'${sc}')">Usar esta</button></div>`; }).join('') : '<div class="muted">Aún no has publicado.</div>'}`);
+}
+function uxUsarHist(i, sc) {
+  let v; try { v = JSON.parse(S._uxH[i].j); } catch (e) { return; }
+  ls('uxBorr_' + uxScopeId(sc), { r: v.r || {}, n: v.n || [] });
+  if (S.dios && S.dios.sc === sc) { S.dios.borr[sc] = { r: v.r || {}, n: v.n || [] }; uxRefrescar(); }
+  cerrarModal(); toast('Esa versión quedó en tu borrador. Toca 🚀 Publicar para regresarla.');
+}
+async function uxIdeas() {
+  const db = await dirAdminDb(); const s = await db.collection('ui').doc('ideas').get(); const l = (s.exists && s.data().l) || [];
+  modal(`<h3 style="margin-top:0">💡 Funciones por pedir</h3><div class="muted small">Lo que el modo visual no puede hacer (un cálculo o un registro nuevo) se anota aquí para programarlo en una versión.</div>
+    <textarea class="i" id="uxIdea" rows="3" placeholder="Ej. que la caja avise cuando un mesero lleva 20 min sin cobrar"></textarea>
+    <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,uxIdeaGuardar)">Anotar</button>
+    ${l.slice().reverse().map(x => `<div class="uxCam"><div class="grow small">${esc(x.x)}<div class="muted">${new Date(x.t).toLocaleDateString('es-MX')}</div></div></div>`).join('')}`);
+}
+async function uxIdeaGuardar() {
+  const x = ($('#uxIdea').value || '').trim(); if (!x) throw new Error('Escribe la idea');
+  const db = await dirAdminDb();
+  await db.collection('ui').doc('ideas').set({ l: firebase.firestore.FieldValue.arrayUnion({ x: x.slice(0, 500), t: Date.now() }) }, { merge: true });
+  toast('Anotada 💡'); await uxIdeas();
+}
+/* ---------- 3.1.0 · Perfil del administrador: cambiar su teléfono ---------- */
+async function adminCambiarTel() {
+  const nuevo = ($('#aTelN').value || '').replace(/\D/g, ''), pass = $('#aTelP').value;
+  if (nuevo.length !== 10) throw new Error('Escribe el teléfono nuevo a 10 dígitos');
+  if (!pass) throw new Error('Escribe tu contraseña');
+  const u = await api('cambiarMiTel', { nuevo, pass });
+  S.user = Object.assign({}, S.user, u); ls('user', S.user);
+  toast('Teléfono cambiado ✓ Desde ahora entras con ' + nuevo); vPerfil();
+}
+
 /* ============ 3.0.1 · MI MONEDERO A UN TOQUE ============ */
 /** Saldo guardado en este teléfono (para mostrarlo en el botón sin esperar a internet). */
 function monTotCache() {
@@ -2225,6 +2618,7 @@ async function arrancar() {
   if (EN_SECCION) await seccionSesion();
   if (!S.token || !S.user) { S.token = null; S.user = null; }
   S._catProm = refrescarArranque();
+  try { uxIniciar(); } catch (e) { console.warn('ux', e); } // 3.1.0: botones acomodados desde el modo administrador visual
   const deUrl = location.search;
   // la entrada base del historial es el inicio, para que "volver" funcione al llegar por un enlace
   history.replaceState({ v: inicioRol() }, '', location.pathname);
@@ -12304,7 +12698,7 @@ function iniKpis(l, nid) {
   const conPer = l.filter(n => n.modPersonal !== false && n.personal && n.personal.total);
   const pre = conPer.reduce((s, n) => s + n.personal.presentes, 0), tot = conPer.reduce((s, n) => s + n.personal.total, 0);
   const k = (key, ico, t, v, sub, cls) => `<button class="iniK ${cls || ''}" onclick="act(this,()=>tabVer('${key}','${nid || ''}'))"><span class="iniKt">${ico} ${t}</span><b>${v}</b><small>${sub}</small></button>`;
-  return `<div class="iniKs">${k('ventas', '💵', 'Ventas', money(ven), comp + ' completada' + (comp === 1 ? '' : 's'))}${k('abiertas', '🍽️', 'En curso', money(cur), ab + ' orden' + (ab === 1 ? '' : 'es'), ab ? 'act' : '')}${k('gastos', '💸', 'Gastos', money(gas), 'hoy')}${k('personal', '👥', 'Personal', tot ? String(pre) : '—', tot ? 'de ' + tot + ' trabajando' : 'sin registro')}</div>`;
+  return `<div class="iniKs">${k('ventas', '💵', 'Ventas', money(ven), comp + ' completada' + (comp === 1 ? '' : 's'))}${k('abiertas', '🍽️', 'En curso', money(cur), ab + (ab === 1 ? ' orden' : ' órdenes'), ab ? 'act' : '')}${k('gastos', '💸', 'Gastos', money(gas), 'hoy')}${k('personal', '👥', 'Personal', tot ? String(pre) : '—', tot ? 'de ' + tot + ' trabajando' : 'sin registro')}</div>`;
 }
 function inicioDiaCard(l) {
   return `<div class="card iniDia"><div class="row between"><b>📊 Hoy en tus ${l.length} negocios</b><span class="muted small">Toca un cuadro para ver el detalle</span></div>${iniKpis(l, '')}</div>`;
@@ -15867,6 +16261,11 @@ function vPerfil() {
       <label class="f">Contraseña actual</label><input class="i" id="pAct" type="password">
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div></details>
+    ${r === 'admin' ? `<details class="card perfDet"><summary><b>📱 Cambiar mi teléfono (usuario)</b><span class="muted">⌄</span></summary>
+      <div class="muted small">Es el número con el que entras como administrador${PUEBLOS.length > 1 ? ' en <b>' + esc(PUEBLO.nombre) + '</b>. Cada ciudad tiene su propia cuenta: si cambias de número, cámbialo también en las demás' : ''}.</div>
+      <label class="f">Teléfono nuevo</label><input class="i" id="aTelN" inputmode="numeric" maxlength="10" placeholder="10 dígitos">
+      <label class="f">Tu contraseña</label><input class="i" id="aTelP" type="password">
+      <div class="btns"><button class="btn" onclick="act(this,adminCambiarTel)">Cambiar teléfono</button></div></details>` : ''}
     <div class="card">
       ${r !== 'admin' ? `<button class="btn full" onclick="repetirTour()">🧭 Ver guía de uso</button><div style="height:8px"></div>` : ''}
       <div class="row between" style="gap:8px;margin-bottom:10px"><div class="grow"><b>📶 Ahorro de datos</b><div class="muted small">${ahorro() ? 'Activo: fotos chicas, mapas solo cuando los abres y menos consultas.' : 'Para gastar menos datos o con mala señal.'}</div></div>
@@ -18096,7 +18495,7 @@ async function demoIr(modo) {
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
-  html(`${bannerPush()}<div class="row between"><h2>Resumen</h2><div class="row" style="gap:6px"><button class="btn sm" onclick="repetirTour()">🧭 Guía</button>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div></div>
+  html(`${bannerPush()}<div class="row between"><h2>Resumen</h2><div class="row" style="gap:6px"><button class="btn sm" onclick="ir('perfil')">👤 Mi perfil</button><button class="btn sm" onclick="repetirTour()">🧭 Guía</button>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div></div>
     ${esAdminCiudad() ? `<div class="aviso info">🏙️ Eres <b>administrador de ${esc(d.pueblo || PUEBLO.nombre)}</b>: das de alta negocios (con ✉️ Invitar), fijas las tarifas de envío y das soporte en tu zona. Atiende cada solicitud antes de 24 horas. Tu tablero y comisiones están en “Mi ciudad”.</div>
       <div class="card" style="cursor:pointer" onclick="act(null,formInvitar)"><b>✉️ Invitar negocio o repartidor</b><div class="muted small">Los negocios que invites quedan a tu nombre: ganas 50% de su primer mes y 20% de cada mensualidad.</div></div>`
     : d.local ? `<div class="aviso info">🎧 Eres <b>soporte de Pídele</b> en ${esc(d.pueblo || PUEBLO.nombre)}: apruebas negocios y repartidores, atiendes pedidos, registras pagos en efectivo, ajustas las tarifas de envío y atiendes las solicitudes de ciudades nuevas.</div>` : ''}
@@ -18120,6 +18519,7 @@ async function vAdmin() {
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>🏙️ Administrador de ciudad y soporte</b><div class="muted small">Administrador de ${esc(d.pueblo || PUEBLO.nombre)} con comisión, amonestaciones y pagos; y tu cuenta de soporte general</div></div><span class="lnk small">Abrir ›</span></div>`}
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer;border:2px solid var(--pri)" onclick="demoForm()"><div><b>🎬 Mostrar Pídele a un negocio</b><div class="muted small">Recorrido guiado con datos simulados: elige los módulos, preséntalo tú o manda el link.</div></div><span style="font-size:22px">›</span></div>`}
+    ${d.local ? '' : `<div class="card row between" style="cursor:pointer;border:2px solid var(--warn)" onclick="uxDiosMenu()"><div><b>🛠️ Modo administrador visual</b><div class="muted small">Ve la app como cliente, negocio o repartidor y acomoda cualquier botón: ocultar, renombrar, mover, cambiar lo que hace o crear nuevos.</div></div><span class="lnk small">Abrir ›</span></div>`}
     <div class="row" style="gap:10px;align-items:stretch;margin-bottom:10px">
       <div class="card grow" style="cursor:pointer;margin:0" onclick="modoCliente(true)"><b>🍽️ Ver como cliente</b><div class="muted small">Pide o haz un pedido de muestra para enseñar la app.</div></div>
       <div class="card grow" style="cursor:pointer;margin:0" onclick="modoRepartidor(true)"><b>🛵 Ver como repartidor</b><div class="muted small">Entrega tus pedidos de muestra.</div></div></div>
