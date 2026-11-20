@@ -1197,7 +1197,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.1.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.2.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -1435,7 +1435,7 @@ const API_RAPIDA = new Set(['panelNegocio', 'pedidosNegocio', 'misPedidos', 'mis
   'adminResumen', 'adminUsuarios', 'adminPedidos', 'adminConfig', 'adminPromos', 'adminComisiones', 'adminInvitaciones', 'adminEstadisticas', 'adminCobros', 'adminVerificaciones', 'adminAlertas',
   'misEntregas', 'historialRepartidor', 'miPuntaje', 'directorioRepartidores', 'repDirectorio', 'misGrupos', 'modAtencion', 'modRepartidores', 'pdvReporteApp', 'disponibles', 'catalogo', 'negocios', 'menus']);
 // lecturas que no cambian nada (las demás acciones borran lo guardado)
-const API_LECTURA = new Set(['dispLista', 'higVer', 'higCurso', 'higExpediente', 'higArchivo', 'adminLlave', 'asisMia', 'tableroDueno', 'pdvLlave', 'monederoLlave', 'repDirectorio', 'verOferta', 'repLicencia', 'pdvVerComprobante', 'pdvReporteApp', 'seguirPedido', 'miEquipo', 'adminSucursales', 'configPublica', 'arranque', 'catalogo', 'yo', 'negocios', 'menu', 'menus', 'buscar', 'misPedidos', 'misPedidosAnteriores', 'pedido', 'mensajes', 'imagen',
+const API_LECTURA = new Set(['adminSalud', 'adminHubEstado', 'dispLista', 'higVer', 'higCurso', 'higExpediente', 'higArchivo', 'adminLlave', 'asisMia', 'tableroDueno', 'pdvLlave', 'monederoLlave', 'repDirectorio', 'verOferta', 'repLicencia', 'pdvVerComprobante', 'pdvReporteApp', 'seguirPedido', 'miEquipo', 'adminSucursales', 'configPublica', 'arranque', 'catalogo', 'yo', 'negocios', 'menu', 'menus', 'buscar', 'misPedidos', 'misPedidosAnteriores', 'pedido', 'mensajes', 'imagen',
   'miNegocio', 'misProductos', 'pedidosNegocio', 'panelNegocio', 'misPromos', 'miSuscripcion', 'adminCobros', 'adminVerificaciones', 'adminAlertas', 'disponibles', 'misEntregas', 'historialRepartidor', 'miPuntaje', 'directorioRepartidores', 'misGrupos', 'sondeo', 'primeraCompra',
   'adminResumen', 'adminUsuarios', 'adminPedidos', 'adminConfig', 'adminPromos', 'adminComisiones', 'adminInvitaciones', 'invitacion', 'adminEstadisticas', 'modAtencion', 'modRepartidores', 'avisoCiudad']);
 const API_CACHE = new Map(), API_FRESCO = 4000;
@@ -13553,8 +13553,9 @@ async function vCiudades() {
     toast('Directorio creado con ' + l.length + ' ciudades ✓');
   }
   const sol = (await db.collection('solicitudesCiudad').get()).docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => (b.ts || 0) - (a.ts || 0));
-  S._dir = { l: l.sort((a, b) => (a.orden || 99) - (b.orden || 99)), sol, ver: {} };
+  S._dir = { l: l.sort((a, b) => (a.orden || 99) - (b.orden || 99)), sol, ver: {}, hub: S._dir && S._dir.hub };
   pintarCiudades();
+  if (!esLocal()) api('adminHubEstado').then(h => { S._dir.hub = h; if (S.vista === 'ciudades') pintarCiudades(); }).catch(e => { S._dir.hub = { conectado: false, error: e.message }; if (S.vista === 'ciudades') pintarCiudades(); });
   // versión de cada servidor
   S._dir.nodo = {};
   await Promise.all(l.map(async c => { try { const x = await apiDe({ id: c.id, api: c.api, alt: '' }, 'configPublica', {}, null); S._dir.ver[c.id] = x.version || '?'; S._dir.nodo[c.id] = x.nodo || ''; } catch (e) { S._dir.ver[c.id] = 'sin respuesta'; } }));
@@ -13566,14 +13567,15 @@ function pintarCiudades() {
   const pend = d.sol.filter(s => !s.atendida);
   const porCiudad = {}; pend.forEach(s => { const k = (s.ciudad || '').trim().toLowerCase() + '|' + (s.estado || ''); (porCiudad[k] = porCiudad[k] || []).push(s); });
   html(`<div class="titBar"><button class="redondo" onclick="volver('admin')">${ico('atras')}</button><h2>🏙️ Ciudades</h2></div>
-    <div class="muted small" style="margin:-4px 0 10px">Cada ciudad tiene su propio servidor (Apps Script). La app manda a cada quien al de su ciudad.</div>
+    <div class="muted small" style="margin:-4px 0 10px">Cada ciudad tiene su propia hoja y su servidor. La app manda a cada quien al de su ciudad.</div>
+    ${esLocal() ? '' : hubTarjeta()}
     ${d.l.map(c => { const v = d.ver[c.id]; const atras = v && /^\d/.test(v) && verNum(v) < verNum(ult);
       if (c.tipo === 'seccion') return seccionTarjeta(c, v, atras, ult);
       return `<div class="card"><div class="row between"><b>📍 ${esc(c.nombre)}</b><span class="tag ${c.activa ? 't-ok' : 't-gray'}">${c.activa ? 'Activa' : 'Oculta'}</span></div>
         <div class="muted small">${esc(c.estado || '')} · radio ${c.radioKm || 15} km · id ${esc(c.id)}</div>
         <div class="small" style="margin-top:4px">Servidor: ${v === undefined ? 'revisando…' : atras ? `<b style="color:var(--err)">${esc(v)} · actualízalo a ${esc(ult)}</b>` : v === 'sin respuesta' ? '<b style="color:var(--err)">sin respuesta</b>' : `<b style="color:var(--ok)">${esc(v)} ✓</b>`}</div>
         <div class="btns">${esLocal() ? '' : `<button class="btn sm" onclick="formCiudad('${c.id}')">Editar</button>`}${c.id !== PUEBLO.id ? `<button class="btn sm" onclick="cambiarPueblo('${c.id}')">Entrar a ${esc(c.nombre)}</button>` : ''}</div></div>`; }).join('')}
-    ${esLocal() ? '' : `<div class="btns"><button class="btn pri pill full" onclick="formCiudad('')">➕ Nueva ciudad</button><button class="btn pill full" onclick="formSeccion('')">🛒 Nueva sección (Súper, abarrotes…)</button></div>`}
+    ${esLocal() ? '' : `<div class="btns"><button class="btn pri pill full" onclick="${hubListo() ? "ciudadCrearForm('')" : "formCiudad('')"}">➕ Nueva ciudad</button><button class="btn pill full" onclick="formSeccion('')">🛒 Nueva sección (Súper, abarrotes…)</button></div>`}
     <div class="muted small" style="margin-top:8px">Para abrir una ciudad se necesitan <b>${CIUDAD_MIN.negocios} negocios</b> y <b>${CIUDAD_MIN.repartidores} repartidores</b> (propios de los negocios o independientes).</div>
     <h3 style="margin-top:16px">Solicitudes (${pend.length})</h3>
     ${Object.values(porCiudad).map(g => { const s0 = g[0], negs = g.filter(s => s.tipo === 'negocio'), reps = g.filter(s => s.tipo === 'repartidor'), lista = negs.length >= CIUDAD_MIN.negocios && reps.length >= CIUDAD_MIN.repartidores;
@@ -13581,7 +13583,7 @@ function pintarCiudades() {
         ${g.map(s => `<div class="pdvFila g"><span>${s.tipo === 'negocio' ? '🏪 ' + esc(s.negocio || '') + ' · ' + esc(s.nombre || '') : s.tipo === 'repartidor' ? '🛵 ' + esc(s.nombre || '') + (s.negocio ? ' · de ' + esc(s.negocio) : ' · independiente') : '🙋 Cliente'}<small>${fechaCorta(s.ts)} · ${esc(s.telefono)}${s.radioKm ? ' · entrega ' + s.radioKm + ' km' : ''}</small></span>
           <span><a class="btn sm" target="_blank" href="${waLink(s.telefono, 'Hola' + (s.nombre ? ' ' + s.nombre.split(' ')[0] : '') + ', te escribimos de Pídele por tu solicitud para ' + s.ciudad + '.')}">${ico('chat', 's')}</a> <button class="btn sm" onclick="act(this,()=>solAtendida('${s.id}'))">✓</button></span><span></span></div>`).join('')}
         <div class="small" style="margin-top:6px">${lista ? '✅ Ya cumple el mínimo para abrir' : `Faltan ${[CIUDAD_MIN.negocios - negs.length > 0 ? (CIUDAD_MIN.negocios - negs.length) + ' negocio(s)' : '', CIUDAD_MIN.repartidores - reps.length > 0 ? (CIUDAD_MIN.repartidores - reps.length) + ' repartidor(es)' : ''].filter(Boolean).join(' y ')} para abrir`}</div>
-        ${negs.length && !esLocal() ? `<div class="btns"><button class="btn sm ${lista ? 'pri' : ''}" onclick="${lista ? '' : `if(!confirm('${esc(s0.ciudad)} todavía no cumple el mínimo (${CIUDAD_MIN.negocios} negocios y ${CIUDAD_MIN.repartidores} repartidores). ¿Darla de alta de todos modos?'))return;`}formCiudad('', '${s0.id}')">Dar de alta ${esc(s0.ciudad)}</button></div>` : ''}</div>`; }).join('') || '<div class="vacio">Sin solicitudes nuevas ✨</div>'}`);
+        ${negs.length && !esLocal() ? `<div class="btns"><button class="btn sm ${lista ? 'pri' : ''}" onclick="${lista ? '' : `if(!confirm('${esc(s0.ciudad)} todavía no cumple el mínimo (${CIUDAD_MIN.negocios} negocios y ${CIUDAD_MIN.repartidores} repartidores). ¿Darla de alta de todos modos?'))return;`}${hubListo() ? `ciudadCrearForm('${s0.id}')">✅ Aprobar y crear ${esc(s0.ciudad)}` : `formCiudad('', '${s0.id}')">Dar de alta ${esc(s0.ciudad)}`}</button></div>` : ''}</div>`; }).join('') || '<div class="vacio">Sin solicitudes nuevas ✨</div>'}`);
 }
 async function solAtendida(id) {
   await PDV.db.collection('solicitudesCiudad').doc(id).update({ atendida: Date.now() });
@@ -13648,6 +13650,102 @@ async function seccionLlave(id) {
     <div class="aviso small" style="margin-top:10px">Después vuelve a <b>Ciudades</b>: debe decir <b>conectado ✓</b>.</div>
     <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();vCiudades()">Listo</button></div>`);
 }
+/* ============ 3.2.0 · SERVIDOR DE CIUDADES: una ciudad nueva se crea sola al aprobarla ============ */
+const hubListo = () => !!(S._dir && S._dir.hub && S._dir.hub.conectado);
+function hubTarjeta() {
+  const h = S._dir && S._dir.hub;
+  if (!h) return '<div class="card"><b>🏗️ Servidor de ciudades nuevas</b><div class="muted small">Revisando…</div></div>';
+  if (h.conectado) return `<div class="card" style="border-left:4px solid var(--ok)"><div class="row between"><b>🏗️ Servidor de ciudades nuevas</b><span class="tag t-ok">Conectado</span></div>
+    <div class="muted small">Versión ${esc(h.version || '?')} · ${h.ciudades || 0} ciudad(es). Al aprobar una solicitud, la ciudad se crea sola: su hoja, su configuración y tu acceso.</div>
+    <div class="btns"><button class="btn sm" onclick="hubForm()">⚙️ Volver a conectar</button></div></div>`;
+  return `<div class="card" style="border:2px solid var(--warn)"><b>🏗️ Servidor de ciudades nuevas</b>
+    <div class="muted small" style="margin:4px 0">${h.url ? '<b style="color:var(--err)">No responde: ' + esc(h.error || '') + '</b><br>' : ''}Se prepara una sola vez (5 minutos). Después, cada ciudad nueva se crea con un toque al aprobarla.</div>
+    <button class="btn pri pill full" onclick="hubForm()">Conectar servidor de ciudades</button></div>`;
+}
+function hubForm() {
+  const v = (S.conf && S.conf.version) || '';
+  modal(`<div class="row between"><h2 style="margin:0">🏗️ Servidor de ciudades</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <ol class="small" style="margin:8px 0 0 18px;padding:0">
+      <li>Con tu cuenta de Google: hoja de cálculo nueva (llámala <b>Pídele Ciudades</b>) → <b>Extensiones → Apps Script</b> y pega el <b>Codigo-gs</b> de la versión ${esc(v)}.</li>
+      <li><b>Implementar → Nueva implementación → App web</b> · Ejecutar como: <b>Yo</b> · Acceso: <b>Cualquier usuario</b>. Copia la URL que termina en /exec y pégala aquí:</li></ol>
+    <input class="i" id="hbUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${esc((S._dir && S._dir.hub && S._dir.hub.url) || '')}">
+    <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,hubLlave)">Generar llave</button>
+    <div id="hbPaso"></div>`);
+}
+async function hubLlave() {
+  const url = $('#hbUrl').value.trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) throw new Error('Pega la URL que termina en /exec');
+  const r = await api('adminHubLlave', { url });
+  const fila = (k, val) => `<label class="f">${k}</label><div class="row" style="gap:6px"><input class="i" readonly value="${esc(val)}" style="font-family:monospace;font-size:12px"><button class="btn sm" onclick="copiar('${esc(val)}')">Copiar</button></div>`;
+  $('#hbPaso').innerHTML = `<ol class="small" start="3" style="margin:12px 0 0 18px;padding:0">
+      <li>En ese Apps Script: <b>Configuración del proyecto → Propiedades del script</b>, agrega estas 2 (no compartas la llave):</li></ol>
+    ${fila('MULTI', '1')}${fila('HUB_LLAVE', r.llave)}
+    <ol class="small" start="4" style="margin:10px 0 0 18px;padding:0">
+      <li>Agrega también <b>FCM_CUENTA</b>, <b>PLAY_CUENTA</b>, <b>FACTURAMA_USER</b> y <b>FACTURAMA_PASS</b> (las mismas de La Cruz): sirven para todas las ciudades nuevas.</li>
+      <li>Ejecuta la función <b>instalar</b> (acepta los permisos).</li>
+      <li>Toca <b>Probar</b>.</li></ol>
+    <button class="btn pri pill full" style="margin-top:10px" onclick="act(this,hubProbar)">Probar</button><div class="small" id="hbProb" style="margin-top:6px"></div>`;
+}
+async function hubProbar() {
+  const h = await api('adminHubEstado'); S._dir.hub = h;
+  if (!h.conectado) { $('#hbProb').innerHTML = `<b style="color:var(--err)">Aún no responde: ${esc(h.error || '')}</b>`; return; }
+  cerrarModal(); toast('🏗️ Servidor de ciudades conectado ✓'); pintarCiudades();
+}
+function ciudadCrearForm(solId) {
+  const s = S._dir.sol.find(x => x.id === solId) || {};
+  S._cc = { solId };
+  modal(`<div class="row between"><h2 style="margin:0">✅ Crear ciudad</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0">Se crea sola en el servidor de ciudades: su hoja, su configuración y tu acceso de administrador (mismo teléfono y contraseña).</div>
+    <label class="f">Nombre de la ciudad</label><input class="i" id="ccNom" maxlength="40" value="${esc(s.ciudad || '')}">
+    <label class="f">Estado</label><select class="i" id="ccEst"><option value="">Elige…</option>${ESTADOS_MX.map(e => `<option ${e === s.estado ? 'selected' : ''}>${e}</option>`).join('')}</select>
+    <label class="f">Centro de la ciudad</label><div class="row" style="gap:6px"><input class="i" id="ccLat" inputmode="decimal" placeholder="Latitud" value="${s.lat || ''}"><input class="i" id="ccLng" inputmode="decimal" placeholder="Longitud" value="${s.lng || ''}"></div>
+    <button class="lnk small" onclick="act(null,async()=>{const g=await gpsAhora('para el centro');$('#ccLat').value=g.lat.toFixed(5);$('#ccLng').value=g.lng.toFixed(5)})">📍 Usar mi ubicación</button>
+    <label class="f">Radio de la ciudad (km)</label><input class="i" id="ccRad" inputmode="numeric" value="${s.radioKm ? Math.max(10, s.radioKm) : 15}">
+    <div class="opcion on" id="ccAct" style="margin-top:10px" onclick="this.classList.toggle('on')"><span class="radio"></span><b>Visible desde ya (la ven todos en esa zona)</b></div>
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,ciudadCrear)">Crear ciudad</button></div>`);
+}
+async function ciudadCrear() {
+  const nombre = $('#ccNom').value.trim(), estado = $('#ccEst').value, lat = Number($('#ccLat').value), lng = Number($('#ccLng').value), radioKm = Math.round(Number($('#ccRad').value) || 15);
+  if (nombre.length < 3) throw new Error('Escribe el nombre de la ciudad');
+  if (!estado) throw new Error('Elige el estado');
+  if (!(Math.abs(lat) > 0 && Math.abs(lng) > 0)) throw new Error('Pon el centro de la ciudad');
+  if (!(radioKm >= 1 && radioKm <= 80)) throw new Error('El radio debe ser de 1 a 80 km');
+  let id = slug(nombre); if (!id || id.length < 2) throw new Error('Nombre inválido');
+  if (S._dir.l.some(c => c.id === id)) id = (id + slug(estado).slice(0, 3)).slice(0, 20);
+  if (S._dir.l.some(c => c.id === id)) throw new Error('Ya existe una ciudad con ese nombre');
+  const r = await api('adminCrearCiudad', { id, nombre, estado, lat, lng, radioKm });
+  const db = await dirAdminDb();
+  await db.collection('ciudades').doc(id).set({ nombre, estado, api: r.api, lat, lng, radioKm, activa: $('#ccAct').classList.contains('on'), hub: true, act: Date.now(), creado: Date.now(), orden: S._dir.l.length + 1 });
+  const s0 = S._dir.sol.find(x => x.id === S._cc.solId);
+  if (s0) await Promise.all(S._dir.sol.filter(s => (s.ciudad || '').trim().toLowerCase() === (s0.ciudad || '').trim().toLowerCase() && s.estado === s0.estado && !s.atendida).map(s => db.collection('solicitudesCiudad').doc(s.id).update({ atendida: Date.now() }).catch(() => { })));
+  modal(`<h2 style="margin-top:0">🎉 ${esc(nombre)} lista</h2><div class="muted small">Ya tiene su hoja, su configuración y tu acceso (mismo teléfono y contraseña).</div>
+    <ol class="small" style="margin:8px 0 0 18px;padding:0"><li>Entra a ${esc(nombre)} y en <b>Ajustes</b> revisa tarifas de envío y horarios.</li><li>Invita a los negocios y repartidores que pidieron la ciudad (✉️ Invitar).</li><li>Si quieres, nombra a su administrador de ciudad.</li></ol>
+    ${r.hoja ? `<a class="btn pill full" style="margin-top:10px" href="${esc(r.hoja)}" target="_blank">📄 Ver su hoja de cálculo</a>` : ''}
+    <div class="btns" style="flex-direction:column"><button class="btn pri pill full" onclick="cambiarPueblo('${id}')">Entrar a ${esc(nombre)}</button><button class="btn pill full" onclick="cerrarModal();vCiudades()">Listo</button></div>`);
+  await dirRefrescar().catch(() => { });
+}
+/* ---------- 3.2.0 · Semáforo de salud del servidor (Resumen del administrador general) ---------- */
+const SALUD_ICO = ['🟢', '🟡', '🔴'];
+async function saludCargar() {
+  const box = $('#saludCard'); if (!box || !box.tagName) return;
+  if (!S._salud || Date.now() - (S._saludT || 0) > 10 * 60000) { try { S._salud = await api('adminSalud'); S._saludT = Date.now(); } catch (e) { box.innerHTML = ''; return; } }
+  const r = S._salud, b = $('#saludCard'); if (!b || !b.tagName) return;
+  const mot = [].concat(...r.servidores.map(x => x.motivos.map(m => m + (r.servidores.length > 1 ? ' · ' + x.nombre : ''))));
+  b.innerHTML = `<div class="card" style="cursor:pointer;border:2px solid ${['var(--ok)', 'var(--warn)', 'var(--err)'][r.nivel]}" onclick="saludDetalle()"><div class="row between"><b>${SALUD_ICO[r.nivel]} Salud del servidor</b><span class="lnk small">Ver ›</span></div>
+    <div class="small" style="margin-top:4px">${r.nivel === 2 ? '<b>Es momento de mudarse a Firebase.</b> ' : r.nivel === 1 ? 'Todo funciona, pero hay algo que vigilar. ' : 'Todo bien: Apps Script todavía aguanta. '}${mot.slice(0, 2).map(esc).join(' · ')}</div>
+    ${r.hubErr ? `<div class="small" style="color:var(--err)">Servidor de ciudades: ${esc(r.hubErr)}</div>` : ''}</div>`;
+}
+function saludDetalle() {
+  const r = S._salud; if (!r) return;
+  const f = (t, v) => `<div class="tot"><span>${t}</span><b>${v}</b></div>`;
+  modal(`<div class="row between"><h2 style="margin:0">${SALUD_ICO[r.nivel]} Salud del servidor</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0">Últimos 7 días. 🟢 bien · 🟡 vigilar · 🔴 es momento de mudarse a Firebase. Se actualiza cada 5 minutos.</div>
+    ${r.servidores.map(x => `<div class="card"><b>${SALUD_ICO[x.nivel]} ${esc(x.nombre)}</b>${x.compartido ? '<div class="muted small">Sus ciudades comparten turno para guardar y minutos de tareas.</div>' : ''}
+      ${f('Llamadas medidas', x.llamadas.toLocaleString('es-MX'))}${f('Tiempo promedio por acción', (x.prom / 1000).toFixed(1) + ' s')}${f('Acciones de más de 8 s', x.lentos + '%')}
+      ${f('Espera para guardar', (x.espera / 1000).toFixed(1) + ' s')}${f('"Hay mucha actividad" (peor día)', x.ocupado)}${f('Tareas automáticas (peor día)', x.tareasMin + ' de 90 min')}${f('Hoja usada (límite de Google)', x.celdasPct + '%')}
+      ${x.motivos.length ? `<div class="small" style="margin-top:6px">${x.motivos.map(esc).join('<br>')}</div>` : ''}</div>`).join('')}
+    ${r.migrar ? '<div class="aviso warn small">Cuando quieras empezar la mudanza a Firebase, avísale a Claude con lo que ves aquí.</div>' : ''}`);
+}
 /** 2.47.2: mínimo para abrir una ciudad. */
 const CIUDAD_MIN = { negocios: 2, repartidores: 4 };
 const slug = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '').slice(0, 20);
@@ -13676,7 +13774,7 @@ function formCiudad(id, solId) {
 }
 async function probarCiudad() {
   const url = $('#cfApi').value.trim(), e = $('#cfProb');
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) throw new Error('Pega la URL completa que termina en /exec');
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec(\?c=[a-z0-9]+)?$/.test(url)) throw new Error('Pega la URL completa que termina en /exec');
   e.textContent = 'Probando…';
   try { const c = await apiDe({ id: 'x', api: url, alt: '' }, 'configPublica', {}, null); e.innerHTML = `<b style="color:var(--ok)">✓ Responde · versión ${esc(c.version || '?')}${c.pueblo ? ' · ' + esc(c.pueblo) : ''}</b>`; return c; }
   catch (er) { e.innerHTML = `<b style="color:var(--err)">No responde: ${esc(er.message)}</b>`; throw er; }
@@ -13685,7 +13783,7 @@ async function guardarCiudad() {
   const nombre = $('#cfNom').value.trim(), estado = $('#cfEst').value, api = $('#cfApi').value.trim(), lat = Number($('#cfLat').value), lng = Number($('#cfLng').value), radioKm = Math.round(Number($('#cfRad').value) || 15);
   if (nombre.length < 3) throw new Error('Escribe el nombre de la ciudad');
   if (!estado) throw new Error('Elige el estado');
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(api)) throw new Error('Pega la URL del servidor que termina en /exec');
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec(\?c=[a-z0-9]+)?$/.test(api)) throw new Error('Pega la URL del servidor que termina en /exec');
   if (!(Math.abs(lat) > 0 && Math.abs(lng) > 0)) throw new Error('Pon el centro de la ciudad');
   if (!(radioKm >= 1 && radioKm <= 80)) throw new Error('El radio debe ser de 1 a 80 km');
   let id = S._cf.id;
@@ -18495,11 +18593,13 @@ async function demoIr(modo) {
 async function vAdmin() {
   const d = await api('adminResumen');
   const nt = d.notificaciones || {};
+  if (!d.local) setTimeout(saludCargar, 0); // 3.2.0
   html(`${bannerPush()}<div class="row between"><h2>Resumen</h2><div class="row" style="gap:6px"><button class="btn sm" onclick="ir('perfil')">👤 Mi perfil</button><button class="btn sm" onclick="repetirTour()">🧭 Guía</button>${PUEBLOS.length > 1 || d.local ? `<span class="tag t-pri">📍 ${esc(d.pueblo || PUEBLO.nombre)}</span>` : ''}</div></div>
     ${esAdminCiudad() ? `<div class="aviso info">🏙️ Eres <b>administrador de ${esc(d.pueblo || PUEBLO.nombre)}</b>: das de alta negocios (con ✉️ Invitar), fijas las tarifas de envío y das soporte en tu zona. Atiende cada solicitud antes de 24 horas. Tu tablero y comisiones están en “Mi ciudad”.</div>
       <div class="card" style="cursor:pointer" onclick="act(null,formInvitar)"><b>✉️ Invitar negocio o repartidor</b><div class="muted small">Los negocios que invites quedan a tu nombre: ganas 50% de su primer mes y 20% de cada mensualidad.</div></div>`
     : d.local ? `<div class="aviso info">🎧 Eres <b>soporte de Pídele</b> en ${esc(d.pueblo || PUEBLO.nombre)}: apruebas negocios y repartidores, atiendes pedidos, registras pagos en efectivo, ajustas las tarifas de envío y atiendes las solicitudes de ciudades nuevas.</div>` : ''}
     ${nt.configuradas ? '' : '<div class="aviso warn">🔕 Notificaciones sin configurar en el servidor (falta FCM_CUENTA). La app funciona, pero sin avisos con la app cerrada.</div>'}
+    ${d.local ? '' : '<div id="saludCard"></div>'}
     ${tarjetaConcursoAdmin(d.concurso)}
     <div class="kpis">
       <div class="kpi"><b>${d.hoy.pedidos}</b><span>Pedidos hoy</span></div>
