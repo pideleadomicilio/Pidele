@@ -827,6 +827,10 @@ nav .navMon .fab{font-size:30px;line-height:1}
 nav .navMon .navMonT{display:flex;flex-direction:column;align-items:center;font-size:11.5px;line-height:1.1}nav .navMon .navMonT b{font-size:12px;color:var(--ok)}
 .monRegla{font-size:14px;font-weight:700;margin:8px 0 0;padding:8px 10px;border-radius:12px;background:var(--bg)}
 .monAlta{max-width:440px;margin:0 auto;padding-top:8px}
+.vtLista{max-height:60vh;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.vtFila{border:1.5px solid var(--ln);border-radius:14px;padding:10px 12px;margin-bottom:8px;background:#fff}.vtFila.cambio{border-color:var(--pri);background:var(--pri-s)}
+.vtCampos{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-top:6px}.vtCampos label span{display:block;font-size:12.5px;font-weight:800;color:var(--tx2);margin-bottom:2px}.vtCampos .i{margin:0}
+.vtPrev{margin-top:4px;font-weight:700}.vtPie{position:sticky;bottom:0;background:var(--card);padding-top:8px}
 .eqVac{font-size:12.5px;font-weight:800;border-radius:999px;padding:3px 8px;background:var(--ok-s);color:var(--ok);white-space:nowrap;margin-left:4px}.eqVac.neg{background:var(--err-s);color:var(--err)}
 </style>
 </head>
@@ -1169,7 +1173,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.0.1'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.0.2'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -8937,15 +8941,62 @@ const vacLFT = a => a < 1 ? 0 : a <= 5 ? 10 + 2 * a : 20 + 2 * Math.ceil((a - 5)
 function vacProxAniv(ing, hoy) { let y = Number(ing.slice(0, 4)) + 1; while ((y + ing.slice(4)) <= hoy) y++; return { f: y + ing.slice(4), anios: y - Number(ing.slice(0, 4)) }; }
 function vacListaHTML(d) {
   if (!(d.lista || []).length) return '';
-  return `<div class="card"><b>🏖️ Días de vacaciones de cada uno</b><div class="small muted" style="margin:2px 0 4px">Con la <b>fecha de ingreso</b>, en cada aniversario se suman solos los días que marca la ley (12 el primer año, 14 el segundo, 16, 18, 20 y después 2 más cada 5 años). Toca a alguien para ajustar.</div>
-    ${d.lista.map(x => `<div class="vacFilaL" role="button" onclick="vacAjusteForm('${x.usuarioId}')"><div class="grow"><b>${esc(x.nombre)}</b>
+  const okV = S._vacOk || {};
+  return `<div class="card"><div class="row between" style="gap:8px"><b>🏖️ Días de vacaciones de cada uno</b>${d.dueno ? '<button class="btn sm pri pill" onclick="vacEditarTodos()">✏️ Editar todos</button>' : ''}</div><div class="small muted" style="margin:2px 0 4px">Con la <b>fecha de ingreso</b>, en cada aniversario se suman solos los días que marca la ley (12 el primer año, 14 el segundo, 16, 18, 20 y después 2 más cada 5 años). Toca a alguien para ajustar.</div>
+    ${d.lista.map(x => `<div class="vacFilaL" role="button" onclick="vacAjusteForm('${x.usuarioId}')"><div class="grow"><b>${esc(x.nombre)}</b>${okV[x.usuarioId] ? ' <span class="tag t-ok">✓ guardado</span>' : ''}
       <div class="small muted">${x.ingreso ? 'Entró ' + vacFechaL(x.ingreso) : '<span style="color:var(--warn);font-weight:800">⚠️ Falta su fecha de ingreso</span>'}</div>
       ${x.saldo < 0 && x.prox ? `<div class="small" style="color:var(--err);font-weight:800">Debe ${-x.saldo} · se descuentan el ${vacFechaL(x.prox)}</div>` : x.prox && x.proxSuma ? `<div class="small" style="color:var(--ok);font-weight:800">+${x.proxSuma} el ${vacFechaL(x.prox)}</div>` : ''}</div>
       <div class="vacSaldo ${x.saldo < 0 ? 'neg' : ''}">${x.saldo}<small>día${Math.abs(x.saldo) === 1 ? '' : 's'}</small></div></div>`).join('')}</div>`;
 }
+/* ---------- 3.0.2 · Editar a todos en una sola tabla ---------- */
+function vacEditarTodos() {
+  const d = PDV.per && PDV.per.datos; if (!d || !d.lista) return;
+  S._vt = d.lista.map(x => ({ usuarioId: x.usuarioId, nombre: x.nombre, ingreso: x.ingreso || '', saldo: x.saldo }));
+  modal(`<div class="row between"><h2 style="margin:0">✏️ Vacaciones de todos</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted" style="margin:4px 0 8px">Escribe la fecha de ingreso y los días que tiene hoy cada quien. Solo se guardan los renglones que cambies.</div>
+    <div class="vtLista">${S._vt.map((x, i) => `<div class="vtFila" id="vt${i}"><b>${esc(x.nombre)}</b>
+      <div class="vtCampos"><label><span>Fecha de ingreso</span><input class="i" type="date" max="${pdvHoy()}" value="${esc(x.ingreso)}" oninput="vacTodosPrev(${i})" data-k="ing"></label>
+        <label><span>Días hoy</span><input class="i pdvNum" inputmode="numeric" value="${x.saldo}" oninput="vacTodosPrev(${i})" data-k="sal"></label></div>
+      <div class="small vtPrev"></div></div>`).join('')}</div>
+    <div class="vtPie"><button class="btn pri pill full" id="vtGuardar" onclick="act(this,vacTodosGuardar)" disabled>Guardar cambios</button></div>`);
+  S._vt.forEach((x, i) => vacTodosPrev(i));
+}
+function vacTodosLeer(i) {
+  const f = $('#vt' + i); if (!f) return null;
+  return { ing: f.querySelector('[data-k=ing]').value, sal: f.querySelector('[data-k=sal]').value.trim() };
+}
+function vacTodosCambios() {
+  return S._vt.map((x, i) => { const v = vacTodosLeer(i); if (!v) return null;
+    const ci = v.ing !== x.ingreso, cs = v.sal !== '' && Number(v.sal) !== x.saldo;
+    return ci || cs ? { usuarioId: x.usuarioId, nombre: x.nombre, ingreso: ci ? v.ing : undefined, saldoHoy: cs ? v.sal : undefined, _i: i } : null; }).filter(Boolean);
+}
+function vacTodosPrev(i) {
+  const x = S._vt[i], v = vacTodosLeer(i), f = $('#vt' + i); if (!v) return;
+  const sal = /^-?\d+$/.test(v.sal) ? Number(v.sal) : x.saldo, box = f.querySelector('.vtPrev');
+  if (v.sal !== '' && !/^-?\d+$/.test(v.sal)) { box.innerHTML = '<span style="color:var(--err)">Escribe los días con número</span>'; }
+  else if (!v.ing) box.innerHTML = '<span style="color:var(--warn)">⚠️ Sin fecha de ingreso los días no se suman solos</span>';
+  else { const p = vacProxAniv(v.ing, pdvHoy()), s2 = vacLFT(p.anios); box.innerHTML = `<span style="color:${sal < 0 ? 'var(--err)' : 'var(--ok)'}">${sal < 0 ? 'Debe ' + (-sal) + ' · ' : ''}+${s2} el ${vacFechaL(p.f)} (cumple ${p.anios} año${p.anios === 1 ? '' : 's'})</span>`; }
+  const ci = v.ing !== x.ingreso, cs = v.sal !== '' && Number(v.sal) !== x.saldo;
+  f.classList.toggle('cambio', ci || cs);
+  const n = vacTodosCambios().length, b = $('#vtGuardar');
+  if (b) { b.disabled = !n; b.textContent = n ? `Guardar cambios (${n})` : 'Guardar cambios'; }
+}
+async function vacTodosGuardar() {
+  const l = vacTodosCambios(); if (!l.length) return;
+  const mal = l.find(x => x.saldoHoy !== undefined && !/^-?\d+$/.test(x.saldoHoy)); if (mal) throw new Error('Revisa los días de ' + mal.nombre);
+  const r = await api('vacAjustesVarios', { negocioId: S.negocio.id, lista: l.map(x => ({ usuarioId: x.usuarioId, nombre: x.nombre, ingreso: x.ingreso, saldoHoy: x.saldoHoy })) });
+  cerrarModal();
+  S._vacOk = {}; l.forEach(x => { if (!(r.errores || []).some(e => e.startsWith(x.nombre + ':'))) S._vacOk[x.usuarioId] = 1; });
+  setTimeout(() => { S._vacOk = null; if (PDV.per && PDV.per.sub === 'vac' && S.vista === 'caja') pintarCaja(); }, 6000);
+  if (PDV.per && PDV.per.sub === 'vac') { PDV.per.datos = Object.assign({}, PDV.per.datos, r); PDV.per.clave = PDV.per.clave || ''; }
+  toast(r.errores && r.errores.length ? '⚠️ ' + r.errores.join(' · ') : `Guardado ✓ ${r.guardados} persona${r.guardados === 1 ? '' : 's'}`, r.errores && r.errores.length ? 'err' : undefined);
+  pintarCaja();
+}
 /** 3.0 · Fecha de ingreso y días que tiene hoy (por si ya usó días que no se registraron). */
 async function vacAjusteForm(uid) {
-  const D = await api('vacPersona', { negocioId: S.negocio.id, usuarioId: uid });
+  if (S._vaAbr) return; S._vaAbr = true; // 3.0.2: un toque de más ya no abre otro cuadro
+  modal('<div class="cargando">Abriendo…</div>');
+  let D; try { D = await api('vacPersona', { negocioId: S.negocio.id, usuarioId: uid }); } catch (e) { cerrarModal(); throw e; } finally { S._vaAbr = false; }
   if (!D.dueno) return vacFicha(uid);
   S._va = D;
   modal(`<div class="row between"><h2 style="margin:0">🏖️ Vacaciones de ${esc(D.nombre.split(' ')[0])}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -8970,6 +9021,7 @@ async function vacAjusteGuardar() {
   if (sal !== '' && !/^-?\d+$/.test(sal)) throw new Error('Escribe los días con número (puede ser negativo)');
   await api('vacAsignar', { negocioId: S.negocio.id, usuarioId: D.usuarioId, ajuste: { ingreso: $('#vaIng').value, saldoHoy: sal } });
   cerrarModal(); toast('Vacaciones guardadas ✓');
+  (S._vacOk = S._vacOk || {})[D.usuarioId] = 1; setTimeout(() => { S._vacOk = null; }, 6000);
   if (S._ficha) { S._fichaD = null; PDV.per.datos = null; }
   if (PDV.per) { PDV.per.datos = null; PDV.per.clave = ''; } pintarCaja();
 }
