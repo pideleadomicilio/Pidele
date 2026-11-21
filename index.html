@@ -492,7 +492,9 @@ body.uxPick [data-uxk],body.uxPick [data-uxn]{outline:3px solid #1c7ed6}
 .abrirFab{position:fixed;right:12px;bottom:calc(140px + env(safe-area-inset-bottom));z-index:61;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:0;cursor:pointer;font:inherit}
 .abrirFab .pwr{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--err);box-shadow:0 4px 14px rgba(0,0,0,.25);border:3px solid var(--card,#fff)}
 .abrirFab small{font-size:10.5px;font-weight:800;background:var(--card,#fff);border-radius:99px;padding:1px 7px;box-shadow:0 1px 4px rgba(0,0,0,.15);color:var(--tx)}
-.abrirFab.on .pwr{background:var(--ok)}.abrirFab.medio .pwr{background:var(--warn)}
+.abrirFab.on .pwr{background:var(--ok)}.abrirFab.medio .pwr{background:var(--warn)}.abrirFab.tarde .pwr{background:#5c7c8a}
+.abrirFab,.checar.mini{transition:transform .25s ease,opacity .25s ease}body.fabFuera .abrirFab,body.fabFuera .checar.mini{transform:translateX(78px);opacity:.15;pointer-events:none}
+#vista:has(.abrirFab,.checar.mini){padding-bottom:calc(150px + env(safe-area-inset-bottom))}
 .abrirFab.pulso .pwr{animation:pwrPulso 1.6s ease-out infinite}@keyframes pwrPulso{0%{box-shadow:0 0 0 0 rgba(200,60,40,.55)}100%{box-shadow:0 0 0 16px rgba(200,60,40,0)}}
 .pwrMini{display:inline-grid;vertical-align:-4px}.pwrMini svg{width:20px;height:20px}#abrirHoja .tabAbrir{margin-bottom:10px}
 .tabNeg{background:var(--card,#fff);border-radius:16px;padding:14px;border-left:6px solid var(--pri);box-shadow:0 2px 10px rgba(0,0,0,.05)}
@@ -1197,7 +1199,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.2.0'; // versión de esta pantalla (index.html); el servidor tiene la suya
+const APP_VER = '3.2.6'; // versión de esta pantalla (index.html); el servidor tiene la suya
 
 /* ============ iPhone: barra de abajo y teclado ============ */
 (function () {
@@ -2070,7 +2072,7 @@ async function responderEquipo(id, aceptar) {
   if (aceptar) { S.modoCliente = false; ls('modoCliente', null); toast('¡Listo! Ya eres parte del equipo de ' + (S.negocio ? S.negocio.nombre : 'ese negocio')); pintarNav(); ir(inicioRol()); }
   else { toast('Invitación rechazada'); pintar(true); }
 }
-const PERM_TXT = { pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'vender: tomar órdenes (mostrador y mesas) y cobrar', gerente: 'autorizar cancelaciones con su código', mercadotecnia: 'subir fotos, logo y portada, y manejar promociones y anuncios', facturas: 'revisar y emitir facturas, y mandarlas al cliente' };
+const PERM_TXT = { cancelar: 'cancelar pedidos y ventas (los gerentes ya lo traen)', pedidos: 'atender pedidos', abrir: 'abrir y cerrar el negocio', agotados: 'marcar productos agotados', menu: 'editar el menú y precios', promos: 'crear promociones y banners', ventas: 'ver ventas y totales', ajustes: 'cambiar datos, horario y pagos', caja: 'usar la caja (abrir, vender, cobrar, gastos)', mesero: 'vender: tomar órdenes (mostrador y mesas) y cobrar', gerente: 'autorizar cancelaciones con su código', mercadotecnia: 'subir fotos, logo y portada, y manejar promociones y anuncios', facturas: 'revisar y emitir facturas, y mandarlas al cliente' };
 /** 2.85.1 · Facturar es un permiso propio: el dueño o quien tenga "Revisar y emitir facturas". */
 const puedeFacturar = n => { n = n || S.negocio; if (!n) return false; const p = n.permisos || (S.negocio && S.negocio.id === n.id ? S.negocio.permisos : []) || []; return !!n.dueno || p.includes('facturas'); };
 /** Negocios y repartidores también pueden pedir comida ("modo cliente"). */
@@ -2191,6 +2193,12 @@ async function uxCargar() {
     UX.pub = pub; ls('uxPub_' + id, pub); UX.ef = null; uxRefrescar();
   } catch (e) { console.warn('ux', e); }
 }
+/* 3.2.4 · Los botones flotantes se hacen a un lado mientras deslizas y regresan 1.5 s después */
+(function () {
+  let t = null;
+  const fuera = () => { if (!document.querySelector('.abrirFab,.checar.mini')) return; document.body.classList.add('fabFuera'); clearTimeout(t); t = setTimeout(() => document.body.classList.remove('fabFuera'), 1500); };
+  window.addEventListener('scroll', fuera, { passive: true }); window.addEventListener('touchmove', fuera, { passive: true });
+})();
 function uxIniciar() {
   if (UX.obs) return;
   UX.obs = new MutationObserver(() => uxAplicar());
@@ -3723,19 +3731,21 @@ async function pdvHash(pin, sal) {
   const b = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(sal), iterations: 60000, hash: 'SHA-256' }, k, 256);
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
+/** 3.2.1 · Revisión local (solo sin internet y para abrir/cerrar turno): compara la huella corta. */
 async function pdvPinOk(uid, pin) {
   const p = PDV.personal[uid];
-  if (!p || !p.pin) return false;
-  return (await pdvHash(pin, p.pin.s)) === p.pin.h;
+  if (!p || !p.pin || !p.pin.h) return false;
+  return (await pdvHash(pin, p.pin.s)).slice(0, p.pin.h.length) === p.pin.h;
 }
 function pdvGente(rol) { return Object.entries(PDV.personal).filter(([uid, p]) => p.pin && (rol === 'dueno' ? uid === PDV.gid : p[rol] || (rol === 'caja' && p.gerente))).map(([uid, p]) => ({ uid, nombre: p.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)); }
 /** 2.43.1 · Si mi código se creó con otros permisos (versión anterior o me cambiaron el rol), se corrige solo. */
 function pdvPersonalAlDia() {
   if (esDisp()) return;
   const p = PDV.personal[S.user.id]; if (!p || !p.pin || PDV._alDia === PDV.nid + PDV.letras) return;
-  const f = { caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), dueno: pdvPuede('d') };
+  const f = { caja: pdvPuede('dc'), gerente: pdvPuede('dgx'), mesero: pdvPuede('dm'), dueno: pdvPuede('d') };
   PDV._alDia = PDV.nid + PDV.letras;
-  if (Object.keys(f).every(k => !!p[k] === f[k]) && p.nombre === S.user.nombre) return;
+  if (p.pin.h && p.pin.h.length > 4) p.pin = { s: p.pin.s, h: p.pin.h.slice(0, 2), v: 1 }; // 3.2.1: ya no se deja la huella completa (se podía adivinar el código)
+  else if (Object.keys(f).every(k => !!p[k] === f[k]) && p.nombre === S.user.nombre) return;
   Object.assign(p, f, { nombre: S.user.nombre });
   pdvGuardar(pdvCol('personal').doc(S.user.id).set(Object.assign({}, p, { ts: Date.now() })));
 }
@@ -3743,18 +3753,21 @@ function pdvFormPin() {
   const tiene = PDV.personal[S.user.id] && PDV.personal[S.user.id].pin;
   modal(`<div class="row between"><h2 style="margin:0">🔑 Mi código</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted" style="margin:6px 0 10px">Tu código personal de ${esc(S.negocio.nombre)} (4 a 6 números). Lo usas para abrir y cerrar caja${pdvPuede('dg') ? ' y para autorizar cancelaciones como gerente' : ''}. No se lo compartas a nadie.</div>
+    ${pdvPuede('dgx') ? '<div class="aviso info small">Como autorizas cancelaciones o eres dueño, tu código es de <b>6 números</b>.</div>' : ''}
     <label class="f">${tiene ? 'Nuevo código' : 'Código'}</label><input class="i" id="pin1" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
     <label class="f">Repítelo</label><input class="i" id="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
     <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvGuardarPin)">Guardar mi código</button></div>`);
 }
 async function pdvGuardarPin() {
   const a = $('#pin1').value.trim(), b = $('#pin2').value.trim();
-  if (!/^\d{4,6}$/.test(a)) throw new Error('El código debe tener de 4 a 6 números');
+  if (!(pdvPuede('dgx') ? /^\d{6}$/ : /^\d{4,6}$/).test(a)) throw new Error(pdvPuede('dgx') ? 'Tu código debe tener 6 números' : 'El código debe tener de 4 a 6 números');
   if (a !== b) throw new Error('Los dos códigos no coinciden');
   if (/^(\d)\1+$/.test(a) || '0123456789'.includes(a) || '9876543210'.includes(a)) throw new Error('Elige un código menos fácil de adivinar');
+  if (!navigator.onLine) throw new Error('Para guardar tu código se necesita internet');
+  await api('pinGuardar', { negocioId: PDV.nid, pin: a }); // 3.2.1: el código completo vive en el servidor
   const s = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const h = await pdvHash(a, s);
-  const doc = { nombre: S.user.nombre, caja: pdvPuede('dc'), gerente: pdvPuede('dg'), mesero: pdvPuede('dm'), dueno: pdvPuede('d'), pin: { s, h }, ts: Date.now() };
+  const h = (await pdvHash(a, s)).slice(0, 2); // en Firestore solo una huella corta (para abrir turno sin internet)
+  const doc = { nombre: S.user.nombre, caja: pdvPuede('dc'), gerente: pdvPuede('dgx'), mesero: pdvPuede('dm'), dueno: pdvPuede('d'), pin: { s, h, v: 2 }, ts: Date.now() };
   PDV.personal[S.user.id] = doc;
   pdvGuardar(pdvCol('personal').doc(S.user.id).set(doc));
   cerrarModal(); toast('Código guardado 🔑'); pintarCaja();
@@ -3765,7 +3778,7 @@ function pdvPedirPin(titulo, rol, extra) {
     const g = pdvGente(rol);
     if (!g.length && !esDisp() && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg'))) { mal(new Error('Cancelado')); pdvFormPin(); toast('Primero crea tu código personal de ' + S.negocio.nombre, 'err'); return; }
     if (!g.length) { mal(new Error(rol === 'dueno' ? 'El dueño aún no crea su código. Lo hace en Caja → 🔑 Mi código.' : rol === 'gerente' ? 'Ningún gerente tiene código todavía. El dueño o un gerente lo crea en Caja → 🔑 Mi código.' : 'Nadie tiene código de caja todavía. Créalo en 🔑 Mi código.')); return; }
-    S._pinCb = { ok, mal };
+    S._pinCb = { ok, mal }; S._pinRol = rol;
     const yoPuedo = !esDisp() && (rol === 'dueno' ? pdvPuede('d') : rol === 'gerente' ? pdvPuede('dg') : pdvPuede('dcg')), yoTengo = g.some(x => x.uid === S.user.id);
     modal(`<div class="row between"><h2 style="margin:0">${titulo}</h2><button class="redondo" onclick="S._pinCb.mal(new Error('Cancelado'));cerrarModal()" aria-label="Cerrar">✕</button></div>
       ${yoPuedo && !yoTengo ? `<div class="aviso warn" style="margin:8px 0">🔑 Tú no apareces porque aún no creas tu código en <b>${esc(S.negocio.nombre)}</b> (es uno por negocio). <button class="lnk" onclick="S._pinCb.mal(new Error('Cancelado'));pdvFormPin()">Crear mi código</button></div>` : ''}
@@ -3777,14 +3790,26 @@ function pdvPedirPin(titulo, rol, extra) {
     setTimeout(() => { const i = $('#pinVal'); if (i) i.focus(); }, 200);
   });
 }
+/** 3.2.1 · Con internet el código lo revisa el servidor; sin internet solo se acepta para abrir o cerrar turno. */
 async function pdvValidarPin() {
-  const uid = $('#pinQuien').value, pin = $('#pinVal').value.trim();
+  const uid = $('#pinQuien').value, pin = $('#pinVal').value.trim(), rol = S._pinRol || 'caja';
   if (S._pinAntes && S._pinAntes() === false) return;
-  if (!(await pdvPinOk(uid, pin))) { $('#pinVal').value = ''; throw new Error('Código incorrecto'); }
-  const cb = S._pinCb; S._pinCb = null;
+  let aut = '';
+  if (navigator.onLine) {
+    try { const r = await api('pinVerificar', { negocioId: PDV.nid, uid, pin, rol, doc: S._pinDoc || '', para: S._pinPara || '' }); aut = r.aut || ''; }
+    catch (e) {
+      // abrir o cerrar turno: si esa persona aún no vuelve a crear su código, se acepta el de este equipo y se le recuerda
+      if (rol === 'caja' && /volver a crear/.test(e.message || '') && (await pdvPinOk(uid, pin))) toast('🔑 ' + (PDV.personal[uid] || {}).nombre + ': vuelve a crear tu código en Caja → 🔑 Mi código (ahora es más seguro)');
+      else { $('#pinVal').value = ''; throw e; }
+    }
+  } else {
+    if (rol !== 'caja') throw new Error('Para autorizar se necesita internet');
+    if (!(await pdvPinOk(uid, pin))) { $('#pinVal').value = ''; throw new Error('Código incorrecto'); }
+  }
+  const cb = S._pinCb; S._pinCb = null; S._pinDoc = ''; S._pinPara = '';
   const datos = S._pinDatos ? S._pinDatos() : null;
   if (esDisp()) S._oper = { uid, nombre: PDV.personal[uid].nombre, ts: Date.now() }; // 2.83: queda como quien atiende en el equipo
-  cb.ok(Object.assign({ uid, nombre: PDV.personal[uid].nombre }, datos ? { datos } : {}));
+  cb.ok(Object.assign({ uid, nombre: PDV.personal[uid].nombre, pin, aut }, datos ? { datos } : {}));
 }
 
 /* ---------- suscripciones ---------- */
@@ -4549,6 +4574,7 @@ async function pdvTerminarVenta() {
   const ref = pdvCol('ventas').doc(), folio = pdvFolio();
   // monedero (2.32): primero se cobra lo pagado con monedero (si falla, la venta no se guarda)
   for (const p of k.pagos.filter(x => x.metodo === 'monedero' && !x.monDesg)) await monDescontar(p, folio, ref.id);
+  for (const p of k.pagos.filter(x => x.metodo === 'nomina' && !x.nominaHecho)) await nominaCargarYa(p, folio, ref.id, caja); // 3.2.1
   const telM = tel || ((k.pagos.find(x => x.metodo === 'monedero') || {}).monTel || '');
   const baseCb = pdvR(k.total - k.pagos.filter(x => x.metodo === 'monedero' || x.metodo === 'consumo' || x.metodo === 'nomina').reduce((s, x) => s + x.monto, 0));
   const monInfo = await monAcumular({ tel: telM, nombre: v0.nombre, base: baseCb, tarjeta: k.pagos.filter(x => x.metodo === 'tarjeta').reduce((s, x) => s + x.monto, 0), folio, ventaId: ref.id });
@@ -5573,7 +5599,7 @@ async function pdvAgregarCliente(id) {
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   const { tel, nombre } = g.datos, autoriza = { uid: g.uid, nombre: g.nombre };
-  const info = await monAcumular({ tel, nombre, base, tarjeta: (v.pagos || []).filter(x => x.metodo === 'tarjeta').reduce((s, x) => s + x.monto, 0), folio: v.folio, ventaId: v.id, agregado: { autoriza, ts: Date.now() } });
+  const info = await monAcumular({ tel, nombre, base, tarjeta: (v.pagos || []).filter(x => x.metodo === 'tarjeta').reduce((s, x) => s + x.monto, 0), folio: v.folio, ventaId: v.id, clave: 'ag', agregado: { autoriza, ts: Date.now() } });
   if (!info) throw new Error('El monedero no está activo');
   const cambios = { cliente: { tel, nombre: nombre || '' }, monAgregado: { autoriza, por: pdvYo(), ts: Date.now(), cashback: info.cashback } };
   if (v.origen !== 'cuenta') cambios.monedero = info;
@@ -5590,17 +5616,19 @@ async function pdvCancelarVenta(id) {
   S._pinAntes = () => { const m = ($('#cancMot') || {}).value || ''; if (m.trim().length < 5) { toast('Escribe la justificación (mínimo 5 letras)', 'err'); return false; } };
   S._pinDatos = () => $('#cancMot').value.trim();
   let g;
+  if (!navigator.onLine) throw new Error('Para cancelar una venta se necesita internet');
+  S._pinDoc = id; S._pinPara = 'cancelar';
   try {
     g = await pdvPedirPin('Cancelar ' + v.folio, 'gerente', `<div class="aviso warn" style="margin:8px 0">Se cancela la venta de ${money(v.total)}. ${v.pagos.some(p => p.metodo === 'efectivo') ? 'Devuelve el efectivo al cliente.' : ''}${v.pagos.some(p => p.metodo === 'monedero') ? ' Lo pagado con monedero regresa a su saldo.' : ''}${v.monedero && v.monedero.cashback ? ' Se le quita el cashback de esta venta.' : ''}</div>
       <label class="f">Justificación</label><textarea class="i" id="cancMot" rows="2" maxlength="200" placeholder="Ej. El cliente se arrepintió, se cobró de más…"></textarea>`);
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   const ts = Date.now();
-  const cambios = { estado: 'cancelada', cancelacion: { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts } };
+  const cambios = { estado: 'cancelada', cancelacion: { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts, aut: g.aut || '' } };
   if (v.cocina) cambios['cocina.estado'] = 'cancelada';
-  pdvGuardar(pdvCol('ventas').doc(id).update(cambios));
+  await Promise.race([pdvCol('ventas').doc(id).update(cambios), new Promise((ok, mal) => setTimeout(() => mal(new Error('No se pudo guardar la cancelación; revisa tu internet')), 12000))]); // 3.2.1: el servidor lo revisa antes de regresar el monedero
   (v.pagoIds || []).forEach(pid => pdvGuardar(pdvCol('pagos').doc(pid).update({ anulado: true, anuladoTs: ts })));
-  if (v.cocina && v.cocina.comandaId) { const k = PDV.comandas.find(x => x.id === v.cocina.comandaId); if (!k || k.estado === 'preparando') pdvGuardar(pdvCol('comandas').doc(v.cocina.comandaId).update({ estado: 'cancelada' })); }
+  if (v.cocina && v.cocina.comandaId) { const k = PDV.comandas.find(x => x.id === v.cocina.comandaId); if (!k || k.estado === 'preparando') pdvGuardar(pdvCol('comandas').doc(v.cocina.comandaId).update({ estado: 'cancelada', aut: g.aut || '', ventaId: id })); }
   const inc = { ventas: pdvInc(-v.total), n: pdvInc(-1), canceladas: pdvInc(1), montoCancelado: pdvInc(v.total), propinas: pdvInc(-(v.propina || 0)) };
   const por = {}; v.pagos.forEach(p => { por[p.metodo] = (por[p.metodo] || 0) + p.monto; });
   Object.keys(por).forEach(m => { inc['met_' + m] = pdvInc(-por[m]); });
@@ -6510,7 +6538,8 @@ function pdvPanelCuenta(c) {
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="pdvPreventa('${c.id}')">🧾 Pre-cuenta</button>
       <button class="btn pri pill" style="flex:2;font-size:17px" ${saldo > 0 && !nuevos.length ? '' : 'disabled'} onclick="pdvCobrarCuenta('${c.id}')">Cobrar</button></div>
     ${nuevos.length && saldo > 0 ? '<div class="small muted" style="text-align:center;margin-top:4px">Envía a cocina lo nuevo antes de cobrar o dividir.</div>' : ''}
-    ${!its.length || (saldo <= 0 && !pdvItemsVivos(c).length) ? `<button class="lnk small" style="margin-top:10px" onclick="act(this,()=>pdvCerrarVacia('${c.id}'))">Cerrar cuenta vacía</button>` : ''}`;
+    ${!its.length || (saldo <= 0 && !pdvItemsVivos(c).length) ? `<button class="btn pill full" style="margin-top:10px" onclick="act(this,()=>pdvCerrarVacia('${c.id}'))">✅ Cerrar cuenta vacía</button>` : ''}
+    ${pdvItemsVivos(c).length && !(pdvR(c.pagado) > 0) && pdvPuede('dgx') ? `<button class="btn err pill full" style="margin-top:10px" onclick="act(this,()=>pdvCancelarCuenta('${c.id}'))">❌ Cancelar cuenta</button>` : ''}`;
 }
 /** Guarda la cuenta completa (items y total) en Firestore y en pantalla. */
 function pdvActualizarCuenta(c, extra) {
@@ -6706,7 +6735,7 @@ async function pdvCerrarVacia(id) {
   if (pdvItemsVivos(c).length) throw new Error('La cuenta tiene productos: cóbrala o quítalos con código de gerente');
   pdvGuardar(pdvCol('ventas').doc(id).update({ estado: pdvR(c.pagado) > 0 ? 'pagada' : 'vacia', cerrada: Date.now() }));
   PDV.cuentas = PDV.cuentas.filter(x => x.id !== id);
-  pdvSalirCuenta(); toast('Cuenta cerrada');
+  cerrarModal(); pdvSalirCuenta(); toast('Cuenta cerrada'); // 3.2.2: también cierra la ventana de la cuenta
 }
 function pdvMenuCuenta(id) {
   const c = pdvCuenta(id); if (!c) return;
@@ -6725,13 +6754,15 @@ async function pdvCancelarCuenta(id) {
   S._pinAntes = () => { const m = ($('#ccMot') || {}).value || ''; if (m.trim().length < 5) { toast('Escribe el motivo (mínimo 5 letras)', 'err'); return false; } };
   S._pinDatos = () => $('#ccMot').value.trim();
   let g;
+  if (!navigator.onLine) throw new Error('Para cancelar una cuenta se necesita internet');
+  S._pinDoc = c.id; S._pinPara = 'cancelar';
   try { g = await pdvPedirPin('Cancelar ' + pdvEtiqueta(c), 'gerente', `<div class="aviso warn" style="margin:8px 0">Se cancela la cuenta completa: ${vivos.length} producto(s) · ${money(monto)}. Abierta ${fechaCorta(c.ts)}.</div><label class="f">Motivo</label><textarea class="i" id="ccMot" rows="2" maxlength="200" placeholder="Ej. El cliente se fue sin pedir la cuenta; cuenta abierta por error"></textarea>`); }
   catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
-  const ts = Date.now(), can = { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts };
+  const ts = Date.now(), can = { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts, aut: g.aut || '' };
   (c.items || []).forEach(i => { if (!i.cancelado) i.cancelado = can; });
   pdvActualizarCuenta(c, { estado: 'cancelada', cancelacion: can, cerrada: ts });
-  PDV.comandas.filter(k => k.ventaId === c.id && !['entregada', 'cancelada'].includes(k.estado)).forEach(k => { k.estado = 'cancelada'; pdvGuardar(pdvCol('comandas').doc(k.id).update({ estado: 'cancelada', cancelada: ts })); });
+  PDV.comandas.filter(k => k.ventaId === c.id && !['entregada', 'cancelada'].includes(k.estado)).forEach(k => { k.estado = 'cancelada'; pdvGuardar(pdvCol('comandas').doc(k.id).update({ estado: 'cancelada', cancelada: ts, aut: g.aut || '' })); });
   if (monto) pdvGuardar(pdvCol('dias').doc(c.dia).set({ productosCancelados: pdvInc(vivos.length), montoProdCancelado: pdvInc(monto), cuentasCanceladas: pdvInc(1), ts }, { merge: true }));
   PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id);
   cerrarModal(); PDV.cuentaId = ''; PDV.tab = 'mesas'; toast('Cuenta cancelada'); pintarCaja();
@@ -6987,7 +7018,8 @@ async function pdvPagarCuenta() {
   }
   // monedero (2.32): cashback de este pago (lo pagado con monedero o consumo no gana) y su visita del día
   const telM = telC || p.monTel || '';
-  if (telM.length === 10) p.monedero = await monAcumular({ tel: telM, nombre: p.monNombre || '', base: k.met === 'monedero' || k.met === 'consumo' ? 0 : m, tarjeta: k.met === 'tarjeta' ? m : 0, folio: c.folio, ventaId: c.id });
+  if (telM.length === 10) p.monedero = await monAcumular({ tel: telM, nombre: p.monNombre || '', base: k.met === 'monedero' || k.met === 'consumo' ? 0 : m, tarjeta: k.met === 'tarjeta' ? m : 0, folio: c.folio, ventaId: c.id, clave: ref.id });
+  if (k.met === 'nomina') await nominaCargarYa(p, c.folio, c.id + ':' + ref.id, caja); // 3.2.1
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(p))));
   consumoDescontar(p, c.folio, c.id);
   nominaCargar(p, c.folio, c.id, caja); // 2.89
@@ -7027,7 +7059,9 @@ function pdvPago(id) { return (PDV._ultimoPago && PDV._ultimoPago.id === id) ? P
 function pdvImprimirPago(id) {
   const p = pdvPago(id); if (!p) return;
   const c = pdvCuenta(p.ventaId) || PDV.ventas.find(v => v.id === p.ventaId) || {}, n = S.negocio || {};
-  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `<div class="r"><span>${x.cant} x ${esc(i.nombre)}</span><span>${money(x.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`; }).join('') : '<div>Pago a la cuenta</div>';
+  // 3.2.3: si el pago es por monto (no por productos), el ticket muestra el desglose completo de la cuenta
+  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `<div class="r"><span>${x.cant} x ${esc(i.nombre)}</span><span>${money(x.cant * i.precio)}</span></div>${pdvTxtDet(i) ? `<div class="d">${esc(pdvTxtDet(i))}</div>` : ''}`; }).join('')
+    : pdvDesgloseCuenta(c).map(l => `<div class="r"><span>${esc(l[0])}</span><span>${l[1]}</span></div>${l[2] ? `<div class="d">${esc(l[2])}</div>` : ''}`).join('') || '<div>Pago a la cuenta</div>';
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(n.nombre || '')}</div>${n.direccion ? `<div class="p">${esc(n.direccion)}</div>` : ''}</div><hr>
     <div class="r"><b>${esc(p.folio)}</b><span>${new Date(p.ts).toLocaleDateString('es-MX')} ${hora(p.ts)}</span></div><div>${esc(p.etiqueta)}</div><hr>
     ${c.entrega && c.entrega.estado === 'pendiente' ? `<div class="c t">PAGADO${c.entrega.hora ? ' · PASA ' + esc(horaTxt(c.entrega.hora)).toUpperCase() : ''} · ${esc(c.entrega.nombre).toUpperCase()}</div><hr>` : ''}
@@ -7038,9 +7072,18 @@ function pdvImprimirPago(id) {
     ${c.items ? `<hr><div class="r"><span>Total de la cuenta</span><span>${money(pdvTotalCuenta(c))}</span></div><div class="r"><span>Falta por pagar</span><span>${money(Math.max(0, pdvSaldo(c)))}</span></div>` : ''}<hr>
     <div class="c">¡Gracias!</div><div class="c p">Pide a domicilio en pidele.app</div>`, 'Pago ' + p.folio));
 }
+/** 3.2.3 · Productos vivos de la cuenta, promociones y envío: [texto, monto, detalle]. */
+function pdvDesgloseCuenta(c) {
+  if (!c || !c.items) return [];
+  const l = c.items.filter(i => !i.cancelado).map(i => [i.cant + ' x ' + i.nombre, money(i.cant * i.precio), pdvTxtDet(i) || '']);
+  if (c.promo && c.promo.total && !c.sinPromo) (c.promo.det || []).forEach(d => l.push(['🏷️ ' + d.titulo, '-' + money(d.monto), '']));
+  if (pdvEnvioDe(c)) l.push(['Envío a domicilio', money(pdvEnvioDe(c)), '']);
+  return l;
+}
 function pdvWaPago(p, c) {
   const n = S.negocio || {};
-  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `${x.cant} x ${i.nombre} — ${money(x.cant * i.precio)}`; }).join('\n') : 'Pago a la cuenta';
+  const its = p.items.length ? p.items.map(x => { const i = (c.items || []).find(y => y.k === x.k) || { nombre: '?', precio: 0 }; return `${x.cant} x ${i.nombre} — ${money(x.cant * i.precio)}`; }).join('\n')
+    : (pdvDesgloseCuenta(c).map(l => l[0] + ' — ' + l[1] + (l[2] ? '\n   ' + l[2] : '')).join('\n') + (c.items ? '\n*Total de la cuenta: ' + money(pdvTotalCuenta(c)) + '*' + (pdvSaldo(c) > 0 ? '\nFalta por pagar: ' + money(pdvSaldo(c)) : '') : '')) || 'Pago a la cuenta';
   const tel = p.tel || (c.cliente && c.cliente.tel) || '', txt = `🧾 *${n.nombre || ''}* · ${p.folio}\n${p.etiqueta}\n\n${its}\n\n*Pagaste ${money(p.monto)}* (${PDV_MET_TXT[p.metodo].toLowerCase()}${p.propina ? ' + propina ' + money(p.propina) : ''})\n\n¡Gracias! 🙌\nPide a domicilio en ${urlApp('')}`;
   return tel ? waLink(tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
 }
@@ -7130,7 +7173,7 @@ function pdvGuardarMesas() {
  * La caja se lee de Firestore (ventas, pagos de cuentas, gastos, cajas) y los pedidos de la app del servidor.
  * Las cuentas cuentan el día en que se abrieron (igual que en los turnos); las abiertas no suman hasta que se cobran.
  */
-const PDV_PER = [['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada'], ['mes', 'Este mes'], ['mesAnt', 'Mes pasado'], ['anio', 'Este año'], ['anioAnt', 'Año pasado'], ['otro', 'Otras fechas']];
+const PDV_PER = [['otro', '📅 Elegir de qué día a qué día'], ['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada'], ['mes', 'Este mes'], ['mesAnt', 'Mes pasado'], ['anio', 'Este año'], ['anioAnt', 'Año pasado']];
 function pdvRango(per, desde, hasta) {
   const h = new Date(pdvHoy() + 'T12:00'); // 2.88.2: el "hoy" del negocio
   const d = (y, m, dd) => new Date(y, m, dd, 12), Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
@@ -7159,7 +7202,7 @@ function pdvVistaReportes() {
   const negs = pdvNegsReporte();
   const sel = `<div class="pdvRepFiltros">
       <select class="i" onchange="PDV.rep.per=this.value;PDV.rep.datos=null;pintarCaja()">${PDV_PER.map(([k, t]) => `<option value="${k}" ${R.per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      ${R.per === 'otro' ? `<input class="i" type="date" value="${esc(R.desde || '')}" onchange="PDV.rep.desde=this.value;PDV.rep.datos=null;pintarCaja()"><input class="i" type="date" value="${esc(R.hasta || '')}" onchange="PDV.rep.hasta=this.value;PDV.rep.datos=null;pintarCaja()">` : ''}
+      ${R.per === 'otro' ? `<div class="row" style="gap:6px"><label class="small grow">Desde<input class="i" type="date" value="${esc(R.desde || '')}" onchange="PDV.rep.desde=this.value;PDV.rep.datos=null;pintarCaja()"></label><label class="small grow">Hasta<input class="i" type="date" value="${esc(R.hasta || '')}" onchange="PDV.rep.hasta=this.value;PDV.rep.datos=null;pintarCaja()"></label></div>` : ''}
       ${pdvMulti() ? `<select class="i" onchange="PDV.rep.caja=this.value;pintarCaja()"><option value="">Todas las cajas</option>${pdvPuestos().map(p => `<option value="${p.id}" ${R.caja === p.id ? 'selected' : ''}>🗄️ ${esc(p.nombre)}</option>`).join('')}</select>` : ''}
       ${negs.length > 1 ? `<select class="i" onchange="PDV.rep.neg=this.value;PDV.rep.datos=null;pintarCaja()"><option value="todos" ${R.neg === 'todos' ? 'selected' : ''}>Todos mis negocios</option>${negs.map(n => `<option value="${n.id}" ${R.neg === n.id ? 'selected' : ''}>${esc(n.nombre)}</option>`).join('')}</select>` : ''}
     </div>`;
@@ -7211,7 +7254,7 @@ function pdvFilasCortes(D, puesto) {
     });
   });
   filas.forEach(f => { f.total = pdvR(f.caja + f.app); });
-  return filas.sort((a, b) => (a.dia + String(a.ts).padStart(14, '0')).localeCompare(b.dia + String(b.ts).padStart(14, '0')));
+  return filas.sort((a, b) => (b.dia + String(b.ts).padStart(14, '0')).localeCompare(a.dia + String(a.ts).padStart(14, '0'))); // 3.2.6: el más reciente arriba
 }
 function pdvHtmlCortes(D, puesto) {
   const filas = PDV.rep.cortesF = pdvFilasCortes(D, puesto), varios = D.negs.length > 1;
@@ -7243,7 +7286,8 @@ function pdvCorteDetalle(i) {
     ${f.peds && f.peds.length ? `<details style="margin-top:8px"><summary class="small">Ver pedidos de Pídele</summary>${f.peds.map(p => lin(esc(p.f) + ' · ' + hora(p.t) + ' · ' + esc(PDV_MET_TXT[p.m] || p.m), p.v)).join('')}</details>` : ''}`);
 }
 function pdvCsvCortes() {
-  const f = PDV.rep && PDV.rep.cortesF; if (!f) return;
+  const f0 = PDV.rep && PDV.rep.cortesF; if (!f0) return;
+  const f = f0.slice().reverse(); // en Excel, del más viejo al más nuevo
   const rows = [['Día', 'Negocio', 'Turno', 'Abrió', 'Cerró', 'Cerró otra persona', 'Venta total', 'Venta caja', 'Efectivo', 'Tarjeta', 'Transferencia', 'Monedero', 'Consumo personal', 'Pídele', 'Pídele efectivo', 'Pídele transferencia', 'Gastos', 'Retiro', 'Diferencia']];
   f.forEach(x => rows.push([x.dia, x.n.nombre, x.turno, x.abrio || '', x.cerro || '', x.porOtro ? 'Sí' + (x.c && x.c.cierre && x.c.cierre.notaOtro ? ': ' + x.c.cierre.notaOtro : '') : '', x.total, x.caja, x.ef, x.tar, x.tr, x.mon, x.cons, x.app, x.appEf, x.appTr, x.soloApp ? '' : x.gastos, x.soloApp ? '' : x.retiro, x.soloApp ? '' : x.dif]));
   const sum = k => pdvR(f.reduce((s, x) => s + x[k], 0));
@@ -9009,13 +9053,13 @@ function pdvVistaPersonal() {
   if (P.sub === 'turnos') return cab + asisVistaTurnos();
   if (P.sub === 'consumo') return cab + asisVistaConsumo();
   if (!navigator.onLine) return cab + '<div class="aviso warn">📴 El personal y la nómina necesitan internet.</div>';
-  const clave = P.sub + '|' + (P.sub === 'nomina' ? P.nomPer || '' : P.fecha);
+  const clave = P.sub + '|' + (P.sub === 'nomina' ? (P.nomPer || '') + JSON.stringify(asisPeriodoNom(P.nomPer || 'semana')) : P.fecha);
   if (!P.datos || P.clave !== clave) {
     if (P.cargando !== clave) {
       P.cargando = clave;
       const nid = S.negocio.id;
       const pet = P.sub === 'equipo' ? Promise.all([api('personalLista', { negocioId: nid }), api('asisDia', { negocioId: nid, fecha: pdvHoy() }).catch(() => ({ personas: [] }))]).then(([a, b]) => Object.assign(a, { hoyAsis: b.personas || [] })) : P.sub === 'hoy' ? api('asisDia', { negocioId: nid, fecha: P.fecha }) : P.sub === 'vac' ? api('vacPanel', { negocioId: nid }) : P.sub === 'adel' ? api('adelPanel', { negocioId: nid }) : P.sub === 'semana' ? api('asisSemana', { negocioId: nid, fecha: P.fecha }) : P.sub === 'config' ? api('personalLista', { negocioId: nid }) : api('nominaCalcular', Object.assign({ negocioId: nid }, asisPeriodoNom(P.nomPer || 'semana')));
-      pet.then(async d => { if (P.sub === 'nomina') await asisAplicarIncentivos(d); P.datos = d; P.clave = clave; }).catch(e => { P.datos = { _error: e.message }; P.clave = clave; }).finally(() => { P.cargando = ''; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); });
+      pet.then(async d => { if (P.sub === 'nomina') { await asisAplicarIncentivos(d); if (d.config && d.config.corte) lsG('nomCorte_' + nid, d.config.corte); } P.datos = d; P.clave = clave; }).catch(e => { P.datos = { _error: e.message }; P.clave = clave; }).finally(() => { P.cargando = ''; if (S.vista === 'caja' && PDV.tab === 'personal') pintarCaja(); });
     }
     return cab + '<div class="cargando">Cargando…</div>';
   }
@@ -9692,6 +9736,7 @@ function asisVistaConfig(d) {
         <label>Medio día si llega tarde (min)<input class="i" id="acMed" inputmode="numeric" value="${c.retMedio == null ? 150 : c.retMedio}" ${du ? '' : 'disabled'}><small>150 = 2:30 h · 0 = no aplica</small></label></div>
       <label class="pdvChk"><input type="checkbox" id="acExt" ${c.extras ? 'checked' : ''} ${du ? '' : 'disabled'}> Pagar horas extra (a quien se le activen)</label>
       ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisGuardarCfg)">Guardar reglas</button></div>' : ''}</div>
+    ${asisCorteHTML(c, du)}
     ${asisPrimaHTML(c, du)}
     ${asisFeriadosHTML(d)}
     ${du ? asisRelojHTML(c) : ''}
@@ -9727,6 +9772,22 @@ function asisFeriadosHTML(d) {
 /* ---------- 3.0.3 · Prima vacacional ---------- */
 const PRIMA_TXT = { despues: ['En el pago siguiente a su aniversario', 'Si cumple el 5 de diciembre, se paga el 15 de diciembre.'], cercano: ['En el pago más cercano a su aniversario', 'Puede ser antes o después de que cumpla.'],
   vac_dias: ['Cuando tome vacaciones · por los días tomados', 'Se paga la prima de cada día de vacaciones en la nómina donde los toma.'], vac_total: ['Cuando tome vacaciones · la prima completa', 'Toda la prima del año en la nómina donde toma su primer día de vacaciones después de cumplir.'] };
+/** 3.2.6 · Día de corte de la nómina */
+function asisCorteHTML(c, du) {
+  const k = c.corte || nomCorte(), ds = du ? '' : 'disabled', DS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  return `<div class="card"><b>✂️ Día de corte de la nómina</b><div class="small muted" style="margin:2px 0 8px">Hasta qué día cuentas faltas, retardos, bonos y extras de cada periodo. El sueldo base se paga completo. Ej.: cortas el 14 y el 29 para pagar el 15 y el 30.</div>
+    <div class="asisCfg"><label>Quincena: primer corte (día)<input class="i" id="ctQ1" inputmode="numeric" value="${k.q1 || 15}" ${ds}><small>Normal: 15</small></label>
+    <label>Segundo corte (día)<input class="i" id="ctQ2" inputmode="numeric" placeholder="Fin de mes" value="${k.q2 || ''}" ${ds}><small>Vacío = fin de mes</small></label></div>
+    <label class="f">La semana cierra en</label><select class="i" id="ctSem" ${ds}>${DS.map((t, i) => `<option value="${i}" ${(k.sem || 0) === i ? 'selected' : ''}>${t}${i === 0 ? ' (normal: lunes a domingo)' : ''}</option>`).join('')}</select>
+    ${du ? '<div class="btns"><button class="btn pri pill" onclick="act(this,asisCorteGuardar)">Guardar día de corte</button></div>' : ''}</div>`;
+}
+async function asisCorteGuardar() {
+  const corte = { q1: Number($('#ctQ1').value), q2: Number($('#ctQ2').value || 0), sem: Number($('#ctSem').value) };
+  PDV.per.datos = await api('asisConfig', { negocioId: S.negocio.id, corte });
+  lsG('nomCorte_' + S.negocio.id, corte);
+  const ej = asisPeriodoNom('quincena');
+  toast('Corte guardado ✓ Esta quincena: ' + asisDiaTxt(ej.desde) + ' al ' + asisDiaTxt(ej.hasta)); pintarCaja();
+}
 function asisPrimaHTML(c, du) {
   const p = c.prima || { on: false, pct: 25, cuando: 'despues' }, ds = du ? '' : 'disabled';
   return `<div class="card"><b>🏖️ Prima vacacional</b><div class="small muted" style="margin:2px 0 8px">Se calcula sola con su fecha de ingreso: días de vacaciones que le tocan × salario diario (pago ÷ días del periodo) × porcentaje, y se suma a su nómina.</div>
@@ -9794,19 +9855,40 @@ async function asisGuardarPersona(activo) {
   cerrarModal(); toast(activo ? 'Guardado ✓' : 'Quitado de la asistencia'); pintarCaja();
 }
 /** Periodos de nómina: semana lunes–domingo o quincena 1–15 / 16–fin. */
+/** 3.2.6 · Día de corte del negocio (se guarda al traer la nómina): q1 y q2 de la quincena (0 = fin de mes), sem = día en que cierra la semana (0 domingo). */
+function nomCorte() { const c = S.negocio && lsG('nomCorte_' + S.negocio.id); return c && c.q1 ? c : { q1: 15, q2: 0, sem: 0 }; }
 function asisPeriodoNom(k) {
-  const h = new Date(pdvHoy() + 'T12:00');
-  const lunes = new Date(h); lunes.setDate(h.getDate() - (h.getDay() + 6) % 7);
-  const f = d => fechaLocal(d), mas = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-  if (k === 'semana') return { periodo: 'semanal', desde: f(lunes), hasta: f(mas(lunes, 6)) };
-  if (k === 'semanaAnt') return { periodo: 'semanal', desde: f(mas(lunes, -7)), hasta: f(mas(lunes, -1)) };
+  if (k === 'rango') { const r = PDV.per.nomRango || {}; return { periodo: r.tipo === 'semanal' ? 'semanal' : 'quincenal', modo: r.tipo === 'dias' ? 'dias' : 'periodo', desde: r.desde || pdvHoy(), hasta: r.hasta || pdvHoy() }; }
+  const C = nomCorte(), h = new Date(pdvHoy() + 'T12:00'), f = d => fechaLocal(d);
+  if (k === 'semana' || k === 'semanaAnt') { // la semana termina el día C.sem
+    const fin = new Date(h); fin.setDate(h.getDate() + (C.sem - h.getDay() + 7) % 7); if (k === 'semanaAnt') fin.setDate(fin.getDate() - 7);
+    const ini = new Date(fin); ini.setDate(fin.getDate() - 6);
+    return { periodo: 'semanal', desde: f(ini), hasta: f(fin) };
+  }
+  const ult = (y, m) => new Date(y, m + 1, 0, 12).getDate(), c2 = (y, m) => C.q2 ? Math.min(C.q2, ult(y, m)) : ult(y, m);
+  const A = (y, m) => { const p = new Date(y, m - 1, 1, 12); return { periodo: 'quincenal', desde: f(new Date(y, m - 1, c2(p.getFullYear(), p.getMonth()) + 1, 12)), hasta: f(new Date(y, m, C.q1, 12)) }; };
+  const B = (y, m) => ({ periodo: 'quincenal', desde: f(new Date(y, m, C.q1 + 1, 12)), hasta: f(new Date(y, m, c2(y, m), 12)) });
   const Y = h.getFullYear(), M = h.getMonth(), D = h.getDate();
-  if (k === 'quincena') return D <= 15 ? { periodo: 'quincenal', desde: f(new Date(Y, M, 1, 12)), hasta: f(new Date(Y, M, 15, 12)) } : { periodo: 'quincenal', desde: f(new Date(Y, M, 16, 12)), hasta: f(new Date(Y, M + 1, 0, 12)) };
-  return D <= 15 ? { periodo: 'quincenal', desde: f(new Date(Y, M - 1, 16, 12)), hasta: f(new Date(Y, M, 0, 12)) } : { periodo: 'quincenal', desde: f(new Date(Y, M, 1, 12)), hasta: f(new Date(Y, M, 15, 12)) };
+  const cur = D <= C.q1 ? 'A0' : D <= c2(Y, M) ? 'B0' : 'A1';
+  if (k === 'quincena') return cur === 'A0' ? A(Y, M) : cur === 'B0' ? B(Y, M) : A(Y, M + 1);
+  return cur === 'A0' ? B(Y, M - 1) : cur === 'B0' ? A(Y, M) : B(Y, M);
+}
+function nomRangoCalcular() {
+  const de = $('#nrDe').value, a = $('#nrA').value, tipo = $('#nrTipo').value;
+  if (!de || !a) { toast('Elige las dos fechas', 'err'); return; }
+  if (a < de) { toast('La fecha final va después de la inicial', 'err'); return; }
+  if ((new Date(a) - new Date(de)) / 864e5 > 39) { toast('Máximo 40 días', 'err'); return; }
+  PDV.per.nomRango = { desde: de, hasta: a, tipo }; asisRecargar();
 }
 function asisVistaNomina(d) {
   const per = PDV.per.nomPer || 'semana', vista = PDV.per.nomVista || 'tablero';
-  const sel = `<select class="i" style="margin:8px 0" onchange="if(!nomLoteSalir()){this.value=PDV.per.nomPer||'semana';return}PDV.per.nomPer=this.value;lsG('nomPer',this.value);asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const rg = PDV.per.nomRango || {}, pr = asisPeriodoNom(per);
+  const sel = `<select class="i" style="margin:8px 0" onchange="if(!nomLoteSalir()){this.value=PDV.per.nomPer||'semana';return}PDV.per.nomPer=this.value;lsG('nomPer',this.value);asisRecargar()">${[['semana', 'Esta semana'], ['semanaAnt', 'Semana pasada'], ['quincena', 'Esta quincena'], ['quincenaAnt', 'Quincena pasada'], ['rango', '📅 De qué día a qué día…']].map(([k, t]) => `<option value="${k}" ${per === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    ${per === 'rango' ? `<div class="card" style="margin:0 0 8px"><div class="row" style="gap:6px"><label class="small grow">Desde<input class="i" type="date" id="nrDe" value="${esc(rg.desde || pr.desde)}"></label><label class="small grow">Hasta<input class="i" type="date" id="nrA" value="${esc(rg.hasta || pr.hasta)}"></label></div>
+      <label class="f">¿Cómo se paga?</label><select class="i" id="nrTipo">${[['quincenal', 'Quincenales · sueldo completo, incidencias de esas fechas'], ['semanal', 'Semanales · sueldo completo, incidencias de esas fechas'], ['dias', 'Todos · pagar solo esos días (sueldo proporcional)']].map(([k, t]) => `<option value="${k}" ${(rg.tipo || 'quincenal') === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <button class="btn pri pill full" style="margin-top:8px" onclick="nomRangoCalcular()">Calcular</button></div>` : `<div class="small muted" style="margin:-4px 0 8px">Del ${asisDiaTxt(pr.desde)} al ${asisDiaTxt(pr.hasta)}${nomCorte().q1 !== 15 || nomCorte().q2 || nomCorte().sem ? ' · con tu día de corte (⚙️ Reglas)' : ''}</div>`}
+    ${d.modo === 'dias' ? `<div class="aviso info small">Solo ${d.dias} día(s), para todos: sueldo diario de su periodo normal (quincena ÷ 15, semana ÷ 7) × ${d.dias}.</div>` : ''}
+    ${(d.personas || []).some(p => p.yaPagado && p.yaPagado.length) ? `<div class="aviso warn small">⚠️ Ya se pagaron días de estas fechas a: ${d.personas.filter(p => p.yaPagado && p.yaPagado.length).map(p => esc(p.nombre.split(' ')[0]) + ' (' + p.yaPagado.map(y => asisDiaTxt(y.desde) + ' al ' + asisDiaTxt(y.hasta)).join(', ') + ')').join(' · ')}. No se les puede volver a pagar.</div>` : ''}`;
   const l = d.personas, tot = pdvR(l.reduce((s, p) => s + p.total, 0)), pend = l.filter(p => !p.pagado);
   const tabs = `<div class="pdvTipo" style="margin:0 0 8px">${[['tablero', '📋 Tablero por día'], ['lista', '📄 Resumen']].map(([k, t]) => `<button class="${vista === k ? 'on' : ''}" onclick="if('${k}'==='lista'&&!nomLoteSalir())return;PDV.per.nomVista='${k}';pintarCaja()">${t}</button>`).join('')}</div>`;
   if (vista === 'tablero' && l.length) return sel + tabs + tabDeudasHTML(d.deudas) + nomTablero(d);
@@ -10453,6 +10535,7 @@ async function consMonAuto() {
 }
 /** 3.0.1 · Regresa al monedero (ya sin vencimiento) los bonos de personal que vencieron sin usarse. */
 async function consReponerVencidos(uid) {
+  if (!pdvPuede('d')) throw new Error('Solo el dueño repone bonos');
   if (!navigator.onLine) throw new Error('Para reponer se necesita internet');
   const gente = ((PDV.per && PDV.per.gente) || []).filter(p => (!uid || p.usuarioId === uid) && consTel(p).length === 10), hoy = pdvHoy();
   let tot = 0, n = 0;
@@ -10507,6 +10590,7 @@ function consumoAsignar(uid) {
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>consumoGuardar('${uid}'))">Dar bono</button></div>`);
 }
 async function consumoGuardar(uid) {
+  if (!pdvPuede(consMon() ? 'd' : 'dg')) throw new Error(consMon() ? 'Solo el dueño da bonos al monedero' : 'Solo el dueño o un gerente dan bonos de consumo');
   const m = pdvR($('#csMonto').value), nota = $('#csNota').value.trim().slice(0, 60);
   if (!(m > 0)) throw new Error('Escribe el monto');
   const gente = ((PDV.per && PDV.per.gente) || []).filter(p => !uid || p.usuarioId === uid), ts = Date.now();
@@ -10563,6 +10647,7 @@ function consumoAjustarMon(p) {
   setTimeout(() => { const i = $('#caSaldo'); if (i) i.select(); }, 150);
 }
 async function consumoAjusteMonGuardar(uid) {
+  if (!pdvPuede('d')) throw new Error('Solo el dueño ajusta el monedero');
   const p = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid), tel = consTel(p); if (!p || tel.length !== 10) return;
   const txt = String($('#caSaldo').value || '').replace(/[^\d.]/g, ''); if (txt === '') throw new Error('Escribe el saldo correcto');
   const nuevo = pdvR(Number(txt)), nota = ($('#caNota').value.trim() || '').slice(0, 60), ref = monCol('monedero').doc(tel), hoy = pdvHoy(), ts = Date.now();
@@ -10584,6 +10669,7 @@ async function consumoAjusteMonGuardar(uid) {
   cerrarModal(); toast('Saldo del monedero ajustado ✓'); pintarCaja();
 }
 async function consumoAjusteGuardar(uid) {
+  if (!pdvPuede('dg')) throw new Error('Solo el dueño o un gerente ajustan el consumo');
   const p = ((PDV.per && PDV.per.gente) || []).find(x => x.usuarioId === uid); if (!p) return;
   const txt = String($('#caSaldo').value || '').replace(/[^\d.]/g, '');
   if (txt === '') throw new Error('Escribe el saldo correcto');
@@ -10618,12 +10704,19 @@ async function nominaValidar() {
   const uid = ($('#cbNom') || {}).value, pin = (($('#cbNomPin') || {}).value || '').trim();
   const x = nominaGente().find(y => y.uid === uid);
   if (!x) throw new Error('Elige a quién se le carga');
-  if (!(await pdvPinOk(uid, pin))) throw new Error('Código incorrecto');
-  return { nominaUid: uid, nominaNombre: x.nombre };
+  if (!pin) throw new Error('Escribe el código de esa persona');
+  if (!navigator.onLine) throw new Error('Para cargar a nómina se necesita internet');
+  return { nominaUid: uid, nominaNombre: x.nombre, nominaPin: pin };
+}
+/** 3.2.1 · Antes de guardar el cobro: el servidor revisa el código y registra el cargo (si falla, no se cobra). */
+async function nominaCargarYa(p, folio, ventaId, caja) {
+  if (!p || p.metodo !== 'nomina' || p.nominaHecho) return;
+  await api('adelCargo', { negocioId: PDV.nid, usuarioId: p.nominaUid, monto: p.monto, folio, ventaId, cajaId: caja ? caja.id : '', dia: caja ? caja.dia : pdvHoy(), pin: p.nominaPin });
+  delete p.nominaPin; p.nominaHecho = true;
 }
 /** Registra el cargo en el servidor; si no hay señal, se guarda y se reintenta. */
 function nominaCargar(p, folio, ventaId, caja) {
-  if (!p || p.metodo !== 'nomina') return;
+  if (!p || p.metodo !== 'nomina' || p.nominaHecho) return;
   const o = { negocioId: PDV.nid, usuarioId: p.nominaUid, monto: p.monto, folio, ventaId, cajaId: caja ? caja.id : '', dia: caja ? caja.dia : pdvHoy() };
   api('adelCargo', o).catch(() => { try { const l = JSON.parse(localStorage.getItem('pe_nomCargos') || '[]'); l.push(o); localStorage.setItem('pe_nomCargos', JSON.stringify(l)); } catch (e) { } toast('Sin señal: el cargo a nómina se manda en cuanto haya internet', 'warn'); });
 }
@@ -10631,7 +10724,7 @@ async function nominaCargosPend() {
   let l = []; try { l = JSON.parse(localStorage.getItem('pe_nomCargos') || '[]'); } catch (e) { }
   if (!l.length || !navigator.onLine) return;
   const quedan = [];
-  for (const o of l) { try { await api('adelCargo', o); } catch (e) { quedan.push(o); } }
+  for (const o of l) { try { await api('adelCargo', o); } catch (e) { if (!/código|Código/.test(e.message || '')) quedan.push(o); } } // 3.2.1: los viejos sin código ya no se mandan
   try { localStorage.setItem('pe_nomCargos', JSON.stringify(quedan)); } catch (e) { }
 }
 setInterval(() => { if (S.token) nominaCargosPend(); }, 120000);
@@ -10642,7 +10735,7 @@ function adelTarjeta(x) {
   const est = { aprobado: '✅ Aprobado', descontado: '✔️ Descontado', rechazado: '❌ No aprobado' };
   return `<div class="card" style="margin-top:8px"><div class="row between"><b>💵 Adelantos de nómina</b>${a.porDescontar ? `<span class="tag t-warn">${money(a.porDescontar)} por descontar</span>` : ''}</div>
     ${pend.map(y => `<div class="aviso info row between" style="gap:8px;margin:4px 0"><span>⏳ ${money(y.monto)} para el ${asisDiaTxt(y.para)} · en revisión</span><button class="btn sm" onclick="act(this,()=>adelCancelarMio('${y.id}'))">Cancelar</button></div>`).join('')}
-    ${ult.map(y => `<div class="small" style="margin:3px 0">${est[y.estado] || ''} · ${ADEL_TXT[y.tipo] || y.tipo} · <b>${money(y.monto)}</b>${y.fecha ? ' · ' + asisDiaTxt(y.fecha) : ''}${y.folio ? ' · ' + esc(y.folio) : ''}</div>`).join('')}
+    ${ult.map(y => `<div class="small row between" style="margin:3px 0;gap:6px"><span>${est[y.estado] || ''} · ${ADEL_TXT[y.tipo] || y.tipo} · <b>${money(y.monto)}</b>${y.fecha ? ' · ' + asisDiaTxt(y.fecha) : ''}${y.folio ? ' · ' + esc(y.folio) : ''}</span>${y.tipo === 'platillo' && y.estado === 'aprobado' ? (y.reportado ? '<span class="tag t-warn">Avisado al dueño</span>' : `<button class="lnk small" style="color:var(--err)" onclick="if(confirm('¿Avisar al dueño que este cargo no fue tuyo?'))act(this,()=>adelReportarMio('${y.id}'))">No fui yo</button>`) : ''}</div>`).join('')}
     <button class="btn pill full" style="margin-top:6px" onclick="adelPedir('${x.negocioId}')">💵 Pedir un adelanto</button></div>`;
 }
 function adelPedir(nid) {
@@ -10659,6 +10752,7 @@ async function adelPedirOk(nid) {
   const l = await api('adelSolicitar', { negocioId: nid, monto, para: $('#adP').value, nota: $('#adN').value.trim() });
   ls('asisMia', l); cerrarModal(); toast('Solicitud enviada 💵'); pintar(true);
 }
+async function adelReportarMio(id) { const l = await api('adelReportar', { id }); ls('asisMia', l); toast('Le avisamos al dueño para que lo revise'); pintar(true); }
 async function adelCancelarMio(id) { const l = await api('adelCancelar', { id }); ls('asisMia', l); toast('Solicitud cancelada'); pintar(true); }
 /* dueño: Personal → Adelantos */
 function adelVistaPanel(d) {
@@ -10794,77 +10888,40 @@ async function monLeer(tel, fresco) {
 async function monAcumular(o) {
   const tel = monTel(o.tel);
   if (!monActivo() || tel.length !== 10) return null;
-  const cfg = monCfg(), hoy = pdvHoy(), mes = monMes(hoy), ts = Date.now();
-  let x = null; try { x = await monLeer(tel); } catch (e) { }
-  const extra = monExtra(x, hoy, cfg), pct = pdvR(cfg.cashback + (extra ? cfg.extra : 0));
-  // 2.81: con tarjeta gana menos (la comisión del banco ya pesa); efectivo, transferencia y CoDi ganan el normal
-  const pctT = cfg.cashbackTarjeta === null || cfg.cashbackTarjeta === undefined || cfg.cashbackTarjeta === '' ? pct : pdvR(Number(cfg.cashbackTarjeta) + (extra ? cfg.extra : 0));
-  const base = pdvR(Math.max(0, o.base || 0)), bT = pdvR(Math.min(base, Math.max(0, o.tarjeta || 0))), bE = pdvR(base - bT);
-  const cb = pdvR(bE * pct / 100 + bT * pctT / 100), vence = monSuma(hoy, cfg.vigencia);
-  const pctTxt = bT > 0 && pctT !== pct ? (bE > 0 ? pct + '% efectivo · ' + pctT + '% tarjeta' : pctT + '% tarjeta') : pct + '%';
-  const visita = !x || x.ultVis !== hoy, nombre = (o.nombre || '').trim().slice(0, 60);
-  const upd = { tel, act: ts };
-  if (nombre && !(x && x.nombre)) upd.nombre = nombre;
-  if (!x) upd.creado = ts;
-  if (cb > 0) upd.cb = { [vence]: pdvInc(cb) };
-  if (visita) { upd.vis = { [mes]: firebase.firestore.FieldValue.increment(1) }; upd.ultVis = hoy; }
-  pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
-  if (cb > 0) pdvGuardar(monCol('movs').doc().set(monMov(Object.assign({ tel, nombre: nombre || (x && x.nombre) || '', tipo: 'cashback', monto: cb, pct, extra, base, vence, folio: o.folio || '', ventaId: o.ventaId || '' }, bT > 0 ? { baseTarjeta: bT, pctTarjeta: pctT, nota: pctTxt } : {}, o.agregado ? { agregado: o.agregado } : {}))));
-  const visitas = ((x && x.vis && x.vis[mes]) || 0) + (visita ? 1 : 0);
-  return { tel, cashback: cb, pct, pctTxt, extra, vence, visita, visitas, meta: cfg.visitas, mes, saldo: pdvR(monSaldo(x, hoy).total + cb) };
+  // 3.2.1: el cashback lo calcula y lo guarda el servidor (el personal ya no escribe el monedero)
+  const datos = { negocioId: PDV.nid, tel, nombre: (o.nombre || '').trim().slice(0, 60), base: pdvR(Math.max(0, o.base || 0)), tarjeta: pdvR(Math.max(0, o.tarjeta || 0)), ventaId: o.ventaId || '', folio: o.folio || '', clave: o.clave || '', agregado: o.agregado ? 1 : 0 };
+  try { return await api('monAcumular', datos); }
+  catch (e) {
+    if (navigator.onLine && !/conexi|internet|red|tiempo/i.test(e.message || '')) throw e;
+    monPendGuardar(datos); toast('Sin internet: el cashback se suma solo cuando vuelva la señal');
+    return { tel, cashback: 0, pendiente: true, pct: monCfg().cashback, pctTxt: monCfg().cashback + '%', visitas: 0, meta: monCfg().visitas, saldo: 0 };
+  }
 }
+function monPendGuardar(d) { try { const l = JSON.parse(localStorage.getItem('pe_monPend') || '[]'); l.push(d); localStorage.setItem('pe_monPend', JSON.stringify(l.slice(-200))); } catch (e) { } }
+async function monPendMandar() {
+  let l = []; try { l = JSON.parse(localStorage.getItem('pe_monPend') || '[]'); } catch (e) { }
+  if (!l.length || !navigator.onLine) return;
+  const quedan = [];
+  for (const d of l) { try { await api('monAcumular', d); } catch (e) { if (!/no tiene monedero|fuera de rango|permiso/i.test(e.message || '')) quedan.push(d); } }
+  try { localStorage.setItem('pe_monPend', JSON.stringify(quedan)); } catch (e) { }
+}
+window.addEventListener('online', () => setTimeout(() => monPendMandar().catch(() => { }), 3000));
 /** Cobra del monedero (con internet, en una transacción): primero lo que vence antes, al final lo recargado. */
 async function monDescontar(p, folio, ventaId) {
-  const ref = monCol('monedero').doc(p.monTel), hoy = pdvHoy();
-  const desg = await PDV.db.runTransaction(async t => {
-    const s = await t.get(ref);
-    if (!s.exists) throw new Error('Ese teléfono no tiene monedero');
-    const sal = monSaldo(s.data(), hoy);
-    if (p.monto > sal.total + 0.001) throw new Error('El monedero solo tiene ' + money(sal.total));
-    let resto = pdvR(p.monto);
-    const cb = {}, upd = { act: Date.now(), cod: firebase.firestore.FieldValue.delete() };
-    for (const [k, v] of sal.lotes) { if (resto <= 0) break; const q = pdvR(Math.min(v, resto)); cb[k] = q; resto = pdvR(resto - q); upd['cb.' + k] = pdvR(v - q); }
-    if (resto > 0) upd.rec = pdvR(sal.rec - resto);
-    t.update(ref, upd);
-    return { cb, rec: pdvR(resto), queda: pdvR(sal.total - p.monto) };
-  });
-  p.monDesg = { cb: desg.cb, rec: desg.rec };
-  // 2.46.1: notificación al cliente en su cuenta (y al dueño si lo autorizó un gerente sin el código del cliente)
-  api('monAviso', { negocioId: (S.negocio || {}).id, tel: p.monTel, monto: p.monto, saldo: desg.queda, folio, autoriza: p.monAutoriza || null }).catch(e => console.warn('monAviso', e));
-  pdvGuardar(monCol('movs').doc().set(monMov({ tel: p.monTel, nombre: p.monNombre || '', tipo: 'uso', monto: p.monto, desg: p.monDesg, folio, ventaId, autoriza: p.monAutoriza || null })));
+  // 3.2.1: el servidor revisa el código del cliente (o del gerente) y descuenta
+  p.monPagoId = p.monPagoId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  const r = await api('monDescontar', { negocioId: PDV.nid, tel: p.monTel, monto: p.monto, folio, ventaId, pagoId: p.monPagoId, cod: p.monCod || '', gerUid: p.monGerUid || '', gerPin: p.monGerPin || '' });
+  p.monDesg = r.desg; p.monAutoriza = r.autoriza || null;
+  delete p.monCod; delete p.monGerUid; delete p.monGerPin;
 }
 /** Venta cancelada: regresa lo que se pagó con monedero y quita el cashback (y la visita) que dio esa venta. */
 async function monRevertir(v) {
   if (!PDV.gid) return;
-  const avisos = [];
-  for (const p of (v.pagos || []).filter(x => x.metodo === 'monedero' && x.monTel && x.monDesg)) {
-    const d = p.monDesg, upd = { act: Date.now() };
-    if (d.rec) upd.rec = pdvInc(d.rec);
-    if (Object.keys(d.cb || {}).length) { upd.cb = {}; Object.entries(d.cb).forEach(([k, q]) => { upd.cb[k] = pdvInc(q); }); }
-    pdvGuardar(monCol('monedero').doc(p.monTel).set(upd, { merge: true }));
-    pdvGuardar(monCol('movs').doc().set(monMov({ tel: p.monTel, nombre: p.monNombre || '', tipo: 'devolucion', monto: p.monto, folio: v.folio, ventaId: v.id })));
-  }
-  const ganados = [].concat(v.monedero ? [v.monedero] : [], (v.pagos || []).map(p => p.monedero).filter(Boolean));
-  for (const g of ganados) {
-    const ref = monCol('monedero').doc(g.tel), hoy = pdvHoy();
-    try {
-      const quitado = await PDV.db.runTransaction(async t => {
-        const s = await t.get(ref); if (!s.exists) return 0;
-        const x = s.data(), upd = { act: Date.now() };
-        let resto = pdvR(g.cashback || 0);
-        const enLote = pdvR(Math.min(resto, pdvR((x.cb || {})[g.vence]))); if (enLote > 0) { upd['cb.' + g.vence] = pdvR(x.cb[g.vence] - enLote); resto = pdvR(resto - enLote); }
-        // si ya gastó ese cashback, se quita de lo demás que tenga (sin dejarlo en negativo)
-        for (const [k, v2] of monSaldo(x, hoy).lotes) { if (resto <= 0) break; if (k === g.vence) continue; const q = pdvR(Math.min(v2, resto)); upd['cb.' + k] = pdvR(v2 - q); resto = pdvR(resto - q); }
-        if (resto > 0) { const q = pdvR(Math.min(pdvR(x.rec), resto)); if (q > 0) { upd.rec = pdvR(pdvR(x.rec) - q); resto = pdvR(resto - q); } }
-        if (g.visita && g.mes) upd['vis.' + g.mes] = Math.max(0, ((x.vis || {})[g.mes] || 0) - 1);
-        t.update(ref, upd);
-        return pdvR((g.cashback || 0) - resto);
-      });
-      if (quitado > 0) pdvGuardar(monCol('movs').doc().set(monMov({ tel: g.tel, tipo: 'cashbackCancelado', monto: quitado, folio: v.folio, ventaId: v.id })));
-      if (quitado < pdvR(g.cashback || 0)) avisos.push('El cliente ya había gastado ' + money(pdvR(g.cashback - quitado)) + ' de ese cashback.');
-    } catch (e) { avisos.push('No se pudo quitar el cashback del monedero (' + (e.message || e) + '). Hazlo con un ajuste.'); }
-  }
-  if (avisos.length) toast(avisos.join(' '), 'err');
+  // 3.2.1: el servidor lee la venta cancelada y regresa/quita lo que corresponde
+  const hay = (v.pagos || []).some(x => x.metodo === 'monedero' && x.monDesg) || v.monedero || (v.pagos || []).some(p => p.monedero);
+  if (!hay) return;
+  try { const r = await api('monRevertir', { negocioId: PDV.nid, ventaId: v.id }); if (r.avisos && r.avisos.length) toast(r.avisos.join(' '), 'err'); }
+  catch (e) { toast('No se pudo ajustar el monedero de esa venta (' + e.message + '). Hazlo con un ajuste.', 'err'); }
 }
 
 /* --- cobro con monedero --- */
@@ -10926,16 +10983,10 @@ async function monValidarPago(monto, yaUsado) {
   const s = monSaldo(x);
   if (pdvR(monto + (yaUsado || 0)) > s.total + 0.001) throw new Error('El monedero solo tiene ' + money(pdvR(s.total - (yaUsado || 0))));
   const cod = (($('#cbMonCod') || {}).value || '').trim(), gpin = (($('#cbMonGerPin') || {}).value || '').trim();
-  let autoriza = null;
-  if (cod) {
-    if (!x.cod || !x.cod.h || x.cod.exp < Date.now()) throw new Error('El código venció. Pide al cliente que genere otro en su app');
-    if ((await pdvHash(cod, x.cod.s)) !== x.cod.h) { $('#cbMonCod').value = ''; throw new Error('Código incorrecto'); }
-  } else if (gpin) {
-    const uid = ($('#cbMonGer') || {}).value;
-    if (!(await pdvPinOk(uid, gpin))) { $('#cbMonGerPin').value = ''; throw new Error('Código del gerente incorrecto'); }
-    autoriza = { uid, nombre: PDV.personal[uid].nombre };
-  } else throw new Error('Escribe el código que el cliente ve en su app (o autoriza un gerente)');
-  return { monTel: tel, monNombre: x.nombre || '', monAutoriza: autoriza };
+  // 3.2.1: el código del cliente y el del gerente los revisa el servidor al cobrar
+  if (cod) { if (!/^\d{6}$/.test(cod)) throw new Error('El código del cliente tiene 6 números'); return { monTel: tel, monNombre: x.nombre || '', monCod: cod }; }
+  if (gpin) { const uid = ($('#cbMonGer') || {}).value; return { monTel: tel, monNombre: x.nombre || '', monGerUid: uid, monGerPin: gpin }; }
+  throw new Error('Escribe el código que el cliente ve en su app (o autoriza un gerente)');
 }
 /** Texto del monedero para el ticket y WhatsApp. */
 function monTicket(m) {
@@ -11100,11 +11151,9 @@ async function monGuardarCliente() {
   const tel = monTel($('#mnTel').value), nombre = $('#mnNom').value.trim().slice(0, 60);
   if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
   if (!nombre) throw new Error('Escribe su nombre');
-  let x = null; try { x = await monLeer(tel, navigator.onLine); } catch (e) { }
-  const ts = Date.now(), upd = { tel, act: ts };
-  if (!x) upd.creado = ts;
-  if (!(x && x.nombre)) upd.nombre = nombre;
-  pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
+  if (!navigator.onLine) throw new Error('Para registrar al cliente se necesita internet');
+  const r0 = await api('monCliente', { negocioId: PDV.nid, tel, nombre }); // 3.2.1
+  const x = r0.yaTenia ? { nombre: r0.nombre } : null;
   const cfg = monCfg(), neg = S.negocio.nombre;
   const txt = `Hola ${nombre.split(' ')[0]} 👋 Ya tienes tu monedero en ${neg}: ganas ${cfg.cashback}% de cada compra para usarlo en tus siguientes visitas${cfg.vigencia ? ' (vence en ' + cfg.vigencia + ' días)' : ''}. Solo da tu teléfono al pagar.\n\nCrea tu cuenta en Pídele con este mismo número (ya queda verificado) y ve tu saldo y tus visitas: ${urlApp('cli=' + cliInvTk(tel, nombre))}`;
   modal(`<div style="text-align:center"><div style="font-size:46px">👛</div><h2 style="margin:4px 0">${x ? esc(x.nombre || nombre) + ' ya tenía monedero' : esc(nombre) + ' ya tiene monedero'}</h2>
@@ -11165,18 +11214,10 @@ async function monGuardarRecarga() {
   if (tel.length !== 10) throw new Error('El teléfono debe tener 10 dígitos');
   if (!(m > 0)) throw new Error('Escribe el monto');
   if (!caja) throw new Error('La caja está cerrada');
-  const cfg = monCfg(), bono = monBono(m), ts = Date.now(), hoy = pdvHoy(), vence = monSuma(hoy, cfg.vigencia), met = S._rec.met;
-  const ref = pdvCol('recargas').doc();
-  const r = { dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, tel, nombre, monto: m, bono, bonoVence: bono ? vence : '', metodo: met, por: pdvYo(), estado: 'activa', gid: PDV.gid };
-  pdvGuardar(ref.set(r));
-  const upd = { tel, rec: pdvInc(m), act: ts };
-  if (nombre) upd.nombre = nombre;
-  if (bono) upd.cb = { [vence]: pdvInc(bono) };
-  pdvGuardar(monCol('monedero').doc(tel).set(upd, { merge: true }));
-  pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre, tipo: 'recarga', monto: m, metodo: met, recargaId: ref.id })));
-  if (bono) pdvGuardar(monCol('movs').doc().set(monMov({ tel, nombre, tipo: 'bono', monto: bono, vence, recargaId: ref.id })));
-  pdvGuardar(pdvCol('dias').doc(caja.dia).set({ recargas: pdvInc(m), ['rec_' + met]: pdvInc(m), ts }, { merge: true }));
-  const rr = Object.assign({ id: ref.id }, r);
+  if (!navigator.onLine) throw new Error('Para recargar se necesita internet');
+  const met = S._rec.met;
+  const rr = await api('monRecarga', { negocioId: PDV.nid, tel, nombre, monto: m, metodo: met, cajaId: caja.id }); // 3.2.1: la recarga, el corte y el saldo los guarda el servidor
+  const ref = { id: rr.id }, r = rr, bono = rr.bono;
   if (PDV.caja && caja.id === PDV.caja.id && !(PDV.recargas || []).some(x => x.id === ref.id)) PDV.recargas = (PDV.recargas || []).concat([rr]);
   PDV._ultimaRecarga = rr; PDV.cajaCobroId = '';
   let saldo = null; try { saldo = monSaldo(await monLeer(tel)).total; } catch (e) { }
@@ -11216,22 +11257,8 @@ async function monCancelarRecarga(id) {
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
   if (!navigator.onLine) throw new Error('Para cancelar una recarga se necesita internet');
-  const ref = monCol('monedero').doc(r.tel), hoy = pdvHoy();
-  await PDV.db.runTransaction(async t => {
-    const s = await t.get(ref); if (!s.exists) throw new Error('No se encontró el monedero');
-    const x = s.data(), sal = monSaldo(x, hoy), upd = { act: Date.now() };
-    let bonoResto = pdvR(r.bono || 0);
-    if (bonoResto && r.bonoVence) { const q = pdvR(Math.min(bonoResto, pdvR((x.cb || {})[r.bonoVence]))); if (q > 0) { upd['cb.' + r.bonoVence] = pdvR(x.cb[r.bonoVence] - q); bonoResto = pdvR(bonoResto - q); } }
-    const quitarRec = pdvR(r.monto + bonoResto);
-    if (quitarRec > sal.rec + 0.001) throw new Error('El cliente ya gastó parte de esta recarga: solo le quedan ' + money(sal.rec) + ' recargados. No se puede cancelar.');
-    upd.rec = pdvR(sal.rec - quitarRec);
-    t.update(ref, upd);
-  });
-  const ts = Date.now(), canc = { motivo: g.datos, pide: pdvYo(), autoriza: { uid: g.uid, nombre: g.nombre }, ts };
-  pdvGuardar(pdvCol('recargas').doc(id).update({ estado: 'cancelada', cancelacion: canc }));
-  pdvGuardar(monCol('movs').doc().set(monMov({ tel: r.tel, nombre: r.nombre, tipo: 'recargaCancelada', monto: pdvR(r.monto + (r.bono || 0)), nota: g.datos, recargaId: id, autoriza: canc.autoriza })));
-  pdvGuardar(pdvCol('dias').doc(r.dia).set({ recargas: pdvInc(-r.monto), ['rec_' + r.metodo]: pdvInc(-r.monto), ts }, { merge: true }));
-  Object.assign(r, { estado: 'cancelada', cancelacion: canc });
+  const rc = await api('monRecargaCancelar', { negocioId: PDV.nid, recargaId: id, motivo: g.datos, uid: g.uid, pin: g.pin }); // 3.2.1
+  Object.assign(r, { estado: 'cancelada', cancelacion: rc.cancelacion });
   cerrarModal(); toast('Recarga cancelada' + (r.metodo === 'efectivo' ? ': devuelve ' + money(r.monto) + ' en efectivo' : ''));
   if (PDV.monCli && PDV.monCli.tel === r.tel) await monBuscar(r.tel); else pintarCaja();
 }
@@ -11252,25 +11279,9 @@ async function monFormAjuste(tel) {
       <div class="small muted">Lo que das vence en ${monCfg().vigencia} días, como el cashback.</div>`);
   } catch (e) { if (e.message !== 'Cancelado') throw e; return; }
   finally { S._pinAntes = null; S._pinDatos = null; }
-  const d = g.datos, ref = monCol('monedero').doc(tel), hoy = pdvHoy(), ts = Date.now();
-  let monto = d.monto;
-  if (d.signo > 0) {
-    const vence = monSuma(hoy, monCfg().vigencia);
-    pdvGuardar(ref.set({ tel, cb: { [vence]: pdvInc(monto) }, act: ts }, { merge: true }));
-  } else {
-    if (!navigator.onLine) throw new Error('Para quitar saldo se necesita internet');
-    monto = await PDV.db.runTransaction(async t => {
-      const s = await t.get(ref); if (!s.exists) throw new Error('Ese teléfono no tiene monedero');
-      const sal = monSaldo(s.data(), hoy);
-      if (sal.total <= 0) throw new Error('No tiene saldo');
-      let resto = pdvR(Math.min(monto, sal.total)); const q0 = resto, upd = { act: ts };
-      for (const [k, v] of sal.lotes) { if (resto <= 0) break; const q = pdvR(Math.min(v, resto)); upd['cb.' + k] = pdvR(v - q); resto = pdvR(resto - q); }
-      if (resto > 0) upd.rec = pdvR(sal.rec - resto);
-      t.update(ref, upd);
-      return q0;
-    });
-  }
-  pdvGuardar(monCol('movs').doc().set(monMov({ tel, tipo: 'ajuste', signo: d.signo, monto, nota: d.motivo, autoriza: { uid: g.uid, nombre: g.nombre } })));
+  const d = g.datos;
+  if (!navigator.onLine) throw new Error('Para ajustar saldo se necesita internet');
+  const monto = (await api('monAjuste', { negocioId: PDV.nid, tel, signo: d.signo, monto: d.monto, motivo: d.motivo, uid: g.uid, pin: g.pin })).monto; // 3.2.1: con el código del dueño revisado en el servidor
   cerrarModal(); toast(d.signo > 0 ? 'Saldo dado ✓' : 'Saldo quitado: ' + money(monto));
   await monBuscar(tel);
 }
@@ -11412,11 +11423,8 @@ function pintarMonedero() {
 /** Código de un solo uso (6 números, 10 minutos) para pagar con el saldo en la caja. */
 async function monCodigo(gid) {
   if (!navigator.onLine) throw new Error('Necesitas internet para generar tu código');
-  const n = new Uint32Array(1); crypto.getRandomValues(n);
-  const cod = String(100000 + (n[0] % 900000)), sal = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const exp = Date.now() + 10 * 60000;
-  await S._monListo; // 2.67: si se abrió con el saldo guardado, espera la conexión
-  await PDV.db.collection('monederos').doc(gid).collection('monedero').doc(S._mon.tel).update({ cod: { h: await pdvHash(cod, sal), s: sal, exp } });
+  const k = await api('monCodigo', { gid }); // 3.2.1: el código lo crea y lo revisa el servidor
+  const cod = k.cod, exp = Date.now() + Math.max(60000, k.exp - Date.now());
   modal(`<div style="text-align:center"><h2 style="margin:0 0 6px">Tu código para pagar</h2><div class="muted small">Dáselo a quien te cobra en caja.</div>
     <div style="font-size:46px;font-weight:900;letter-spacing:8px;margin:14px 0">${cod.slice(0, 3)} ${cod.slice(3)}</div>
     <div class="small muted" id="monCuenta"></div>
@@ -12348,7 +12356,14 @@ async function accion(nombre, datos, msg) {
   if (S.vista === 'caja') { await pdvCargarApp(); if (S._appPed && $('#modal.on')) pdvAppAbrir(S._appPed); else pintarCaja(); return; } // 2.62: dentro de caja
   await pintar(true);
 }
+/** 3.2.1 · ¿Esta cuenta puede cancelar pedidos? (dueño, gerente o permiso "cancelar") */
+const puedeCancelarNeg = () => { const n = S.negocio; if (!n || !S.user || S.user.rol !== 'negocio') return true; const p = n.permisos || []; return !!n.dueno || p.includes('cancelar') || p.includes('gerente'); };
 async function cancelar(id, palabra) {
+  if (!puedeCancelarNeg()) {
+    const m = prompt('Solo el encargado puede ' + (palabra === 'Rechazar' ? 'rechazar' : 'cancelar') + ' pedidos. ¿Por qué hay que cancelarlo? (le avisamos)');
+    if (m === null) return;
+    await api('pedirCancelacion', { id, motivo: m || 'Sin motivo' }); toast('Le avisamos al encargado 🙋'); return;
+  }
   const motivo = prompt((palabra || 'Cancelar') + ' pedido. Escribe el motivo:');
   if (motivo === null) return;
   await accion('cancelarPedido', { id, motivo: motivo || 'Sin motivo' }, 'Pedido cancelado');
@@ -12712,13 +12727,22 @@ function inicioNegCard(n, varios) {
     <button class="btn pill full iniVer" onclick="act(this,()=>tabEntrar('${n.id}','mas'))">Ver detalle de ${esc(n.nombre.split(' ')[0])} ›</button></div>`;
 }
 const ICO_PWR = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7a7.6 7.6 0 1 0 10.8 0"/></svg>';
-function abrirEstado(n) { const on = !!n.abierto, listo = on && n.horaAbierto && n.ubic && n.enLinea !== false; return listo ? 'on' : on ? 'medio' : 'off'; }
+/** 3.2.4 · on · off · revisar (falta ubicación o está apagado en línea) · cierra (ya no recibe, cierra pronto) · horario (fuera de su horario). */
+function abrirEstado(n) {
+  const on = !!n.abierto;
+  if (!on) return 'off';
+  if (!n.ubic || n.enLinea === false) return 'revisar';
+  if (n.horaAbierto) return 'on';
+  return /^Ya no recibe/.test(n.estadoTexto || '') ? 'cierra' : 'horario';
+}
 /** Botón flotante lateral: abierto / cerrado de todos los negocios (antes eran barras grandes en el Inicio). */
 function abrirFabHTML(l) {
   const ns = (l || []).filter(n => n.puedeAbrir); if (!ns.length) return '';
   const e = ns.map(abrirEstado), nuevo = ns.some(n => n.pasos && !n.pasos.abrir && !lsG('abrirUsado_' + n.id));
-  const cls = e.every(x => x === 'on') ? 'on' : e.every(x => x === 'off') ? 'off' : 'medio';
-  const txt = cls === 'on' ? 'Abierto' : cls === 'off' ? 'Cerrado' : ns.length > 1 && e.includes('on') ? 'Revisar' : 'Falta algo';
+  const nOn = e.filter(x => x === 'on').length;
+  const [cls, txt] = e.includes('revisar') ? ['medio', 'Revisar']
+    : nOn === e.length ? ['on', 'Abierto'] : e.every(x => x === 'off') ? ['off', 'Cerrado']
+    : e.includes('cierra') ? ['tarde', 'Por cerrar'] : nOn ? ['on', 'Abierto ' + nOn + ' de ' + e.length] : ['tarde', 'Fuera de horario'];
   return `<button class="abrirFab ${cls}${nuevo ? ' pulso' : ''}" onclick="abrirHoja()" aria-label="Abrir o cerrar ${ns.length > 1 ? 'tus negocios' : 'tu negocio'}: ${txt}"><span class="pwr">${ICO_PWR}</span><small>${txt}</small></button>`;
 }
 function abrirHoja() {
@@ -13024,7 +13048,7 @@ function tarjetaAbierto(n, hoja) {
   const on = !!n.abierto, listo = on && n.horaAbierto && n.ubic && n.enLinea !== false;
   const motivo = !n.ubic ? ['📍 Falta marcar la ubicación de tu negocio: sin ella no apareces en la app.', 'miNegocio', 'Marcar ubicación']
     : n.enLinea === false ? ['📲 Pídele en línea está apagado: no apareces en la app.', 'perfil', 'Prender']
-    : on && !n.horaAbierto ? ['🕒 ' + (n.estadoTexto || 'Fuera de tu horario') + '. Se abre solo en tu horario.', 'miNegocio', 'Ver horario'] : null;
+    : on && !n.horaAbierto ? ['Se vuelve a abrir solo en tu horario; no tienes que hacer nada.', 'miNegocio', 'Ver horario'] : null;
   const cls = listo ? 'on' : on ? 'medio' : '';
   const varios = S._tab && S._tab.negocios.length > 1;
   const exp = (S._abrirExp = S._abrirExp || {})[n.id];
@@ -13035,7 +13059,8 @@ function tarjetaAbierto(n, hoja) {
     return `<button class="abrirBtn ${cls}" onclick="S._abrirExp['${n.id}']=true;pintarTablero()" aria-label="Abrir o cerrar el negocio"><span class="pwr">${ICO_PWR}</span>
       <span class="grow"><b>${varios ? esc(n.nombre) + ' · ' : ''}${corto}</b> <small>${esc(det)}</small></span><span class="muted">›</span></button>`;
   }
-  const titulo = !on ? '🔴 Cerrado · no recibes pedidos de la app' : listo ? '🟢 Abierto · recibiendo pedidos de la app' : '🟠 Encendido, pero aún no recibes pedidos';
+  const porHora = on && !listo && n.ubic && n.enLinea !== false;
+  const titulo = !on ? '🔴 Cerrado · no recibes pedidos de la app' : listo ? '🟢 Abierto · recibiendo pedidos de la app' : porHora ? '🕒 ' + (n.estadoTexto || 'Fuera de tu horario') : '🟠 Encendido, pero aún no recibes pedidos';
   return `<div class="card tabAbrir ${cls}"><div class="grow"><b class="t">${titulo}</b>${varios ? `<div class="small muted">${esc(n.nombre)}</div>` : ''}
       ${listo && n.estadoTexto ? `<div class="small" style="color:var(--ok);font-weight:700">${esc(n.estadoTexto)}</div>` : ''}
       ${motivo ? `<div class="small" style="margin-top:4px">${esc(motivo[0])} <button class="lnk small" onclick="act(this,()=>(cerrarModal(),tabEntrar('${n.id}','${motivo[1]}')))">${motivo[2]} ›</button></div>` : ''}
@@ -15571,7 +15596,7 @@ function progSlots(cs, negs, dia) {
   for (let m = 0; m < 1440; m += 15) {
     const hh = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'), ms = progMs(dia, hh);
     if (ms < min0) continue;
-    if (ns.every(n => { const hs = n.horarios || []; if (hs.length !== 7) return true; const h = hs[wd]; if (!h || !h.on) return false; const a = aMinC(h.a), c = aMinC(h.c); if (a == null || c == null) return false; return c <= a ? (m >= a || m <= c) : (m >= a && m <= c); })) out.push(hh);
+    if (ns.every(n => { const hs = n.horarios || []; if (hs.length !== 7) return true; const h = hs[wd]; if (!h || !h.on) return false; const a = aMinC(h.a), c0 = aMinC(h.c); if (a == null || c0 == null) return false; const c = c0 - (n.minCierre || 0); return c0 <= a ? (m >= a ? m <= 1440 + Math.min(0, c) || c >= 0 : m <= c) : (m >= a && m <= c); })) out.push(hh); // 3.2.5
   }
   return out;
 }
@@ -18108,7 +18133,13 @@ ${esDueno() ? '' : `    <div class="card row between" style="cursor:pointer" onc
     <h3>${ico('reloj', 's')} Horario de atención</h3>
     <div class="card"><div class="muted small">Fuera de este horario la app no deja hacer pedidos. Si cierras después de medianoche, pon la hora tal cual (ej. 18:00 a 02:00).</div>
       ${filasHorario(n.horarios)}
-      <button class="btn sm" style="margin-top:8px" onclick="copiarLunes()">Copiar el lunes a todos los días</button></div>
+      <button class="btn sm" style="margin-top:8px" onclick="copiarLunes()">Copiar el lunes a todos los días</button>
+      ${(() => { const p = n.minCierrePropio, gen = (S.conf && S.conf.minutosAntesCierre != null ? S.conf.minutosAntesCierre : 15), op = [['', 'Lo general de la ciudad (' + gen + ' min antes)'], [0, 'Hasta la hora de cierre'], [15, '15 minutos antes'], [30, '30 minutos antes'], [45, '45 minutos antes'], [60, '60 minutos antes']];
+        const otro = p != null && ![0, 15, 30, 45, 60].includes(p);
+        return `<label class="f" style="margin-top:12px">🍳 Recibir pedidos de la app hasta</label>
+        <select class="i" id="nMinC" onchange="$('#nMinCO').style.display=this.value==='otro'?'':'none'">${op.map(([v, t]) => `<option value="${v}" ${!otro && String(p == null ? '' : p) === String(v) ? 'selected' : ''}>${t}</option>`).join('')}<option value="otro" ${otro ? 'selected' : ''}>Otro…</option></select>
+        <input class="i" id="nMinCO" inputmode="numeric" placeholder="Minutos antes del cierre (0 a 180)" value="${otro ? p : ''}" style="margin-top:6px;${otro ? '' : 'display:none'}">
+        <div class="small muted" style="margin-top:4px">Ej.: cierras a las 11:00 y tu cocina a las 10:30 → elige 30 minutos antes. La caja (mesas, mostrador y teléfono) no se afecta.</div>`; })()}</div>
     <h3>${ico('pin', 's')} Ubicación</h3>
     <div class="card"><div class="row between"><span class="muted small">Marca la entrada de tu negocio</span><button class="btn sm" onclick="miUbicacion((a,b)=>S._selN.fijar(a,b,true))">${ico('pin', 's')} Estoy aquí</button></div>
       <div id="mapaNeg" class="mapa" style="margin-top:8px"></div>
@@ -18187,7 +18218,7 @@ async function imgNegocio(inp, tipo) {
 async function guardarNegocio() {
   const v = id => $('#' + id).value;
   const n = await api('guardarNegocio', {
-    nombre: v('nNom'), categorias: S._cats && S._cats.length ? S._cats : undefined, descripcion: v('nDes'), horarios: leerHorario(), tiempoPrep: v('nTie'), telefono: v('nTel'),
+    nombre: v('nNom'), categorias: S._cats && S._cats.length ? S._cats : undefined, descripcion: v('nDes'), horarios: leerHorario(), minCierre: $('#nMinC') ? ($('#nMinC').value === 'otro' ? (($('#nMinCO').value || '').trim() === '' ? '' : Number($('#nMinCO').value)) : $('#nMinC').value === '' ? '' : Number($('#nMinC').value)) : undefined, tiempoPrep: v('nTie'), telefono: v('nTel'),
     direccion: v('nDir'), lat: S._negPos.lat, lng: S._negPos.lng, banco: v('nBan'), titular: v('nTit'), clabe: v('nCla'), tarjeta: v('nTar'),
     efectivo: $('#nEfe').checked, envioEnTransfer: $('#nEnvTr').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined,
     ...datosEnvios()
