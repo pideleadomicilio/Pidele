@@ -503,7 +503,23 @@ body.uxPick [data-uxk],body.uxPick [data-uxn]{outline:3px solid #1c7ed6}
 .abrirFab .pwr{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--err);box-shadow:0 4px 14px rgba(0,0,0,.25);border:3px solid var(--card,#fff)}
 .abrirFab small{font-size:10.5px;font-weight:800;background:var(--card,#fff);border-radius:99px;padding:1px 7px;box-shadow:0 1px 4px rgba(0,0,0,.15);color:var(--tx)}
 .abrirFab.on .pwr{background:var(--ok)}.abrirFab.medio .pwr{background:var(--warn)}.abrirFab.tarde .pwr{background:#5c7c8a}
-.abrirFab,.checar.mini{transition:transform .25s ease,opacity .25s ease}body.fabFuera .abrirFab,body.fabFuera .checar.mini{transform:translateX(78px);opacity:.15;pointer-events:none}
+.abrirFab,.checar.mini,.aprFab{transition:transform .25s ease,opacity .25s ease}body.fabFuera .abrirFab,body.fabFuera .checar.mini{transform:translateX(78px);opacity:.15;pointer-events:none}
+body.fabFuera .aprFab{transform:translateX(-90px);opacity:.15;pointer-events:none}
+/* 3.4.0 · Aprende a usar Pídele */
+.aprFab{position:fixed;left:12px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:61;display:flex;align-items:center;gap:6px;border:0;border-radius:999px;background:#2E5E8C;color:#fff;padding:8px 14px 8px 10px;font:inherit;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
+.aprFab span{font-size:22px}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
+.aprItem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
+.aprItem .e{font-size:26px;width:34px;text-align:center}
+.aprBarra{height:8px;background:var(--ln);border-radius:99px;margin-top:8px;overflow:hidden}.aprBarra i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.aprPuntos{display:flex;gap:5px;margin-top:10px}.aprPuntos i{flex:1;height:5px;border-radius:99px;background:var(--ln)}.aprPuntos i.on{background:var(--pri)}
+.aprTxt{font-size:16px;line-height:1.5}
+#aprGuiaP{position:fixed;inset:0;z-index:950;pointer-events:none}
+#aprGuiaP .hueco{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(20,26,16,.55);outline:3px solid #F3C27A;outline-offset:2px;transition:all .3s;pointer-events:none}
+#aprGuiaP .globo{position:fixed;left:12px;right:64px;max-width:420px;margin:0 auto;background:var(--card);border-radius:18px;padding:14px 16px;box-shadow:0 16px 40px rgba(0,0,0,.35);pointer-events:auto}
+#aprGuiaP .globo h3{margin:2px 0 4px}#aprGuiaP .globo p{margin:0;font-size:14.5px;line-height:1.45}#aprGuiaP .pie{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+#aprGuiaP.arriba .hueco{display:none}#aprGuiaP.arriba .globo{top:calc(34px + env(safe-area-inset-top)) !important;opacity:.96}
+#aprSalir{position:fixed;right:0;top:38%;z-index:960;border:0;border-radius:14px 0 0 14px;background:#B3261E;color:#fff;padding:8px 5px;font:inherit;font-weight:900;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;max-width:58px;opacity:.92}
+#aprSalir small{font-size:9.5px;line-height:1.15;text-align:center}
 #vista:has(.abrirFab,.checar.mini){padding-bottom:calc(150px + env(safe-area-inset-bottom))}
 .abrirFab.pulso .pwr{animation:pwrPulso 1.6s ease-out infinite}@keyframes pwrPulso{0%{box-shadow:0 0 0 0 rgba(200,60,40,.55)}100%{box-shadow:0 0 0 16px rgba(200,60,40,0)}}
 .pwrMini{display:inline-grid;vertical-align:-4px}.pwrMini svg{width:20px;height:20px}#abrirHoja .tabAbrir{margin-bottom:10px}
@@ -1215,7 +1231,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.3.5';
+const APP_VER = '3.4.4';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -1993,7 +2009,7 @@ const VISTAS = {
   ventas: () => vVentas(), admNegocio: () => vMas(), mas: () => vMas(),
   entrar: () => vLogin(), nuevaClave: vNuevaClave, inicio: vInicio, buscar: vBuscar, negocio: vNegocio, carrito: vCarrito, entrega: vEntrega, pago: vPago, listo: vListo,
   pedidos: vPedidos, pedido: vPedido, perfil: vPerfil, monedero: vMonedero, monederoAlta: vMonederoAlta, tablero: vTablero, repartidores: vRepartidores, oferta: vOferta,
-  revision: vRevision, operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, planIOS: vPlanIOS, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, elegirPlan: vElegirPlan, adminCobros: vAdminCobros,
+  revision: vRevision, aprende: vAprende, operacion: vOperacion, almacen: vAlmacen, inventarioCfg: vInventarioCfg, inventario: vInventario, negPedidos: vNegPedidos, cocina: vCocina, caja: vCaja, planIOS: vPlanIOS, facLink: vFacLink, cliInv: vCliInv, vender: vVender, nuevoPedido: vNuevoPedido, nomina: vNomina, facturas: vFacturas, equipo: vEquipo, seguir: vSeguir, capturaTel: vCapturaTel, menu: vMenu, promos: vPromos, miNegocio: vMiNegocio, suscripcion: vSuscripcion, elegirPlan: vElegirPlan, adminCobros: vAdminCobros,
   disponibles: vDisponibles, entregas: vEntregas, historialRep: vHistorialRep, compartido: vCompartido,
   ciudades: vCiudades, admin: vAdmin, adminUsuarios: vAdminUsuarios, adminPedidos: vAdminPedidos, adminConfig: vAdminConfig, adminComisiones: vAdminComisiones, adminEstadisticas: vAdminEstadisticas, moderacion: vModeracion
 };
@@ -2201,6 +2217,316 @@ function pintarNav() {
     const badge = (v === 'negPedidos' || v === 'pedidosD' || v === 'disponibles' || v === 'cocina') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
     return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : v === 'pedidosD' ? 'act(null,irPedidosD)' : v === 'monedero' ? 'irMonedero()' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
+  try { aprFab(); if (!S._aprIni && (u.rol !== 'negocio' || S.negocio)) { S._aprIni = 1; if (!aprRegreso()) setTimeout(aprNovedades, 1800); } } catch (e) { console.warn(e); } // 3.4.0
+}
+
+/* ============ 3.4.0 · APRENDE A USAR PÍDELE ============
+ * Botón "📚 Aprende" para el equipo: menú de funciones de su puesto → guía corta (tarjetas) → "Practicar esta función"
+ * (abre la demo con datos de mentira, primero guiada paso a paso y luego libre, con "Salir de práctica").
+ * Lo aprendido se guarda en este teléfono; cuando una función cambia en una versión nueva, vuelve a aparecer como 🆕. */
+const APR_GRUPOS = [['dia', '🙋 Mi día en el trabajo'], ['mesas', '🍽️ Mesas y comandas'], ['cobrar', '💵 Cobrar'], ['caja', '🗄️ La caja'], ['cocina', '👩‍🍳 Cocina y barra']];
+const APR_ROL = { mesero: 'mesero', caja: 'cajero', cocina: 'cocina', dueno: 'dueno' };
+/** Puestos de esta persona en el negocio que tiene abierto. */
+function aprPuestos() {
+  const u = S.user, n = S.negocio, o = {};
+  if (!u || u.rol !== 'negocio' || !n) return o;
+  const due = esDueno(), p = n.permisos || [], t = k => due || p.includes(k), caja = planTiene('caja');
+  o.equipo = due || p.length > 0;
+  if (due) o.dueno = 1;
+  if (t('gerente')) o.gerente = 1;
+  if (caja && (t('mesero') || t('gerente'))) o.mesero = 1;
+  if (caja && (t('caja') || t('gerente'))) o.caja = 1;
+  if (t('pedidos')) o.cocina = 1;
+  return o;
+}
+/* ---- catálogo: cada función con su guía (tarjetas) y su práctica (pasos sobre la pantalla) ----
+ * para(P): ¿le toca a este puesto?  ver: versión en que cambió por última vez (si es mayor a lo aprendido, vuelve a salir)
+ * c: tarjetas [título, texto]  pr: { rol, ir(), pasos: [{ b: [selector, texto], t, x, ok() }] } */
+const APRENDE = [
+  // ---------- Mi día ----------
+  { id: 'reloj', g: 'dia', e: '🕒', t: 'Marcar entrada y salida', ver: '3.4.0', para: P => P.equipo && !P.dueno && funOn('personal', 'asistencia'),
+    c: [['¿Para qué sirve?', 'Con el reloj se registra a qué hora llegas y a qué hora te vas. Con eso se calcula tu nómina, tus retardos y tus horas extra.'],
+      ['Al llegar', 'Arriba de tu pantalla aparece <b>Checar entrada</b> con tu turno. Toca <b>📷 Checar</b> (también está en Perfil como <b>📷 Marcar entrada</b>, o en el botón redondo <b>🕒</b>). Se abre la cámara: apunta al <b>QR del negocio</b>, que está en la caja.'],
+      ['Al irte', 'Antes de irte aparece <b>Checar salida</b>: toca <b>📷 Checar</b> y lee el mismo QR. Se marca tu salida.'],
+      ['Si algo falla', 'Si no tienes señal o la cámara no abre, avisa a tu encargado: él puede marcarte desde la caja. Nunca marques por otra persona.']],
+    pr: { rol: 'mesero', ir: () => ir('perfil'), pasos: [
+      { b: ['.checar', ''], t: 'Este es tu reloj', x: 'Toca <b>📷 Checar</b> al llegar y al irte. En la práctica no pasa nada si lo tocas.' }] } },
+  { id: 'horario', g: 'dia', e: '📅', t: 'Mi horario, descansos y vacaciones', ver: '3.4.0', para: P => P.equipo && !P.dueno && funOn('personal', 'asistencia'),
+    c: [['Tu horario', 'En <b>Perfil</b> está tu tarjeta del negocio. Abre <b>Mi horario de los próximos días</b> para ver a qué hora entras y qué día descansas.'],
+      ['Vacaciones', 'En la misma tarjeta ves tus días disponibles. Con <b>📅 Pedir vacaciones</b> eliges las fechas; el dueño las aprueba y te llega un aviso.'],
+      ['Cambios de turno', 'Si te cambian el turno o el descanso, te llega un aviso y se ve en tu horario.']],
+    pr: { rol: 'mesero', ir: () => ir('perfil'), pasos: [
+      { b: ['summary', /Mi horario/], t: 'Tu horario', x: 'Toca aquí para ver tus próximos días.' }] } },
+  { id: 'adelanto', g: 'dia', e: '💵', t: 'Pedir un adelanto de nómina', ver: '3.4.0', para: P => P.equipo && !P.dueno,
+    c: [['¿Qué es?', 'Un adelanto es dinero de tu sueldo que pides antes del día de pago. Se descuenta en tu siguiente nómina.'],
+      ['Cómo se pide', 'En <b>Perfil</b>, en tu tarjeta del negocio, toca <b>💵 Pedir un adelanto</b>. Escribe cuánto necesitas, para qué día y, si quieres, una nota. Toca <b>Enviar solicitud</b>.'],
+      ['Qué sigue', 'El dueño lo revisa y te avisa si lo aprobó. Lo pides tú, desde tu cuenta: nadie más puede pedirlo por ti.'],
+      ['Si te cargan algo', 'Si en la caja se carga algo a tu nómina (por ejemplo, tu comida), se pide <b>tu código</b> y te llega un aviso. Si no fuiste tú, toca <b>No fui yo</b>.']],
+    pr: { rol: 'mesero', ir: () => ir('perfil'), pasos: [
+      { b: ['button', /Pedir un adelanto/], t: 'Pedir un adelanto', x: 'Tócalo, llena el monto y la fecha y envíalo. Es práctica: no le llega a nadie.', ok: () => $('#modal.on') }] } },
+  { id: 'codigo', g: 'dia', e: '🔑', t: 'Mi código personal', ver: '3.4.0', para: P => P.equipo && (P.caja || P.gerente || P.dueno || P.mesero),
+    c: [['¿Para qué sirve?', 'Tu código (de 4 a 6 números) es tu firma en la caja: con él abres y cierras turno, autorizas y confirmas que algo se carga a tu nómina.'],
+      ['Crearlo o cambiarlo', 'En la caja, si aún no lo tienes, sale el aviso <b>🔑 Crea tu código de caja</b>. Tócalo y escríbelo dos veces.'],
+      ['Cuídalo', 'No lo compartas. Todo lo que se haga con tu código queda a tu nombre. Si alguien lo sabe, cámbialo.']],
+    pr: null },
+  // ---------- Mesas y comandas (mesero) ----------
+  { id: 'cuenta', g: 'mesas', e: '🍽️', t: 'Abrir una cuenta y mandar la comanda', ver: '3.4.0', para: P => P.mesero,
+    c: [['Abrir la cuenta', 'Entra a <b>🍽️ Mesas y pedidos</b>. Toca una <b>mesa libre</b>, o <b>➕ Cuenta sin mesa</b> si es para llevar o en barra.'],
+      ['Agregar productos', 'Toca los productos del menú. Si tienen opciones (término, salsa, tamaño), elige y confirma. Lo nuevo se marca <b>🆕 Sin enviar</b>.'],
+      ['Mandar a cocina', 'Toca <b>👩‍🍳 Enviar a cocina</b>. La comanda llega a la pantalla de cocina y a la impresora. Si el cliente pide más, agrégalo y envía otra vez: solo se manda lo nuevo.'],
+      ['Cuando esté listo', 'La cuenta te avisa <b>📦 Listo</b>. Llévalo y toca <b>Entregué</b>.']],
+    pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
+      { b: ['.pdvTabs button', /Mesas/], t: 'Mesas y pedidos', x: 'Aquí están todas las cuentas abiertas.' },
+      { b: ['button', /Cuenta sin mesa|➕ Cuenta/], t: 'Abre una cuenta', x: 'Toca aquí (o una mesa libre).', ok: () => PDV.cuentaId },
+      { b: ['.pdvMenu', ''], t: 'Agrega productos', x: 'Toca uno o dos productos del menú y confirma con <b>Agregar</b>.', ok: () => aprSinEnviar() },
+      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /Enviar a cocina/) },
+      { b: ['button', /Enviar a cocina/], t: 'Manda la comanda', x: 'Toca <b>👩‍🍳 Enviar a cocina</b>.', ok: () => !aprSinEnviar() }] } },
+  { id: 'dividir', g: 'mesas', e: '👥', t: 'Dividir y unir cuentas', ver: '3.4.0', para: P => P.mesero || P.caja,
+    c: [['Dividir', 'Dentro de la cuenta toca <b>👥 Dividir cuenta</b>. Pasa cada producto a la persona que lo pagará (un producto se puede compartir). Toca <b>Dividir cuenta</b>.'],
+      ['Cada parte', 'Cada parte queda como su propia cuenta, con su nombre y su ticket. Se cobra por separado.'],
+      ['Unir', 'Si se equivocaron, toca <b>🔗 Unir las cuentas divididas</b> antes de cobrar.'],
+      ['Ojo', 'Antes de dividir o cobrar, envía a cocina lo que esté <b>🆕 Sin enviar</b>.']],
+    pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
+      { b: ['.pdvTabs button', /Mesas/], t: 'Elige una cuenta', x: 'Abre cualquier cuenta que tenga productos.', ok: () => PDV.cuentaId },
+      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /Dividir cuenta/) },
+      { b: ['button', /Dividir cuenta/], t: 'Dividir', x: 'Toca <b>👥 Dividir cuenta</b> y reparte los productos.' }] } },
+  { id: 'precuenta', g: 'mesas', e: '🧾', t: 'Pre-cuenta para el cliente', ver: '3.4.0', para: P => P.mesero || P.caja,
+    c: [['¿Qué es?', 'Es el ticket que le llevas al cliente para que vea cuánto es, antes de pagar.'],
+      ['Cómo', 'En la cuenta toca <b>🧾 Pre-cuenta</b>. Se imprime (o se comparte) con todos los productos y el total.']],
+    pr: null },
+  // ---------- Cobrar ----------
+  { id: 'cobrarCuenta', g: 'cobrar', e: '💳', t: 'Cobrar una cuenta', ver: '3.4.0', para: P => P.mesero || P.caja,
+    c: [['Cobrar', 'Abre la cuenta y toca <b>Cobrar</b>. Elige cómo paga: <b>efectivo</b>, <b>tarjeta</b>, <b>transferencia</b> o <b>monedero</b>. Puede pagar con varias formas.'],
+      ['Efectivo', 'Escribe con cuánto paga y la app te dice el <b>cambio</b>.'],
+      ['Monedero', 'Si paga con su monedero, el cliente te dice su código de la app (o lo autoriza el gerente).'],
+      ['Al terminar', 'La cuenta se cierra y sale el ticket. Si la pide con factura, se marca ahí mismo.']],
+    pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
+      { b: ['.pdvTabs button', /Mesas/], t: 'Elige una cuenta', x: 'Abre una cuenta con productos.', ok: () => PDV.cuentaId },
+      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /^Cobrar$/) },
+      { b: ['button', /^Cobrar$/], t: 'Cobrar', x: 'Toca <b>Cobrar</b>, elige efectivo y escribe con cuánto paga.' }] } },
+  { id: 'entregar', g: 'cobrar', e: '🤝', t: 'Entregar a caja el efectivo que cobré', ver: '3.4.0', para: P => P.mesero && !P.caja,
+    c: [['¿Por qué?', 'Todo el efectivo que cobras es de la caja. La app lleva la cuenta de cuánto traes.'],
+      ['Dónde lo ves', 'En <b>🧾 Mi turno</b> aparece <b>💵 Te falta entregar $…</b>. Tócalo para ver de qué cuentas es.'],
+      ['Entregarlo', 'Llévalo a la caja. Quien está en caja lo cuenta y toca <b>✅ Recibí</b>. Entonces te sale <b>Entregaste … ✓</b>.'],
+      ['Al corte', 'Si al cerrar el turno algo no se entregó, la caja lo verá pendiente con tu nombre.']],
+    pr: { rol: 'mesero', ir: () => aprIrCaja('ventas'), pasos: [
+      { b: ['.pdvTabs button', /Mi turno/], t: 'Mi turno', x: 'Aquí ves lo que vendiste y lo que traes por entregar.' }] } },
+  { id: 'llevar', g: 'cobrar', e: '🥡', t: 'Vender en mostrador o para llevar', ver: '3.4.0', para: P => P.caja,
+    c: [['Vender', 'En <b>🛒 Vender</b> toca los productos. Abajo ves el total.'],
+      ['Para llevar o aquí', 'Elige si es para comer aquí o para llevar. Si es por teléfono o a domicilio, escribe el nombre y el teléfono del cliente.'],
+      ['Cobrar', 'Toca <b>Cobrar $…</b>, elige la forma de pago y confirma. Si lleva cocina, la comanda se manda sola.']],
+    pr: { rol: 'cajero', ir: () => aprIrCaja('vender'), pasos: [
+      { b: ['.pdvTabs button', /Vender/], t: 'Vender', x: 'Aquí está el menú para cobrar en mostrador.' },
+      { b: ['.pdvMenu', ''], t: 'Agrega productos', x: 'Toca uno o dos productos y confirma con <b>Agregar</b>.', ok: () => !!(aprBuscar('.pdvBarraTel', /Ver cuenta/) || aprBuscar('button', /^Cobrar \$/)) },
+      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /^Cobrar \$/) },
+      { b: ['button', /^Cobrar \$/], t: 'Cobrar', x: 'Toca <b>Cobrar</b> y termina la venta en efectivo.' }] } },
+  { id: 'app', g: 'cobrar', e: '🛵', t: 'Pedidos de la app', ver: '3.4.0', para: P => P.caja || P.cocina,
+    c: [['Cuando llega uno', 'Suena y aparece en <b>Mesas y pedidos</b> (o en Pedidos). Revisa lo que pidió y toca <b>Aceptar</b>, eligiendo en cuántos minutos estará.'],
+      ['Ya pagado o por cobrar', 'Si pagó con transferencia, tarjeta o monedero, ya está pagado. Si es en efectivo, lo cobra el repartidor o se cobra al recoger.'],
+      ['Listo y entrega', 'Cuando cocina lo termina, se avisa al cliente y al repartidor. Si el envío lo paga el negocio, la caja le paga al repartidor al recoger.']],
+    pr: null },
+  // ---------- La caja ----------
+  { id: 'abrirCaja', g: 'caja', e: '🔓', t: 'Abrir la caja', ver: '3.4.0', para: P => P.caja,
+    c: [['Antes de vender', 'La caja se abre al empezar el turno. Ve a <b>🗄️ Caja</b> y toca <b>Abrir caja</b>.'],
+      ['Fondo', 'Cuenta el efectivo que hay en la caja chica y escríbelo. Si no coincide con lo que dejó el turno anterior, la app lo avisa.'],
+      ['Quién abre', 'Elige tu nombre y escribe <b>tu código</b>. Desde ahí todo lo que se venda queda en tu turno.'],
+      ['Ojo', 'Si acabas de hacer el corte, no abras otro turno: el corte ya quedó guardado.']],
+    pr: { rol: 'cajero', ir: () => aprIrCaja('caja'), pasos: [
+      { b: ['.pdvTabs button', /Caja/], t: 'Tu caja', x: 'Aquí ves el turno abierto, el fondo y lo que llevas. En la práctica la caja ya está abierta.' }] } },
+  { id: 'recibir', g: 'caja', e: '💵', t: 'Recibir el efectivo de los meseros', ver: '3.4.0', para: P => P.caja,
+    c: [['La burbuja', 'Cuando un mesero cobra en efectivo, en la caja aparece una burbuja naranja: <b>💵 Por recibir: Ana $350</b>.'],
+      ['Recibir', 'Cuando te lo entregue, cuéntalo, toca la burbuja y luego <b>✅ Recibí $350 de Ana</b>. Queda guardado quién recibió y a qué hora.'],
+      ['En el corte', 'Si todo se recibió, el corte no pregunta nada. Si falta algo, te lo dice para que lo pidas antes de contar.']],
+    pr: null },
+  { id: 'gasto', g: 'caja', e: '💸', t: 'Registrar un gasto', ver: '3.4.0', para: P => P.caja && funOn('caja', 'gastos'),
+    c: [['Cuándo', 'Cada vez que sale dinero de la caja para comprar algo (gas, hielo, verdura…), regístralo al momento.'],
+      ['Cómo', 'En <b>💸 Gastos</b> toca <b>➕ Nuevo gasto</b>: concepto, monto, de dónde sale (caja u otro) y, si tienes, la foto del ticket.'],
+      ['¿Por qué importa?', 'Si no lo registras, en el corte te sale <b>faltante</b>. Si se te olvidó, el corte te pregunta antes de cerrar.']],
+    pr: { rol: 'cajero', ir: () => aprIrCaja('gastos'), pasos: [
+      { b: ['button', /Nuevo gasto/], t: 'Nuevo gasto', x: 'Tócalo y registra un gasto de prueba.', ok: () => $('#modal.on') }] } },
+  { id: 'devolver', g: 'caja', e: '↩️', t: 'Devolver un producto', ver: '3.4.0', para: P => P.caja || P.gerente,
+    c: [['Cuándo', 'Cuando el cliente regresa un producto (llegó frío, no era lo que pidió) y no hay que cancelar toda la venta.'],
+      ['Cómo', 'En <b>🧾 Mi turno</b> toca la venta y luego <b>↩️ Devolver un producto</b>. Elige qué y cuántos, cómo se le regresa el dinero y la justificación.'],
+      ['Autoriza', 'Lo autoriza el gerente con su código. La venta del turno baja, y si es en efectivo, también lo que debe haber en caja.'],
+      ['Lo demás', 'El producto devuelto queda como <b>merma</b> y se quita el cashback que le dio al cliente.']],
+    pr: { rol: 'dueno', ir: () => aprIrCaja('ventas'), pasos: [
+      { b: ['.pdvVentaFila', ''], t: 'Elige una venta', x: 'Toca cualquier venta de la lista.', ok: () => /Devolver un producto/.test(($('#modal') || {}).innerText || '') },
+      { b: ['#modal button', /Devolver un producto/], t: 'Devolver', x: 'Toca <b>↩️ Devolver un producto</b>. En la práctica cualquier código funciona.' }] } },
+  { id: 'cancelar', g: 'caja', e: '❌', t: 'Cancelar una venta', ver: '3.4.0', para: P => P.caja || P.gerente,
+    c: [['Cuándo', 'Solo cuando toda la venta fue un error (se cobró dos veces, el cliente se fue sin recibir nada).'],
+      ['Cómo', 'En <b>🧾 Mi turno</b> toca la venta y <b>Cancelar venta</b>. Escribe la justificación.'],
+      ['Autoriza', 'Se necesita el código de un gerente o del dueño. Si se pagó en efectivo, devuelve el dinero; si fue con monedero, regresa solo al cliente.']],
+    pr: null },
+  { id: 'corte', g: 'caja', e: '🧾', t: 'Hacer el corte y cerrar el turno', ver: '3.4.0', para: P => P.caja,
+    c: [['Antes de contar', 'Recibe el efectivo de los meseros y registra los gastos pendientes. Si hay cuentas abiertas, la app te avisa.'],
+      ['Empezar', 'En la caja toca <b>🧾 Hacer corte y cerrar turno</b>.'],
+      ['Contar', '1) ¿Cuánto <b>dejas en caja chica</b> para el siguiente turno? 2) ¿Cuánto <b>retiras</b>? Es el dinero que te llevas o entregas al encargado. Puedes contar por billete.'],
+      ['Firmar', 'Elige quién retira y quién cierra, con su código. Si eres tú, el código se pide una sola vez.'],
+      ['Resultado', 'Te dice si cuadró, si sobró o si faltó. Si falta, primero te pregunta si hay un gasto sin registrar. El dueño recibe el reporte.']],
+    pr: { rol: 'cajero', ir: () => aprIrCaja('vender'), pasos: [
+      { b: ['button', /Hacer corte/], t: 'Corte', x: 'Toca <b>🧾 Hacer corte y cerrar turno</b> y sigue los pasos. Es práctica: no cierra tu caja real.', ok: () => $('#modal.on') }] } },
+  // ---------- Cocina ----------
+  { id: 'comandas', g: 'cocina', e: '👩‍🍳', t: 'Ver y preparar las comandas', ver: '3.4.0', para: P => P.cocina,
+    c: [['La pantalla', 'En <b>Cocina</b> hay tres columnas: <b>🔔 Por aceptar</b>, <b>👩‍🍳 Preparando</b> y <b>📦 Listos</b>.'],
+      ['El tiempo', 'Cada comanda dice cuánto falta: verde a tiempo, amarillo pronto, rojo <b>Tarde</b>. <b>Sale ya</b> es que es hora de entregarla.'],
+      ['Ir tachando', 'Toca cada producto conforme lo terminas: se tacha. Así nadie repite ni olvida nada.'],
+      ['Listo', 'Cuando todo esté, toca <b>✅ Listo</b>. Al mesero, a la caja y al cliente les llega el aviso.']],
+    pr: { rol: 'cocina', ir: () => ir('cocina'), pasos: [
+      { b: ['.cTarj', ''], t: 'Una comanda', x: 'Toca los productos para tacharlos.' },
+      { b: ['.bListo', ''], t: 'Listo', x: 'Cuando termines, toca <b>✅ Listo</b>.' }] } },
+  { id: 'pantallaCocina', g: 'cocina', e: '📺', t: 'La pantalla de cocina', ver: '3.4.0', para: P => P.cocina,
+    c: [['Tableta fija', 'La pantalla de cocina se queda abierta en la tableta. Arriba: <b>⚙️ Ajustes</b> (sonido, impresora), <b>⛶ Pantalla</b> completa y <b>🕒 Asistencia</b>.'],
+      ['Colores', 'El fondo cambia según la hora (mañana, tarde, noche) y todo se mueve un poquito cada rato: es para que la pantalla no se marque. Es normal.'],
+      ['Salir', 'Con <b>Salir</b> regresas a la app normal.']],
+    pr: null }
+];
+/** ¿La cuenta abierta tiene productos sin mandar a cocina? */
+const aprSinEnviar = () => {
+  const m = $('#modal'); if (m && m.classList.contains('on') && /Pre-cuenta/.test(m.textContent)) return !!aprBuscar('#modal button', /Enviar a cocina/); // la cuenta abierta en ventana (celular)
+  const b = document.querySelector('.pdvBarraTel'); return !!((b && /sin enviar/.test(b.textContent)) || aprBuscar('button', /Enviar a cocina \(/));
+};
+const aprId = () => (S.user && S.user.id) || 'x';
+function aprHecho() { try { const x = ls('apr_' + aprId()); return x && typeof x === 'object' ? x : {}; } catch (e) { return {}; } }
+function aprMarcar(id) { const h = aprHecho(), f = APRENDE.find(x => x.id === id); if (!f) return; h[id] = f.ver; ls('apr_' + aprId(), h); }
+/** Funciones de esta persona, con su estado: 'nueva' (nunca), 'cambio' (cambió desde que la aprendió) o 'ok'. */
+function aprMias() {
+  const P = aprPuestos(), h = aprHecho();
+  if (!Object.keys(P).length) return [];
+  return APRENDE.filter(f => { try { return f.para(P); } catch (e) { return false; } })
+    .map(f => Object.assign({}, f, { est: !h[f.id] ? 'nueva' : verMayor(f.ver, h[f.id]) ? 'cambio' : 'ok' }));
+}
+const aprPendientes = () => aprMias().filter(f => f.est !== 'ok').length;
+/** Botón flotante "📚 Aprende": se ve mientras haya funciones por aprender (o que cambiaron). */
+function aprFab() {
+  let b = document.getElementById('aprFab'); if (b) b.remove();
+  if (!S.user || window.PIDELE_DEMO || ['caja', 'cocina', 'aprende', 'entrar'].includes(S.vista)) return;
+  const n = aprPendientes(); if (!n) return;
+  b = document.createElement('button'); b.id = 'aprFab'; b.className = 'aprFab';
+  b.innerHTML = `<span>📚</span><small>Aprende<b>${n}</b></small>`; b.setAttribute('aria-label', 'Aprende a usar Pídele');
+  b.onclick = () => ir('aprende'); document.body.appendChild(b);
+}
+/** Menú de funciones de su puesto. */
+function vAprende() {
+  const l = aprMias();
+  if (!l.length) return html(`<div class="vacio"><span class="big">📚</span>Por ahora no hay guías para tu cuenta.</div>`);
+  const pend = l.filter(f => f.est !== 'ok').length;
+  const item = f => `<button class="card aprItem" onclick="aprGuia('${f.id}')"><span class="e">${f.e}</span><span class="grow"><b>${esc(f.t)}</b><div class="small muted">${f.pr ? 'Guía + práctica' : 'Guía'}</div></span>`
+    + `<span class="tag ${f.est === 'ok' ? 't-ok' : f.est === 'cambio' ? 't-warn' : 't-info'}">${f.est === 'ok' ? '✓' : f.est === 'cambio' ? '🆕 Cambió' : '🆕'}</span></button>`;
+  const grupos = APR_GRUPOS.map(([g, nom]) => [nom, l.filter(f => f.g === g)]).filter(x => x[1].length).map(([nom, fs]) => `<h3 style="margin:14px 0 6px">${nom}</h3>` + fs.map(item).join('')).join('');
+  html(`<div class="row between" style="margin-top:6px"><h2 style="margin:0">📚 Aprende a usar Pídele</h2></div>
+    <div class="muted small" style="margin:4px 0 10px">Guías cortas de lo que usas en tu puesto. Al final de cada una puedes <b>practicar</b> sin afectar la caja ni las ventas.</div>
+    <div class="card" style="padding:10px 14px"><div class="row between"><b>${pend ? `Te faltan ${pend} de ${l.length}` : '¡Ya las viste todas! ✓'}</b><span class="small muted">${l.length - pend}/${l.length}</span></div>
+      <div class="aprBarra"><i style="width:${Math.round((l.length - pend) * 100 / l.length)}%"></i></div></div>
+    ${grupos}`);
+}
+/** Guía corta: tarjetas una por una; la última ofrece practicar. */
+function aprGuia(id, i) {
+  const f = APRENDE.find(x => x.id === id); if (!f) return;
+  i = i || 0; const c = f.c[i], ult = i === f.c.length - 1;
+  if (ult) aprMarcar(id);
+  modal(`<div class="aprGuia"><div class="row between"><span class="small muted">${f.e} ${esc(f.t)}</span><button class="redondo" onclick="cerrarModal();aprVolverMenu()" aria-label="Cerrar">✕</button></div>
+    <div class="aprPuntos">${f.c.map((x, k) => `<i class="${k <= i ? 'on' : ''}"></i>`).join('')}</div>
+    <h2 style="margin:10px 0 6px">${c[0]}</h2><div class="aprTxt">${c[1]}</div>
+    ${ult ? `${f.pr ? `<div class="aviso info small" style="margin-top:14px">🎮 En la práctica puedes tocar y probar todo: <b>no afecta tu caja ni tus ventas reales</b>. Primero te guiamos paso a paso y luego la usas libre.</div>
+      <button class="btn pri pill full" style="margin-top:8px" onclick="aprPracticar('${id}')">🎮 Practicar esta función en Pídele</button>` : ''}
+      <button class="btn pill full" style="margin-top:8px" onclick="cerrarModal();aprVolverMenu()">${f.pr ? 'Ahora no, volver al menú' : '✓ Entendido, volver al menú'}</button>`
+      : `<div class="btns" style="margin-top:16px">${i ? `<button class="btn pill" onclick="aprGuia('${id}',${i - 1})">← Atrás</button>` : ''}<button class="btn pri pill" style="flex:1" onclick="aprGuia('${id}',${i + 1})">Siguiente →</button></div>`}</div>`);
+}
+function aprVolverMenu() { if (S.vista === 'aprende') vAprende(); else ir('aprende'); }
+/* ---- práctica: la demo con el mismo negocio de ejemplo, en el puesto de la función ---- */
+function aprPracticar(id) {
+  const f = APRENDE.find(x => x.id === id); if (!f || !f.pr) return;
+  if (!navigator.onLine) { toast('Para practicar se necesita internet la primera vez', 'err'); return; }
+  const n = S.negocio || {}, cat = String(n.categoria || '').toLowerCase();
+  const g = /caf/.test(cat) ? 'cafe' : /hambur|burger/.test(cat) ? 'hamburguesas' : /marisc/.test(cat) ? 'mariscos' : /pizz/.test(cat) ? 'pizza' : 'tacos';
+  const cfg = { n: n.nombre || 'Tu negocio', g, m: ['pedidos', 'caja', 'cocina', 'tablero'], pr: { f: id, rol: f.pr.rol } };
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  location.href = location.pathname + '?demo=' + b64;
+}
+async function aprIrCaja(tab) { await ir('caja'); for (let k = 0; k < 30 && !PDV.caja; k++) await new Promise(r => setTimeout(r, 300)); PDV.tab = tab; PDV.cuentaId = ''; pintarCaja(); }
+/** Busca un elemento visible por selector y (opcional) texto. */
+function aprBuscar(sel, txt) {
+  const l = [...document.querySelectorAll(sel)].filter(e => e.offsetParent !== null || getComputedStyle(e).position === 'fixed');
+  if (!txt) return l[0] || null;
+  return l.find(e => txt instanceof RegExp ? txt.test((e.innerText || e.textContent || '').trim()) : (e.innerText || '').indexOf(txt) >= 0) || null;
+}
+/** Dentro de la demo: corre los pasos guiados y luego deja la práctica libre con "Salir de práctica". */
+async function aprPracticaCorrer() {
+  const cfg = window.PIDELE_DEMO && window.PIDELE_DEMO.pr; if (!cfg) return;
+  const f = APRENDE.find(x => x.id === cfg.f); if (!f || !f.pr) return;
+  document.body.classList.add('enPractica');
+  const sal = document.createElement('button'); sal.id = 'aprSalir'; sal.innerHTML = '✕<small>Salir de práctica</small>';
+  sal.onclick = () => aprPracticaSalir(f.id); document.body.appendChild(sal);
+  try { await f.pr.ir(); } catch (e) { }
+  await new Promise(r => setTimeout(r, 900));
+  const d = document.createElement('div'); d.id = 'aprGuiaP'; d.innerHTML = '<div class="hueco"></div><div class="globo"></div>'; document.body.appendChild(d);
+  const pasos = f.pr.pasos.concat([{ fin: 1, t: '¡Muy bien! 🎉', x: 'Ahora usa la app libremente: toca, prueba y equivócate sin miedo. Nada de esto afecta tu caja real. Cuando termines, toca <b>Salir de práctica</b>.' }]);
+  for (let i = 0; i < pasos.length; i++) {
+    const p = pasos[i];
+    const r = await aprPasoMostrar(d, p, i, pasos.length);
+    if (r === 'salir') break;
+  }
+  d.remove();
+}
+function aprPasoMostrar(d, p, i, n) {
+  return new Promise(async listo => {
+    const g = d.querySelector('.globo'), h = d.querySelector('.hueco');
+    let el = null;
+    if (p.b) for (let k = 0; k < 16 && !el; k++) { el = aprBuscar(p.b[0], p.b[1]); if (!el) await new Promise(r => setTimeout(r, 300)); }
+    const fin = v => { clearInterval(tm); if (el) el.removeEventListener('click', toque, true); listo(v); };
+    const toque = () => { if (!p.ok) setTimeout(() => fin('ok'), 500); };
+    g.innerHTML = `<div class="small muted">${p.fin ? 'Práctica libre' : 'Paso ' + (i + 1) + ' de ' + (n - 1)}</div><h3>${p.t}</h3><p>${p.x}</p>
+      <div class="pie">${p.fin ? '<button class="btn sm pri" data-a="fin">Practicar libre</button>' : `<button class="lnk small" data-a="salir">Saltar guía</button><button class="btn sm" data-a="sig">${el ? 'Siguiente' : 'Entendido'}</button>`}</div>`;
+    g.querySelectorAll('[data-a]').forEach(b => b.onclick = () => fin(b.dataset.a === 'salir' ? 'salir' : 'ok'));
+    if (el) {
+      el.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 250));
+      const r = el.getBoundingClientRect(), pad = 6, vh = innerHeight;
+      Object.assign(h.style, { display: '', left: (r.left - pad) + 'px', top: (r.top - pad) + 'px', width: (r.width + pad * 2) + 'px', height: (r.height + pad * 2) + 'px' });
+      const gh = g.offsetHeight, abajo = r.top + r.height / 2 < vh / 2;
+      g.style.top = (abajo ? Math.min(r.bottom + 16, vh - gh - 12) : Math.max(12, r.top - gh - 16)) + 'px';
+      el.addEventListener('click', toque, true);
+    } else { h.style.display = 'none'; g.style.top = Math.max(12, (innerHeight - g.offsetHeight) / 2) + 'px'; }
+    // si se abre una ventana que no es la señalada, el globo sube y deja usarla; el recuadro sigue al botón si se mueve
+    const tm = setInterval(() => { try {
+      if (p.ok && p.ok()) return fin('ok');
+      const m = $('#modal'), enM = m && m.classList.contains('on') && !(el && m.contains(el));
+      d.classList.toggle('arriba', !!enM);
+      if (el && !enM && document.contains(el)) { const r = el.getBoundingClientRect(); Object.assign(h.style, { left: (r.left - 6) + 'px', top: (r.top - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' }); }
+    } catch (e) { } }, 400);
+  });
+}
+function aprPracticaSalir(id) {
+  const q = '?aprende=' + encodeURIComponent(id);
+  try { if (window.__DM && window.__DM.practicaSalir) return window.__DM.practicaSalir(q); } catch (e) { }
+  try { sessionStorage.removeItem('pideleDemoCfg'); } catch (e) { } location.href = location.pathname + q;
+}
+window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
+/* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
+const NOVEDADES = [
+  { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null }
+];
+function aprNovedades() {
+  if (!S.user || window.PIDELE_DEMO || $('#modal').classList.contains('on') || ['caja', 'cocina', 'entrar'].includes(S.vista)) return;
+  const k = 'aprVer_' + aprId(), ult = lsG(k) || '3.3.5', P = aprPuestos();
+  if (!Object.keys(P).length) return;
+  lsG(k, APP_VER);
+  if (!verMayor(APP_VER, ult)) return;
+  const nov = NOVEDADES.filter(x => verMayor(x.ver, ult) && x.para(P)), cambios = aprMias().filter(f => f.est !== 'ok' && verMayor(f.ver, ult));
+  if (!nov.length && !cambios.length) return;
+  modal(`<div style="text-align:center"><div style="font-size:42px">🆕</div><h2 style="margin:4px 0">Lo nuevo para tu puesto</h2><div class="muted small">Pídele se actualizó a la versión ${APP_VER}.</div></div>
+    ${nov.map(x => `<div class="card" style="margin:8px 0">${x.t}</div>`).join('')}
+    ${cambios.length ? `<div class="small muted" style="margin:10px 0 4px">Funciones nuevas o que cambiaron:</div>${cambios.slice(0, 4).map(f => `<button class="card aprItem" onclick="cerrarModal();ir('aprende').then(()=>aprGuia('${f.id}'))"><span class="e">${f.e}</span><span class="grow"><b>${esc(f.t)}</b></span><span class="tag t-info">Aprender</span></button>`).join('')}${cambios.length > 4 ? `<div class="small muted" style="text-align:center">…y ${cambios.length - 4} más en Aprende</div>` : ''}` : ''}
+    <div class="btns"><button class="btn pri pill full" onclick="cerrarModal();ir('aprende')">📚 Ir a Aprende</button><button class="btn pill full" onclick="cerrarModal()">Después</button></div>`);
+}
+/** Al volver de una práctica (?aprende=id): marca la función y abre el menú. (Se lee al cargar, antes de que la app limpie la dirección.) */
+const APR_VUELTA = (() => { try { return new URLSearchParams(location.search).get('aprende') || ''; } catch (e) { return ''; } })();
+function aprRegreso() {
+  try {
+    const q = APR_VUELTA; if (!q || window.PIDELE_DEMO) return false;
+    if (/[?&]aprende=/.test(location.search)) history.replaceState(null, '', location.pathname);
+    if (APRENDE.some(f => f.id === q)) { aprMarcar(q); setTimeout(() => { ir('aprende'); toast('¡Práctica terminada! ✓'); }, 400); return true; }
+  } catch (e) { }
+  return false;
 }
 
 /* ============ 3.1.0 · MODO ADMINISTRADOR VISUAL ("modo dios") ============
@@ -2247,7 +2573,7 @@ async function uxCargar() {
 /* 3.2.4 · Los botones flotantes se hacen a un lado mientras deslizas y regresan 1.5 s después */
 (function () {
   let t = null;
-  const fuera = () => { if (!document.querySelector('.abrirFab,.checar.mini')) return; document.body.classList.add('fabFuera'); clearTimeout(t); t = setTimeout(() => document.body.classList.remove('fabFuera'), 1500); };
+  const fuera = () => { if (!document.querySelector('.abrirFab,.checar.mini,.aprFab')) return; document.body.classList.add('fabFuera'); clearTimeout(t); t = setTimeout(() => document.body.classList.remove('fabFuera'), 1500); };
   window.addEventListener('scroll', fuera, { passive: true }); window.addEventListener('touchmove', fuera, { passive: true });
 })();
 function uxIniciar() {
@@ -4046,10 +4372,17 @@ function pintarCaja() {
 }
 /* ---------- 3.3.5 · Efectivo que cobran los meseros y entregan a la caja ---------- */
 /** Por persona (distinta a quien abrió la caja): lo que cobró en efectivo en esta caja, lo que ya entregó y lo pendiente. */
+/** 3.4.1 · ¿Este cobro en efectivo lo trae alguien que debe entregarlo a la caja? Solo quien no es de caja (el mesero) y cobró
+ *  en su propio teléfono. No: quien abrió la caja, cajeros, gerentes, el dueño ni lo cobrado en un equipo del negocio (ya está en la caja). */
+function pdvDebeEntregar(por, c) {
+  if (!por || !por.uid || por.equipo || por.uid === c.abre.uid || por.uid === PDV.gid) return false;
+  const p = PDV.personal[por.uid];
+  return !!(p && !p.caja && !p.gerente);
+}
 function pdvPorEntregar(c) {
   c = c || PDV.caja; if (!c) return [];
   const q = {}, de = (p, nombre) => q[p.uid] = q[p.uid] || { uid: p.uid, nombre: nombre || p.nombre || '', cobrado: 0, entregado: 0, cobros: [] };
-  const suma = (p, monto, folio, ts) => { if (!p || !p.uid || p.uid === c.abre.uid || !(monto > 0)) return; const x = de(p); x.cobrado = pdvR(x.cobrado + monto); x.cobros.push({ folio, monto: pdvR(monto), ts }); };
+  const suma = (p, monto, folio, ts) => { if (!pdvDebeEntregar(p, c) || !(monto > 0)) return; const x = de(p); x.cobrado = pdvR(x.cobrado + monto); x.cobros.push({ folio, monto: pdvR(monto), ts }); };
   PDV.ventas.filter(v => v.origen !== 'cuenta' && v.estado !== 'cancelada' && v.cajaId === c.id).forEach(v => suma(v.por, (v.pagos || []).filter(p => p.metodo === 'efectivo').reduce((a, p) => a + p.monto, 0), v.folio, v.ts));
   PDV.pagosFis.filter(p => !p.anulado && !p.devolucion && p.metodo === 'efectivo' && p.cajaId === c.id).forEach(p => suma(p.por, p.monto, p.folio, p.ts));
   (PDV.entregas || []).filter(e => e.cajaId === c.id && !e.anulado).forEach(e => { const x = de({ uid: e.uid }, e.nombre); x.entregado = pdvR(x.entregado + e.monto); });
@@ -5836,12 +6169,19 @@ async function pdvCancelarVenta(id) {
 function pdvVistaGastos() {
   const l = PDV.gastos, deuda = pdvR(PDV.provs.reduce((s, p) => s + (p.saldo || 0), 0));
   const enCaja = pdvR(l.filter(g => g.pago === 'caja').reduce((s, g) => s + g.monto, 0));
+  // 3.4.2: los gastos del día que no son de este turno (otro turno, otra caja o sin caja) también se ven aquí
+  const otros = (PDV.gastosDia || []).filter(g => !l.some(x => x.id === g.id)).sort((a, b) => b.ts - a.ts);
+  const deTurno = pdvR(l.reduce((s, g) => s + (g.monto || 0), 0)), delDia = pdvGastosHoy();
+  const origen = g => { const c = (PDV.cajasHoy || []).find(x => x.id === g.cajaId); return c ? esc(pdvCajaNom(c)) + ' · ' + esc((c.abre.nombre || '').split(' ')[0]) : g.cajaId ? 'Otro turno' : 'Sin caja'; };
+  const tarj = (g, otro) => `<div class="card" ${otro ? '' : `onclick="pdvVerGasto('${g.id}')" style="cursor:pointer"`}${otro ? ' style="opacity:.85"' : ''}><div class="row between"><div><b>${esc(g.concepto)}</b> <span class="tag">${esc(g.categoria)}</span></div><b>${money(g.monto)}</b></div>
+      <div class="small muted">${otro ? '🗂️ ' + origen(g) + ' · ' : ''}${hora(g.ts)} · ${g.pago === 'caja' ? '🗄️ Salió de caja' : g.pago === 'credito' ? '📒 A crédito · ' + esc(g.proveedor || '') + (g.saldo > 0 ? ' · debe ' + money(g.saldo) : ' · pagado') : '🏦 Pagado fuera de caja'}
+        · ${(g.comprobante || {}).tipo === 'sin' ? '⚠️ Sin comprobante' : ((g.comprobante || {}).fotoId ? '📎 ' : (g.comprobante || {}).pendiente ? '⏳ ' : '') + esc((g.comprobante || {}).tipo || '')}</div></div>`;
   return `<div class="row" style="gap:8px;margin-bottom:10px"><button class="btn pri pill" style="flex:1" onclick="pdvFormGasto()">➕ Nuevo gasto</button>
       <button class="btn pill" style="flex:1" onclick="pdvProveedores()">🏷️ Proveedores${deuda ? ' · debes ' + money(deuda) : ''}</button></div>
-    ${PDV.caja ? `<div class="muted small" style="margin-bottom:8px">Gastos de este turno · salió de caja: <b>${money(enCaja)}</b></div>` : '<div class="aviso info">La caja está cerrada: los gastos pagados con efectivo de caja se registran con la caja abierta. Puedes registrar gastos a crédito o pagados fuera de caja.</div>'}
-    ${l.map(g => `<div class="card" onclick="pdvVerGasto('${g.id}')" style="cursor:pointer"><div class="row between"><div><b>${esc(g.concepto)}</b> <span class="tag">${esc(g.categoria)}</span></div><b>${money(g.monto)}</b></div>
-      <div class="small muted">${hora(g.ts)} · ${g.pago === 'caja' ? '🗄️ Salió de caja' : g.pago === 'credito' ? '📒 A crédito · ' + esc(g.proveedor || '') + (g.saldo > 0 ? ' · debe ' + money(g.saldo) : ' · pagado') : '🏦 Pagado fuera de caja'} · ${esc(g.por.nombre.split(' ')[0])}
-        · ${g.comprobante.tipo === 'sin' ? '⚠️ Sin comprobante' : (g.comprobante.fotoId ? '📎 ' : g.comprobante.pendiente ? '⏳ ' : '') + esc(g.comprobante.tipo)}</div></div>`).join('') || '<div class="vacio"><span class="big">💸</span>Sin gastos en este turno</div>'}
+    ${PDV.caja ? `<div class="card" style="padding:10px 14px"><div class="tot"><span>💸 Gastos de hoy (${(PDV.gastosDia || []).length})</span><b>${money(delDia)}</b></div><div class="tot"><span>Este turno (${l.length})</span><span>${money(deTurno)}</span></div><div class="tot"><span>Salió de esta caja</span><span>${money(enCaja)}</span></div></div>` : '<div class="aviso info">La caja está cerrada: los gastos pagados con efectivo de caja se registran con la caja abierta. Puedes registrar gastos a crédito o pagados fuera de caja.</div>'}
+    ${l.map(g => tarj(g)).join('') || '<div class="vacio"><span class="big">💸</span>Sin gastos en este turno</div>'}
+    ${otros.length ? `<h3 style="margin:14px 0 4px">Otros gastos de hoy</h3><div class="small muted" style="margin-bottom:6px">De otro turno o de otra caja. Cuentan en los gastos del día, no en el corte de este turno.</div>${otros.map(g => tarj(g, 1)).join('')}` : ''}
+
     ${PDV.pagosProv.length ? `<h3>Pagos a proveedores en este turno</h3>${PDV.pagosProv.map(p => `<div class="card small row between"><span>${esc(p.proveedor)} · ${p.desde === 'caja' ? '🗄️ de caja' : '🏦 fuera de caja'} · ${hora(p.ts)}</span><b>${money(p.monto)}</b></div>`).join('')}` : ''}`;
 }
 function pdvFormGasto(pre) {
@@ -6189,7 +6529,7 @@ function pdvCuentas() {
   rl.forEach(r => { rec[r.metodo] = pdvR((rec[r.metodo] || 0) + r.monto); });
   const esperado = pdvR(c.fondo + efDirecto + efCuentas + efOtros + rec.efectivo - gastosCaja - provCaja - propinas);
   // 3.3.4: efectivo que cobró alguien distinto a quien abrió la caja (p. ej. el mesero): lo entrega a la caja antes del corte
-  const quien = {}, suma = (p, m) => { if (!p || !p.uid || p.uid === c.abre.uid || !(m > 0)) return; const q = quien[p.uid] = quien[p.uid] || { uid: p.uid, nombre: p.nombre || '', monto: 0 }; q.monto = pdvR(q.monto + m); };
+  const quien = {}, suma = (p, m) => { if (!pdvDebeEntregar(p, c) || !(m > 0)) return; const q = quien[p.uid] = quien[p.uid] || { uid: p.uid, nombre: p.nombre || '', monto: 0 }; q.monto = pdvR(q.monto + m); };
   vs.forEach(v => suma(v.por, (v.pagos || []).filter(p => p.metodo === 'efectivo').reduce((a, p) => a + p.monto, 0)));
   fis.filter(p => p.metodo === 'efectivo' && !p.devolucion).forEach(p => suma(p.por, p.monto));
   const efMeseros = Object.values(quien).sort((a, b) => b.monto - a.monto);
@@ -6211,7 +6551,7 @@ function pdvVistaCaja() {
   const c = PDV.caja;
   const fila = (a, b, fuerte) => `<div class="tot${fuerte ? ' g' : ''}"><span>${a}</span><span>${b}</span></div>`;
   const gHoy = PDV.gastosDia || [];
-  const gastos = `<div class="card"><div class="row between"><b>💸 Gastos de hoy</b><button class="lnk small" onclick="PDV.tab='gastos';pintarCaja()">Ver gastos</button></div>${fila(gHoy.length + (gHoy.length === 1 ? ' gasto' : ' gastos'), money(pdvGastosHoy()), 1)}</div>`;
+  const gastos = `<div class="card"><div class="row between"><b>💸 Gastos de hoy</b><button class="lnk small" onclick="PDV.tab='gastos';pintarCaja()">Ver gastos</button></div>${fila(gHoy.length + (gHoy.length === 1 ? ' gasto' : ' gastos'), money(pdvGastosHoy()), 1)}${gHoy.length !== (PDV.gastos || []).length ? fila('De este turno: ' + (PDV.gastos || []).length, money(pdvR((PDV.gastos || []).reduce((s, g) => s + (g.monto || 0), 0)))) : ''}</div>`;
   if (!ve) return `<div class="card"><b>${esc(pdvCajaNom(c))}</b> · abrió ${esc(c.abre.nombre)} a las ${hora(c.abre.ts)}<div class="small muted" style="margin-top:4px">Al cerrar, cuenta el efectivo: lo que retiras y lo que dejas en caja chica.</div></div>
     ${gastos}<button class="btn pri pill full" style="font-size:18px" onclick="act(this,pdvCerrarCaja)">Cerrar ${esc(pdvCajaNom(c))}</button>${otras}${previos}`;
   const k = pdvCuentas();
@@ -10166,8 +10506,8 @@ function nomTablero(d) {
     const [cl, tt] = NT_EST[x.estado] || ['fut', x.estado];
     const c = x.justif ? 'just' : cl, ts = ntTurnos(x).map(ntLetra).join('');
     const trabFer = x.feriado && (x.estado === 'presente' || x.estado === 'retardo');
-    const sub = (trabFer ? (x.ferNo ? '🎉✕ ' : '🎉 ') : '') + (x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.entrada && !x.turnoBono && (x.estado === 'presente' || x.estado === 'retardo') && ntMinTrab(x) < 420 && x.fecha < pdvHoy() ? '<7h' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : (x.estado === 'sin_decidir' ? '?' : x.estado === 'feriado' ? '🎉' : ''));
-    const titulo = (x.feriado ? '🎉 ' + x.feriado + (trabFer ? (x.ferNo ? ' (sin pago de feriado)' : ' · trabajó') : '') + ' · ' : '') + tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (x.manual ? ' · capturado a mano' : '');
+    const sub = (ntPorConfirmar(x) ? '❓ ' : '') + (trabFer ? (x.ferNo ? '🎉✕ ' : '🎉 ') : '') + (x.medio ? '½ día' : x.sinBono ? 'sin bono' : x.entrada && !x.turnoBono && (x.estado === 'presente' || x.estado === 'retardo') && ntMinTrab(x) < 420 && x.fecha < pdvHoy() ? '<7h' : x.estado === 'retardo' ? Math.round(x.minRetardo) + "'" : x.justif ? '✓' : (x.estado === 'sin_decidir' ? '?' : x.estado === 'feriado' ? '🎉' : ''));
+    const titulo = (x.feriado ? '🎉 ' + x.feriado + (trabFer ? (x.ferNo ? ' (sin pago de feriado)' : ' · trabajó') : '') + ' · ' : '') + tt + (x.entrada ? ' · ' + asisHora(x.entrada) : '') + (x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : '') + (x.turnoBono ? ' · turno del bono elegido a mano' : '') + (ntPorConfirmar(x) ? ' · ❓ no checó salida: confirma su turno' : '') + (x.manual ? ' · capturado a mano' : '');
     const pc = nomLoteDe(p.usuarioId, x.fecha);
     if (pc) return `<td><div class="ntC ${nomLoteClase(pc, x, d)} pend" title="Pendiente: ${esc(nomLoteTxt(pc))}" onclick="nomTocar('${p.usuarioId}','${x.fecha}')">${esc(nomLoteCorto(pc))}</div></td>`;
     const pt = PDV.lote && PDV.lote.cambios[p.usuarioId + '|' + x.fecha + '|t'];
@@ -10195,6 +10535,7 @@ function nomTablero(d) {
     ${LT ? `<div class="aviso info small" style="margin-top:6px">✏️ <b>Varios cambios:</b> elige un pincel y toca los días; escribe las ventas en sus casillas. Nada se guarda hasta tocar <b>Guardar todo</b>.</div>
     <div class="ntPin">${NT_PIN.map(([k, t]) => `<button class="${LT.pincel === k ? 'on' : ''}" onclick="PDV.lote.pincel=PDV.lote.pincel==='${k}'?'':'${k}';pintarCaja()">${t}</button>`).join('')}</div>
     <div class="small muted">${LT.pincel ? 'Pincel: <b>' + (NT_PIN.find(x => x[0] === LT.pincel) || [])[1] + '</b> · toca otra vez un día pintado para regresarlo' : 'Sin pincel: tocar un día abre su ventana (lo que hagas ahí también queda pendiente)'}</div>` : ''}
+    ${(() => { const n = l.reduce((a, p) => a + p.detalle.filter(ntPorConfirmar).length, 0); return n ? `<div class="aviso warn small" style="margin-top:6px">❓ <b>${n} día${n > 1 ? 's' : ''} sin salida por confirmar.</b> Mientras tanto cuentan en su turno, como dicen las reglas. Toca los días con ❓ y responde qué pasó.</div>` : ''; })()}
     ${l.some(p => p.sinDecidir) ? `<div class="aviso warn small" style="margin-top:6px">Hay días <b>sin registro</b> (cuadro punteado): tócalos para poner la asistencia, una falta, un descanso o un permiso. Mientras estén así cuentan como falta.</div>` : ''}
     <div class="ntWrap"><table class="ntT"><thead><tr><th class="ntN">Colaborador</th>${dias.map(f => `<th${FER[f] ? ` title="🎉 ${esc(FER[f].n)}" style="color:var(--pri)"` : ''}>${dTxt(f)}${FER[f] ? '<br>🎉' : ''}</th>`).join('')}<th>Puntua&shy;lidad</th>${hayFer ? '<th>🎉 Feria&shy;do</th>' : ''}${hayPr ? '<th>🏖️ Prima</th>' : ''}<th>Bono ventas</th><th>Descuen&shy;tos</th><th>Adelan&shy;tos</th><th>Salario base</th><th>Total</th></tr></thead><tbody>
     ${ntGrupos(l).map(g => `<tr class="ntG"><td colspan="${nc}"><span>${esc(g.nombre)}</span></td></tr>${g.gente.map(fila).join('')}`).join('')}
@@ -10218,6 +10559,11 @@ function nomCelda(uid, f) {
     ${x.feriado ? `<div class="aviso info" style="margin:8px 0 0">🎉 <b>Feriado: ${esc(x.feriado)}</b>${x.entrada ? (x.ferNo ? ' · trabajó, <b>sin pago de feriado</b>' : ' · trabajó: ' + (FER_TXT[x.ferModo] || '').split(' · ')[0].toLowerCase()) : ' · si no vino, es descanso pagado'}
       ${x.entrada ? `<br><button class="lnk small" onclick="act(this,()=>nomAccion('asisFeriadoNo',{usuarioId:'${uid}',fecha:'${f}',no:${!x.ferNo}}))">${x.ferNo ? '↩️ Volver a aplicarle el feriado' : 'Quitarle el pago del feriado a esta persona'}</button>` : ''}</div>` : ''}
     <div class="aviso ${x.estado === 'retardo' ? 'warn' : 'info'}" style="margin:8px 0"><b>${esc(x.justif ? 'Retardo con permiso (cuenta a tiempo)' : tt)}</b>${x.entrada ? ' · entró ' + asisHora(x.entrada) + (x.salida ? ', salió ' + asisHora(x.salida) : '') : ''}${x.minRetardoReal ? ' · ' + x.minRetardoReal + ' min tarde' : ''}${x.medio ? ' · <b>cuenta medio día</b>' : ''}${x.sinBono ? ' · <b>sin bono de ventas</b>' : ''}${x.manual ? '<br><small>✍️ Capturado a mano por ' + esc(x.manual) + '</small>' : ''}${x.nota ? '<br><small>' + esc(x.nota) + '</small>' : ''}</div>
+    ${ntPorConfirmar(x) ? (() => { const su = ntTurnoHorario(x), nom = i => esc((turnosNeg()[i - 1] || {}).nombre || 'Turno ' + i);
+      return `<div class="aviso warn" style="margin:0 0 8px"><b>❓ No checó salida. ¿Qué pasó?</b><div class="small">Mientras no se confirme, cuenta en ${su ? 'su turno (' + nom(su) + ')' : 'el turno donde más estuvo'}. Si sabes a qué hora salió, también puedes escribirla abajo.</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">${su ? `<button class="btn sm pri" onclick="act(this,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:'${su}'}))">✅ Trabajó su turno</button>` : ''}
+        ${turnosBono().filter(([i]) => i !== su).map(([i]) => `<button class="btn sm" onclick="act(this,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:'${i}'}))">Trabajó el ${nom(i)}</button>`).join('')}
+        <button class="btn sm" onclick="act(this,()=>nomAccion('asisTurnoBono',{usuarioId:'${uid}',fecha:'${f}',turno:'ninguno'}))">Sin bono ese día</button></div></div>`; })() : ''}
     ${x.estado === 'retardo' || x.justif ? `<button class="btn pill full" onclick="act(this,()=>nomAccion('asisJustificar',{usuarioId:'${uid}',fecha:'${f}',justif:${!x.justif}}))">${x.justif ? '↩️ Quitar el permiso (vuelve a ser retardo)' : '✅ Llegó tarde pero tenía permiso'}</button>` : ''}
     ${futuro ? '' : `<label class="f">Asistencia (a mano)</label>
     <div class="row" style="gap:6px"><div style="flex:1"><small class="muted">Entrada</small><input class="i" type="time" id="ncE" value="${x.entrada ? hh(x.entrada) : h ? h.e : ''}"></div><div style="flex:1"><small class="muted">Salida</small><input class="i" type="time" id="ncS" value="${x.salida ? hh(x.salida) : h ? h.s : ''}"></div></div>
@@ -10387,6 +10733,7 @@ function nomDesglose(uid, k) {
       <div class="row" style="gap:6px;margin-top:8px">${p.prima ? `<button class="btn sm pill" style="border-color:var(--err);color:var(--err)" onclick="act(this,()=>nomPrimaAjustar('${uid}',0))">Quitar de esta nómina</button>` : ''}${p.primaDet.ajustada ? `<button class="btn sm pill" onclick="act(this,()=>nomPrimaAjustar('${uid}',''))">Regresar al cálculo</button>` : ''}</div>`}`
     : '<div class="small muted">No le toca prima vacacional en este periodo.</div>';
   else if (k === 'ventas') cuerpo = `${(p.incDetalle || []).map(x => fila(esc(x.meta) + '<br><small class="muted">' + esc(x.ventana) + ' · vendido ' + money(x.ventas) + '</small>', money(x.bono))).join('') || '<div class="small muted">Sin bonos de ventas en este periodo.</div>'}
+    ${p.detalle.filter(ntPorConfirmar).length ? `<div class="aviso warn small" style="margin-top:6px">❓ Sin salida por confirmar: ${p.detalle.filter(ntPorConfirmar).map(x => asisDiaTxt(x.fecha)).join(', ')}. Cuentan en su turno hasta que alguien confirme (toca el día en la tabla).</div>` : ''}
     ${p.detalle.filter(x => x.sinBono).length ? `<div class="small muted" style="margin-top:6px">Sin bono por llegar más de ${d.config.retSinBono || 60} min tarde: ${p.detalle.filter(x => x.sinBono).map(x => asisDiaTxt(x.fecha)).join(', ')}.</div>` : ''}
     ${fila('<b>Bono de ventas</b>', '<b>' + money(p.incentivos || 0) + '</b>', 'g')}`;
   else if (k === 'desc') cuerpo = `${fila('Sueldo diario', money(p.diario))}
@@ -10511,7 +10858,12 @@ function ntRango(f, t) { const a = msZ(f, t.e); let b = msZ(f, t.s); if (b <= a)
 function ntIntervalo(det) {
   if (!det || !det.entrada) return null;
   let s = det.salida;
-  if (!s) { const h = det.horario; s = h ? ntRango(det.fecha, h)[1] : det.entrada + 8 * 3600e3; if (det.fecha === pdvHoy()) s = Math.min(s, Math.max(Date.now(), det.entrada)); }
+  if (!s) {
+    // 3.4.3: sin salida, cuenta lo que dura su horario desde que entró (no hasta el fin de un horario que no es el que trabajó)
+    const h = det.horario, hr = h ? ntRango(det.fecha, h) : null;
+    s = hr ? (Math.abs(det.entrada - hr[0]) <= 2 * 3600e3 ? hr[1] : det.entrada + (hr[1] - hr[0])) : det.entrada + 8 * 3600e3;
+    if (det.fecha === pdvHoy()) s = Math.min(s, Math.max(Date.now(), det.entrada));
+  }
   return [det.entrada, Math.max(det.entrada, s)];
 }
 const ntMinTrab = det => { const r = ntIntervalo(det); return r ? Math.round((r[1] - r[0]) / 6e4) : 0; };
@@ -10524,10 +10876,25 @@ function turnosDeDia(det) {
   if (det.turnoBono === 'ambos') return TB.filter(([, t]) => ntSolapa(det.fecha, t, r) > 0).map(([i]) => i);
   if (det.turnoBono) return [Number(det.turnoBono)];
   if (ntMinTrab(det) < 420) return []; // menos de 7 horas: no entra a bonos
-  if (det.doble && det.dobleEstado === 'decidido' && det.doblePago !== 'cambio') return TB.filter(([, t]) => ntSolapa(det.fecha, t, r) >= 3600e3).map(([i]) => i);
+  // 3.4.3: para contar en un turno hay que haber estado al menos la mitad de ese turno (máx. 4 h)
+  const basta = t => { const [a, b] = ntRango(det.fecha, t); return Math.min(4 * 3600e3, (b - a) / 2); };
+  if (det.doble && det.dobleEstado === 'decidido' && det.doblePago !== 'cambio') return TB.filter(([, t]) => ntSolapa(det.fecha, t, r) >= basta(t)).map(([i]) => i);
+  // 3.4.4: quien tiene horario ese día se queda en su turno; la app nunca elige otro (solo turno doble decidido o elegido a mano)
+  const suyo = ntTurnoHorario(det); if (suyo) return [suyo];
   let mejor = 0, idx = 0; TB.forEach(([i, t]) => { const v = ntSolapa(det.fecha, t, r); if (v > mejor) { mejor = v; idx = i; } });
   return idx ? [idx] : [];
 }
+/** 3.4.4: el turno de su horario de ese día (0 si no tiene horario). */
+function ntTurnoHorario(det) {
+  if (!det || !det.horario) return 0;
+  const hr = ntRango(det.fecha, det.horario); let mh = 0, ih = 0;
+  turnosBono().forEach(([i, t]) => { const v = ntSolapa(det.fecha, t, hr); if (v > mh) { mh = v; ih = i; } });
+  return ih;
+}
+/** 3.4.4: no checó salida (día ya pasado) y nadie lo ha confirmado: se cuenta en su turno, pero se pregunta. */
+function ntPorConfirmar(x) { return !!(x && x.entrada && !x.salida && !x.turnoBono && !x.sinBono && x.fecha < pdvHoy() && (x.estado === 'presente' || x.estado === 'retardo')); }
+/** 3.4.3: "checó 7:02–3:05 p.m." para ver por qué le tocó ese turno. */
+function ntChecoTxt(x) { if (!x || !x.entrada) return ''; return 'checó ' + asisHora(x.entrada) + '–' + (x.salida ? asisHora(x.salida) : 'sin salida') + (x.turnoBono ? ' (turno elegido a mano)' : x.doble && x.dobleEstado === 'decidido' ? ' (turno doble)' : ''); }
 function metaEnTurno(det, f, t) { return turnosDeDia(Object.assign({ fecha: f }, det)).includes(Number(t)); }
 /** A qué turno de Personal corresponde una caja: por el horario en que estuvo abierta (no por su número). */
 function ptDeCaja(c) {
@@ -10607,7 +10974,7 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
   if (metas.some(m => m.base === 'turno' && m.pago === 'cumplimiento') && S.negocio && S.negocio.operacion) {
     try { const r = await api('opCumplimiento', { negocioId: S.negocio.id, desde, hasta }); cump = r.activo ? r.datos : null; } catch (e) { console.warn(e); }
   }
-  const sumar = (uid, meta, ventana, ventas, bono, pct) => { if (!bono) return; if (pct != null && pct < 100) bono = pdvR(bono * pct / 100); if (!bono) return; const o = out[uid] = out[uid] || { monto: 0, detalle: [] }; o.monto = pdvR(o.monto + bono); o.detalle.push({ meta: meta.nombre, ventana: ventana + (pct != null && pct < 100 ? ' · ' + pct + '% de tareas' : ''), ventas: pdvR(ventas), piezas: metaPzs(meta), bono }); };
+  const sumar = (uid, meta, ventana, ventas, bono, pct, checo) => { if (!bono) return; if (pct != null && pct < 100) bono = pdvR(bono * pct / 100); if (!bono) return; const o = out[uid] = out[uid] || { monto: 0, detalle: [] }; o.monto = pdvR(o.monto + bono); o.detalle.push({ meta: meta.nombre, ventana: ventana + (pct != null && pct < 100 ? ' · ' + pct + '% de tareas' : '') + (checo ? ' · ' + checo : ''), ventas: pdvR(ventas), piezas: metaPzs(meta), bono }); };
   const detDe = (uid, f) => { const p = personas.find(x => x.usuarioId === uid); return p && (p.detalle || []).find(y => y.fecha === f); };
   const ids = personas.map(p => p.usuarioId);
   metas.forEach((m, i) => {
@@ -10625,7 +10992,7 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
         if (b && m.base === 'turno' && m.porTurno && w.cajas) part.forEach(u => {
           if (!metaEnTurno(detDe(u, w.dia), w.dia, w.turno)) return;
           const pct = m.pago === 'cumplimiento' && cump ? (cump[u] || {})[w.dia + '|' + w.turno] : null;
-          sumar(u, m, w.txt, v, b, pct == null ? null : pct);
+          sumar(u, m, w.txt, v, b, pct == null ? null : pct, ntChecoTxt(detDe(u, w.dia)));
         });
         else if (b) part.forEach(u => { const trabajo1 = w.cajas ? trabajo(u, w.dia) && !(detDe(u, w.dia) || {}).sinBono : (() => { for (let f = w.desde; f <= w.hasta; f = pdvHoy(new Date(f + 'T12:00').getTime() + 864e5)) if (trabajo(u, f)) return true; return false; })(); if (trabajo1) sumar(u, m, w.txt, v, b); });
       }
@@ -16686,6 +17053,7 @@ function vPerfil() {
       <label class="f">Nueva contraseña</label><input class="i" id="pNue" type="password">
       <div class="btns"><button class="btn" onclick="act(this,cambiarPass)">Cambiar</button></div>
       <div class="muted small" style="margin-top:6px">Al cambiarla se cierra tu sesión en los demás teléfonos.</div></details>
+    ${aprMias().length ? `<button class="card aprItem" onclick="ir('aprende')"><span class="e">📚</span><span class="grow"><b>Aprende a usar Pídele</b><div class="small muted">Guías cortas de tu puesto y práctica sin afectar la caja</div></span>${aprPendientes() ? `<span class="tag t-info">${aprPendientes()} por ver</span>` : '<span class="tag t-ok">✓</span>'}</button>` : ''}
     <div class="card"><b>🔠 Tamaño de letra</b><div class="muted small">Agranda los textos y botones de la app en este teléfono.</div>
       <div class="letraOps">${[['', 'Normal', 15], ['g', 'Grande', 17], ['j', 'Jumbo', 19]].map(([k, t, z]) => `<button data-l="${k}" class="${(lsG('letra') || '') === k ? 'on' : ''}" style="font-size:${z}px" onclick="ponLetra('${k}')">${t}</button>`).join('')}</div></div>
     <div class="card row between"><div><b>📱 Mis otros teléfonos</b><div class="muted small">Cierra tu cuenta en cualquier otro teléfono o tableta donde esté abierta.</div></div><button class="btn sm" onclick="if(confirm('¿Cerrar tu sesión en los demás teléfonos?'))act(this,async()=>{const r=await api('cerrarOtrasSesiones');toast(r.cerradas?'Listo: se cerraron '+r.cerradas+' sesión(es)':'No había otras sesiones abiertas')})">Cerrar sesiones</button></div>
@@ -19549,6 +19917,7 @@ function marcarGuiaVista() {
   if (S.user && !S.user.guiaVista) { S.user.guiaVista = true; ls('user', S.user); if (S.token) api('guiaVista').catch(() => { }); }
 }
 function ofrecerGuia() {
+  if (document.body.classList.contains('enPractica') || (window.PIDELE_DEMO && window.PIDELE_DEMO.pr)) return; // 3.4.0
   if (navigator.webdriver && !lsG('tourTest')) return; // pruebas automáticas
   if (guiaVista() || !TOURS[tourKey()] || ['caja', 'cocina', 'entrar'].includes(S.vista) || $('#guiaOferta') || $('#bloqueoUbic') || $('#tour') || $('#modal').classList.contains('on')) return;
   marcarGuiaVista();
