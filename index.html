@@ -1232,7 +1232,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.4.6';
+const APP_VER = '3.4.7';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2271,40 +2271,66 @@ const APRENDE = [
       ['Cuídalo', 'No lo compartas. Todo lo que se haga con tu código queda a tu nombre. Si alguien lo sabe, cámbialo.']],
     pr: null },
   // ---------- Mesas y comandas (mesero) ----------
-  { id: 'cuenta', g: 'mesas', e: '🍽️', t: 'Abrir una cuenta y mandar la comanda', ver: '3.4.0', para: P => P.mesero,
+  { id: 'cuenta', g: 'mesas', e: '🍽️', t: 'Abrir una cuenta y mandar la comanda', ver: '3.4.7', para: P => P.mesero,
     c: [['Abrir la cuenta', 'Entra a <b>🍽️ Mesas y pedidos</b>. Toca una <b>mesa libre</b>, o <b>➕ Cuenta sin mesa</b> si es para llevar o en barra.'],
       ['Agregar productos', 'Toca los productos del menú. Si tienen opciones (término, salsa, tamaño), elige y confirma. Lo nuevo se marca <b>🆕 Sin enviar</b>.'],
       ['Mandar a cocina', 'Toca <b>👩‍🍳 Enviar a cocina</b>. La comanda llega a la pantalla de cocina y a la impresora. Si el cliente pide más, agrégalo y envía otra vez: solo se manda lo nuevo.'],
-      ['Cuando esté listo', 'La cuenta te avisa <b>📦 Listo</b>. Llévalo y toca <b>Entregué</b>.']],
+      ['Cuando esté listo', 'La cuenta te avisa <b>📦 Listo</b>. Llévalo y toca <b>Entregué</b>.'],
+      ['Mesa grande', 'Al abrir la mesa te pregunta <b>¿Son más de 4 personas?</b>. Si dices que sí, cada producto que capturas pasa a cocina al momento, para que vayan avanzando. Cuando termines de tomar la orden, toca <b>✅ Terminé de tomar la orden</b>.']],
     pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
       { b: ['.pdvTabs button', /Mesas/], t: 'Mesas y pedidos', x: 'Aquí están todas las cuentas abiertas.' },
       { b: ['button', /Cuenta sin mesa|➕ Cuenta/], t: 'Abre una cuenta', x: 'Toca aquí (o una mesa libre).', ok: () => PDV.cuentaId },
       { b: ['.pdvMenu', ''], t: 'Agrega productos', x: 'Toca uno o dos productos del menú y confirma con <b>Agregar</b>.', ok: () => aprSinEnviar() },
       { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /Enviar a cocina/) },
       { b: ['button', /Enviar a cocina/], t: 'Manda la comanda', x: 'Toca <b>👩‍🍳 Enviar a cocina</b>.', ok: () => !aprSinEnviar() }] } },
-  { id: 'dividir', g: 'mesas', e: '👥', t: 'Dividir y unir cuentas', ver: '3.4.0', para: P => P.mesero || P.caja,
-    c: [['Dividir', 'Dentro de la cuenta toca <b>👥 Dividir cuenta</b>. Pasa cada producto a la persona que lo pagará (un producto se puede compartir). Toca <b>Dividir cuenta</b>.'],
-      ['Cada parte', 'Cada parte queda como su propia cuenta, con su nombre y su ticket. Se cobra por separado.'],
-      ['Unir', 'Si se equivocaron, toca <b>🔗 Unir las cuentas divididas</b> antes de cobrar.'],
-      ['Ojo', 'Antes de dividir o cobrar, envía a cocina lo que esté <b>🆕 Sin enviar</b>.']],
-    pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
-      { b: ['.pdvTabs button', /Mesas/], t: 'Elige una cuenta', x: 'Abre cualquier cuenta que tenga productos.', ok: () => PDV.cuentaId },
-      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /Dividir cuenta/) },
-      { b: ['button', /Dividir cuenta/], t: 'Dividir', x: 'Toca <b>👥 Dividir cuenta</b> y reparte los productos.' }] } },
+  { id: 'dividir', g: 'mesas', e: '👥', t: 'Dividir una cuenta', ver: '3.4.7', para: P => P.mesero || P.caja,
+    c: [['Dividir', 'Dentro de la cuenta toca <b>👥 Dividir cuenta</b>. Elige <b>entre cuántas cuentas</b> y ponle nombre a cada una.'],
+      ['Repartir', 'Toca una cuenta (por ejemplo <b>Ana</b>) y luego los productos que paga ella: se pasan a su cuenta. Después toca la siguiente persona y repite.'],
+      ['Compartir', 'Si algo es de varios (unas papas para todos), toca <b>➗</b> en ese producto y marca entre quiénes se reparte el precio.'],
+      ['Terminar', 'Cuando diga <b>✓ Todo repartido</b>, toca <b>Dividir cuenta</b>. Cada parte queda como su propia cuenta, con su ticket, y se cobra por separado.'],
+      ['Ojo', 'Antes de dividir, envía a cocina lo que esté <b>🆕 Sin enviar</b>. Si una parte ya pagó, ya no se puede dividir: cobra en partes.']],
+    pr: { rol: 'mesero', ir: () => aprEscena('dividir'), pasos: [
+      { b: ['button', /Dividir cuenta ·|👥 Dividir cuenta/], t: () => 'Mesa 4: ' + aprEsc().total, x: () => 'Tres amigos pidieron 10 cosas y quieren <b>pagar por separado</b>. Toca <b>👥 Dividir cuenta</b>.', ok: () => S._div && $('#modal.on') },
+      { b: ['#modal select', ''], t: '¿Entre cuántas?', x: 'Son 3 amigos: elige <b>3</b>.', ok: () => S._div && S._div.ctas.length === 3 },
+      { b: ['.divCtas', ''], t: 'Ponles nombre', x: 'Toca <b>Cuenta 1</b> y escribe <b>Ana</b>; luego <b>Luis</b> y <b>Sofía</b>. (Si prefieres, déjalos así y toca Siguiente.)', ok: () => S._div && S._div.ctas.every((x, n) => x.nombre && x.nombre !== 'Cuenta ' + (n + 1)) },
+      { b: ['.divUni', () => aprEsc().a], pos: 'abajo', t: () => 'Lo de ' + aprDivNom(0), x: () => '<b>' + aprDivNom(0) + '</b> ya está seleccionada (abajo, en verde). Toca <b>1 ' + aprEsc().a + '</b> y luego <b>1 ' + aprEsc().c + '</b>: se pasan a su cuenta.', ok: () => aprDivTiene(0) },
+      { b: ['.divCta:nth-child(2)', ''], t: () => 'Ahora ' + aprDivNom(1), x: () => 'Toca la cuenta de <b>' + aprDivNom(1) + '</b> para seleccionarla.', ok: () => S._div && S._div.sel === 1 },
+      { b: ['.divUni', () => aprEsc().a], pos: 'abajo', t: () => 'Lo de ' + aprDivNom(1), x: () => 'Pásale <b>1 ' + aprEsc().a + '</b> y <b>1 ' + aprEsc().c + '</b>.', ok: () => aprDivTiene(1) },
+      { b: ['.divCta:nth-child(3)', ''], t: () => 'Ahora ' + aprDivNom(2), x: () => 'Toca la cuenta de <b>' + aprDivNom(2) + '</b>.', ok: () => S._div && S._div.sel === 2 },
+      { b: ['.divUni', () => aprEsc().a], pos: 'abajo', t: () => 'Lo de ' + aprDivNom(2), x: () => 'Pásale <b>1 ' + aprEsc().a + '</b> y <b>1 ' + aprEsc().c + '</b>.', ok: () => aprDivTiene(2) },
+      { b: ['.divUni', () => aprEsc().b], pos: 'abajo', t: 'Algo para todos', x: () => 'Unas <b>' + aprEsc().b + '</b> son para los tres: toca el botón <b>➗</b> de ese producto, deja marcadas las 3 cuentas y toca <b>Compartir</b>.', ok: () => S._div && Object.values(S._div.asig).some(Array.isArray) },
+      { b: ['.divUnis', ''], pos: 'abajo', t: 'Lo que falta', x: 'Pasa lo que queda a quien lo pidió: toca la cuenta y luego el producto. Arriba te dice cuánto <b>falta repartir</b>.', ok: () => S._div && pdvDivFalta() === 0 },
+      { b: ['#modal .btns button', /Dividir cuenta/], t: '¡Todo repartido!', x: 'Toca <b>Dividir cuenta</b>.', ok: () => PDV.cuentas.filter(x => x.divGrupo).length >= 3 },
+      { t: 'Listo: 3 cuentas', x: 'Ahora cada quien tiene su cuenta con su ticket y se cobra por separado. Las ves en <b>Mesas y pedidos</b>.' }] } },
+  { id: 'unir', g: 'mesas', e: '🔗', t: 'Unir cuentas divididas', ver: '3.4.7', para: P => P.mesero || P.caja,
+    c: [['¿Cuándo?', 'Cuando se dividió una cuenta y al final quieren pagar todo junto, o se dividió por error.'],
+      ['Cómo', 'Abre cualquiera de las cuentas divididas, toca <b>⋯</b> (opciones) y luego <b>🔗 Unir las cuentas divididas</b>. Confirma.'],
+      ['Ojo', 'Solo se unen las partes que <b>no tienen pagos</b>. Lo que estaba compartido vuelve a ser un solo producto.']],
+    pr: { rol: 'mesero', ir: () => aprEscena('unir'), pasos: [
+      { t: 'La Mesa 4 ya está dividida', x: () => 'Se dividió entre ' + aprEsc().nombres + ', pero al final quieren <b>pagar todo junto</b>. Estás en la cuenta de ' + aprEsc().nombres.split(',')[0] + '.' },
+      { b: ['button[aria-label="Opciones"]', ''], t: 'Opciones', x: 'Toca <b>⋯</b> para ver las opciones de la cuenta.', ok: () => aprBuscar('#modal button', /Unir las cuentas/) },
+      { b: ['#modal button', /Unir las cuentas/], t: 'Unir', x: 'Toca <b>🔗 Unir las cuentas divididas</b> y confirma.', ok: () => PDV.cuentas.filter(x => x.divGrupo && x.dia === (PDV.caja || {}).dia && !pdvR(x.pagado)).length <= 1 },
+      { t: 'Listo: una sola cuenta', x: 'Todo regresó a la cuenta de la Mesa 4, con el total completo, lista para cobrar.' }] } },
   { id: 'precuenta', g: 'mesas', e: '🧾', t: 'Pre-cuenta para el cliente', ver: '3.4.0', para: P => P.mesero || P.caja,
     c: [['¿Qué es?', 'Es el ticket que le llevas al cliente para que vea cuánto es, antes de pagar.'],
       ['Cómo', 'En la cuenta toca <b>🧾 Pre-cuenta</b>. Se imprime (o se comparte) con todos los productos y el total.']],
     pr: null },
   // ---------- Cobrar ----------
-  { id: 'cobrarCuenta', g: 'cobrar', e: '💳', t: 'Cobrar una cuenta', ver: '3.4.0', para: P => P.mesero || P.caja,
-    c: [['Cobrar', 'Abre la cuenta y toca <b>Cobrar</b>. Elige cómo paga: <b>efectivo</b>, <b>tarjeta</b>, <b>transferencia</b> o <b>monedero</b>. Puede pagar con varias formas.'],
-      ['Efectivo', 'Escribe con cuánto paga y la app te dice el <b>cambio</b>.'],
+  { id: 'cobrarCuenta', g: 'cobrar', e: '💳', t: 'Cobrar una cuenta', ver: '3.4.7', para: P => P.mesero || P.caja,
+    c: [['Cobrar', 'Abre la cuenta y toca <b>Cobrar</b>. Elige cómo paga: <b>efectivo</b>, <b>tarjeta</b>, <b>transferencia</b> o <b>monedero</b>.'],
+      ['Efectivo', 'Escribe o toca el billete con que paga (<b>Recibe</b>) y la app te dice el <b>cambio</b>.'],
+      ['Con dos formas de pago', 'Si paga una parte en efectivo y otra con tarjeta: en <b>Monto de este pago</b> escribe lo del efectivo y toca <b>Registrar pago</b>. Luego <b>Siguiente pago</b>, elige <b>Tarjeta</b> (ya trae lo que falta) y registra.'],
       ['Monedero', 'Si paga con su monedero, el cliente te dice su código de la app (o lo autoriza el gerente).'],
       ['Al terminar', 'La cuenta se cierra y sale el ticket. Si la pide con factura, se marca ahí mismo.']],
-    pr: { rol: 'mesero', ir: () => aprIrCaja('mesas'), pasos: [
-      { b: ['.pdvTabs button', /Mesas/], t: 'Elige una cuenta', x: 'Abre una cuenta con productos.', ok: () => PDV.cuentaId },
-      { b: ['.pdvBarraTel', /Ver cuenta/], t: 'Abre la cuenta', x: 'Toca la barra de abajo para ver la cuenta completa.', ok: () => aprBuscar('button', /^Cobrar$/) },
-      { b: ['button', /^Cobrar$/], t: 'Cobrar', x: 'Toca <b>Cobrar</b>, elige efectivo y escribe con cuánto paga.' }] } },
+    pr: { rol: 'mesero', ir: () => aprEscena('cobrar'), pasos: [
+      { b: ['button', /^Cobrar/], t: () => 'Mesa 2 pide la cuenta: ' + aprEsc().total, x: 'Toca <b>Cobrar</b>.', ok: () => $('#cbMonto') },
+      { b: ['#cbMonto', ''], t: 'Paga con dos formas', x: () => 'El cliente da <b>' + money(aprEsc().ef) + ' en efectivo</b> y el resto con tarjeta. Ya está en 💵 Efectivo: en <b>Monto de este pago</b> borra y escribe <b>' + aprEsc().ef + '</b>.', ok: () => $('#cbMonto') && pdvR($('#cbMonto').value) === aprEsc().ef },
+      { b: ['.pdvBilletes button', () => new RegExp('^\\$' + aprEsc().ef + '(\\.00)?$')], t: 'Lo que te da', x: () => 'Te da un billete de ' + money(aprEsc().ef) + ': tócalo en <b>Recibe</b>.', ok: () => $('#cbRecibe') && pdvR($('#cbRecibe').value) >= aprEsc().ef },
+      { b: ['#modal button', /Registrar pago/], t: 'Registra el efectivo', x: 'Toca <b>Registrar pago</b>.', ok: () => (pdvCuenta(aprEsc().id) || {}).pagado > 0 },
+      { b: ['#modal button', /Siguiente pago/], t: () => 'Falta ' + money(pdvSaldo(pdvCuenta(aprEsc().id) || {})), x: 'Toca <b>Siguiente pago</b> para cobrar el resto.', ok: () => $('#cbMonto') },
+      { b: ['.pdvMets button', /Tarjeta/], t: 'Ahora con tarjeta', x: 'Elige <b>💳 Tarjeta</b>. El monto ya trae lo que falta.', ok: () => PDV.cobro && PDV.cobro.met === 'tarjeta' && $('#cbMonto') },
+      { b: ['#modal button', /Registrar pago/], t: 'Registra la tarjeta', x: 'Pasa la tarjeta en la terminal y toca <b>Registrar pago</b>.', ok: () => !pdvCuenta(aprEsc().id) },
+      { t: '¡Cuenta pagada!', x: () => 'Se cobró con dos formas: ' + money(aprEsc().ef) + ' en efectivo y el resto con tarjeta. En el corte cada una cuenta por separado.' }] } },
   { id: 'entregar', g: 'cobrar', e: '🤝', t: 'Entregar a caja el efectivo que cobré', ver: '3.4.0', para: P => P.mesero && !P.caja,
     c: [['¿Por qué?', 'Todo el efectivo que cobras es de la caja. La app lleva la cuenta de cuánto traes.'],
       ['Dónde lo ves', 'En <b>🧾 Mi turno</b> aparece <b>💵 Te falta entregar $…</b>. Tócalo para ver de qué cuentas es.'],
@@ -2444,6 +2470,60 @@ function aprPracticar(id) {
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   location.href = location.pathname + '?demo=' + b64;
 }
+/* ---- 3.4.7 · escenas: la práctica empieza con una cuenta lista para lo que se aprende ---- */
+const aprEsc = () => S._aprEsc || {};
+const aprDivNom = n => (S._div && S._div.ctas[n] && S._div.ctas[n].nombre) || ['Ana', 'Luis', 'Sofía'][n];
+/** ¿La cuenta n ya tiene su plato fuerte y su bebida? */
+function aprDivTiene(n) {
+  const d = S._div, e = aprEsc(); if (!d) return false;
+  const l = d.unis.filter(u => d.asig[u.t] === n).map(u => pdvDivItem(u.k).nombre);
+  return l.includes(e.a) && l.includes(e.c);
+}
+/** 4 productos sencillos (sin opciones), de categorías distintas si se puede. */
+function aprProdsEscena() {
+  const l = ((S._menu && S._menu.productos) || []).filter(p => p.precio > 0 && p.disponible !== false && !(p.variantes || []).length && !(p.opciones || []).length);
+  // A: plato fuerte · B: algo para compartir · C: bebida · D: otro
+  const bebida = /refresco|agua|caf[eé]|bebida|\bt[eé]\b|malteada|jugo|limonada|soda|frapp|latte|smoothie|cerveza/i, compartir = /papas|aros|nachos|alitas|boneless|botana|orden|dedos|totopos|guacamole|pan\b|galleta/i;
+  const A = l.find(p => !bebida.test(p.nombre) && !compartir.test(p.nombre)) || l[0];
+  const C = l.find(p => p !== A && bebida.test(p.nombre)) || l.find(p => p !== A);
+  const B = l.find(p => p !== A && p !== C && compartir.test(p.nombre)) || l.find(p => p !== A && p !== C);
+  const D = l.find(p => ![A, B, C].includes(p) && p.categoria !== A.categoria) || l.find(p => ![A, B, C].includes(p));
+  return [A, B, C, D].filter(Boolean);
+}
+/** Abre en la caja una cuenta de práctica ya enviada a cocina. */
+async function aprCuentaEscena(mesa, lista) {
+  const ts = Date.now(), ref = pdvCol('ventas').doc();
+  const items = lista.map(([p, cant], n) => ({ k: 'e' + n + Math.random().toString(36).slice(2, 7), key: p.id, id: p.id, nombre: p.nombre, cant, precio: pdvR(p.precio), base: 0, promo: '', variante: '', extras: [], sin: [], nota: '', mods: [], partes: null, ronda: 0, pagadoCant: 0, cancelado: null }));
+  const c = { folio: pdvFolio(), dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
+    tipo: 'mesa', mesa, nombre: 'Cuenta 1', recoge: '', items, total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts, cliPreg: true };
+  c.total = pdvTotalCuenta(c);
+  pdvGuardar(ref.set(JSON.parse(JSON.stringify(c))));
+  PDV.cuentas.push(Object.assign({ id: ref.id }, c));
+  if (pdvCocinaOn()) await pdvEnviarRonda(ref.id); else { items.forEach(i => { i.ronda = 1; }); pdvActualizarCuenta(pdvCuenta(ref.id)); }
+  return pdvCuenta(ref.id);
+}
+const aprVerCuenta = id => { pdvIrCuenta(id); if (innerWidth < 900) setTimeout(pdvVerCuentaTel, 300); };
+async function aprEscena(tipo) {
+  await aprIrCaja('mesas');
+  const P = aprProdsEscena(); if (P.length < 4) return;
+  const [A, B, C, D] = P;
+  if (tipo === 'cobrar') {
+    const c = await aprCuentaEscena('Mesa 2', [[A, 2], [B, 1], [C, 2]]), tot = pdvTotalCuenta(c);
+    const ef = [50, 100, 200, 500].filter(b => b < tot).pop() || 50;
+    S._aprEsc = { id: c.id, total: money(tot), ef };
+    return aprVerCuenta(c.id);
+  }
+  const c = await aprCuentaEscena('Mesa 4', [[A, 3], [B, 2], [C, 3], [D, 2]]);
+  S._aprEsc = { id: c.id, total: money(pdvTotalCuenta(c)), a: A.nombre, b: B.nombre, c: C.nombre, nombres: 'Ana, Luis, Sofía' };
+  if (tipo === 'unir') { // se divide sola entre Ana, Luis y Sofía
+    pdvDividir(c.id); const d = S._div;
+    d.ctas = ['Ana', 'Luis', 'Sofía'].map(nombre => ({ nombre, cliente: null }));
+    d.unis.forEach((u, n) => { d.asig[u.t] = n % 3; });
+    await pdvDivConfirmar(); cerrarModal(); S._div = null;
+    return pdvIrCuenta(c.id);
+  }
+  return aprVerCuenta(c.id);
+}
 async function aprIrCaja(tab) { await ir('caja'); for (let k = 0; k < 30 && !PDV.caja; k++) await new Promise(r => setTimeout(r, 300)); PDV.tab = tab; PDV.cuentaId = ''; pintarCaja(); }
 /** Busca un elemento visible por selector y (opcional) texto. */
 function aprBuscar(sel, txt) {
@@ -2473,10 +2553,11 @@ function aprPasoMostrar(d, p, i, n) {
   return new Promise(async listo => {
     const g = d.querySelector('.globo'), h = d.querySelector('.hueco');
     let el = null;
-    if (p.b) for (let k = 0; k < 16 && !el; k++) { el = aprBuscar(p.b[0], p.b[1]); if (!el) await new Promise(r => setTimeout(r, 300)); }
+    const val = v => typeof v === 'function' ? v() : v, bus = () => p.b ? aprBuscar(p.b[0], val(p.b[1])) : null; // 3.4.7
+    if (p.b) for (let k = 0; k < 16 && !el; k++) { el = bus(); if (!el) await new Promise(r => setTimeout(r, 300)); }
     const fin = v => { clearInterval(tm); if (el) el.removeEventListener('click', toque, true); listo(v); };
     const toque = () => { if (!p.ok) setTimeout(() => fin('ok'), 500); };
-    g.innerHTML = `<div class="small muted">${p.fin ? 'Práctica libre' : 'Paso ' + (i + 1) + ' de ' + (n - 1)}</div><h3>${p.t}</h3><p>${p.x}</p>
+    g.innerHTML = `<div class="small muted">${p.fin ? 'Práctica libre' : 'Paso ' + (i + 1) + ' de ' + (n - 1)}</div><h3>${val(p.t)}</h3><p>${val(p.x)}</p>
       <div class="pie">${p.fin ? '<button class="btn sm pri" data-a="fin">Practicar libre</button>' : `<button class="lnk small" data-a="salir">Saltar guía</button><button class="btn sm" data-a="sig">${el ? 'Siguiente' : 'Entendido'}</button>`}</div>`;
     g.querySelectorAll('[data-a]').forEach(b => b.onclick = () => fin(b.dataset.a === 'salir' ? 'salir' : 'ok'));
     if (el) {
@@ -2484,12 +2565,13 @@ function aprPasoMostrar(d, p, i, n) {
       const r = el.getBoundingClientRect(), pad = 6, vh = innerHeight;
       Object.assign(h.style, { display: '', left: (r.left - pad) + 'px', top: (r.top - pad) + 'px', width: (r.width + pad * 2) + 'px', height: (r.height + pad * 2) + 'px' });
       const gh = g.offsetHeight, abajo = r.top + r.height / 2 < vh / 2;
-      g.style.top = (abajo ? Math.min(r.bottom + 16, vh - gh - 12) : Math.max(12, r.top - gh - 16)) + 'px';
+      g.style.top = (p.pos === 'abajo' ? vh - gh - 12 : abajo ? Math.min(r.bottom + 16, vh - gh - 12) : Math.max(12, r.top - gh - 16)) + 'px'; // 3.4.7: 'abajo' deja libre la lista de productos
       el.addEventListener('click', toque, true);
     } else { h.style.display = 'none'; g.style.top = Math.max(12, (innerHeight - g.offsetHeight) / 2) + 'px'; }
     // si se abre una ventana que no es la señalada, el globo sube y deja usarla; el recuadro sigue al botón si se mueve
     const tm = setInterval(() => { try {
       if (p.ok && p.ok()) return fin('ok');
+      if (p.b && (!el || !document.contains(el))) { const nv = bus(); if (nv) { if (el) el.removeEventListener('click', toque, true); el = nv; el.addEventListener('click', toque, true); h.style.display = ''; } } // 3.4.7: la ventana se volvió a dibujar
       const m = $('#modal'), enM = m && m.classList.contains('on') && !(el && m.contains(el));
       d.classList.toggle('arriba', !!enM);
       if (el && !enM && document.contains(el)) { const r = el.getBoundingClientRect(); Object.assign(h.style, { left: (r.left - 6) + 'px', top: (r.top - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' }); }
@@ -2504,7 +2586,8 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
-  { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null }
+  { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null },
+  { ver: '3.4.7', para: P => P.mesero || P.caja, t: '👥 <b>Mesa grande:</b> al abrir una mesa de más de 4 personas, cada producto pasa a cocina en cuanto lo capturas.', f: 'cuenta' }
 ];
 function aprNovedades() {
   if (!S.user || window.PIDELE_DEMO || $('#modal').classList.contains('on') || ['caja', 'cocina', 'entrar'].includes(S.vista)) return;
@@ -7029,9 +7112,11 @@ function pdvNuevaCuenta(mesa, tipo) {
   const enMesa = PDV.cuentas.filter(c => c.mesa === mesa && mesa).length;
   S._nc = { mesa, tipo: tipo === 'llevar' ? 'llevar' : 'mesa' };
   modal(`<div class="row between"><h2 style="margin:0">${tipo === 'llevar' ? '🥡 Pedido para llevar' : mesa ? esc(mesa) : 'Cuenta sin mesa'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    ${mesa ? `<div class="pdvTipo">${[['mesa', '🍽️ Para la mesa'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${S._nc.tipo === k ? 'on' : ''}" onclick="S._nc.tipo='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this));$('#ncHora').style.display=S._nc.tipo==='llevar'?'':'none'">${t}</button>`).join('')}</div>` : ''}
+    ${mesa ? `<div class="pdvTipo">${[['mesa', '🍽️ Para la mesa'], ['llevar', '🥡 Para llevar']].map(([k, t]) => `<button class="${S._nc.tipo === k ? 'on' : ''}" onclick="S._nc.tipo='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this));$('#ncHora').style.display=S._nc.tipo==='llevar'?'':'none';if($('#ncGrande'))$('#ncGrande').style.display=S._nc.tipo==='llevar'?'none':''">${t}</button>`).join('')}</div>` : ''}
     <label class="f">${tipo === 'llevar' ? 'Nombre del cliente' : 'Nombre de la cuenta'}</label><input class="i" id="ncNom" maxlength="40" value="${tipo === 'llevar' ? '' : 'Cuenta ' + (enMesa + 1)}" placeholder="${tipo === 'llevar' ? 'Ej. Sra. Rosa' : 'Ej. Cuenta 1, Luis…'}">
     <div id="ncHora" style="${tipo === 'llevar' ? '' : 'display:none'}"><label class="f">¿A qué hora pasa o sale?</label><input class="i" id="ncRec" type="time"></div>
+    ${tipo !== 'llevar' && pdvCocinaOn() ? `<div id="ncGrande"><label class="f">¿Son más de 4 personas?</label><div class="pdvTipo" style="margin-top:0">${[[false, 'No'], [true, '👥 Sí, mesa grande']].map(([v, t]) => `<button class="${!!S._nc.grande === v ? 'on' : ''}" onclick="S._nc.grande=${v};[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this))">${t}</button>`).join('')}</div>
+      <div class="small muted">En mesa grande, cada producto pasa a cocina en cuanto lo capturas, para que vayan avanzando mientras terminas de tomar la orden.</div></div>` : ''}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvCrearCuenta)">Abrir cuenta</button></div>`);
   setTimeout(() => { const i = $('#ncNom'); if (i) i.select(); }, 150);
 }
@@ -7041,13 +7126,13 @@ async function pdvCrearCuenta() {
   if (!PDV.caja) throw new Error('La caja está cerrada');
   const ts = Date.now(), ref = pdvCol('ventas').doc();
   const c = { folio: pdvFolio(), dia: PDV.caja.dia, ts, cajaId: PDV.caja.id, turno: PDV.caja.turno, por: pdvYo(), mesero: pdvYo(), origen: 'cuenta', estado: 'abierta',
-    tipo: k.tipo, mesa: k.mesa || '', nombre: (nombre || 'Cuenta 1').slice(0, 40), recoge, items: [], total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts };
+    tipo: k.tipo, mesa: k.mesa || '', nombre: (nombre || 'Cuenta 1').slice(0, 40), recoge, items: [], total: 0, pagado: 0, pagos: [], pagoIds: [], revisado: ts, grande: k.tipo === 'mesa' && !!k.grande };
   pdvGuardar(ref.set(c));
   PDV.cuentas.push(Object.assign({ id: ref.id }, c));
   cerrarModal(); pdvIrCuenta(ref.id);
 }
 function pdvIrCuenta(id) { PDV.cuentaId = id; PDV.buscar = ''; window.scrollTo(0, 0); pintarCaja(); }
-function pdvSalirCuenta() { PDV.cuentaId = ''; PDV.tab = 'mesas'; pintarCaja(); }
+function pdvSalirCuenta() { if (PDV.cuentaId) pdvGrandeCerrar(PDV.cuentaId); PDV.cuentaId = ''; PDV.tab = 'mesas'; pintarCaja(); }
 function pdvVistaCuenta() {
   const c = pdvCuenta(PDV.cuentaId);
   if (!c) { PDV.cuentaId = ''; return pdvVistaMesas(); }
@@ -7058,7 +7143,7 @@ function pdvVistaCuenta() {
       <button class="btn pill" onclick="pdvMenuCuenta('${c.id}')" aria-label="Opciones">⋯</button></div>
     <div class="pdvVender"><div class="pdvMenu">${pdvMenuHTML({})}</div>
     <div class="pdvCarrito" id="pdvCarrito">${pdvPanelCuenta(c)}</div>
-    <button class="barra pdvBarraTel" onclick="pdvVerCuentaTel()"><span>${n ? '🆕 ' + n + ' sin enviar · ' : ''}Ver cuenta</span><span>${money(pdvSaldo(c))}</span></button></div>`;
+    <button class="barra pdvBarraTel" onclick="pdvVerCuentaTel()"><span>${n ? '🆕 ' + n + ' sin enviar · ' : c.grande && pdvCocinaOn() ? '👥 Directo a cocina · ' : ''}Ver cuenta</span><span>${money(pdvSaldo(c))}</span></button></div>`;
 }
 function pdvVerCuentaTel() { const c = pdvCuenta(PDV.cuentaId); if (!c) return; modal(`<div class="row between"><h2 style="margin:0">${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="cerrarModal();pintarCaja()" aria-label="Cerrar">✕</button></div><div id="pdvCarritoM" style="margin-top:8px">${pdvPanelCuenta(c)}</div>`); }
 function pdvPintarCuenta() { const c = pdvCuenta(PDV.cuentaId); if (!c) return; const e = $('#pdvCarrito'); if (e) e.innerHTML = pdvPanelCuenta(c); const m = $('#pdvCarritoM'); if (m) m.innerHTML = pdvPanelCuenta(c); }
@@ -7073,6 +7158,7 @@ function pdvPanelCuenta(c) {
   const total = pdvTotalCuenta(c), saldo = pdvSaldo(c);
   return `${c.dom ? pdvDomTarjeta(c) : ''}${rondas.map(r => { const k = kom(r); return `<div class="pdvRonda"><span>Ronda ${r} · ${hora(k ? k.ts : 0)}</span>${k ? (k.estado === 'listo' ? `<button class="btn sm ok" onclick="pdvEntregada('${k.id}')">📦 Lista · Entregué</button>` : k.estado === 'entregada' ? '<span>✅ Entregada</span>' : k.estado === 'cancelada' ? '<span>✖️</span>' : '<span>👩‍🍳 En cocina' + (komProg(k).h ? ' · ' + komProg(k).h + '/' + komProg(k).t : '') + '</span>') : ''}</div>${its.filter(i => i.ronda === r).map(i => linea(i, false)).join('')}`; }).join('')}
     ${nuevos.length && !pdvCocinaOn() ? nuevos.map(i => linea(i, true)).join('') : ''}
+    ${c.grande && pdvCocinaOn() ? `<div class="aviso info small" style="margin:6px 0">👥 <b>Mesa grande:</b> cada producto pasa a cocina al capturarlo.${(PDV.comandas || []).some(k => k.ventaId === c.id && k.abierta) ? `<button class="btn sm pri" style="display:block;width:100%;margin-top:6px" onclick="pdvGrandeTerminar('${c.id}')">✅ Terminé de tomar la orden</button>` : ''}</div>` : ''}
     ${nuevos.length && pdvCocinaOn() ? `<div class="pdvRonda nueva"><span>🆕 Sin enviar</span></div>${nuevos.map(i => linea(i, true)).join('')}
       <button class="btn pri pill full" style="margin:8px 0;font-size:17px" onclick="act(this,()=>pdvEnviarRonda('${c.id}'))">👩‍🍳 Enviar a cocina (${nuevos.reduce((s, i) => s + i.cant, 0)})</button>` : ''}
     ${!its.length ? '<div class="pdvVacio">Toca productos del menú para agregarlos a la cuenta</div>' : ''}
@@ -7106,6 +7192,7 @@ function pdvAgregarACuenta(it, cant) {
   if (x) x.cant += cant;
   else (c.items = c.items || []).push({ k: Math.random().toString(36).slice(2, 10), key: it.key, id: it.id, nombre: it.nombre, cant, precio: pdvR(it.precio), base: it.base || 0, promo: it.promo || '', variante: it.variante || '', extras: it.extras || [], sin: it.sin || [], nota: it.nota || '', mods: it.mods || [], partes: it.partes || null, ronda: 0, pagadoCant: 0, cancelado: null });
   pdvActualizarCuenta(c);
+  if (c.grande && pdvCocinaOn()) pdvGrandeEnviar(c).catch(e => toast(e.message, 'err')); // 3.4.7
 }
 function pdvCantCuenta(k, d) {
   const c = pdvCuenta(PDV.cuentaId); if (!c) return;
@@ -7113,7 +7200,9 @@ function pdvCantCuenta(k, d) {
   i.cant += d; if (i.cant <= 0) c.items = c.items.filter(x => x !== i);
   pdvActualizarCuenta(c);
 }
-async function pdvEnviarRonda(id) {
+const pdvItemComanda = i => ({ k: i.k, id: i.id || '', nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null });
+async function pdvEnviarRonda(id, op) {
+  op = op || {};
   const c = pdvCuenta(id); if (!c) return;
   const nuevos = c.items.filter(i => !i.ronda); if (!nuevos.length) return;
   const r = Math.max(0, ...c.items.map(i => i.ronda || 0)) + 1, ts = Date.now(), ref = pdvCol('comandas').doc();
@@ -7121,11 +7210,43 @@ async function pdvEnviarRonda(id) {
   if (c.tipo === 'llevar' && c.recoge) { const d = new Date(msZ(pdvHoy(), c.recoge)); if (d.getTime() > ts) salida = d.getTime(); }
   nuevos.forEach(i => { i.ronda = r; });
   const k = { ventaId: c.id, folio: c.folio, etiqueta: pdvEtiqueta(c), tipo: c.tipo, ronda: r, agregado: r > 1, dia: pdvDiaTrabajo(), ts, salida, estado: 'preparando', mesero: pdvYo(),
-    items: nuevos.map(i => ({ k: i.k, id: i.id || '', nombre: i.nombre, cant: i.cant, variante: i.variante, extras: i.extras, sin: i.sin, nota: i.nota, mods: i.mods, partes: i.partes || null })) };
+    items: nuevos.map(pdvItemComanda) };
+  if (op.abierta) k.abierta = true; // 3.4.7: mesa grande: la comanda sigue recibiendo productos mientras se toma la orden
   pdvGuardar(ref.set(JSON.parse(JSON.stringify(k))));
   PDV.comandas.push(Object.assign({ id: ref.id }, k));
   pdvActualizarCuenta(c);
-  toast('Ronda ' + r + ' enviada a cocina 👩‍🍳');
+  toast(op.abierta ? '👩‍🍳 Ya está en cocina' : 'Ronda ' + r + ' enviada a cocina 👩‍🍳');
+}
+/** 3.4.7 · Mesa grande: cada producto capturado se suma a la comanda que cocina ya está viendo (o abre una). */
+async function pdvGrandeEnviar(c) {
+  const nuevos = (c.items || []).filter(i => !i.ronda); if (!nuevos.length) return;
+  const K = (PDV.comandas || []).find(k => k.ventaId === c.id && k.abierta && k.estado === 'preparando');
+  if (!K) return pdvEnviarRonda(c.id, { abierta: true });
+  nuevos.forEach(i => { i.ronda = K.ronda; });
+  const add = nuevos.map(pdvItemComanda), ref = pdvCol('comandas').doc(K.id);
+  try {
+    await PDV.db.runTransaction(async t => {
+      const d = (await t.get(ref)).data() || {};
+      if (d.estado !== 'preparando' || !d.abierta) throw new Error('cerrada');
+      t.update(ref, { items: JSON.parse(JSON.stringify((d.items || []).concat(add))) });
+    });
+    K.items = (K.items || []).concat(add);
+    pdvActualizarCuenta(c);
+  } catch (e) { // cocina ya la cerró o no hay red: va en una ronda nueva
+    nuevos.forEach(i => { i.ronda = 0; }); K.abierta = false;
+    return pdvEnviarRonda(c.id, { abierta: true });
+  }
+}
+/** 3.4.7 · Terminé de tomar la orden: lo siguiente que se pida va como ronda nueva. */
+function pdvGrandeCerrar(id) {
+  (PDV.comandas || []).filter(k => k.ventaId === id && k.abierta).forEach(k => { k.abierta = false; pdvGuardar(pdvCol('comandas').doc(k.id).update({ abierta: false })); });
+}
+function pdvGrandeTerminar(id) { pdvGrandeCerrar(id); toast('Orden completa ✓ · lo que pidan después va como ronda nueva'); pdvPintarCuenta(); if (!$('#modal').classList.contains('on')) pintarCaja(); }
+async function pdvGrandeCambiar(id, v) {
+  const c = pdvCuenta(id); if (!c) return;
+  c.grande = !!v; pdvGuardar(pdvCol('ventas').doc(id).update({ grande: !!v }));
+  if (!v) pdvGrandeCerrar(id); else if (pdvCocinaOn()) await pdvGrandeEnviar(c);
+  cerrarModal(); pintarCaja();
 }
 function pdvEntregada(kid) {
   pdvGuardar(pdvCol('comandas').doc(kid).update({ estado: 'entregada', entregada: Date.now() }));
@@ -7290,6 +7411,7 @@ function pdvMenuCuenta(id) {
     <label class="f">Nombre de la cuenta</label><input class="i" id="mcNom" maxlength="40" value="${esc(c.nombre)}">
     ${c.tipo !== 'llevar' ? `<label class="f">Mesa</label><select class="i" id="mcMesa"><option value="">Sin mesa</option>${pdvMesasLista().map(m => `<option ${m === c.mesa ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>` : `<label class="f">Hora</label><input class="i" id="mcRec" type="time" value="${esc(c.recoge || '')}">`}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>pdvGuardarMenuCuenta('${id}'))">Guardar</button></div>
+    ${c.tipo !== 'llevar' && pdvCocinaOn() ? `<hr class="hr"><label class="pdvChk"><input type="checkbox" ${c.grande ? 'checked' : ''} onchange="act(null,()=>pdvGrandeCambiar('${id}',this.checked))"> 👥 Mesa grande: cada producto pasa a cocina al capturarlo</label>` : ''}
     ${c.divGrupo && pdvPuede('dcmg') && pdvGrupoDiv(c).length > 1 ? `<hr class="hr"><button class="btn pill full" onclick="act(this,()=>pdvUnirCuentas('${id}'))">🔗 Unir las cuentas divididas (${pdvGrupoDiv(c).length})</button><div class="small muted" style="margin-top:4px">Junta otra vez las cuentas de esta división que no tengan pagos. Lo compartido vuelve a ser un solo producto.</div>` : ''}
     ${pdvPuede('dcmg') ? `<hr class="hr"><button class="btn err pill full" onclick="act(this,()=>pdvCancelarCuenta('${id}'))">❌ Cancelar cuenta completa</button><div class="small muted" style="margin-top:4px">Para cuentas que no se van a cobrar (el cliente se fue, se abrió por error). Necesita código de gerente o del dueño.</div>` : ''}`);
 }
@@ -12369,7 +12491,10 @@ function cocHecho(tipo, id, n) {
   if (tipo === 'kom') {
     const k = (S._cocKom || []).find(x => x.id === id); if (!k || !k.items[n]) return;
     k.items[n].hecho = !k.items[n].hecho;
-    pdvGuardar(pdvCol('comandas').doc(id).update({ items: JSON.parse(JSON.stringify(k.items)) }));
+    // 3.4.7: con transacción, para no borrar lo que la caja agrega a una mesa grande al mismo tiempo
+    const v = k.items[n].hecho, ref = pdvCol('comandas').doc(id);
+    PDV.db.runTransaction(async t => { const its = ((await t.get(ref)).data() || {}).items || []; if (its[n]) its[n].hecho = v; t.update(ref, { items: its }); })
+      .catch(() => pdvGuardar(ref.update({ items: JSON.parse(JSON.stringify(k.items)) })));
   } else {
     const m = ls('cocHechos') || {}, l = m[id] || [];
     m[id] = l.includes(n) ? l.filter(x => x !== n) : l.concat([n]);
@@ -12401,7 +12526,7 @@ function pintarCocina() {
   const listos = l.filter(x => x.estado === 'LISTO').sort((a, b) => (a.listo || 0) - (b.listo || 0));
   // ventas de la caja (mostrador y para llevar): ya están pagadas, entran directo a preparación
   const koms = (S._cocKom || []).map(k => ({ _kom: 1, id: k.id, folio: k.folio, tipoTxt: k.etiqueta, comprador: k.mesero && k.tipo === 'mesa' ? { nombre: k.mesero.nombre } : k.cliente ? { nombre: k.cliente.nombre } : null, horaSalida: k.salida, items: k.items, notas: '',
-    bandas: [(k.corr || []).slice(-3).map(t => `<div class="cBanda corr">${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${esc(t).toUpperCase()}</div>`).join(''), k.ronda > 1 && !k.correccion ? `<div class="cBanda agr">➕ AGREGADO · ${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${k.ronda}ª RONDA</div>` : '',
+    bandas: [(k.corr || []).slice(-3).map(t => `<div class="cBanda corr">${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${esc(t).toUpperCase()}</div>`).join(''), k.abierta ? `<div class="cBanda agr">✍️ MESA GRANDE · TOMANDO LA ORDEN · VAN LLEGANDO PRODUCTOS</div>` : '', k.ronda > 1 && !k.correccion ? `<div class="cBanda agr">➕ AGREGADO · ${esc(String(k.etiqueta || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').toUpperCase())} · ${k.ronda}ª RONDA</div>` : '',
       k.pagado ? `<div class="cBanda pag">💵 PAGADO${k.entrega && k.entrega.hora ? ' · PASA ' + esc(horaTxt(k.entrega.hora)).toUpperCase() : ''}${k.entrega && k.entrega.nombre ? ' · ' + esc(k.entrega.nombre).toUpperCase() : ''}</div>` : ''].join('') }));
   l.forEach(x => { if (x.cambioSol) x.bandas = '<div class="cBanda corr" style="background:#B26A00;color:#fff">🔁 EL CLIENTE PIDE UN CAMBIO · REVÍSALO</div>'; else if (x.modificado && x.modificado > (x.aceptado || 0) + 1000) x.bandas = '<div class="cBanda corr">🔁 CAMBIO · ' + esc(hora(x.modificado)).toUpperCase() + '</div>'; }); // 2.92
   prep.push(...koms);
