@@ -508,6 +508,7 @@ body.fabFuera .aprFab{transform:translateX(-90px);opacity:.15;pointer-events:non
 /* 3.4.0 · Aprende a usar Pídele */
 .aprFab{position:fixed;left:12px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:61;display:flex;align-items:center;gap:6px;border:0;border-radius:999px;background:#2E5E8C;color:#fff;padding:8px 14px 8px 10px;font:inherit;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
 @media (min-width:900px){.aprFab{left:auto;right:12px;bottom:calc(220px + env(safe-area-inset-bottom))}body.fabFuera .aprFab{transform:translateX(90px)}} /* 3.4.5: en computadora, del lado derecho */
+.permDias,.ausDias{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;max-height:38vh;overflow:auto}.permDias button,.ausDias button{border:1.5px solid var(--ln);background:var(--card);border-radius:12px;padding:6px 10px;min-width:58px;display:flex;flex-direction:column;align-items:center;font:inherit;cursor:pointer;color:inherit}.permDias button.on,.ausDias button.on{border-color:var(--pri);background:var(--pri);color:#fff}.ausDias button.ok:not(.on){border-color:var(--ok)}.permDias small,.ausDias small{font-size:11px;opacity:.8}
 .aprFab span{font-size:22px}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
 .aprItem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
 .aprItem .e{font-size:26px;width:34px;text-align:center}
@@ -1232,7 +1233,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.4.7';
+const APP_VER = '3.5.0';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2225,7 +2226,7 @@ function pintarNav() {
  * Botón "📚 Aprende" para el equipo: menú de funciones de su puesto → guía corta (tarjetas) → "Practicar esta función"
  * (abre la demo con datos de mentira, primero guiada paso a paso y luego libre, con "Salir de práctica").
  * Lo aprendido se guarda en este teléfono; cuando una función cambia en una versión nueva, vuelve a aparecer como 🆕. */
-const APR_GRUPOS = [['dia', '🙋 Mi día en el trabajo'], ['mesas', '🍽️ Mesas y comandas'], ['cobrar', '💵 Cobrar'], ['caja', '🗄️ La caja'], ['cocina', '👩‍🍳 Cocina y barra']];
+const APR_GRUPOS = [['dia', '🙋 Mi día en el trabajo'], ['mesas', '🍽️ Mesas y comandas'], ['cobrar', '💵 Cobrar'], ['caja', '🗄️ La caja'], ['cocina', '👩‍🍳 Cocina y barra'], ['gerente', '👔 Gerente'], ['dueno', '🏪 Dueño']];
 const APR_ROL = { mesero: 'mesero', caja: 'cajero', cocina: 'cocina', dueno: 'dueno' };
 /** Puestos de esta persona en el negocio que tiene abierto. */
 function aprPuestos() {
@@ -2265,6 +2266,12 @@ const APRENDE = [
       ['Si te cargan algo', 'Si en la caja se carga algo a tu nómina (por ejemplo, tu comida), se pide <b>tu código</b> y te llega un aviso. Si no fuiste tú, toca <b>No fui yo</b>.']],
     pr: { rol: 'mesero', ir: () => ir('perfil'), pasos: [
       { b: ['button', /Pedir un adelanto/], t: 'Pedir un adelanto', x: 'Tócalo, llena el monto y la fecha y envíalo. Es práctica: no le llega a nadie.', ok: () => $('#modal.on') }] } },
+  { id: 'permiso', g: 'dia', e: '📝', t: 'Pedir un permiso', ver: '3.4.9', para: P => P.equipo && !P.dueno && funOn('personal', 'asistencia'),
+    c: [['¿Qué es?', 'Un permiso es un día que no vienes a trabajar por algo personal (una cita, un trámite). Es <b>sin goce de sueldo</b>: ese día no se paga, pero tampoco es falta.'],
+      ['Cómo se pide', 'En <b>Perfil</b>, en tu tarjeta del negocio, toca <b>📝 Pedir permiso</b>. Elige el día, escribe el motivo y envía.'],
+      ['Con tiempo', 'Se pide con <b>al menos 24 horas</b> de anticipación. Por eso solo aparecen los días a partir de mañana.'],
+      ['Qué sigue', 'El encargado lo aprueba o no y te llega un aviso. Si se aprueba, decide quién cubre tu turno. Lo que pasa con tu bono de puntualidad depende de las reglas del negocio.']],
+    pr: null },
   { id: 'codigo', g: 'dia', e: '🔑', t: 'Mi código personal', ver: '3.4.0', para: P => P.equipo && (P.caja || P.gerente || P.dueno || P.mesero),
     c: [['¿Para qué sirve?', 'Tu código (de 4 a 6 números) es tu firma en la caja: con él abres y cierras turno, autorizas y confirmas que algo se carga a tu nómina.'],
       ['Crearlo o cambiarlo', 'En la caja, si aún no lo tienes, sale el aviso <b>🔑 Crea tu código de caja</b>. Tócalo y escríbelo dos veces.'],
@@ -2365,33 +2372,47 @@ const APRENDE = [
       ['Recibir', 'Cuando te lo entregue, cuéntalo, toca la burbuja y luego <b>✅ Recibí $350 de Ana</b>. Queda guardado quién recibió y a qué hora.'],
       ['En el corte', 'Si todo se recibió, el corte no pregunta nada. Si falta algo, te lo dice para que lo pidas antes de contar.']],
     pr: null },
-  { id: 'gasto', g: 'caja', e: '💸', t: 'Registrar un gasto', ver: '3.4.0', para: P => P.caja && funOn('caja', 'gastos'),
+  { id: 'gasto', g: 'caja', e: '💸', t: 'Registrar un gasto', ver: '3.4.8', para: P => P.caja && funOn('caja', 'gastos'),
     c: [['Cuándo', 'Cada vez que sale dinero de la caja para comprar algo (gas, hielo, verdura…), regístralo al momento.'],
       ['Cómo', 'En <b>💸 Gastos</b> toca <b>➕ Nuevo gasto</b>: concepto, monto, de dónde sale (caja u otro) y, si tienes, la foto del ticket.'],
       ['¿Por qué importa?', 'Si no lo registras, en el corte te sale <b>faltante</b>. Si se te olvidó, el corte te pregunta antes de cerrar.']],
     pr: { rol: 'cajero', ir: () => aprIrCaja('gastos'), pasos: [
-      { b: ['button', /Nuevo gasto/], t: 'Nuevo gasto', x: 'Tócalo y registra un gasto de prueba.', ok: () => $('#modal.on') }] } },
-  { id: 'devolver', g: 'caja', e: '↩️', t: 'Devolver un producto', ver: '3.4.0', para: P => P.caja || P.gerente,
+      { b: ['button', /Nuevo gasto/], t: 'Compraste hielo', x: 'Saliste a comprar 2 bolsas de hielo con $60 de la caja. Toca <b>➕ Nuevo gasto</b>.', ok: () => $('#gConc') },
+      { b: ['#gConc', ''], t: '¿Qué se compró?', x: 'Escribe <b>2 bolsas de hielo</b>.', ok: () => $('#gConc') && $('#gConc').value.trim().length >= 3 },
+      { b: ['#gMonto', ''], t: '¿Cuánto costó?', x: 'Escribe <b>60</b>.', ok: () => $('#gMonto') && pdvR($('#gMonto').value) > 0 },
+      { b: ['.pdvMets button', /Efectivo de caja/], t: '¿Cómo se pagó?', x: 'Salió de la caja: deja marcado <b>🗄️ Efectivo de caja</b>. Así se descuenta de lo que debe haber al cerrar.' },
+      { b: ['.pdvMets button', /Sin comprobante/], t: 'El ticket', x: 'En la vida real toma la <b>foto del ticket</b>. En la práctica toca <b>⚠️ Sin comprobante</b>.', ok: () => S._gasto && S._gasto.tipo === 'sin' },
+      { b: ['#modal button', /Guardar gasto/], t: 'Guárdalo', x: 'Toca <b>Guardar gasto</b>.', ok: () => !$('#gConc') },
+      { t: '¡Gasto registrado!', x: 'Ya aparece en la lista y se descuenta del efectivo esperado. Así tu corte cuadra.' }] } },
+  { id: 'devolver', g: 'caja', e: '↩️', t: 'Devolver un producto', ver: '3.4.8', para: P => P.caja || P.gerente,
     c: [['Cuándo', 'Cuando el cliente regresa un producto (llegó frío, no era lo que pidió) y no hay que cancelar toda la venta.'],
       ['Cómo', 'En <b>🧾 Mi turno</b> toca la venta y luego <b>↩️ Devolver un producto</b>. Elige qué y cuántos, cómo se le regresa el dinero y la justificación.'],
       ['Autoriza', 'Lo autoriza el gerente con su código. La venta del turno baja, y si es en efectivo, también lo que debe haber en caja.'],
       ['Lo demás', 'El producto devuelto queda como <b>merma</b> y se quita el cashback que le dio al cliente.']],
-    pr: { rol: 'dueno', ir: () => aprIrCaja('ventas'), pasos: [
-      { b: ['.pdvVentaFila', ''], t: 'Elige una venta', x: 'Toca cualquier venta de la lista.', ok: () => /Devolver un producto/.test(($('#modal') || {}).innerText || '') },
-      { b: ['#modal button', /Devolver un producto/], t: 'Devolver', x: 'Toca <b>↩️ Devolver un producto</b>. En la práctica cualquier código funciona.' }] } },
+    pr: { rol: 'dueno', ir: () => aprEscena('devolver'), pasos: [
+      { b: ['.pdvVentaFila', () => aprEsc().folio], t: 'El cliente regresa', x: () => 'La Mesa 5 ya pagó, pero regresa <b>1 ' + aprEsc().a + '</b> porque llegó frío. Toca su venta (' + aprEsc().folio + ').', ok: () => aprBuscar('#modal button', /Devolver un producto/) },
+      { b: ['#modal button', /Devolver un producto/], t: 'Devolver', x: 'Toca <b>↩️ Devolver un producto</b>.', ok: () => $('#dvMot') },
+      { b: ['#modal select[id^="dv_"]', ''], t: () => '¿Qué regresa?', x: () => 'En <b>' + aprEsc().a + '</b> elige <b>1</b>.', ok: () => [...document.querySelectorAll('#modal select[id^="dv_"]')].some(e => Number(e.value) > 0) },
+      { b: ['#dvMot', ''], t: '¿Por qué?', x: 'Escribe la justificación: <b>Llegó frío</b>.', ok: () => $('#dvMot') && $('#dvMot').value.trim().length >= 5 },
+      { b: ['#pinVal', ''], t: 'Autoriza el gerente', x: 'Elige quién autoriza y escribe su código. <b>En la práctica el código de todos es 1234.</b> Toca <b>Continuar</b>.', ok: () => (aprVentaEsc() || {}).devTotal > 0 },
+      { t: 'Devolución lista', x: () => 'Se le regresó el dinero, la venta del turno bajó y el producto quedó como merma. En la venta ves <b>↩️ −' + money((aprVentaEsc() || {}).devTotal || 0) + '</b>.' }] } },
   { id: 'cancelar', g: 'caja', e: '❌', t: 'Cancelar una venta', ver: '3.4.0', para: P => P.caja || P.gerente,
     c: [['Cuándo', 'Solo cuando toda la venta fue un error (se cobró dos veces, el cliente se fue sin recibir nada).'],
       ['Cómo', 'En <b>🧾 Mi turno</b> toca la venta y <b>Cancelar venta</b>. Escribe la justificación.'],
       ['Autoriza', 'Se necesita el código de un gerente o del dueño. Si se pagó en efectivo, devuelve el dinero; si fue con monedero, regresa solo al cliente.']],
     pr: null },
-  { id: 'corte', g: 'caja', e: '🧾', t: 'Hacer el corte y cerrar el turno', ver: '3.4.0', para: P => P.caja,
+  { id: 'corte', g: 'caja', e: '🧾', t: 'Hacer el corte y cerrar el turno', ver: '3.4.8', para: P => P.caja,
     c: [['Antes de contar', 'Recibe el efectivo de los meseros y registra los gastos pendientes. Si hay cuentas abiertas, la app te avisa.'],
       ['Empezar', 'En la caja toca <b>🧾 Hacer corte y cerrar turno</b>.'],
       ['Contar', '1) ¿Cuánto <b>dejas en caja chica</b> para el siguiente turno? 2) ¿Cuánto <b>retiras</b>? Es el dinero que te llevas o entregas al encargado. Puedes contar por billete.'],
       ['Firmar', 'Elige quién retira y quién cierra, con su código. Si eres tú, el código se pide una sola vez.'],
       ['Resultado', 'Te dice si cuadró, si sobró o si faltó. Si falta, primero te pregunta si hay un gasto sin registrar. El dueño recibe el reporte.']],
-    pr: { rol: 'cajero', ir: () => aprIrCaja('vender'), pasos: [
-      { b: ['button', /Hacer corte/], t: 'Corte', x: 'Toca <b>🧾 Hacer corte y cerrar turno</b> y sigue los pasos. Es práctica: no cierra tu caja real.', ok: () => $('#modal.on') }] } },
+    pr: { rol: 'cajero', ir: () => aprEscena('corte'), pasos: [
+      { b: ['button', /Hacer corte/], t: 'Fin del turno', x: () => 'Según las ventas, en la caja <b>debe haber ' + money(aprEsc().esp) + '</b>. Toca <b>🧾 Hacer corte y cerrar turno</b>.', ok: () => $('#ciDeja') },
+      { b: ['#ciDeja', ''], t: 'Caja chica', x: () => 'Dejas <b>' + money(aprEsc().deja) + '</b> para el siguiente turno: escríbelo y toca <b>Siguiente</b>.', ok: () => $('#ciRet') },
+      { b: ['#ciRet', ''], t: 'El retiro', x: () => 'Lo demás se retira: escribe <b>' + aprEsc().ret + '</b> y toca <b>Siguiente</b>. (También puedes contarlo por billetes.)', ok: () => !$('#ciRet') },
+      { t: 'Firma', x: 'Elige quién hace el retiro y quién cierra, y escribe el código. <b>En la práctica el código de todos es 1234.</b> Si te pregunta por un gasto faltante, contesta.', ok: () => !PDV.caja || PDV.caja.id !== aprEsc().caja },
+      { t: '¡Turno cerrado!', x: 'Te dice si cuadró, si sobró o si faltó, y el dueño recibe el reporte. En la práctica no se cerró tu caja real.' }] } },
   // ---------- Cocina ----------
   { id: 'comandas', g: 'cocina', e: '👩‍🍳', t: 'Ver y preparar las comandas', ver: '3.4.0', para: P => P.cocina,
     c: [['La pantalla', 'En <b>Cocina</b> hay tres columnas: <b>🔔 Por aceptar</b>, <b>👩‍🍳 Preparando</b> y <b>📦 Listos</b>.'],
@@ -2401,6 +2422,55 @@ const APRENDE = [
     pr: { rol: 'cocina', ir: () => ir('cocina'), pasos: [
       { b: ['.cTarj', ''], t: 'Una comanda', x: 'Toca los productos para tacharlos.' },
       { b: ['.bListo', ''], t: 'Listo', x: 'Cuando termines, toca <b>✅ Listo</b>.' }] } },
+  // ---------- Gerente (y dueño) ----------
+  { id: 'autorizar', g: 'gerente', e: '🔐', t: 'Autorizar con tu código', ver: '3.4.8', para: P => P.gerente || P.dueno,
+    c: [['¿Qué autorizas?', 'Como gerente, tu código (de <b>6 números</b>) autoriza lo delicado: <b>cancelar</b> una venta o una cuenta, <b>devolver</b> un producto, quitar algo que ya está en cocina y hacer el <b>retiro</b> en el corte.'],
+      ['Cómo', 'Cuando alguien lo pide, sale una ventana con tu nombre. Revisa qué se va a hacer, elige tu nombre y escribe tu código. Siempre se pide una <b>justificación</b>.'],
+      ['Tu responsabilidad', 'Todo lo que autorizas queda a tu nombre y el dueño lo ve. Nunca le des tu código a nadie: mejor ve a revisar y autorízalo tú.']],
+    pr: null },
+  { id: 'anularCorte', g: 'gerente', e: '🧾', t: 'Revisar los cortes y anular uno repetido', ver: '3.4.8', para: P => P.gerente || P.dueno,
+    c: [['Dónde', 'En <b>📊 Reportes → Cortes</b> ves cada turno: quién abrió y cerró, el retiro y si cuadró, sobró o faltó.'],
+      ['Corte repetido', 'Si alguien abrió un turno por error y lo cerró sin ventas (por ejemplo, repitió el corte después de medianoche), abre ese corte y toca <b>Anular el corte</b>.'],
+      ['Ojo', 'Solo se pueden anular cortes <b>sin ventas</b>. Se pide el motivo y deja de contar en los reportes.']],
+    pr: null },
+  { id: 'ausencias', g: 'gerente', e: '🧩', t: 'Aprobar permisos y cubrir ausencias', ver: '3.4.9', para: P => (P.gerente || P.dueno) && funOn('personal', 'asistencia'),
+    c: [['Llegan solos', 'Cuando alguien pide permiso o vacaciones, te llega un aviso y aparece en <b>Personal → Hoy</b> (y en el Inicio) con <b>Aprobar</b> o <b>No aprobar</b>.'],
+      ['¿Quién cubre?', 'Al aprobar, la app pregunta qué hacer con su turno. Te sugiere a quien <b>descansa</b> ese día o está <b>en otro turno</b>.'],
+      ['Las opciones', '<b>🔁 Viene a cubrir / Dobla turno</b>: trabaja ese turno de más (al checar se decide cómo se paga). <b>↔️ Se cambia</b>: ese día trabaja el turno de quien falta en lugar del suyo. <b>➖ Con uno menos</b>. <b>⏳ Decidir después</b>: queda un aviso en Personal → Hoy.'],
+      ['Varios días', 'En vacaciones de varios días puedes aplicar lo mismo a todos o decidir día por día.']],
+    pr: { rol: 'dueno', ir: () => aprEscena('ausencias'), pasos: [
+      { b: ['#modal .card button', /Viene a cubrir|Dobla turno/], t: () => aprEsc().nombre + ' tiene vacaciones', x: () => 'Le aprobaste vacaciones el <b>' + asisDiaTxt(aprEsc().f) + '</b>. Ahora decide quién cubre su turno: elige a alguien de la lista.', ok: () => !S._cub || S._cub.info.fechas.every(f => f.dec && f.dec.m !== 'despues') },
+      { t: '¡Turno cubierto!', x: 'A quien elegiste le llega un aviso con el día y el horario. Si no hubiera nadie, puedes elegir <b>Con uno menos</b> o <b>Decidir después</b>.' }] } },
+  // ---------- Dueño ----------
+  { id: 'salidas', g: 'dueno', e: '❓', t: 'Confirmar salidas en la nómina', ver: '3.4.8', para: P => P.dueno && funOn('personal', 'nomina'),
+    c: [['¿Qué es el ❓?', 'En <b>Personal → Pagos → Nómina</b>, un día con <b>❓</b> es de alguien que <b>no checó su salida</b>. Mientras no lo confirmes, cuenta en su turno, como dicen las reglas.'],
+      ['Confirmar', 'Toca el día y responde <b>¿Qué pasó?</b>: <b>Trabajó su turno</b>, trabajó otro turno, o <b>sin bono ese día</b>. Si sabes a qué hora salió, escríbela en la asistencia a mano.'],
+      ['Su turno manda', 'El bono de ventas va siempre con el turno de su horario. Solo cambia si lo eliges a mano o si se decidió un turno doble.']],
+    pr: { rol: 'dueno', ir: () => aprEscena('salidas'), pasos: [
+      { b: ['.ntC', /❓/], t: 'Un día sin salida', x: () => '<b>' + aprEsc().nombre + '</b> entró ayer a las 7:02 y no checó salida. Toca el día con <b>❓</b>.', ok: () => /Qué pasó/.test(($('#modal') || {}).innerText || '') },
+      { b: ['#modal button', /Trabajó su turno/], t: '¿Qué pasó?', x: 'Sabes que sí se quedó su turno completo: toca <b>✅ Trabajó su turno</b>.', ok: () => !$('#modal.on') && $('.ntC') && !aprBuscar('.ntC', /❓/) },
+      { t: 'Confirmado', x: 'El ❓ desapareció y ese día cuenta en su turno. Así se revisan todos antes de pagar.' }] } },
+  { id: 'pagoDia', g: 'dueno', e: '📆', t: 'Pago por día trabajado', ver: '3.4.8', para: P => P.dueno && funOn('personal', 'nomina'),
+    c: [['¿Para quién?', 'Para quien cobra <b>por día que viene</b>, no un sueldo fijo de semana o quincena.'],
+      ['Configurarlo', 'En <b>Personal → Mi equipo</b> abre a la persona, toca <b>Cambiar</b> en Sueldo, elige <b>Por día trabajado</b>, escribe el <b>pago por día</b> y si se le paga con la quincena o con la semana.'],
+      ['En la nómina', 'Se le paga cada día que vino (más vacaciones y permisos con goce). Las faltas no se descuentan: simplemente no se pagan. Se ve como <b>10 días × $150</b>.']],
+    pr: { rol: 'dueno', ir: () => aprEscena('pagoDia'), pasos: [
+      { b: ['.fKv', /Sueldo/], t: () => 'Sueldo de ' + aprEsc().nombre, x: 'Toca <b>Cambiar</b> en el sueldo.', ok: () => $('#fsMonto') },
+      { b: ['#modal .pdvTipo button', /Por día trabajado/], t: 'Por día', x: 'Elige <b>Por día trabajado</b>.', ok: () => S._fs === 'diario' },
+      { b: ['#fsMonto', ''], t: 'Pago por día', x: 'Escribe <b>150</b>.', ok: () => $('#fsMonto') && pdvR($('#fsMonto').value) === 150 },
+      { b: ['#modal button', /^Guardar$/], t: '¿Con qué nómina?', x: 'Deja <b>Con la quincena</b> y toca <b>Guardar</b>.', ok: () => !$('#fsMonto') },
+      { t: 'Listo', x: 'Ahora en su ficha dice <b>$150 por día</b> y en la nómina se le paga por los días que vino.' }] } },
+  { id: 'bonosTurno', g: 'dueno', e: '🎯', t: 'Bonos de ventas por turno', ver: '3.4.8', para: P => P.dueno && funOn('personal', 'bonos'),
+    c: [['La idea', 'Si el turno vende cierta cantidad, todos los que <b>checaron en ese turno</b> ganan su bono. Los de la mañana y los de la tarde tienen bonos distintos.'],
+      ['Crearlo', 'En <b>Personal → Pagos → 🎯 Bonos</b> toca <b>➕ Nuevo bono</b>: nombre, <b>Ventas del turno</b>, elige el <b>turno</b> (Matutino o Vespertino) y los niveles: desde cuánto vendido y cuánto se paga.'],
+      ['Quién lo recibe', 'Un bono de un turno solo es para quienes checaron en ese turno (también quien dobló o cubrió con la decisión ya tomada). Para la mañana y la tarde, crea un bono para cada una.']],
+    pr: { rol: 'dueno', ir: () => aprEscena('bonos'), pasos: [
+      { b: ['button', /Nuevo bono/], t: 'Un bono para la mañana', x: 'Toca <b>➕ Nuevo bono</b>.', ok: () => $('#mtNom') },
+      { b: ['#mtNom', ''], t: 'Nombre', x: 'Escribe <b>Ventas Mañana</b>.', ok: () => $('#mtNom') && $('#mtNom').value.trim().length >= 3 },
+      { b: ['#modal .pdvTipo button', /Ventas del turno/], t: '¿Las ventas de quién?', x: 'Elige <b>🗄️ Ventas del turno</b>.', ok: () => S._meta && S._meta.base === 'turno' },
+      { b: ['#modal .pdvTipo button', () => new RegExp('^' + ((turnosNeg()[0] || {}).nombre || 'Matutino'))], t: '¿Qué turno?', x: () => 'Elige <b>' + ((turnosNeg()[0] || {}).nombre || 'Matutino') + '</b>. Abajo dice que lo reciben quienes checaron en ese turno.', ok: () => S._meta && Number(S._meta.turnoAplica) === 1 },
+      { b: ['#modal .btns button', /Guardar bono/], t: 'Guárdalo', x: 'Revisa los niveles (desde cuánto vendido y cuánto se paga) y toca <b>Guardar bono</b>.', ok: () => !$('#mtNom') },
+      { t: '¡Bono creado!', x: 'Cada turno de la mañana que llegue a la meta suma el bono a quienes checaron en ese turno. Lo ves en la nómina, columna Bonos.' }] } },
   { id: 'pantallaCocina', g: 'cocina', e: '📺', t: 'La pantalla de cocina', ver: '3.4.0', para: P => P.cocina,
     c: [['Tableta fija', 'La pantalla de cocina se queda abierta en la tableta. Arriba: <b>⚙️ Ajustes</b> (sonido, impresora), <b>⛶ Pantalla</b> completa y <b>🕒 Asistencia</b>.'],
       ['Colores', 'El fondo cambia según la hora (mañana, tarde, noche) y todo se mueve un poquito cada rato: es para que la pantalla no se marque. Es normal.'],
@@ -2466,7 +2536,7 @@ function aprPracticar(id) {
   if (!navigator.onLine) { toast('Para practicar se necesita internet la primera vez', 'err'); return; }
   const n = S.negocio || {}, cat = String(n.categoria || '').toLowerCase();
   const g = /caf/.test(cat) ? 'cafe' : /hambur|burger/.test(cat) ? 'hamburguesas' : /marisc/.test(cat) ? 'mariscos' : /pizz/.test(cat) ? 'pizza' : 'tacos';
-  const cfg = { n: n.nombre || 'Tu negocio', g, m: ['pedidos', 'caja', 'cocina', 'tablero'], pr: { f: id, rol: f.pr.rol } };
+  const cfg = { n: n.nombre || 'Tu negocio', g, m: ['pedidos', 'caja', 'cocina', 'tablero'].concat(f.g === 'dueno' || f.id === 'ausencias' ? ['personal'] : []), pr: { f: id, rol: f.pr.rol } };
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   location.href = location.pathname + '?demo=' + b64;
 }
@@ -2503,10 +2573,56 @@ async function aprCuentaEscena(mesa, lista) {
   return pdvCuenta(ref.id);
 }
 const aprVerCuenta = id => { pdvIrCuenta(id); if (innerWidth < 900) setTimeout(pdvVerCuentaTel, 300); };
+const aprVentaEsc = () => (aprEsc().id && pdvVenta(aprEsc().id)) || null;
+/** Personal (solo dueño): a una pestaña. */
+async function aprIrPersonal(sub) {
+  await vNomina(); for (let k = 0; k < 30 && !PDV.per; k++) await new Promise(r => setTimeout(r, 300));
+  PDV.per.sub = sub; PDV.per.datos = null; pintarCaja();
+  for (let k = 0; k < 40 && !(PDV.per.datos && PDV.per.clave); k++) await new Promise(r => setTimeout(r, 300));
+}
 async function aprEscena(tipo) {
+  if (tipo === 'corte') {
+    await aprIrCaja('vender');
+    const esp = pdvR(pdvCuentas().esperado), deja = esp >= 1000 ? 500 : Math.floor(esp / 2 / 10) * 10;
+    S._aprEsc = { esp, deja, ret: pdvR(esp - deja), caja: PDV.caja.id };
+    return;
+  }
+  if (tipo === 'ausencias') { // 3.4.9: vacaciones asignadas en 3 días: falta decidir quién cubre
+    const nid = S.negocio.id, l = (await api('personalLista', { negocioId: nid })).equipo.filter(e => e.alta && Object.keys(e.horario || {}).length);
+    const e = l.find(x => !/dueñ/i.test(x.puesto || '')) || l[0]; if (!e) return;
+    let f = ''; for (let k = 3; k < 10 && !f; k++) { const x = pdvHoy(Date.now() + k * 864e5), dw = new Date(x + 'T12:00').getDay(); if ((e.horario || {})[dw]) f = x; }
+    const r = await api('vacAsignar', { negocioId: nid, usuarioId: e.usuarioId, fechas: [f], adelanto: true });
+    S._aprEsc = { nombre: e.nombre.split(' ')[0], f };
+    await aprIrPersonal('hoy');
+    if (r.cubrir) ausCubrirAbrir(nid, r.cubrir, () => { PDV.per.datos = null; pintarCaja(); });
+    return;
+  }
+  if (['salidas', 'pagoDia', 'bonos'].includes(tipo)) {
+    const nid = S.negocio.id, l = (await api('personalLista', { negocioId: nid })).equipo.filter(e => e.alta);
+    const e = l.find(x => !/dueñ/i.test(x.puesto || '')) || l[0]; if (!e) return;
+    S._aprEsc = { nombre: e.nombre.split(' ')[0], uid: e.usuarioId };
+    if (tipo === 'salidas') {
+      const h = {}; for (let k = 0; k < 7; k++) h[k] = { e: '07:00', s: '15:00' };
+      await api('personalGuardar', { negocioId: nid, usuarioId: e.usuarioId, horario: h, activo: true, sueldo: 4350, periodo: 'quincenal', vacaciones: 12, descansoTipo: 'fijo', descansos: 1 });
+      const ayer = pdvHoy(Date.now() - 864e5);
+      await api('asisManual', { negocioId: nid, usuarioId: e.usuarioId, fecha: ayer, entrada: '07:02', salida: '' });
+      PDV.per = PDV.per || { sub: 'hoy', fecha: pdvHoy() }; PDV.per.nomPer = 'quincena'; PDV.per.nomVista = 'tablero';
+      return aprIrPersonal('nomina');
+    }
+    if (tipo === 'pagoDia') { await aprIrPersonal('equipo'); return fichaAbrir(e.usuarioId); }
+    return aprIrPersonal('metas');
+  }
   await aprIrCaja('mesas');
   const P = aprProdsEscena(); if (P.length < 4) return;
   const [A, B, C, D] = P;
+  if (tipo === 'devolver') { // una venta ya cobrada para regresar un producto
+    const c = await aprCuentaEscena('Mesa 5', [[A, 2], [C, 2]]);
+    pdvCobrarCuenta(c.id); await new Promise(r => setTimeout(r, 400));
+    const i = $('#cbMonto'); if (i) i.value = pdvSaldo(c);
+    await pdvPagarCuenta(); cerrarModal();
+    S._aprEsc = { id: c.id, folio: c.folio, a: A.nombre };
+    return aprIrCaja('ventas');
+  }
   if (tipo === 'cobrar') {
     const c = await aprCuentaEscena('Mesa 2', [[A, 2], [B, 1], [C, 2]]), tot = pdvTotalCuenta(c);
     const ef = [50, 100, 200, 500].filter(b => b < tot).pop() || 50;
@@ -2587,6 +2703,9 @@ window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
   { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null },
+  { ver: '3.4.9', para: P => P.equipo && !P.dueno, t: '📝 <b>Nuevo: pide permiso desde tu Perfil</b> (sin goce, con 24 horas de anticipación).', f: 'permiso' },
+  { ver: '3.4.9', para: P => P.gerente || P.dueno, t: '🧩 <b>Permisos y ausencias:</b> al aprobar un permiso o vacaciones, la app te pregunta quién cubre el turno.', f: 'ausencias' },
+  { ver: '3.4.8', para: P => P.gerente || P.dueno, t: '👔 <b>Aprende ya tiene guías de gerente y de dueño</b>: autorizar, cortes, confirmar salidas, pago por día y bonos por turno.', f: null },
   { ver: '3.4.7', para: P => P.mesero || P.caja, t: '👥 <b>Mesa grande:</b> al abrir una mesa de más de 4 personas, cada producto pasa a cocina en cuanto lo capturas.', f: 'cuenta' }
 ];
 function aprNovedades() {
@@ -3593,7 +3712,7 @@ function abrirDesdeUrl(url) {
   if (PUEBLO_PEND && q.get('pueblo') === PUEBLO_PEND) return false; // enlace de otro municipio: primero se comprueba la ubicación
   if (neg) { ir('negocio', neg); return true; }
   if (q.get('seguir')) { ir('seguir', q.get('seguir')); return true; }
-  if (q.get('fac')) { ir('facLink', q.get('fac')); return true; }
+  if (q.get('fac')) { location.replace(facUrl(q.get('fac'))); return true; } // 3.5.0: los links viejos van a la página de factura
   if (q.get('cli')) { ls('cliTkPend', { token: q.get('cli'), t: Date.now() }); ir('cliInv', q.get('cli')); return true; }
   if (q.get('oferta')) { ir('oferta', q.get('oferta')); return true; }
   if (q.get('inv')) {
@@ -3695,6 +3814,12 @@ async function enviarCompartido() {
 }
 
 /* ============ COMPARTIR ============ */
+/** 3.5.0 · Link de factura: página aparte (factura.html) que no depende de la versión de la app del cliente. */
+function facUrl(token) {
+  const base = location.origin + location.pathname.replace(/index\.html$/, '').replace(/cosala\/$/, '');
+  const pb = PUEBLO.id === PUEBLOS[0].id ? '' : '&c=' + encodeURIComponent(PUEBLO.id) + (PUEBLO.id === 'cosala' ? '' : '&s=' + ((String(PUEBLO.api || '').match(/macros\/s\/([^/]+)\/exec/) || [])[1] || ''));
+  return base + 'factura.html?t=' + encodeURIComponent(token) + pb;
+}
 function urlApp(params) {
   // los enlaces de otro municipio van a su página (ej. /cosala/): su vista previa dice Cosalá y abre allá
   // Cosalá tiene su página (/cosala/) para la vista previa; las ciudades nuevas usan ?pueblo=
@@ -5712,8 +5837,16 @@ async function facRevisarFolio(f) {
   $('#feFor').value = forma; if ($('#feTot')) $('#feTot').value = v.total;
   box.innerHTML += `<div class="aviso ${Math.abs(v.total - f.totalVenta) < 0.011 ? 'ok' : 'warn'} small" style="margin:8px 0">✓ Ticket <b>${esc(v.folio)}</b> encontrado: ${money(v.total)}, pagado con <b>${esc((PDV_MET_TXT[pg.metodo] || 'efectivo').toLowerCase())}</b>.${Math.abs(v.total - f.totalVenta) < 0.011 ? '' : ' El cliente escribió ' + money(f.totalVenta) + '; se usa el total del ticket.'} Ya pusimos su forma de pago.</div>`;
 }
+/** 3.5.0 · Compra de otro mes: puede estar ya en la factura global de ese mes. */
+function facAvisoOtroMes(dia) {
+  if (!dia || String(dia).slice(0, 7) === pdvHoy().slice(0, 7)) return true;
+  const mes = new Date(dia + 'T12:00').toLocaleDateString('es-MX', { month: 'long' });
+  return confirm('Esta venta es de ' + mes + '. Si ya está en tu factura global de ' + mes + ', avísale a tu contador antes de timbrar.\n\n¿Timbrar de todos modos?');
+}
 async function facEmitirSolicitud(id) {
-  const f = S._facNeg.pendientes.find(x => x.id === id), d = { negocioId: S.negocio.id, facturaId: id, formaPago: $('#feFor').value };
+  const f = S._facNeg.pendientes.find(x => x.id === id);
+  if (!facAvisoOtroMes(f && f.dia)) return;
+  const d = { negocioId: S.negocio.id, facturaId: id, formaPago: $('#feFor').value };
   if ($('#feCon')) d.concepto = $('#feCon').value;
   if (f.origen !== 'app' && !f.conTicket) { const t = parseFloat(String($('#feTot').value).replace(/[$,\s]/g, '')) || 0; if (!(t > 0)) throw new Error('Escribe el total del ticket'); d.conceptos = [{ nombre: 'Consumo de alimentos y bebidas', cant: 1, importe: t }]; }
   const r = await api('facturaEmitir', d);
@@ -5759,7 +5892,7 @@ async function vFacLink(token) {
   if (!k.lig) { k.lig = true; ls('facTkPend', { token, t: Date.now() }); if (S.token && S.user) ticketLigarPend(true); }
   if (!k.d) {
     html('<div class="cargando">Cargando…</div>');
-    try { k.d = await api('facLinkVer', { token }); FAC_CAT = Object.assign({}, FAC_CAT || {}, { regimenes: k.d.regimenes, usos: k.d.usos }); if (k.d.info && k.paso === 'tel') { k.info = k.d.info; k.paso = 'datos'; } } // 2.76: el link llegó a su WhatsApp; ya no se le pide el teléfono
+    try { k.d = await api('facLinkVer', { token }); if (k.d && k.d.error) throw new Error(k.d.error); FAC_CAT = Object.assign({}, FAC_CAT || {}, { regimenes: k.d.regimenes, usos: k.d.usos }); if (k.d.info && k.paso === 'tel') { k.info = k.d.info; k.paso = 'datos'; } } // 2.76: el link llegó a su WhatsApp; ya no se le pide el teléfono
     catch (e) { html(`<div class="entrar" style="padding-top:24px"><div class="card" style="text-align:center"><div style="font-size:44px">🧾</div><h2>No se pudo abrir</h2><div class="muted">${esc(e.message)}</div></div></div>`); return; }
   }
   const d = k.d;
@@ -5958,7 +6091,7 @@ async function facMandarLink(id) {
   const pg = (v.pagos || []).filter(p => p.metodo !== 'consumo').sort((a, b) => b.monto - a.monto);
   const r = await api('facLinkCrear', { negocioId: S.negocio.id, ventaId: v.id, folio: v.folio, dia: v.dia, total: v.total, tel, nombre, forma: FAC_FORMA_DE[(pg[0] || {}).metodo] || '01',
     items: v.items.filter(i => !i.cancelado).map(i => ({ nombre: i.nombre, cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio })) });
-  const url = urlApp('fac=' + r.token);
+  const url = facUrl(r.token);
   v.facTk = r.token;
   waModal(waLink(tel, `🧾 *${S.negocio.nombre}*\nHola ${nombre.split(' ')[0]}, para tu factura del ticket ${v.folio} por ${money(v.total)} entra aquí y sube tus datos o tu constancia de situación fiscal:\n${url}\n\nPuedes pedirla hasta el ${fechaLarga(r.vence)}.`),
     'Link de factura listo', `Para ${esc(nombre.split(' ')[0])} · ticket ${esc(v.folio)}. Ya va ligado a su ticket y a su forma de pago; cuando mande sus datos te llega un aviso para timbrar.`);
@@ -6045,6 +6178,7 @@ function facUsarCliente(i) {
 }
 function facQuitarCliente() { S._facVenta.pid = null; $('#fvSel').innerHTML = ''; $('#fvForm').style.display = ''; facNotaIsr('fv'); }
 async function facEmitirVenta(id) {
+  if (!facAvisoOtroMes((pdvVenta(id) || {}).dia)) return;
   const v = pdvVenta(id), fv = S._facVenta || {}, receptor = fv.sol ? fv.sol.receptor : fv.pid ? null : facLeerReceptor('fv');
   const its = v.items.filter(i => !i.cancelado).map(i => ({ id: i.productoId || i.id || '', nombre: i.nombre + (detalleItem(i) ? ' ' + detalleItem(i).replace(/<[^>]+>/g, '') : ''), cant: i.cant, importe: i.importe != null ? i.importe : i.cant * i.precio }));
   if (pdvEnvioDe(v)) its.push({ id: '', nombre: 'Envío a domicilio', cant: 1, importe: pdvEnvioDe(v) }); // 2.87
@@ -6852,7 +6986,7 @@ function pdvWaVenta(v) {
   const txt = `🧾 *${n.nombre || ''}* · Ticket ${v.folio}\n${new Date(v.ts).toLocaleDateString('es-MX')} ${hora(v.ts)}\n\n` +
     v.items.filter(i => !i.cancelado).map(i => `${i.cant} x ${i.nombre} — ${money(i.importe != null ? i.importe : i.cant * i.precio)}${pdvTxtDet(i) ? '\n   ' + pdvTxtDet(i) : ''}`).join('\n') +
     `\n\n*Total: ${money(v.total)}*\n` + v.pagos.map(p => `${PDV_MET_TXT[p.metodo]} ${money(p.monto)}${p.propina ? ' + propina ' + money(p.propina) : ''}${p.cambio ? ' (cambio ' + money(p.cambio) + ')' : ''}`).join('\n') +
-    `\n${v.monedero ? '\n👛 ' + monTicket(v.monedero).map(([a, b]) => a + ': ' + b).join('\n') + '\n' : ''}${v.facTk && n.factura && v.estado !== 'cancelada' ? '\n🧾 ¿Necesitas factura? Pídela aquí, ya va ligada a este ticket:\n' + urlApp('fac=' + v.facTk) + '\n' : ''}\n¡Gracias por tu compra! 🙌\n${v.cliente && v.cliente.tel && v.estado !== 'cancelada' ? '👛 Crea tu cuenta en Pídele con este número para ver tu monedero y pedir a domicilio (tu número ya queda verificado):\n' + urlApp('cli=' + cliInvTk(v.cliente.tel, v.cliente.nombre)) : 'La próxima vez pide a domicilio en ' + urlApp('')}`;
+    `\n${v.monedero ? '\n👛 ' + monTicket(v.monedero).map(([a, b]) => a + ': ' + b).join('\n') + '\n' : ''}${v.facTk && n.factura && v.estado !== 'cancelada' ? '\n🧾 ¿Necesitas factura? Pídela aquí, ya va ligada a este ticket:\n' + facUrl(v.facTk) + '\n' : ''}\n¡Gracias por tu compra! 🙌\n${v.cliente && v.cliente.tel && v.estado !== 'cancelada' ? '👛 Crea tu cuenta en Pídele con este número para ver tu monedero y pedir a domicilio (tu número ya queda verificado):\n' + urlApp('cli=' + cliInvTk(v.cliente.tel, v.cliente.nombre)) : 'La próxima vez pide a domicilio en ' + urlApp('')}`;
   return v.cliente && v.cliente.tel ? waLink(v.cliente.tel, txt) : 'https://wa.me/?text=' + encodeURIComponent(txt);
 }
 function pdvImprimirCorte(id, ciego) {
@@ -8412,7 +8546,7 @@ async function pintarMiAsis() {
       ${x.pregunta ? `<div class="aviso warn" style="margin:0 0 8px">⏰ Tu turno terminó a las <b>${x.pregunta.horario.e ? x.pregunta.horario.s : ''}</b> y no has checado salida.<div class="btns" style="margin-top:6px"><button class="btn pri pill full" onclick="asisPreguntaMia('${x.negocioId}')">Responder: ¿doblas turno u olvidaste checar?</button></div></div>` : ''}
       ${!h.salida ? `<button class="btn pri pill full" onclick="act(this,()=>asisMarcarFlujo('${x.negocioId}'))">📷 Marcar ${h.entrada ? 'salida' : 'entrada'}</button>` : ''}
       ${x.diasFavor ? `<div class="small" style="margin-top:6px">🔁 Tienes <b>${x.diasFavor}</b> día${x.diasFavor > 1 ? 's' : ''} a favor para descansar (por turno doble o feriado trabajado).</div>` : ''}
-      ${vacTarjeta(x)}${adelTarjeta(x)}
+      ${vacTarjeta(x)}${permTarjeta(x)}${adelTarjeta(x)}
       <details style="margin-top:8px"><summary class="small">Mi horario de los próximos días</summary><div class="asisProx">${x.proximos.map(p => `<span><b>${asisDiaTxt(p.fecha)}</b>${p.horario ? p.horario.e + '–' + p.horario.s : 'Descanso'}</span>`).join('')}</div></details>
       ${x.rotativo ? `<div class="small muted" style="margin-top:8px">🗓️ ${falta ? 'Tu descanso de la próxima semana lo define el encargado.' : 'Tu descanso de la próxima semana: ' + x.eligio.map(asisDiaTxt).join(', ')}</div>` : ''}</div>`;
   }).join('');
@@ -9617,6 +9751,87 @@ function vacTarjeta(x) {
     ${ult && Date.now() - ult.creado < 30 * 864e5 ? `<div class="small" style="margin:4px 0">${ult.estado === 'aprobada' ? '✅ Aprobadas' : '❌ No aprobadas'}: ${ult.fechas.map(asisDiaTxt).join(', ')}${ult.nota ? ' · ' + esc(ult.nota) : ''}</div>` : ''}
     ${v.disponibles ? `<button class="btn pill full" onclick="vacPedir('${x.negocioId}')">📅 Pedir vacaciones</button>` : ''}</div>`;
 }
+/* ---------- 3.4.9 · permisos sin goce del colaborador ---------- */
+function permTarjeta(x) {
+  const v = x.perm; if (!v) return '';
+  const pend = v.solicitudes.filter(s => s.estado === 'pendiente'), ult = v.solicitudes.find(s => s.estado === 'aprobada' || s.estado === 'rechazada');
+  return `<div class="card" style="margin-top:8px"><b>📝 Permisos</b>
+    ${v.programados.length ? `<div class="small" style="margin:4px 0">Aprobados: ${v.programados.map(asisDiaTxt).join(', ')} (sin goce)</div>` : ''}
+    ${pend.map(s => `<div class="aviso info row between" style="gap:8px;margin:4px 0"><span>⏳ En revisión: ${s.fechas.map(asisDiaTxt).join(', ')}</span><button class="btn sm" onclick="act(this,()=>permCancelar('${s.id}'))">Cancelar</button></div>`).join('')}
+    ${ult && Date.now() - ult.creado < 20 * 864e5 && ult.estado === 'rechazada' ? `<div class="small" style="margin:4px 0">❌ No aprobado: ${ult.fechas.map(asisDiaTxt).join(', ')}${ult.nota ? ' · ' + esc(ult.nota) : ''}</div>` : ''}
+    <button class="btn pill full" style="margin-top:6px" onclick="permPedir('${x.negocioId}')">📝 Pedir permiso</button>
+    <div class="small muted" style="margin-top:4px">Sin goce de sueldo · con al menos 24 horas de anticipación.</div></div>`;
+}
+function permPedir(nid) { S._perm = { nid, sel: [], motivo: '' }; permPintar(); }
+function permPintar() {
+  const x = (ls('asisMia') || []).find(y => y.negocioId === S._perm.nid); if (!x || !x.perm) return;
+  const v = x.perm, sel = S._perm.sel, lab = v.laborables.filter(f => !v.programados.includes(f));
+  const dia = f => { const d = new Date(f + 'T12:00'); return `<button class="${sel.includes(f) ? 'on' : ''}" onclick="permTocar('${f}')"><small>${DIAS_C[d.getDay()]}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString('es-MX', { month: 'short' })}</small></button>`; };
+  modal(`<div class="row between"><h2 style="margin:0">📝 Pedir permiso</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:6px 0">${esc(x.negocio)} · <b>sin goce de sueldo</b>. Se pide con <b>al menos 24 horas</b> de anticipación; por eso solo aparecen los días que trabajas a partir de mañana.</div>
+    <div class="permDias">${lab.map(dia).join('') || '<div class="small muted">No hay días disponibles.</div>'}</div>
+    <label class="f">Motivo (obligatorio)</label><textarea class="i" id="permMot" rows="2" maxlength="200" placeholder="Ej. Cita médica, trámite, asunto familiar…" oninput="S._perm.motivo=this.value">${esc(S._perm.motivo)}</textarea>
+    <div class="btns"><button class="btn pri pill full" ${sel.length ? '' : 'disabled'} onclick="act(this,permEnviar)">Enviar solicitud${sel.length > 1 ? ' (' + sel.length + ' días)' : ''}</button></div>`);
+}
+function permTocar(f) { const P = S._perm; P.motivo = ($('#permMot') || {}).value || P.motivo; P.sel = P.sel.includes(f) ? P.sel.filter(y => y !== f) : P.sel.concat([f]); permPintar(); }
+async function permEnviar() {
+  const P = S._perm; P.motivo = ($('#permMot') || {}).value || '';
+  if (P.motivo.trim().length < 5) throw new Error('Escribe el motivo del permiso');
+  ls('asisMia', await api('permSolicitar', { negocioId: P.nid, fechas: P.sel.slice().sort(), motivo: P.motivo.trim() }));
+  S._perm = null; cerrarModal(); toast('Permiso enviado 📝'); pintarMiAsis();
+}
+async function permCancelar(id) { ls('asisMia', await api('permCancelar', { id })); toast('Solicitud cancelada'); pintarMiAsis(); }
+/* ---------- 3.4.9 · ¿quién cubre la ausencia? (vacaciones y permisos aprobados) ---------- */
+const AUS_M = { extra: '🔁 Dobla turno', mover: '↔️ Se cambia de turno', menos: '➖ Con uno menos', despues: '⏳ Por decidir' };
+function ausCubrirAbrir(nid, info, alVolver) {
+  if (!info || !info.fechas || !info.fechas.length) return;
+  S._cub = { nid, info, i: Math.max(0, info.fechas.findIndex(f => !f.dec || f.dec.m === 'despues')), todos: info.fechas.length > 1, alVolver };
+  ausCubrirPintar();
+}
+function ausCubrirPintar() {
+  const C = S._cub, I = C.info, F = I.fechas[C.i], quien = esc(I.nombre.split(' ')[0]);
+  const hTxt = h => h ? horaTxt(h.e) + '–' + horaTxt(h.s) : '';
+  const pend = I.fechas.filter(f => !f.dec || f.dec.m === 'despues').length;
+  const cand = c => `<div class="card row between" style="gap:8px;margin:6px 0;padding:10px"><div class="grow"><b>${esc(c.nombre)}</b><div class="small muted">${c.est === 'descansa' ? 'Descansa ese día' : 'Ese día trabaja ' + hTxt(c.h)}</div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm pri" onclick="act(this,()=>ausCubrirElegir('extra','${c.uid}'))">${c.est === 'descansa' ? '🔁 Viene a cubrir' : '🔁 Dobla turno'}</button>${c.est === 'otro' ? `<button class="btn sm" onclick="act(this,()=>ausCubrirElegir('mover','${c.uid}'))">↔️ Se cambia</button>` : ''}</div></div>`;
+  modal(`<div class="row between"><h2 style="margin:0">🧩 ¿Quién cubre a ${quien}?</h2><button class="redondo" onclick="ausCubrirCerrar()" aria-label="Cerrar">✕</button></div>
+    <div class="muted small" style="margin:4px 0 8px">${I.tipo === 'permiso' ? '📝 Permiso sin goce aprobado' : '🏖️ Vacaciones aprobadas'}. Decide qué pasa con su turno.</div>
+    ${I.fechas.length > 1 ? `<div class="ausDias">${I.fechas.map((f, k) => `<button class="${k === C.i ? 'on' : ''} ${f.dec && f.dec.m !== 'despues' ? 'ok' : ''}" onclick="S._cub.i=${k};ausCubrirPintar()">${asisDiaTxt(f.f)}<small>${f.dec && f.dec.m !== 'despues' ? '✓ ' + (f.dec.nombre ? esc(f.dec.nombre.split(' ')[0]) : AUS_M[f.dec.m]) : 'por decidir'}</small></button>`).join('')}</div>` : ''}
+    <div class="aviso info small" style="margin:6px 0"><b>${asisDiaTxt(F.f)}</b> · ${quien} trabajaría ${hTxt(F.h) || '(sin horario)'}${F.dec && F.dec.m !== 'despues' ? `<br>✓ Decidido: <b>${F.dec.nombre ? esc(F.dec.nombre) + ' · ' : ''}${AUS_M[F.dec.m]}</b>` : ''}</div>
+    ${I.fechas.length > 1 && pend > 1 ? `<label class="pdvChk"><input type="checkbox" ${C.todos ? 'checked' : ''} onchange="S._cub.todos=this.checked"> Aplicar lo mismo a todos los días por decidir (${pend})</label>` : ''}
+    ${F.cands.length ? `<div class="small b" style="margin-top:6px">Quién puede cubrir</div>${F.cands.map(cand).join('')}` : '<div class="small muted" style="margin:6px 0">Nadie descansa ni está en otro turno ese día.</div>'}
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="act(this,()=>ausCubrirElegir('menos'))">➖ Con uno menos</button><button class="btn pill" style="flex:1" onclick="ausCubrirCerrar()">⏳ Decidir después</button></div>
+    <div class="small muted" style="margin-top:6px">Si lo dejas para después, queda un aviso en Personal → Hoy hasta que se decida.</div>`);
+}
+async function ausCubrirElegir(modo, uid) {
+  const C = S._cub, I = C.info, F = I.fechas[C.i];
+  const dias = C.todos ? I.fechas.filter(f => f === F || !f.dec || f.dec.m === 'despues') : [F];
+  const errs = [];
+  for (const f of dias) {
+    try { C.info = await api('ausCubrir', { negocioId: C.nid, tabla: I.tabla, id: I.id, fecha: f.f, modo, cubre: uid || '' }); }
+    catch (e) { errs.push(asisDiaTxt(f.f) + ': ' + e.message); }
+  }
+  if (errs.length) toast(errs.join(' · '), 'err'); else toast('Listo ✓');
+  const sig = C.info.fechas.findIndex(f => !f.dec || f.dec.m === 'despues');
+  if (sig < 0) { ausCubrirCerrar(); return; }
+  C.i = sig; ausCubrirPintar();
+}
+function ausCubrirCerrar() { const C = S._cub; S._cub = null; cerrarModal(); if (C && C.alVolver) C.alVolver(); }
+async function ausCubrirVer(nid, tabla, id, alVolver) { ausCubrirAbrir(nid, await api('ausCubrirVer', { negocioId: nid, tabla, id }), alVolver); }
+/** Permisos por aprobar y ausencias por cubrir (Personal → Hoy y el tablero). */
+function ausPendHTML(nid, d, alVolverJs) {
+  const perm = d.permLista || [], cub = d.porCubrir || [];
+  return `${perm.map(v => `<div class="card perAlerta amb"><b>📝 ${esc(v.nombre)} pide permiso</b><div class="small">${v.fechas.map(asisDiaTxt).join(', ')} · sin goce</div><div class="small muted">“${esc(v.motivo)}”</div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,()=>permDecidirP('${nid}','${v.id}',true))">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,()=>permDecidirP('${nid}','${v.id}',false))">No aprobar</button></div></div>`).join('')}
+    ${cub.map(v => `<div class="aviso warn row between" style="gap:8px"><span>${v.ico} <b>${esc(v.nombre)}</b> · falta decidir quién cubre: ${v.fechas.map(asisDiaTxt).join(', ')}</span><button class="btn sm pri" onclick="act(this,()=>ausCubrirVer('${nid}','${v.tabla}','${v.id}',${alVolverJs}))">Decidir</button></div>`).join('')}`;
+}
+async function permDecidirP(nid, id, aprobar) {
+  const nota = aprobar ? '' : (prompt('¿Por qué no se aprueba? (le llega a la persona)') || '');
+  const r = await api('permDecidir', { negocioId: nid, id, aprobar, nota });
+  toast(aprobar ? 'Permiso aprobado 📝' : 'Permiso no aprobado');
+  if (S.vista === 'caja' && PDV.per && PDV.per.sub === 'hoy') { PDV.per.datos = r; pintarCaja(); } else if (S._tp && S._tp[nid]) { S._tp[nid] = r; tabPintarPersonal(); }
+  if (r.cubrir) ausCubrirAbrir(nid, r.cubrir, () => { if (S.vista === 'caja' && PDV.per) { PDV.per.datos = null; pintarCaja(); } else if (S._tp) tabPintarPersonal(); });
+}
 function vacPedir(nid) {
   const x = (ls('asisMia') || []).find(y => y.negocioId === nid); if (!x || !x.vac) return;
   S._vac = { nid, sel: [] }; vacPintar();
@@ -10025,6 +10240,7 @@ function asisVistaHoy(d) {
     ${dobles.map((x, i) => `<div class="card perAlerta amb"><div class="perP">${av(x.nombre)}<div class="grow"><b class="perNom" role="button" onclick="act(this,()=>fichaAbrir('${x.usuarioId}'))">${esc(x.nombre)}</b><div class="small muted">${asisDiaTxt(x.fecha)}${x.entrada ? ' · llegó ' + asisHora(x.entrada) : ''}${x.horario ? ' · su turno ' + horaTxt(x.horario.e) + '–' + horaTxt(x.horario.s) : ' · era su descanso'}</div></div></div>
       <div class="perAlertaT">🔁 ${x.cubreNombre ? 'Cubrió a ' + esc(x.cubreNombre) : 'Llegó fuera de su turno'}</div><button class="btn pri pill full" onclick="asisDobleDecidirModal(${i})">Decidir cómo se cuenta</button></div>`).join('')}
     ${(f => f ? `<div class="aviso info">🎉 <b>${d.fecha === hoy ? 'Hoy' : 'Este día'} es feriado: ${esc(f.feriado)}.</b> Quien no venga tiene descanso pagado; quien trabaje recibe ${(FER_TXT[f.ferModo] || '').split(' · ')[0].toLowerCase() || 'su pago extra'} en la nómina.</div>` : '')(P.find(p => p.feriado))}
+    ${ausPendHTML(S.negocio.id, d, "()=>{PDV.per.datos=null;pintarCaja()}")}
     ${d.adelPendientes ? `<div class="aviso info row between" style="gap:8px"><span>💸 ${d.adelPendientes} adelanto${d.adelPendientes > 1 ? 's' : ''} por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='adel';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${d.vacPendientes ? `<div class="aviso info row between" style="gap:8px"><span>🏖️ ${d.vacPendientes} solicitud${d.vacPendientes > 1 ? 'es' : ''} de vacaciones por aprobar</span><button class="btn sm pri" onclick="PDV.per.sub='vac';PDV.per.datos=null;pintarCaja()">Ver</button></div>` : ''}
     ${tabDeudasHTML(d.deudas)}
@@ -10280,7 +10496,7 @@ function vacFichaPintar() {
       ${D.dueno ? `<button class="btn pill" style="flex:1" onclick="S._vf.modo='asignar';S._vf.adel=true;S._vf.sel=[];vacFichaPintar()">⏩ Adelantar días</button>` : ''}</div>
     ${!D.disponibles ? `<div class="small muted" style="margin-top:4px">No le quedan días.${D.dueno ? ' Puedes adelantarle días: quedan en negativo y se descuentan cuando los gane.' : ''}</div>` : ''}
     ${D.pendientes.map(v => `<div class="card" style="margin-top:10px"><b>📨 Pidió ${v.fechas.length} día${v.fechas.length > 1 ? 's' : ''}</b><div style="margin:4px 0">${v.fechas.map(vacDD).join(', ')}</div>${v.nota ? `<div class="small muted">“${esc(v.nota)}”</div>` : ''}
-      <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,async()=>{await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:true});toast('Aprobadas 🏖️');await vacFicha('${D.usuarioId}')})">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,async()=>{const nota=prompt('¿Por qué no se aprueban? (le llega a la persona)')||'';await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:false,nota});toast('No aprobada');await vacFicha('${D.usuarioId}')})">No aprobar</button></div></div>`).join('')}
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn ok pill" style="flex:1" onclick="act(this,async()=>{const r=await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:true});toast('Aprobadas 🏖️');await vacFicha('${D.usuarioId}');if(r&&r.cubrir)ausCubrirAbrir(S.negocio.id,r.cubrir,()=>vacFicha('${D.usuarioId}'))})">Aprobar</button><button class="btn pill" style="flex:1" onclick="act(this,async()=>{const nota=prompt('¿Por qué no se aprueban? (le llega a la persona)')||'';await api('vacDecidir',{negocioId:S.negocio.id,id:'${v.id}',aprobar:false,nota});toast('No aprobada');await vacFicha('${D.usuarioId}')})">No aprobar</button></div></div>`).join('')}
     <h3 style="margin:14px 0 6px">📅 Programadas</h3>
     <div class="card">${D.programadas.length ? D.programadas.map(x => `<div class="pdvFila g"><span>🏖️ ${vacDD(x.fecha)}${x.por ? `<small>${esc(x.por)}</small>` : ''}</span><span></span><button class="btn sm" onclick="act(this,()=>{if(!confirm('¿Quitar las vacaciones del ${vacDD(x.fecha)}? El día se le regresa.'))return;return vacFichaAccion({quitar:'${x.fecha}'},'Día quitado')})">Quitar</button></div>`).join('') : '<div class="small muted">No tiene vacaciones programadas.</div>'}</div>
     ${D.tomadas.length ? `<h3 style="margin:14px 0 6px">✅ Tomadas este año (${D.tomadas.length})</h3><div class="small muted">${D.tomadas.map(vacDD).join(', ')}</div>` : ''}`);
@@ -10296,11 +10512,13 @@ async function vacFichaAccion(o, msg) {
   const V = S._vf;
   V.D = await api('vacAsignar', Object.assign({ negocioId: S.negocio.id, usuarioId: V.uid }, o));
   V.modo = ''; V.sel = []; V.adel = false; toast(msg); vacFichaPintar();
+  if (V.D && V.D.cubrir) { const uid = V.uid; ausCubrirAbrir(S.negocio.id, V.D.cubrir, () => vacFicha(uid)); } // 3.4.9
   if (PDV.per) { PDV.per.datos = null; PDV.per.clave = ''; }
 }
 async function vacDecidirP(id, aprobar) {
   const nota = aprobar ? '' : (prompt('¿Por qué no se aprueban? (le llega a la persona)') || '');
-  PDV.per.datos = await api('vacDecidir', { negocioId: S.negocio.id, id, aprobar, nota }); toast(aprobar ? 'Vacaciones aprobadas 🏖️' : 'Solicitud no aprobada'); pintarCaja();
+  const r = PDV.per.datos = await api('vacDecidir', { negocioId: S.negocio.id, id, aprobar, nota }); toast(aprobar ? 'Vacaciones aprobadas 🏖️' : 'Solicitud no aprobada'); pintarCaja();
+  if (r && r.cubrir) ausCubrirAbrir(S.negocio.id, r.cubrir, () => { PDV.per.datos = null; pintarCaja(); }); // 3.4.9
 }
 async function vacReglasP(o) { PDV.per.datos = await api('vacReglas', Object.assign({ negocioId: S.negocio.id }, o)); toast('Guardado ✓'); pintarCaja(); }
 function vacGuardarReglas() { return vacReglasP({ anticipo: $('#vrAnt').value, maxDia: $('#vrMax').value }); }
@@ -10429,6 +10647,7 @@ function asisVistaConfig(d) {
         <label>Horas extra después de (min)<input class="i" id="acUmb" inputmode="numeric" value="${c.extrasUmbral}" ${du ? '' : 'disabled'}></label>
         <label>Turno doble después de (h)<input class="i" id="acDbl" inputmode="numeric" value="${c.dobleHoras || 3}" ${du ? '' : 'disabled'}><small>Si pasan sin checar salida, se pregunta</small></label>
         <label>Bono de puntualidad por quincena ($)<input class="i" id="acPun" inputmode="decimal" value="${c.bonoPunt || 0}" ${du ? '' : 'disabled'}><small>Sin retardos ni faltas · semanal: la mitad · 0 = sin bono</small></label>
+        <label>Con permiso sin goce, ¿pierde la puntualidad?<select class="i" id="acPPe" ${du ? '' : 'disabled'}><option value="quita" ${c.puntPermiso !== 'no' ? 'selected' : ''}>Sí, la pierde</option><option value="no" ${c.puntPermiso === 'no' ? 'selected' : ''}>No, la conserva</option></select><small>Un permiso aprobado no es falta; tú decides si cuenta para el bono</small></label>
         <label>Sin bono de ventas si llega tarde (min)<input class="i" id="acSinB" inputmode="numeric" value="${c.retSinBono == null ? 60 : c.retSinBono}" ${du ? '' : 'disabled'}><small>Ese día no suma bono · 0 = no aplica</small></label>
         <label>Medio día si llega tarde (min)<input class="i" id="acMed" inputmode="numeric" value="${c.retMedio == null ? 150 : c.retMedio}" ${du ? '' : 'disabled'}><small>150 = 2:30 h · 0 = no aplica</small></label></div>
       <label class="pdvChk"><input type="checkbox" id="acExt" ${c.extras ? 'checked' : ''} ${du ? '' : 'disabled'}> Pagar horas extra (a quien se le activen)</label>
@@ -10515,7 +10734,7 @@ async function asisFer(o) { PDV.per.datos = await api('asisConfig', Object.assig
 
 async function asisReloj(o) { PDV.per.datos = await api('relojEquipo', Object.assign({ negocioId: S.negocio.id }, o)); toast('Guardado ✓'); pintarCaja(); }
 async function asisGuardarCfg() {
-  PDV.per.datos = await api('asisConfig', { negocioId: S.negocio.id, tolerancia: $('#acTol').value, retardosFalta: $('#acRet').value, radioM: $('#acRad').value, extrasUmbral: $('#acUmb').value, extras: $('#acExt').checked, dobleHoras: $('#acDbl').value, bonoPunt: $('#acPun').value, retSinBono: $('#acSinB').value, retMedio: $('#acMed').value });
+  PDV.per.datos = await api('asisConfig', { negocioId: S.negocio.id, tolerancia: $('#acTol').value, retardosFalta: $('#acRet').value, radioM: $('#acRad').value, extrasUmbral: $('#acUmb').value, extras: $('#acExt').checked, dobleHoras: $('#acDbl').value, bonoPunt: $('#acPun').value, puntPermiso: ($('#acPPe') || {}).value, retSinBono: $('#acSinB').value, retMedio: $('#acMed').value });
   toast('Reglas guardadas ✓'); pintarCaja();
 }
 function asisFormPersona(p) {
@@ -13682,6 +13901,7 @@ function tabPintarPersonal() {
         <div class="tdAcc">${n.dueno ? `<button class="btn sm pri" onclick="asisDobleDecidirModal(null,S._tpDob['${n.id + i}'])">Decidir</button>` : '<span class="small muted">Lo decide el dueño</span>'}</div></div></div>`).join('')}` : ''}
       ${vac.length ? `<div class="tdGrupo">🏖️ Vacaciones por aprobar</div>${vac.map(v => `<div class="tdFila"><span class="tdI">🏖️</span><div class="grow"><b>${esc(v.nombre)}</b><small>${v.fechas.map(asisDiaTxt).join(', ')} · ${v.fechas.length} día${v.fechas.length === 1 ? '' : 's'}${v.nota ? ' · “' + esc(v.nota) + '”' : ''}</small>
         <div class="tdAcc"><button class="btn sm ok" onclick="act(this,()=>tabVacDecidir('${n.id}','${v.id}',true))">Aprobar</button><button class="btn sm" onclick="act(this,()=>tabVacDecidir('${n.id}','${v.id}',false))">No aprobar</button></div></div></div>`).join('')}` : ''}
+      ${ausPendHTML(n.id, d, 'tabPintarPersonal')}
       ${tabDeudasHTML(d.deudas)}
       ${GR.map(([t, fn]) => { const g = ps.filter(fn); return g.length ? `<div class="tdGrupo">${t} (${g.length})</div>` + g.map(p => persona(n, p, true)).join('') : ''; }).join('')}
       ${!ps.length ? '<div class="small muted">Sin personal registrado. Se da de alta en 👥 Personal → ➕ Agregar colaborador.</div>' : ''}</div>`;
@@ -13695,7 +13915,8 @@ async function tabAsisDecidir(nid, uid, estado) {
   toast('Guardado ✓'); tabPintarPersonal(); tabRecargarTablero().then(() => { if ($('#modal').classList.contains('on')) tabPintarPersonal(); });
 }
 async function tabVacDecidir(nid, id, aprobar) {
-  await api('vacDecidir', { negocioId: nid, id, aprobar });
+  const r = await api('vacDecidir', { negocioId: nid, id, aprobar });
+  if (r && r.cubrir) setTimeout(() => ausCubrirAbrir(nid, r.cubrir, tabPintarPersonal), 300); // 3.4.9
   S._tp[nid] = await api('asisDia', { negocioId: nid, fecha: pdvHoy() });
   toast(aprobar ? 'Vacaciones aprobadas 🏖️' : 'Solicitud no aprobada'); tabPintarPersonal();
 }

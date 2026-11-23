@@ -1,5 +1,5 @@
 /* Pídele · Service worker: guarda la app para abrir rápido y muestra las notificaciones con la app cerrada. */
-const VERSION = 'pidele-v3.4.7';
+const VERSION = 'pidele-v3.5.0';
 const LIBS = 'pidele-libs-1'; // 2.86: librerías y letra en su propia caché: no se vuelven a bajar con cada versión
 const COMPARTIDO = 'pidele-compartido'; // comprobante que llega desde "Compartir" de otra app
 const BASE = ['./', './index.html', './manifest.json', './firebase-config.js', './icons/icon-192.png', './icons/icon-512.png'];
@@ -79,6 +79,7 @@ self.addEventListener('fetch', e => {
   }
   if (!propio) return;
   if (u.pathname.endsWith('/sw.js')) return; // la versión publicada siempre se pregunta al sitio
+  if (u.pathname.endsWith('/factura.html')) return; // 3.5.0: la página de factura siempre viene del sitio (sin copia)
   // la copia se renueva por detrás preguntando siempre al sitio (no-cache), para que la siguiente apertura ya traiga lo último
   let pet = e.request; try { pet = e.request.mode === 'navigate' ? new Request(e.request.url, { cache: 'no-cache' }) : new Request(e.request, { cache: 'no-cache' }); } catch (err) { pet = e.request; }
   const red = fetch(pet).then(res => {
