@@ -507,6 +507,7 @@ body.uxPick [data-uxk],body.uxPick [data-uxn]{outline:3px solid #1c7ed6}
 body.fabFuera .aprFab{transform:translateX(-90px);opacity:.15;pointer-events:none}
 /* 3.4.0 · Aprende a usar Pídele */
 .aprFab{position:fixed;left:12px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:61;display:flex;align-items:center;gap:6px;border:0;border-radius:999px;background:#2E5E8C;color:#fff;padding:8px 14px 8px 10px;font:inherit;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
+@media (min-width:900px){.aprFab{left:auto;right:12px;bottom:calc(220px + env(safe-area-inset-bottom))}body.fabFuera .aprFab{transform:translateX(90px)}} /* 3.4.5: en computadora, del lado derecho */
 .aprFab span{font-size:22px}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
 .aprItem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
 .aprItem .e{font-size:26px;width:34px;text-align:center}
@@ -1231,7 +1232,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.4.4';
+const APP_VER = '3.4.6';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -1975,7 +1976,7 @@ function navRol() {
   const r = rolActual();
   // 3.0.1: cliente e invitado: botón grande "Mi monedero" al centro (mucha gente baja la app solo para usar su saldo)
   const conMon = l => l.slice(0, 2).concat([['monedero', 'fabMon', 'Mi monedero']], l.slice(2));
-  if (r === 'invitado' && !lsG('yaEntro')) return conMon(NAV.invitado.map(x => x[0] === 'entrar' ? ['entrar', 'user', 'Crear cuenta'] : x)); // 2.86.1: equipo nuevo
+  if (r === 'invitado' && !lsG('yaEntro')) return conMon(NAV.invitado.map(x => x[0] === 'entrar' ? ['entrar', 'user', 'Entrar o crear'] : x)); // 2.86.1 · 3.4.6: equipo nuevo
   if (r === 'invitado' || r === 'comprador') return conMon(NAV[r]);
   let l = NAV[r === 'admin' && S.user && S.user.local ? (S.user.ciudad ? 'adminCiudad' : 'adminLocal') : r] || [];
   // colaboradores: solo las pestañas de lo que el dueño les permite; sin negocio todavía, solo su perfil
@@ -3119,28 +3120,19 @@ function vLogin() {
   // mientras escribe su teléfono, se deja lista la pantalla principal
   if (!S._negs) cargarCatalogo().catch(() => { });
   else enReposo(precargar, 300);
-  // 2.86.1: en un equipo donde nunca han entrado, primero se invita a crear la cuenta (y "Entrar" queda abajo, más chico)
-  const nuevo = !lsG('yaEntro') && !S._loginAbierto; S._loginAbierto = false;
+  // 3.4.6: una sola pantalla, siempre igual: crear cuenta arriba y entrar justo abajo, sin ventanas extra
+  S._loginAbierto = false;
   html(`<div class="entrar">
     <button class="redondo" onclick="ir('inicio')" aria-label="Volver">${ico('atras')}</button>
-    <div class="marca"${nuevo ? ' style="margin-bottom:10px"' : ''}><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
+    <div class="marca" style="margin-bottom:10px"><div class="marcaTxt" style="font-size:46px">Pídele</div>${marcaPueblo()}<div class="marcaSub" style="color:var(--tx2)">Tu comida favorita, a un click</div></div>
     ${PUEBLOS.length > 1 ? `<div class="aviso info" style="display:flex;justify-content:space-between;align-items:center">📍 Pídele ${esc(PUEBLO.nombre)}${esAdminU() ? '<button class="lnk small" onclick="elegirPueblo()">Cambiar</button>' : explorando() ? '<button class="lnk small" onclick="elegirCiudadExplora()">¿Tu cuenta es de otra ciudad?</button>' : ''}</div>` : ''}
-    ${nuevo ? `<div class="card" id="invCuenta" style="border:2px solid var(--pri)">
-      <h2 style="margin:0 0 2px;text-align:center">¿Primera vez en Pídele?</h2>
-      <div class="muted" style="text-align:center;margin-bottom:12px">Crea tu cuenta gratis, en 1 minuto</div>
-      <div class="btns" style="flex-direction:column;gap:8px">
-        <button class="btn pri pill full" onclick="vRegistro('comprador')">🛍️ Para pedir</button>
-        <button class="btn pill full" onclick="vRegistro('negocio')">🏪 Tengo un negocio</button>
-        <button class="btn pill full" onclick="quieroRepartir()">🛵 Quiero repartir</button>
-      </div>
-    </div>
-    <div style="text-align:center;margin:4px 0 10px" id="yaTengo"><span class="muted">¿Ya tienes cuenta?</span> <button class="lnk b" onclick="abrirLogin()">Entrar</button></div>` : ''}
-    <div class="card" id="cajaLogin"${nuevo ? ' style="display:none"' : ''}>
+    <button class="btn pri pill full" style="min-height:54px;font-size:17px" onclick="vRegistro()">✨ Crear mi cuenta gratis</button>
+    <div class="entrarDiv">¿Ya tienes cuenta?</div>
+    <div class="card" id="cajaLogin">
       <label class="f" style="margin-top:0">Teléfono (10 dígitos)</label><input class="i" id="lTel" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel">
       <label class="f">Contraseña</label><input class="i" id="lPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('#bEntrar').click()">
-      <div class="btns"><button class="btn pri pill full" id="bEntrar" onclick="act(this,entrar)" style="min-height:52px;font-size:17px">Entrar</button></div>
+      <div class="btns"><button class="btn pill full entrarCrear" id="bEntrar" onclick="act(this,entrar)">Entrar</button></div>
     </div>
-    ${nuevo ? '' : `<div class="entrarDiv">¿Primera vez?</div><button class="btn pill full entrarCrear" onclick="vRegistro()">Crear mi cuenta gratis</button>`}
     <div style="text-align:center;margin-top:6px"><button class="lnk entrarVer" onclick="ir('inicio')">Solo quiero ver restaurantes ›</button></div>
     <div class="entrarPie">
       <button class="lnk" onclick="olvideClave()">¿Olvidaste tu contraseña?</button>
@@ -3163,7 +3155,6 @@ async function dispEntrarCod() {
 /** 2.86.1 · Muestra los campos de "Entrar" (en un equipo nuevo empiezan escondidos). */
 function abrirLogin() {
   const c = $('#cajaLogin'); if (!c) return; c.style.display = '';
-  const y = $('#yaTengo'); if (y) y.style.display = 'none';
   const t = $('#lTel'); if (t) t.focus();
 }
 /** 2.86.1 · Repartir: se crea la cuenta normal y desde el perfil se solicita (o entra con la invitación del negocio). */
@@ -3291,6 +3282,7 @@ function vRegistro(rol) {
       ${casillaAviso()}
       <div class="btns"><button class="btn pri pill full" onclick="act(this,()=>registrar('${rol}'))">Crear cuenta</button></div>
     </div>
+    <div style="text-align:center"><button class="lnk small" onclick="quieroRepartir()">🛵 ¿Quieres repartir?</button></div>
     <div style="text-align:center"><button class="lnk small" onclick="formCiudadNueva('${rol === 'negocio' ? 'negocio' : 'cliente'}')">¿No es tu ciudad? Pide Pídele en la tuya</button></div>
   </div>`);
   const zona = n => { const e = $('#rZona'); if (e) e.innerHTML = `📍 Pídele ${esc(PUEBLO.nombre)}: <b>${n} negocio${n === 1 ? '' : 's'}</b> en tu zona${rol === 'negocio' ? '. Súmate y recibe pedidos desde hoy.' : '.'}`; };
@@ -9713,7 +9705,9 @@ function altaPintar(negs) {
     <label class="f">Turno</label><div class="pdvTipo" style="margin-top:0">${ts.map((t, i) => bt(a.turno === i, `S._alta.turno=${i}`, `${esc(t.nombre)} ${horaCorta(t.e)}–${horaCorta(t.s)}`)).join('')}</div>
     <label class="f">Descansa</label><div class="alDias">${ORDEN_SEM.map(k => `<button class="${a.descanso.includes(k) ? 'off' : ''}" onclick="altaLeer();S._alta.descanso=S._alta.descanso.includes(${k})?S._alta.descanso.filter(x=>x!==${k}):S._alta.descanso.concat([${k}]);altaPintar()" title="${DIAS[k]}">${DIAS_L[k]}</button>`).join('')}</div>
     <div class="small muted">Toca el día (o días) que descansa. Los turnos se cambian en ⚙️ Negocio → Turnos.</div>
-    <label class="f">Sueldo</label><div class="row" style="gap:8px"><input class="i pdvNum" id="al_sueldo" inputmode="decimal" value="${esc(a.sueldo || '')}" placeholder="$0" style="flex:1"><div class="pdvTipo" style="margin:0;flex:1.3">${bt(a.periodo === 'semanal', "S._alta.periodo='semanal'", 'Semanal')}${bt(a.periodo === 'quincenal', "S._alta.periodo='quincenal'", 'Quincenal')}</div></div>`}
+    <label class="f">${a.periodo === 'diario' ? 'Pago por día' : 'Sueldo'}</label><input class="i pdvNum" id="al_sueldo" inputmode="decimal" value="${esc(a.sueldo || '')}" placeholder="$0">
+    <div class="pdvTipo" style="margin-top:6px">${bt(a.periodo === 'semanal', "S._alta.periodo='semanal'", 'Semanal')}${bt(a.periodo === 'quincenal', "S._alta.periodo='quincenal'", 'Quincenal')}${bt(a.periodo === 'diario', "S._alta.periodo='diario'", 'Por día trabajado')}</div>
+    ${a.periodo === 'diario' ? `<div class="small muted">Se le paga cada día que viene. ¿En qué nómina?</div><div class="pdvTipo" style="margin-top:4px">${bt(a.pagoCon !== 'semanal', "S._alta.pagoCon='quincenal'", 'Con la quincena')}${bt(a.pagoCon === 'semanal', "S._alta.pagoCon='semanal'", 'Con la semana')}</div>` : ''}`}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,altaEnviar)">${ico('chat', 's')} Enviar invitación por WhatsApp</button></div>
     <div class="small muted" style="text-align:center">${rep ? 'Si ya tiene cuenta en Pídele, activa su modo repartidor con la misma.' : 'Cuando acepte, ya queda con su turno y sueldo.'}</div>`);
 }
@@ -9743,7 +9737,7 @@ async function altaEnviar() {
   if (a.descanso.length >= 7) throw new Error('Debe trabajar al menos un día');
   const areas = ((PDV.per.datos || {}).areas || []), area = (PUESTOS[a.puesto].area || []).find(x => areas.includes(x)) || '';
   const r = await api('guardarColaborador', { nombre, telefono: tel, negocios: a.negocios, permisos: perms,
-    ficha: { puesto: a.puesto, horario: horarioDeTurno(t, a.descanso), sueldo: a.sueldo === '' || a.sueldo == null ? undefined : pdvR(a.sueldo), periodo: a.periodo, area } });
+    ficha: { puesto: a.puesto, horario: horarioDeTurno(t, a.descanso), sueldo: a.sueldo === '' || a.sueldo == null ? undefined : pdvR(a.sueldo), periodo: a.periodo, pagoCon: a.pagoCon === 'semanal' ? 'semanal' : 'quincenal', area } });
   S._alta = null; PDV.per.datos = null;
   equipoWa({ nombre, telefono: tel, codigo: r.codigo });
   pintarCaja();
@@ -9772,7 +9766,7 @@ function fichaPintar() {
     <div class="card" style="margin-top:10px">
       ${kv('Turno', p.alta ? (t.turno ? esc(t.turno.nombre) + ' ' + horaCorta(t.turno.e) + '–' + horaCorta(t.turno.s) : t.mixto ? 'Horario mixto' : esc(t.h0.e + '–' + t.h0.s)) : 'Sin turno', `fichaTurno()`)}
       ${kv('Descansa', p.alta ? (t.descanso.length ? t.descanso.map(k => DIAS[k].toLowerCase()).join(', ') : 'no descansa') : '—', `fichaTurno()`)}
-      ${du ? kv('Sueldo', p.sueldo != null && p.alta ? money(p.sueldo) + ' ' + (p.periodo || 'semanal') : '—', `fichaSueldo()`) : ''}
+      ${du ? kv('Sueldo', p.sueldo != null && p.alta ? money(p.sueldo) + ' ' + perTxt(p) : '—', `fichaSueldo()`) : ''}
       ${kv('Puesto y permisos', p.puesto ? esc(PUESTOS[p.puesto] ? PUESTOS[p.puesto].nombre : p.puesto) : 'Personalizado', du ? `fichaPuesto()` : '')}
       ${(d.areas || []).length ? kv('Área (operación)', esc(p.area || 'Sin área'), `fichaArea()`) : ''}
       ${p.alta && funOn('personal', 'vacaciones') ? kv('🏖️ Vacaciones', (v => `<span style="color:${v < 0 ? 'var(--err)' : 'var(--ok)'}">${v} día${Math.abs(v) === 1 ? '' : 's'}</span>`)((p.vacaciones || 0) - (p.vacUsadas || 0)), du ? `vacAjusteForm('${p.usuarioId}')` : '') : ''}
@@ -9807,13 +9801,20 @@ async function fichaTurnoGuardar() {
   fichaSet(await api('fichaGuardar', { negocioId: S.negocio.id, usuarioId: S._ficha.uid, horario: horarioDeTurno(t, S._ft.descanso) }));
   toast('Turno guardado ✓'); fichaPintar(); pintarCaja();
 }
+/** 3.4.5: "semanal", "quincenal" o "por día". */
+const perTxt = p => p.periodo === 'diario' ? 'por día (con la ' + (p.pagoCon === 'semanal' ? 'semana' : 'quincena') + ')' : (p.periodo || 'semanal');
+/** 3.4.5: el sueldo en la nómina; por día se ve "10 días × $150". */
+const nomSueldoTxt = p => money(p.sueldo) + (p.porDia ? ' (' + p.diasPagados + ' día' + (p.diasPagados === 1 ? '' : 's') + ' × ' + money(p.diario) + ')' : '');
 function fichaSueldo() {
   const p = fichaD().equipo.find(x => x.usuarioId === S._ficha.uid);
-  S._fs = p.periodo || 'semanal';
+  S._fs = p.periodo || 'semanal'; S._fc = p.pagoCon === 'semanal' ? 'semanal' : 'quincenal';
+  const marca = "[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this))";
   modal(`<h2 style="margin:0 0 4px">💵 Sueldo de ${esc(p.nombre.split(' ')[0])}</h2>
-    <input class="i pdvNum" id="fsMonto" inputmode="decimal" value="${p.sueldo || ''}">
-    <div class="pdvTipo">${['semanal', 'quincenal'].map(k => `<button class="${S._fs === k ? 'on' : ''}" onclick="S._fs='${k}';[...this.parentNode.children].forEach(b=>b.classList.toggle('on',b===this))">${k === 'semanal' ? 'Semanal' : 'Quincenal'}</button>`).join('')}</div>
-    <div class="btns"><button class="btn pri pill" onclick="act(this,async()=>{fichaSet(await api('fichaGuardar',{negocioId:S.negocio.id,usuarioId:S._ficha.uid,sueldo:pdvR($('#fsMonto').value),periodo:S._fs}));toast('Sueldo guardado ✓');fichaPintar();pintarCaja()})">Guardar</button><button class="btn pill" onclick="fichaPintar()">Cancelar</button></div>`);
+    <label class="f" id="fsLbl" style="margin-top:0">${S._fs === 'diario' ? 'Pago por día' : 'Sueldo del periodo'}</label><input class="i pdvNum" id="fsMonto" inputmode="decimal" value="${p.sueldo || ''}">
+    <div class="pdvTipo">${[['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['diario', 'Por día trabajado']].map(([k, t]) => `<button class="${S._fs === k ? 'on' : ''}" onclick="S._fs='${k}';${marca};$('#fsLbl').textContent='${k === 'diario' ? 'Pago por día' : 'Sueldo del periodo'}';$('#fsCon').style.display='${k === 'diario' ? '' : 'none'}'">${t}</button>`).join('')}</div>
+    <div id="fsCon" style="${S._fs === 'diario' ? '' : 'display:none'}"><div class="small muted">Se le paga cada día que viene. ¿En qué nómina?</div>
+      <div class="pdvTipo" style="margin-top:4px">${[['quincenal', 'Con la quincena'], ['semanal', 'Con la semana']].map(([k, t]) => `<button class="${S._fc === k ? 'on' : ''}" onclick="S._fc='${k}';${marca}">${t}</button>`).join('')}</div></div>
+    <div class="btns"><button class="btn pri pill" onclick="act(this,async()=>{fichaSet(await api('fichaGuardar',{negocioId:S.negocio.id,usuarioId:S._ficha.uid,sueldo:pdvR($('#fsMonto').value),periodo:S._fs,pagoCon:S._fc}));toast('Sueldo guardado ✓');fichaPintar();pintarCaja()})">Guardar</button><button class="btn pill" onclick="fichaPintar()">Cancelar</button></div>`);
 }
 function fichaPuesto() {
   const p = fichaD().equipo.find(x => x.usuarioId === S._ficha.uid);
@@ -10317,7 +10318,7 @@ function asisVistaConfig(d) {
     <h3>Personal</h3><div class="small muted" style="margin-bottom:8px">Aquí aparece tu equipo de Pídele (invita a cada persona en <b>Mi equipo</b> para que tenga su cuenta).</div>
     ${d.equipo.map(p => `<div class="card row between" style="cursor:pointer" onclick='asisFormPersona(${JSON.stringify(p).replace(/'/g, "&#39;")})'><div><b>${esc(p.nombre)}</b>
         <div class="small muted">${p.alta ? Object.keys(p.horario).sort().map(k => DIAS_C[k] + ' ' + p.horario[k].e + '–' + p.horario[k].s).join(' · ') : 'No está dado de alta en la asistencia'}</div>
-        ${p.alta ? `<div class="small">${p.descansoTipo === 'rotativo' ? '🔄 Descanso rotativo (' + p.descansos + ')' : '📌 Descanso fijo'}${du ? ' · ' + money(p.sueldo) + ' ' + p.periodo : ''}${p.extras ? ' · horas extra' : ''}${c.telFijo ? (p.telRegistrado ? ' · 📱 teléfono registrado' : ' · 📱 sin teléfono registrado') : ''} · 🏖️ ${Math.max(0, p.vacaciones - p.vacUsadas)} de ${p.vacaciones} días de vacaciones${p.vacReinicio ? ' · se suman ' + (p.vacSuma || 0) + ' el ' + asisDiaTxt(p.vacReinicio) : ''}</div>` : ''}</div><span class="lnk small">${p.alta ? 'Editar' : 'Dar de alta'}</span></div>`).join('') || '<div class="muted">Aún no tienes colaboradores. Invítalos en Mi equipo.</div>'}`;
+        ${p.alta ? `<div class="small">${p.descansoTipo === 'rotativo' ? '🔄 Descanso rotativo (' + p.descansos + ')' : '📌 Descanso fijo'}${du ? ' · ' + money(p.sueldo) + ' ' + perTxt(p) : ''}${p.extras ? ' · horas extra' : ''}${c.telFijo ? (p.telRegistrado ? ' · 📱 teléfono registrado' : ' · 📱 sin teléfono registrado') : ''} · 🏖️ ${Math.max(0, p.vacaciones - p.vacUsadas)} de ${p.vacaciones} días de vacaciones${p.vacReinicio ? ' · se suman ' + (p.vacSuma || 0) + ' el ' + asisDiaTxt(p.vacReinicio) : ''}</div>` : ''}</div><span class="lnk small">${p.alta ? 'Editar' : 'Dar de alta'}</span></div>`).join('') || '<div class="muted">Aún no tienes colaboradores. Invítalos en Mi equipo.</div>'}`;
 }
 function asisRelojHTML(c) {
   const yo = equipoId(), l = c.relojEquipos || [], pend = c.relojPend || [];
@@ -10412,8 +10413,9 @@ function asisFormPersona(p) {
         <div style="flex:1"><label class="f">Días que se suman</label><input class="i" id="pfVacS" inputmode="numeric" value="${p.vacSuma || 0}"></div></div>
       <div class="small muted">Ese día se le suman los días indicados (puede ser 0) y la fecha pasa al año siguiente. Los días que no usó se conservan. Déjala vacía si no quieres reinicio.</div>` : ''}
     ${du ? `<hr class="hr"><b>💵 Pago (solo tú lo ves)</b>
-      <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Sueldo del periodo</label><input class="i" id="pfSue" inputmode="decimal" value="${p.sueldo || ''}"></div>
-        <div style="flex:1"><label class="f">Periodo</label><select class="i" id="pfPer"><option value="semanal" ${p.periodo !== 'quincenal' ? 'selected' : ''}>Semanal</option><option value="quincenal" ${p.periodo === 'quincenal' ? 'selected' : ''}>Quincenal</option></select></div></div>
+      <div class="row" style="gap:8px"><div style="flex:1"><label class="f" id="pfSueL">${p.periodo === 'diario' ? 'Pago por día' : 'Sueldo del periodo'}</label><input class="i" id="pfSue" inputmode="decimal" value="${p.sueldo || ''}"></div>
+        <div style="flex:1"><label class="f">Periodo</label><select class="i" id="pfPer" onchange="$('#pfSueL').textContent=this.value==='diario'?'Pago por día':'Sueldo del periodo';$('#pfConB').style.display=this.value==='diario'?'':'none'">${[['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['diario', 'Por día trabajado']].map(([k, t]) => `<option value="${k}" ${(p.periodo || 'semanal') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
+      <div id="pfConB" style="${p.periodo === 'diario' ? '' : 'display:none'}"><label class="f">Se le paga con</label><select class="i" id="pfCon"><option value="quincenal" ${p.pagoCon !== 'semanal' ? 'selected' : ''}>La nómina de la quincena</option><option value="semanal" ${p.pagoCon === 'semanal' ? 'selected' : ''}>La nómina de la semana</option></select></div>
       <label class="pdvChk"><input type="checkbox" id="pfExt" ${p.extras ? 'checked' : ''}> Se le pagan horas extra</label>
       <label class="f">Pago por hora extra</label><input class="i" id="pfExH" inputmode="decimal" value="${p.extraHora || ''}">` : ''}
     ${du && p.telRegistrado ? `<div class="aviso info row between" style="gap:8px;margin-top:10px"><span>📱 Tiene un teléfono registrado para marcar.</span><button class="btn sm" onclick="act(this,async()=>{await asisReloj({accion:'liberar',usuarioId:'${p.usuarioId}'});cerrarModal()})">Liberar teléfono</button></div>` : ''}
@@ -10424,7 +10426,7 @@ async function asisGuardarPersona(activo) {
   const p = S._perEd, hor = {};
   document.querySelectorAll('.hDia').forEach(c => { if (c.checked) hor[c.dataset.k] = { e: $(`.hE[data-k="${c.dataset.k}"]`).value, s: $(`.hS[data-k="${c.dataset.k}"]`).value }; });
   const d = { negocioId: S.negocio.id, usuarioId: p.usuarioId, horario: hor, descansoTipo: p.descansoTipo || 'fijo', descansos: ($('#pfDn') || {}).value || 1, activo };
-  if ($('#pfSue')) Object.assign(d, { vacaciones: $('#pfVac').value, vacReinicio: $('#pfVacR').value, vacSuma: $('#pfVacS').value, sueldo: $('#pfSue').value, periodo: $('#pfPer').value, extras: $('#pfExt').checked, extraHora: $('#pfExH').value });
+  if ($('#pfSue')) Object.assign(d, { vacaciones: $('#pfVac').value, vacReinicio: $('#pfVacR').value, vacSuma: $('#pfVacS').value, sueldo: $('#pfSue').value, periodo: $('#pfPer').value, pagoCon: $('#pfCon') ? $('#pfCon').value : 'quincenal', extras: $('#pfExt').checked, extraHora: $('#pfExH').value });
   PDV.per.datos = await api('personalGuardar', d);
   cerrarModal(); toast(activo ? 'Guardado ✓' : 'Quitado de la asistencia'); pintarCaja();
 }
@@ -10520,7 +10522,7 @@ function nomTablero(d) {
     <td class="ntM" onclick="nomDesglose('${p.usuarioId}','ventas')">${p.incentivos ? money(p.incentivos) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','desc')">${p.descuento ? '−' + money(p.descuento) : '—'}</td>
     <td class="ntM neg" onclick="nomDesglose('${p.usuarioId}','adel')">${p.adelantos ? '−' + money(p.adelantos) : '—'}</td>
-    <td class="ntM" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.sueldo)}</td>
+    <td class="ntM" onclick="nomDesglose('${p.usuarioId}','total')" ${p.porDia ? `title="${p.diasPagados} días × ${money(p.diario)}"` : ''}>${money(p.sueldo)}${p.porDia ? `<br><small class="muted">${p.diasPagados}×${money(p.diario).replace('.00', '')}</small>` : ''}</td>
     <td class="ntM ntTot" onclick="nomDesglose('${p.usuarioId}','total')">${money(p.total)}</td></tr>`;
   const nc = dias.length + 7 + (hayFer ? 1 : 0) + (hayPr ? 1 : 0);
   const ventas = turnosBono().map(([ti, t]) => `<tr><td class="ntN">💵 ${esc(t.nombre || 'Turno ' + ti)}</td>${dias.map(f => {
@@ -10736,7 +10738,7 @@ function nomDesglose(uid, k) {
     ${p.detalle.filter(ntPorConfirmar).length ? `<div class="aviso warn small" style="margin-top:6px">❓ Sin salida por confirmar: ${p.detalle.filter(ntPorConfirmar).map(x => asisDiaTxt(x.fecha)).join(', ')}. Cuentan en su turno hasta que alguien confirme (toca el día en la tabla).</div>` : ''}
     ${p.detalle.filter(x => x.sinBono).length ? `<div class="small muted" style="margin-top:6px">Sin bono por llegar más de ${d.config.retSinBono || 60} min tarde: ${p.detalle.filter(x => x.sinBono).map(x => asisDiaTxt(x.fecha)).join(', ')}.</div>` : ''}
     ${fila('<b>Bono de ventas</b>', '<b>' + money(p.incentivos || 0) + '</b>', 'g')}`;
-  else if (k === 'desc') cuerpo = `${fila('Sueldo diario', money(p.diario))}
+  else if (k === 'desc') cuerpo = `${p.porDia ? '<div class="aviso info small" style="margin-bottom:6px">Cobra por día trabajado: las faltas y permisos sin goce no se descuentan, simplemente no se pagan. Aquí solo cuentan retardos y medios días.</div>' : ''}${fila('Sueldo diario', money(p.diario))}
     ${p.faltas ? fila('Faltas', p.faltas) : ''}${p.permisosSin ? fila('Permisos sin goce', p.permisosSin) : ''}${p.sinDecidir ? fila('Días sin registro (cuentan como falta)', p.sinDecidir) : ''}
     ${p.faltasPorRetardo ? fila(p.retardos + ' retardos = faltas', p.faltasPorRetardo) : ''}${p.mediosDias ? fila('Más de 2:30 h tarde (medio día c/u)', p.mediosDias + ' × ½') : ''}
     ${fila('Días descontados', p.diasDescontados)}
@@ -10750,7 +10752,7 @@ function nomDesglose(uid, k) {
     ${fila('<b>Pago por feriados</b>', '<b>' + money(p.pagoFeriado || 0) + '</b>', 'g')}`;
   else if (k === 'adel') cuerpo = `${(p.adelDet || []).map(a => fila((ADEL_TXT[a.tipo] || a.tipo) + '<br><small class="muted">' + asisDiaTxt(a.fecha) + (a.folio ? ' · ' + esc(a.folio) : '') + (a.nota ? ' · ' + esc(a.nota) : '') + (a.origen === 'caja' && a.tipo === 'efectivo' ? ' · de la caja' : a.origen === 'externo' ? ' · fuera de caja' : '') + (a.decidePor ? ' · ' + esc(a.decidePor) : '') + '</small>', '−' + money(a.monto))).join('') || '<div class="small muted">Sin adelantos en este periodo.</div>'}
     ${fila('<b>Adelantos</b>', '<b>−' + money(p.adelantos || 0) + '</b>', 'g')}${p.arrastre ? `<div class="aviso warn small" style="margin-top:6px">No alcanza: ${money(p.arrastre)} pasan a la siguiente nómina.</div>` : ''}`;
-  else cuerpo = `${fila('Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}${p.pagoFeriado ? fila('Feriados trabajados', '+' + money(p.pagoFeriado)) : ''}${p.prima ? fila('🏖️ Prima vacacional', '+' + money(p.prima)) : ''}
+  else cuerpo = `${fila(p.porDia ? 'Salario por día trabajado<br><small class="muted">' + p.diasPagados + ' × ' + money(p.diario) + '</small>' : 'Salario base', money(p.sueldo))}${fila('Descuentos', '−' + money(p.descuento))}${p.adelantos ? fila('Adelantos', '−' + money(p.adelantos)) : ''}${p.bonoPunt ? fila('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.incentivos ? fila('Bono de ventas', '+' + money(p.incentivos)) : ''}${p.pagoFeriado ? fila('Feriados trabajados', '+' + money(p.pagoFeriado)) : ''}${p.prima ? fila('🏖️ Prima vacacional', '+' + money(p.prima)) : ''}
     ${p.pagoExtra ? fila('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.pagoDobles ? fila('Turnos dobles', '+' + money(p.pagoDobles)) : ''}${fila('<b>Total</b>', '<b>' + money(p.total) + '</b>', 'g')}`;
   const tit = { prima: '🏖️ Prima vacacional', fer: '🎉 Feriados', punt: '⏰ Puntualidad', ventas: '🎯 Bono de ventas', desc: '➖ Descuentos', adel: '💵 Adelantos', total: '💵 Total' }[k];
   modal(`<div class="row between"><h2 style="margin:0">${tit}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
@@ -10785,16 +10787,16 @@ function asisDetalleNom(uid) {
   modal(`<div class="row between"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small">${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}</div>
     <div class="card" style="margin-top:8px">${p.detalle.map(x => `<div class="row between small" style="padding:4px 0;border-bottom:1px solid var(--ln)"><span><b>${asisDiaTxt(x.fecha)}</b> ${x.horario ? x.horario.e + '–' + x.horario.s : ''}</span><span>${x.entrada ? asisHora(x.entrada) + (x.salida ? '–' + asisHora(x.salida) : '') : ''} ${(ASIS_EST[x.estado] || ['', x.estado]).join(' ')}</span></div>`).join('')}</div>
-    <div class="card">${[['Sueldo del periodo', money(p.sueldo)], ['Sueldo diario', money(p.diario)], ['Faltas', p.faltas], ['Permisos sin goce', p.permisosSin], ['Sin decidir (cuentan como falta)', p.sinDecidir], ['Retardos (' + p.retardos + ') que son falta', p.faltasPorRetardo], ['Descuento', '−' + money(p.descuento)], ['Horas extra', p.horasExtra + ' h · +' + money(p.pagoExtra)]].concat(p.doblesDia || p.horasDoble ? [['🔁 Turnos dobles' + (p.doblesDia ? ' · ' + p.doblesDia + ' día(s) extra' : '') + (p.horasDoble ? ' · ' + p.horasDoble + ' h' : ''), '+' + money(p.pagoDobles)]] : []).concat(p.compensados ? [['🔁 Faltas compensadas (sin descuento)', p.compensados]] : []).concat(p.doblesPend ? [['<span style="color:var(--err)">Turnos dobles por decidir</span>', p.doblesPend]] : []).concat((p.incDetalle || []).map(x => ['🎯 ' + esc(x.meta) + ' · ' + esc(x.ventana) + ' (' + (x.piezas ? x.ventas + ' pzas' : money(x.ventas)) + ')', '+' + money(x.bono)])).map(([a, b]) => `<div class="tot"><span>${a}</span><span>${b}</span></div>`).join('')}
+    <div class="card">${[[p.porDia ? 'Por día trabajado' : 'Sueldo del periodo', nomSueldoTxt(p)], ['Sueldo diario', money(p.diario)], ['Faltas', p.faltas], ['Permisos sin goce', p.permisosSin], ['Sin decidir (cuentan como falta)', p.sinDecidir], ['Retardos (' + p.retardos + ') que son falta', p.faltasPorRetardo], ['Descuento', '−' + money(p.descuento)], ['Horas extra', p.horasExtra + ' h · +' + money(p.pagoExtra)]].concat(p.doblesDia || p.horasDoble ? [['🔁 Turnos dobles' + (p.doblesDia ? ' · ' + p.doblesDia + ' día(s) extra' : '') + (p.horasDoble ? ' · ' + p.horasDoble + ' h' : ''), '+' + money(p.pagoDobles)]] : []).concat(p.compensados ? [['🔁 Faltas compensadas (sin descuento)', p.compensados]] : []).concat(p.doblesPend ? [['<span style="color:var(--err)">Turnos dobles por decidir</span>', p.doblesPend]] : []).concat((p.incDetalle || []).map(x => ['🎯 ' + esc(x.meta) + ' · ' + esc(x.ventana) + ' (' + (x.piezas ? x.ventas + ' pzas' : money(x.ventas)) + ')', '+' + money(x.bono)])).map(([a, b]) => `<div class="tot"><span>${a}</span><span>${b}</span></div>`).join('')}
       ${p.vacaciones ? `<div class="tot"><span>Vacaciones (pagadas)</span><span>${p.vacaciones}</span></div>` : ''}<div class="tot g"><span>Total a pagar</span><span>${money(p.total)}</span></div></div>
     <div class="btns"><button class="btn pill" onclick="asisRecibo('${uid}')">🖨️ Recibo</button><a class="btn pill" target="_blank" href="${esc('https://wa.me/?text=' + encodeURIComponent(asisTxtRecibo(d, p)))}">${ico('chat', 's')} WhatsApp</a></div>`);
 }
-const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${money(p.sueldo)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}${p.prima ? 'Prima vacacional: +' + money(p.prima) + '\n' : ''}${p.adelantos ? 'Adelantos: −' + money(p.adelantos) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
+const asisTxtRecibo = (d, p) => `💵 *Recibo de nómina · ${d.negocio}*\n${p.nombre}\nDel ${asisDiaTxt(d.desde)} al ${asisDiaTxt(d.hasta)}\n\nSueldo: ${nomSueldoTxt(p)}\nDías trabajados: ${p.trabajados}\nDescuento (${p.diasDescontados} día/s): −${money(p.descuento)}\n${p.bonoPunt ? 'Bono de puntualidad: +' + money(p.bonoPunt) + '\n' : ''}${p.prima ? 'Prima vacacional: +' + money(p.prima) + '\n' : ''}${p.adelantos ? 'Adelantos: −' + money(p.adelantos) + '\n' : ''}Horas extra (${p.horasExtra} h): +${money(p.pagoExtra)}${p.incentivos ? '\nIncentivos por metas: +' + money(p.incentivos) : ''}\n*Total: ${money(p.total)}*`;
 function asisRecibo(uid) {
   const d = PDV.per.datos, p = d.personas.find(x => x.usuarioId === uid); if (!p) return;
   const r = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   imprimirHTML(pdvHtmlTicket(`<div class="c"><div class="g">${esc(d.negocio)}</div><div class="t">RECIBO DE NÓMINA</div><div>${esc(p.nombre)}</div><div>${d.desde} al ${d.hasta}</div></div><hr>
-    ${r('Sueldo del periodo', money(p.sueldo))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}${p.cambios ? r('Lo cubrieron por cambio de turno (se paga normal)', p.cambios) : ''}${p.doblesCambio ? r('Cubrió por cambio de turno (sin extra)', p.doblesCambio) : ''}
+    ${r(p.porDia ? 'Por día trabajado' : 'Sueldo del periodo', nomSueldoTxt(p))}${r('Días trabajados', p.trabajados)}${r('Descansos', p.descansos)}${p.permisosGoce ? r('Permisos con goce', p.permisosGoce) : ''}${p.cambios ? r('Lo cubrieron por cambio de turno (se paga normal)', p.cambios) : ''}${p.doblesCambio ? r('Cubrió por cambio de turno (sin extra)', p.doblesCambio) : ''}
     ${r('Días descontados', p.diasDescontados)}${r('Descuento', '-' + money(p.descuento))}${p.pagoExtra ? r('Horas extra (' + p.horasExtra + ' h)', '+' + money(p.pagoExtra)) : ''}${p.bonoPunt ? r('Bono de puntualidad', '+' + money(p.bonoPunt)) : ''}${p.prima ? r('🏖️ Prima vacacional', '+' + money(p.prima)) : ''}${p.incentivos ? r('Incentivos por metas', '+' + money(p.incentivos)) : ''}${p.adelantos ? r('Adelantos', '−' + money(p.adelantos)) : ''}<hr>
     <div class="r t"><span>TOTAL</span><span>${money(p.total)}</span></div>${p.pagado ? `<div>Pagado ${fechaCorta(p.pagado.fecha)} · ${esc(p.pagado.forma)}</div>` : ''}<hr>
     <div class="c p">Recibí de conformidad</div><div class="c p" style="margin-top:14mm">______________________</div>`, 'Recibo ' + p.nombre));
@@ -10989,7 +10991,7 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
       if (m.base === 'personal') part.forEach(u => { if (w.cajas && (detDe(u, w.dia) || {}).sinBono) return; const v = metaValor(m, V, x => x.uid === u && enW(x)); sumar(u, m, w.txt, v, metaBono(m, v).bono); });
       else {
         const v = pdvR(metaValor(m, V, enW) + (m.producto ? 0 : ajusteMan(w))), b = metaBono(m, v).bono;
-        if (b && m.base === 'turno' && m.porTurno && w.cajas) part.forEach(u => {
+        if (b && m.base === 'turno' && (m.porTurno || m.turnoAplica > 0) && w.cajas) part.forEach(u => { // 3.4.5: un bono de un turno solo es de quienes checaron en ese turno
           if (!metaEnTurno(detDe(u, w.dia), w.dia, w.turno)) return;
           const pct = m.pago === 'cumplimiento' && cump ? (cump[u] || {})[w.dia + '|' + w.turno] : null;
           sumar(u, m, w.txt, v, b, pct == null ? null : pct, ntChecoTxt(detDe(u, w.dia)));
@@ -11009,7 +11011,7 @@ function asisVistaMetas() {
       <label class="sw"><input type="checkbox" ${vis ? 'checked' : ''} ${pdvPuede('d') ? '' : 'disabled'} onchange="metasVisiblesCambiar(this.checked)"><i></i></label></div>
     <div class="row between" style="margin:8px 0;gap:8px"><span class="small muted">Cada bono se calcula solo con las ventas de la caja y se suma en la nómina (columna Bonos).</span><button class="btn sm pri" onclick="metaForm()">➕ Nuevo bono</button></div>
     ${l.map(m => `<div class="card" style="cursor:pointer;${m.activa === false ? 'opacity:.55' : ''}" onclick="metaForm('${m.id}')"><div class="row between"><b>🎯 ${esc(m.nombre)}</b><span class="tag">${m.activa === false ? 'Pausada' : 'Activa'}</span></div>
-      <div class="small muted">👥 ${m.participantes && m.participantes.length ? m.participantes.length + ' persona(s)' : 'Todo el personal'} · ${m.producto ? '🍔 ' + esc(m.producto.nombre) + ' (' + (metaPzs(m) ? 'piezas' : '$') + ')' : '💵 Ventas'} · ${META_BASE[m.base]} · ${META_PER[m.periodo]}${m.base === 'turno' ? ' · ' + (m.turnoAplica > 0 ? ((turnosNeg()[m.turnoAplica - 1] || {}).nombre || 'Turno ' + m.turnoAplica) : 'cada turno') + (m.porTurno ? ' · quienes checaron en el turno' : '') + (m.pago === 'cumplimiento' ? ' · según % de tareas' : '') : ''}</div>
+      <div class="small muted">👥 ${m.participantes && m.participantes.length ? m.participantes.length + ' persona(s)' : 'Todo el personal'} · ${m.producto ? '🍔 ' + esc(m.producto.nombre) + ' (' + (metaPzs(m) ? 'piezas' : '$') + ')' : '💵 Ventas'} · ${META_BASE[m.base]} · ${META_PER[m.periodo]}${m.base === 'turno' ? ' · ' + (m.turnoAplica > 0 ? ((turnosNeg()[m.turnoAplica - 1] || {}).nombre || 'Turno ' + m.turnoAplica) : 'cada turno') + (m.porTurno || m.turnoAplica > 0 ? ' · quienes checaron en el turno' : ' · todo el equipo del día') + (m.pago === 'cumplimiento' ? ' · según % de tareas' : '') : ''}</div>
       <div class="small">${(m.niveles || []).map(n => 'desde ' + metaFmt(m, n.desde) + ' → ' + metaBonoTxt(n)).join(' · ')}</div></div>`).join('') || '<div class="vacio"><span class="big">🎯</span>Aún no hay bonos ni metas. Crea uno para motivar a tu equipo.</div>'}`;
 }
 async function metaForm(id) {
@@ -11032,11 +11034,12 @@ async function metaForm(id) {
         <div class="pdvTipo"><button class="${pz ? 'on' : ''}" onclick="metaCampo();S._meta.medida='piezas';S._meta.niveles.forEach(n=>{if(n.tipo==='pct')n.tipo='monto'});metaFormPintar()">Piezas vendidas</button><button class="${pz ? '' : 'on'}" onclick="metaCampo();S._meta.medida='monto';S._meta.niveles.forEach(n=>{if(n.tipo==='pieza')n.tipo='monto'});metaFormPintar()">$ vendido de ese producto</button></div>` : ''}
       ${paso(3, '¿Las ventas de quién?')}
       <div class="pdvTipo" style="margin-top:0">${Object.entries(META_BASE).map(([k, t]) => `<button class="${x.base === k ? 'on' : ''}" onclick="metaCampo();S._meta.base='${k}';if('${k}'==='turno')S._meta.periodo='turno';else if(S._meta.periodo==='turno'&&'${k}'==='negocio')S._meta.periodo='semana';metaFormPintar()">${t}</button>`).join('')}</div>
-      <div class="small muted">${x.base === 'personal' ? 'Cada quien con lo que vendió o cobró (en mesas cuenta el mesero).' : x.base === 'turno' ? (x.porTurno ? 'Lo que vendió el turno; el bono es para cada persona que checó en ese turno (también quien dobló o cubrió).' : 'Lo que vendió todo el turno; el bono es para cada persona que trabajó ese día.') : 'Todo lo del negocio en el periodo; el bono es para cada persona que trabajó.'}</div>
+      <div class="small muted">${x.base === 'personal' ? 'Cada quien con lo que vendió o cobró (en mesas cuenta el mesero).' : x.base === 'turno' ? (x.porTurno || x.turnoAplica > 0 ? 'Lo que vendió el turno; el bono es para cada persona que checó en ese turno (también quien dobló o cubrió).' : 'Lo que vendió todo el turno; el bono es para cada persona que trabajó ese día.') : 'Todo lo del negocio en el periodo; el bono es para cada persona que trabajó.'}</div>
       ${x.base === 'turno' ? `<label class="f">¿Qué turno?</label><div class="pdvTipo" style="margin-top:0"><button class="${!(x.turnoAplica > 0) ? 'on' : ''}" onclick="metaCampo();S._meta.turnoAplica=0;metaFormPintar()">Cada turno</button>${turnosNeg().map((t, i) => `<button class="${Number(x.turnoAplica) === i + 1 ? 'on' : ''}" onclick="metaCampo();S._meta.turnoAplica=${i + 1};metaFormPintar()">${esc(t.nombre)}</button>`).join('')}</div>
         <div class="small muted">Para bonos distintos en la mañana y en la tarde, crea un bono para cada turno.</div>
-        <label class="f">¿Quiénes lo reciben?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.porTurno ? 'on' : ''}" onclick="metaCampo();S._meta.porTurno=true;metaFormPintar()">Quienes checaron en ese turno</button><button class="${x.porTurno ? '' : 'on'}" onclick="metaCampo();S._meta.porTurno=false;metaFormPintar()">Todos los que trabajaron ese día</button></div>
-        ${x.porTurno ? `<label class="f">¿Cuánto se paga?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.pago !== 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='total';metaFormPintar()">100% del bono</button><button class="${x.pago === 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='cumplimiento';metaFormPintar()">Según % de tareas cumplidas</button></div>
+        ${x.turnoAplica > 0 ? '<div class="small muted" style="margin-top:6px">👥 Lo reciben quienes checaron en ese turno (también quien dobló o cubrió).</div>' : `<label class="f">¿Quiénes lo reciben?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.porTurno ? 'on' : ''}" onclick="metaCampo();S._meta.porTurno=true;metaFormPintar()">Quienes checaron en ese turno</button><button class="${x.porTurno ? '' : 'on'}" onclick="metaCampo();S._meta.porTurno=false;metaFormPintar()">Todos los que trabajaron ese día</button></div>
+        ${x.porTurno ? '' : '<div class="aviso warn small" style="margin-top:6px">⚠️ Así, el bono de cada turno también lo reciben los del otro turno.</div>'}`}
+        ${x.porTurno || x.turnoAplica > 0 ? `<label class="f">¿Cuánto se paga?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.pago !== 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='total';metaFormPintar()">100% del bono</button><button class="${x.pago === 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='cumplimiento';metaFormPintar()">Según % de tareas cumplidas</button></div>
           ${x.pago === 'cumplimiento' ? `<div class="small muted">Ej. bono de $150 con 85% de sus tareas del turno → $127.50. Quien no tuvo tareas ese turno recibe el 100%.${S.negocio && S.negocio.operacion ? '' : ' <b>La operación (tareas) no está activa en este negocio: por ahora se paga el 100%.</b>'}</div>` : ''}` : ''}` : ''}
       ${x.base !== 'turno' ? `${paso(4, '¿Cada cuánto se mide?')}<div class="pdvTipo" style="margin-top:0">${Object.entries(META_PER).filter(([k]) => x.base === 'personal' || k !== 'turno').map(([k, t]) => `<button class="${x.periodo === k ? 'on' : ''}" onclick="metaCampo();S._meta.periodo='${k}';metaFormPintar()">${t}</button>`).join('')}</div>` : ''}
       ${paso(x.base !== 'turno' ? 5 : 4, 'Meta y bono al superarla')}
@@ -11071,7 +11074,7 @@ async function metaGuardar() {
   const ref = x.id ? pdvCol('metas').doc(x.id) : pdvCol('metas').doc();
   const doc = { nombre: x.nombre.trim().slice(0, 40), base: x.base, periodo: x.base === 'turno' ? 'turno' : x.periodo, niveles: x.niveles, participantes: x.participantes, activa: x.activa, actualizado: Date.now(), por: pdvYo(),
     producto: x.producto && x.producto.id ? x.producto : null, medida: x.producto && x.producto.id ? x.medida || 'piezas' : null,
-    turnoAplica: x.base === 'turno' ? Number(x.turnoAplica) || 0 : 0, porTurno: x.base === 'turno' ? !!x.porTurno : false, pago: x.base === 'turno' && x.porTurno && x.pago === 'cumplimiento' ? 'cumplimiento' : 'total' };
+    turnoAplica: x.base === 'turno' ? Number(x.turnoAplica) || 0 : 0, porTurno: x.base === 'turno' ? !!x.porTurno || Number(x.turnoAplica) > 0 : false, pago: x.base === 'turno' && (x.porTurno || Number(x.turnoAplica) > 0) && x.pago === 'cumplimiento' ? 'cumplimiento' : 'total' };
   pdvGuardar(ref.set(doc));
   PDV.metas = (PDV.metas || []).filter(m => m.id !== ref.id).concat([Object.assign({ id: ref.id }, doc)]);
   cerrarModal(); toast('Bono guardado 🎯'); pintarCaja();
