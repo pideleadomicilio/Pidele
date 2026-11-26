@@ -1240,7 +1240,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.5';
+const APP_VER = '3.5.6';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2709,6 +2709,7 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.6', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Si el cliente transfirió también el envío,</b> al confirmar su pago elige "comida y envío": la caja le paga al repartidor (sale como gasto) y el repartidor ya no se lo cobra.', f: null },
   { ver: '3.5.5', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Todo pedido sale pagado:</b> en efectivo, el repartidor te paga la comida al recogerlo (toca "Entregar a… · cóbrale"); con transferencia, confírmala antes de entregarlo. La lista de la caja pone arriba lo que necesita atención.', f: null },
   { ver: '3.5.3', para: P => P.equipo && !P.dueno, t: '🧱 <b>Armemos el inventario:</b> al checar entrada te tocan 3 insumos nuevos y 3 existentes (cuántos hay, caducidad y en qué se usan). Cuenta en tus actividades del día.', f: null },
   { ver: '3.5.3', para: P => P.dueno, t: '🧱 <b>Arma tu inventario poco a poco:</b> en Inventario → Existencias toca "Empezar a armarlo". Cada quien captura 6 insumos al día; ves su avance y en los bonos por cumplimiento pones el % mínimo.', f: null },
@@ -7315,7 +7316,9 @@ async function pdvAppAuto(ya) {
   }
   const f = S._trasCobro; S._trasCobro = null; cerrarModal(); pintarCaja();
   const er = PDV._ultimaVenta && PDV._ultimaVenta.envioRep;
-  toast((ya.metodo === 'monedero' ? '👛 Cobrado con su monedero y registrado en caja' : '✅ Ya estaba pagado · registrado en caja') + (er ? ' · 🛵 dale ' + money(er) + ' al repartidor (salida de caja)' : ''));
+  toast(ya.metodo === 'monedero' ? '👛 Cobrado con su monedero y registrado en caja' : '✅ Ya estaba pagado · registrado en caja');
+  // 3.5.6: el envío que pagó el cliente en su transferencia sale de la caja: se dice claro cuánto y que ya quedó registrado
+  if (er) { S._erSig = f; modal(`<div style="text-align:center"><div style="font-size:46px">🛵</div><h2 style="margin:4px 0">Dale ${money(er)} al repartidor</h2><div class="muted">Es su envío: el cliente lo pagó en su transferencia.<br>Ya quedó como <b>salida de tu caja</b> (Gastos · Envío al repartidor).</div><div class="btns"><button class="btn pri pill full" onclick="cerrarModal();const f=S._erSig;S._erSig=null;if(f)act(null,f)">Listo, ya se lo di</button></div></div>`); return; }
   if (f) setTimeout(() => act(null, f), 50);
 }
 function pdvAppArmar(p, incl) {
@@ -13647,7 +13650,7 @@ async function cancelar(id, palabra) {
   await accion('cancelarPedido', { id, motivo: motivo || 'Sin motivo' }, 'Pedido cancelado');
 }
 async function confirmarPago(id) {
-  const pp = (S._pedidosVistos || {})[id]; if (pp && pp.pagoPrimero) return pagoRevisar(id);
+  const pp = (S._pedidosVistos || {})[id]; if (pp && (pp.pagoPrimero || envioElegible(pp))) return pagoRevisar(id); // 3.5.6: con envío, se pregunta si también lo transfirió
   if (!confirm('¿Confirmas que el dinero YA está en tu cuenta? Revisa tu app del banco antes de confirmar.')) return;
   await accion('confirmarPago', { id }, 'Pago confirmado, ¡a preparar!');
 }
@@ -14226,8 +14229,8 @@ function tabPintarPersonal() {
       ${GR.map(([t, fn]) => { const g = ps.filter(fn); return g.length ? `<div class="tdGrupo">${t} (${g.length})</div>` + g.map(p => persona(n, p, true)).join('') : ''; }).join('')}
       ${!ps.length ? '<div class="small muted">Sin personal registrado. Se da de alta en 👥 Personal → ➕ Agregar colaborador.</div>' : ''}</div>`;
   };
-  modal(tabCab('👥 Personal de hoy', tabSubVis()) + (l.length ? l.map(negHTML).join('') : '<div class="vacio"><span class="big">👥</span>La asistencia viene con el punto de venta y el módulo Personal.</div>')
-    + `<div class="btns"><button class="btn pill full" onclick="cerrarModal();act(this,()=>inicioPersonal(${l.length === 1 ? `'${l[0].id}'` : "''"},'hoy'))">Abrir Personal y nómina</button></div>`);
+  modal(tabCab('👥 Personal de hoy', tabSubVis()) + (l.length ? `<div class="btns" style="margin:0 0 8px"><button class="btn pri pill full" onclick="cerrarModal();act(this,()=>inicioPersonal(${l.length === 1 ? `'${l[0].id}'` : "''"},'hoy'))">👥 Abrir Personal y nómina ›</button></div>` : '') // 3.5.6: arriba y directo
+    + (l.length ? l.map(negHTML).join('') : '<div class="vacio"><span class="big">👥</span>La asistencia viene con el punto de venta y el módulo Personal.</div>'));
 }
 async function tabRecargarTablero() { try { await vTablero(); } catch (e) { console.warn(e); } }
 async function tabAsisDecidir(nid, uid, estado) {
@@ -14424,10 +14427,10 @@ async function inicioVentas(nid) {
 }
 async function inicioPersonal(nid, sub) {
   const l = (S._tab ? S._tab.negocios : []).filter(n => n.caja && n.modPersonal !== false);
-  if (!nid && l.length > 1) return tabElegirNomina();
-  const n = l.find(x => x.id === nid) || l[0];
+  // 3.5.6: sin preguntar de qué negocio: con varios, abre Personal con todos y los botones de arriba para elegir uno
+  const n = l.find(x => x.id === nid) || l.find(x => x.id === S.negActivo) || l[0];
   if (!n) { toast('Personal y nómina vienen en los planes ' + planesCon('caja'), 'err'); return; }
-  PDV.per = { sub: sub || 'equipo', fecha: pdvHoy() };
+  PDV.per = { sub: sub || 'equipo', fecha: pdvHoy(), todos: !nid && l.length > 1 };
   await tabEntrar(n.id, 'nomina');
 }
 async function inicioOperacion(nid) {
@@ -15382,6 +15385,8 @@ function pagoRevisarAuto(lista) {
   vistos[x.id] = x.pagoEnviado || 1; const ks = Object.keys(vistos); if (ks.length > 80) ks.slice(0, ks.length - 80).forEach(k => delete vistos[k]); ls('pagoVisto', vistos);
   pagoRevisar(x.id).catch(() => { });
 }
+/** 3.5.6 · ¿El cliente pudo haber transferido también el envío? (domicilio con envío que no iba en la transferencia) */
+const envioElegible = p => !!p && p.envio > 0 && p.tipoEntrega === 'domicilio' && p.envioEn !== 'negocio' && !p.propio && !p.preventa;
 async function pagoRevisar(id) {
   const p = (S._pedidosVistos || {})[id]; if (!p) return;
   const ops = [5, 10, 15, 20, 30, 45, 60, 90], sug = p.minutosPrep || p.minutosSugeridos || (S.negocio && S.negocio.tiempoPrep) || 20, t = ops.find(m => m >= sug) || 90;
@@ -15390,6 +15395,9 @@ async function pagoRevisar(id) {
     <div class="muted small" style="margin:2px 0 8px">${esc((p.comprador || {}).nombre || 'Cliente')} dice que ya transfirió. <b>Confirma solo si el dinero ya está en tu cuenta.</b></div>
     <div class="card" style="padding:12px"><div class="row between"><span>Debes haber recibido</span><b style="font-size:20px">${money(p.montoTransferencia)}</b></div>
       <div class="muted small">${incl ? 'Incluye el envío (' + money(p.envio) + '): se lo pagas en efectivo al repartidor.' : p.envio > 0 ? 'Solo la comida. El envío (' + money(p.envio) + ') lo paga el cliente en efectivo al repartidor.' : p.tipoEntrega === 'recoger' ? 'Recoge en el negocio.' : ''}</div></div>
+    ${envioElegible(p) ? `<label class="f">¿Cuánto llegó a tu cuenta?</label>
+      <label class="opc"><input type="radio" name="prEnv" value="" checked><span>${money(p.montoTransferencia)} · solo la comida</span></label>
+      <label class="opc"><input type="radio" name="prEnv" value="1"><span>${money(p.montoTransferencia + p.envio)} · comida y envío <small class="muted">(se lo pagas al repartidor de tu caja y él ya no se lo cobra al cliente)</small></span></label>` : ''}
     <div id="prComp" style="text-align:center;margin:10px 0;min-height:60px"><div class="muted small">${p.comprobanteId ? 'Cargando comprobante…' : 'Sin imagen de comprobante (pedido de muestra)'}</div></div>
     <label class="f" ${p.pagoPend ? 'style="display:none"' : ''}>¿En cuánto estará listo?</label><select class="i" id="prMin" ${p.pagoPend ? 'style="display:none"' : ''}>${ops.map(m => `<option value="${m}" ${m === t ? 'selected' : ''}>${m} min</option>`).join('')}</select>
     <div class="btns" style="flex-direction:column"><button class="btn ok pill full" onclick="act(this,()=>pagoConfirmar('${id}'))">✅ Pago recibido${p.pagoPend ? '' : p.prepYa ? ' · seguir preparando' : ' · empezar a preparar'}</button>
@@ -15403,9 +15411,9 @@ async function pagoRevisar(id) {
   } catch (e) { const box = $('#prComp'); if (box && box.tagName) box.innerHTML = `<button class="btn" onclick="act(this,()=>verImagen('${id}','${p.comprobanteId}'))">🧾 Ver comprobante</button>`; }
 }
 async function pagoConfirmar(id) {
-  const minutos = +$('#prMin').value || 20;
+  const minutos = +$('#prMin').value || 20, e = document.querySelector('input[name=prEnv]:checked'), conEnvio = !!(e && e.value);
   cerrarModal();
-  await accion('confirmarPago', { id, minutos }, 'Pago confirmado, ¡a preparar!');
+  await accion('confirmarPago', { id, minutos, conEnvio }, conEnvio ? 'Pago confirmado con el envío: se lo pagas al repartidor de tu caja' : 'Pago confirmado, ¡a preparar!');
 }
 
 /* ============ CHAT ============ */
