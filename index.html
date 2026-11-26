@@ -1240,7 +1240,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.3';
+const APP_VER = '3.5.4';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -15042,6 +15042,9 @@ async function saludCargar() {
     <div class="small" style="margin-top:4px">${r.nivel === 2 ? '<b>Es momento de mudarse a Firebase.</b> ' : r.nivel === 1 ? 'Todo funciona, pero hay algo que vigilar. ' : 'Todo bien: Apps Script todavía aguanta. '}${mot.slice(0, 2).map(esc).join(' · ')}</div>
     ${r.hubErr ? `<div class="small" style="color:var(--err)">Servidor de ciudades: ${esc(r.hubErr)}</div>` : ''}</div>`;
 }
+const TAREA_NOM = { pedidos: 'Pedidos y pagos (5 min)', cashback: 'Cashback (5 min)', ofertas: 'Ofertas a repartidores (5 min)', catalogo: 'Menú publicado (5 min)', avisos: 'Envío de notificaciones (5 min)',
+  operacion: 'Avisos de actividades (15 min)', asistencia: 'Asistencia (15 min)', surtido: 'Pedidos internos (15 min)', inventario: 'Inventario y conteos (1 h)', entregas24h: 'Cierre de entregas a las 24 h (1 h)',
+  limpieza: 'Limpieza de sesiones y muestras (1 h)', concurso: 'Concurso (1 h)', adminCiudad: 'Admin de ciudad (2 h)', caducidades: 'Caducidades (1 al día)', facturas: 'Paquetes de facturas (1 al día)', archivo: 'Archivo nocturno (1 al día)' };
 function saludDetalle() {
   const r = S._salud; if (!r) return;
   const f = (t, v) => `<div class="tot"><span>${t}</span><b>${v}</b></div>`;
@@ -15050,7 +15053,8 @@ function saludDetalle() {
     ${r.servidores.map(x => `<div class="card"><b>${SALUD_ICO[x.nivel]} ${esc(x.nombre)}</b>${x.compartido ? '<div class="muted small">Sus ciudades comparten turno para guardar y minutos de tareas.</div>' : ''}
       ${f('Llamadas medidas', x.llamadas.toLocaleString('es-MX'))}${f('Tiempo promedio por acción', (x.prom / 1000).toFixed(1) + ' s')}${f('Acciones de más de 8 s', x.lentos + '%')}
       ${f('Espera para guardar', (x.espera / 1000).toFixed(1) + ' s')}${f('"Hay mucha actividad" (peor día)', x.ocupado)}${f('Tareas automáticas (peor día)', x.tareasMin + ' de 90 min')}${f('Hoja usada (límite de Google)', x.celdasPct + '%')}
-      ${x.motivos.length ? `<div class="small" style="margin-top:6px">${x.motivos.map(esc).join('<br>')}</div>` : ''}</div>`).join('')}
+      ${x.motivos.length ? `<div class="small" style="margin-top:6px">${x.motivos.map(esc).join('<br>')}</div>` : ''}
+      ${(x.tareas || []).length ? `<details style="margin-top:8px"><summary class="small"><b>⏱️ Minutos por tarea automática</b> <span class="muted">(${esc(x.tareasDia.slice(8) + '/' + x.tareasDia.slice(5, 7))})</span></summary>${x.tareas.map(t => f(esc(TAREA_NOM[t.k] || t.k), t.min.toFixed(1) + ' min')).join('')}</details>` : ''}</div>`).join('')}
     ${r.migrar ? '<div class="aviso warn small">Cuando quieras empezar la mudanza a Firebase, avísale a Claude con lo que ves aquí.</div>' : ''}`);
 }
 /** 2.47.2: mínimo para abrir una ciudad. */
