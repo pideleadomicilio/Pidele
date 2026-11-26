@@ -346,6 +346,7 @@ html[data-letra="g"] nav button{font-size:14px}html[data-letra="j"] nav button{f
 .hRow select{padding:9px 4px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;max-width:100%;background:var(--card);text-align:center;text-align-last:center;text-overflow:ellipsis;color:inherit}
 .hRow.off .hHoras{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
+.gLin{border:1.5px solid var(--ln);border-radius:14px;padding:10px;margin:6px 0}
 .exRow.varRow{grid-template-columns:44px 1fr 80px auto 40px;align-items:center}
 .varFoto{width:44px;height:44px;border-radius:10px;border:1.5px dashed var(--ln);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:18px}
 .varFoto img{width:100%;height:100%;object-fit:cover}
@@ -1239,7 +1240,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.1';
+const APP_VER = '3.5.3';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2708,6 +2709,9 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.3', para: P => P.equipo && !P.dueno, t: '🧱 <b>Armemos el inventario:</b> al checar entrada te tocan 3 insumos nuevos y 3 existentes (cuántos hay, caducidad y en qué se usan). Cuenta en tus actividades del día.', f: null },
+  { ver: '3.5.3', para: P => P.dueno, t: '🧱 <b>Arma tu inventario poco a poco:</b> en Inventario → Existencias toca "Empezar a armarlo". Cada quien captura 6 insumos al día; ves su avance y en los bonos por cumplimiento pones el % mínimo.', f: null },
+  { ver: '3.5.2', para: P => P.caja || P.gerente || P.dueno, t: '🧾 <b>Compras con desglose:</b> al registrar una compra de insumos, hielo, gas, limpieza o desechables se anota tal cual el ticket (cuántos, caja o pieza y su costo). Entra solo al inventario; el pago al repartidor va en su propio renglón.', f: null },
   { ver: '3.5.1', para: P => P.dueno, t: '📦 <b>Inventario desde Excel:</b> descarga el formato en Inventario → Existencias, llénalo y súbelo. Cada caducidad distinta queda como su propio lote y te avisamos 3 días antes de que caduque.', f: null },
   { ver: '3.5.1', para: P => P.gerente || P.dueno, t: '🥖 <b>Variantes con foto y agotado:</b> cada variante puede llevar su foto y marcarse agotada; si se acaba su insumo se agota sola y el cliente solo ve las que hay.', f: null },
   { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null },
@@ -4291,6 +4295,7 @@ const PDV_MET_TXT = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarj
 /** Formas de pago en el cobro: el consumo de personal solo si alguien tiene saldo. */
 const pdvMetsCobro = () => Object.entries(PDV_MET).filter(([m]) => m === 'monedero' ? monActivo() : m === 'nomina' ? funOn('personal', 'nomina') && nominaGente().length > 0 : m !== 'consumo' || (funOn('personal', 'consumo') && (PDV.consumo || []).some(x => x.saldo > 0)));
 const PDV_CATS = ['Insumos', 'Gas', 'Hielo', 'Limpieza', 'Desechables', 'Servicios', 'Mantenimiento', 'Sueldos', 'Propinas', 'Otro'];
+const PDV_CATS_DESG = ['Insumos', 'Gas', 'Hielo', 'Limpieza', 'Desechables', 'Otro']; // 3.5.2: compras de cosas: se desglosan y entran al inventario
 /** Guarda en Firestore sin esperar al servidor (sin internet se sube después). */
 function pdvGuardar(prom) { PDV.pendientes++; Promise.resolve(prom).catch(e => toast('No se pudo guardar: ' + (e.message || e), 'err')).finally(() => { PDV.pendientes = Math.max(0, PDV.pendientes - 1); }); }
 function pdvInc(n) { return firebase.firestore.FieldValue.increment(pdvR(n)); }
@@ -6404,9 +6409,10 @@ function pdvVistaGastos() {
 function pdvFormGasto(pre) {
   const f = S._gasto = Object.assign({ pago: PDV.caja ? 'caja' : 'fuera', tipo: 'ticket', categoria: 'Insumos', provId: '' }, S._gasto && S._gasto.abierto ? S._gasto : {}, pre || {}, { abierto: true });
   modal(`<div class="row between"><h2 style="margin:0">💸 Nuevo gasto</h2><button class="redondo" onclick="S._gasto=null;cerrarModal();if(S._cierrePend)pdvContinuarCierre()" aria-label="Cerrar">✕</button></div>
-    <label class="f">¿Qué se compró o pagó?</label><input class="i" id="gConc" maxlength="80" placeholder="Ej. 2 bolsas de hielo" value="${esc(f.concepto || '')}">
-    <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Monto</label><input class="i pdvNum" id="gMonto" inputmode="decimal" value="${esc(f.monto || '')}"></div>
-      <div style="flex:1"><label class="f">Categoría</label><select class="i" id="gCat">${PDV_CATS.map(c => `<option ${c === f.categoria ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
+    <label class="f">¿Qué se compró o pagó?${gDesgOn(f) ? ' <span class="muted small">(opcional: se arma con el desglose)</span>' : ''}</label><input class="i" id="gConc" maxlength="80" placeholder="${gDesgOn(f) ? 'Ej. Compra en Soriana' : 'Ej. 2 bolsas de hielo'}" value="${esc(f.concepto || '')}">
+    <div class="row" style="gap:8px"><div style="flex:1"><label class="f">Total del ticket</label><input class="i pdvNum" id="gMonto" inputmode="decimal" value="${esc(f.monto || '')}" oninput="gLinTot()"></div>
+      <div style="flex:1"><label class="f">Categoría</label><select class="i" id="gCat" onchange="pdvGastoCampo();pdvFormGasto()">${PDV_CATS.map(c => `<option ${c === f.categoria ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
+    ${gDesgOn(f) ? `<label class="f">Desglose del ticket <span class="tag t-pri" style="font-size:10px">obligatorio</span></label><div class="small muted" style="margin:-2px 0 6px">Tal cual el ticket: cada producto con cuántos, cómo viene (caja, pieza…) y su costo. Entra solo al inventario.</div><div id="gLin">${S._ivIns ? gLinHTML() : '<div class="cargando">Cargando insumos…</div>'}</div>` : ''}
     <label class="f">¿Cómo se pagó?</label>
     <div class="pdvMets">${[['caja', '🗄️ Efectivo de caja'], ['fuera', '🏦 Fuera de caja'], ['credito', '📒 A crédito']].map(([k, t]) => `<button class="${f.pago === k ? 'on' : ''}" ${k === 'caja' && !PDV.caja ? 'disabled' : ''} onclick="pdvGastoCampo();S._gasto.pago='${k}';pdvFormGasto()">${t}</button>`).join('')}</div>
     ${f.pago === 'credito' ? `<label class="f">Proveedor</label><select class="i" id="gProv" onchange="if(this.value==='+'){pdvGastoCampo();pdvNuevoProveedor(true)}">
@@ -6417,12 +6423,76 @@ function pdvFormGasto(pre) {
     ${f.tipo !== 'sin' ? `<label class="btn pill full" style="margin-top:8px;cursor:pointer">📷 ${f.foto ? 'Cambiar foto ✓' : 'Tomar foto del ' + f.tipo}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="pdvGastoCampo();pdvGastoFoto(this.files[0])"></label>
       ${f.foto ? `<img src="${f.foto}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:12px;margin-top:6px">` : ''}` : '<div class="small" style="color:var(--err)">El gasto queda marcado sin comprobante.</div>'}
     <div class="btns"><button class="btn pri pill full" onclick="act(this,pdvGuardarGasto)">Guardar gasto</button></div>`);
+  if (gDesgOn(f) && !S._ivIns) pdvInsCargar().then(() => { if ($('#gLin')) $('#gLin').innerHTML = gLinHTML(); });
 }
+/* ---------- 3.5.2 · DESGLOSE DE COMPRAS ---------- */
+const gDesgOn = f => !!(f && modOn('inventario') && modDisp('inventario') && PDV_CATS_DESG.includes(f.categoria));
+async function pdvInsCargar() { try { S._ivIns = (await api('invInsumos', { negocioId: PDV.nid || (S.negocio || {}).id })).arts || []; } catch (e) { S._ivIns = []; toast(e.message, 'err'); } }
+const gNorm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+const gLinU = x => { const a = (S._ivIns || []).find(z => z.id === x.a); return a ? a.u : (x.u || 'pza'); };
+const gLinSub = x => x.t === 'r' ? pdvR(Number(x.costo) || 0) : pdvR((Number(x.cant) || 0) * (Number(x.costo) || 0));
+function gLinHTML() {
+  const f = S._gasto, A = S._ivIns || [];
+  if (!f.lineas || !f.lineas.length) f.lineas = [{ t: 'i' }];
+  const fila = (x, i) => {
+    if (x.t === 'r') return `<div class="gLin"><div class="row between"><b>🛵 Pago de repartidor</b><button class="btn sm err" onclick="gLinQuitar(${i})">✕</button></div>
+      <input class="i pdvNum" style="margin-top:6px" inputmode="decimal" placeholder="$ lo que se le pagó" value="${esc(x.costo || '')}" oninput="gLinSet(${i},'costo',this.value)"><div class="small muted" style="margin-top:4px">No entra al inventario.</div></div>`;
+    const u = gLinU(x), pres = x.pres || u, nuevo = !x.a && x.nom;
+    return `<div class="gLin">
+      <div class="row" style="gap:6px"><input class="i" list="gArts" placeholder="Insumo (ej. Leche deslactosada 1 l)" value="${esc(x.nom || '')}" onchange="gLinNombre(${i},this.value)" style="flex:1"><button class="btn sm err" onclick="gLinQuitar(${i})">✕</button></div>
+      ${nuevo ? `<div class="small" style="margin:6px 0 0">🆕 <b>Insumo nuevo</b> · se lleva en <select class="i" style="width:auto;padding:4px 6px;display:inline-block" onchange="gLinSet(${i},'u',this.value,1)">${['pza', 'kg', 'g', 'l', 'ml', 'oz', 'oz fl'].map(k => `<option ${k === u ? 'selected' : ''}>${k}</option>`).join('')}</select></div>` : ''}
+      <div class="row" style="gap:6px;margin-top:6px"><input class="i pdvNum" style="flex:1" inputmode="decimal" placeholder="Cuántos" value="${esc(x.cant || '')}" oninput="gLinSet(${i},'cant',this.value)">
+        <select class="i" style="flex:1.2" onchange="gLinSet(${i},'pres',this.value,1)">${[...new Set([u, 'caja', 'paquete', 'bolsa', 'pza', 'kg', 'l', 'galón', 'rollo', 'costal'])].map(k => `<option ${k === pres ? 'selected' : ''}>${k}</option>`).join('')}</select>
+        <input class="i pdvNum" style="flex:1.2" inputmode="decimal" placeholder="$ c/${esc(pres)}" value="${esc(x.costo || '')}" oninput="gLinSet(${i},'costo',this.value)"></div>
+      ${pres !== u ? `<div class="row small" style="gap:6px;align-items:center;margin-top:6px"><span>Cada ${esc(pres)} trae</span><input class="i pdvNum" style="width:80px" inputmode="decimal" value="${esc(x.cont || '')}" oninput="gLinSet(${i},'cont',this.value)"><span>${esc(u)}</span></div>` : ''}
+      <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" style="flex:1;padding:5px 8px" value="${esc(x.v || '')}" onchange="gLinSet(${i},'v',this.value)"><span>opcional</span></div>
+      <div class="small" style="text-align:right;margin-top:4px" id="gSub${i}">${gLinSub(x) ? money(gLinSub(x)) : ''}</div></div>`;
+  };
+  return `<datalist id="gArts">${A.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>${f.lineas.map(fila).join('')}
+    <div class="row" style="gap:6px"><button class="btn sm pill" onclick="gLinAgregar('i')">➕ Otro insumo</button><button class="btn sm pill" onclick="gLinAgregar('r')">🛵 Pago de repartidor</button></div>
+    <div id="gLinTot" style="margin-top:8px">${gLinTotTxt()}</div>`;
+}
+function gLinTotTxt() {
+  const f = S._gasto, suma = pdvR((f.lineas || []).reduce((s, x) => s + gLinSub(x), 0)), m = pdvR(Number(($('#gMonto') || {}).value != null ? $('#gMonto').value : f.monto) || 0), dif = pdvR(m - suma);
+  return `<div class="tot ${m && Math.abs(dif) <= 1 ? 'g' : ''}"><span>Desglose ${money(suma)} de ${money(m)}</span><b style="${m && Math.abs(dif) > 1 ? 'color:var(--err)' : ''}">${!m ? 'Escribe el total' : Math.abs(dif) <= 1 ? '✓ Cuadra' : dif > 0 ? 'Faltan ' + money(dif) : 'Sobran ' + money(-dif)}</b></div>`;
+}
+function gLinTot() { const e = $('#gLinTot'); if (e) e.innerHTML = gLinTotTxt(); }
+function gLinPintar() { pdvGastoCampo(); const e = $('#gLin'); if (e) e.innerHTML = gLinHTML(); }
+function gLinSet(i, k, v, repinta) {
+  const x = S._gasto.lineas[i]; if (!x) return; x[k] = v;
+  if (repinta) { gLinPintar(); return; }
+  const e = $('#gSub' + i); if (e) e.textContent = gLinSub(x) ? money(gLinSub(x)) : ''; gLinTot();
+}
+function gLinNombre(i, v) {
+  const x = S._gasto.lineas[i], a = (S._ivIns || []).find(z => gNorm(z.nombre) === gNorm(v));
+  x.nom = a ? a.nombre : v.trim(); x.a = a ? a.id : ''; if (a) { x.u = a.u; if (!x.pres) x.pres = a.u; }
+  gLinPintar();
+}
+function gLinAgregar(t) { pdvGastoCampo(); S._gasto.lineas.push({ t }); gLinPintar(); }
+function gLinQuitar(i) { S._gasto.lineas.splice(i, 1); gLinPintar(); }
 function pdvGastoCampo() { const f = S._gasto; if (!f || !$('#gConc')) return; f.concepto = $('#gConc').value; f.monto = $('#gMonto').value; f.categoria = $('#gCat').value; if ($('#gProv') && $('#gProv').value !== '+') f.provId = $('#gProv').value; }
 async function pdvGastoFoto(file) { if (!file) return; try { S._gasto.foto = await comprimir(file, 1400); } catch (e) { toast(e.message, 'err'); } pdvFormGasto(); }
 async function pdvGuardarGasto() {
   pdvGastoCampo();
-  const f = S._gasto, monto = pdvR(f.monto), concepto = (f.concepto || '').trim();
+  const f = S._gasto, monto = pdvR(f.monto);
+  let concepto = (f.concepto || '').trim();
+  // 3.5.2: compras de cosas: desglose obligatorio que cuadre con el ticket
+  const desg = gDesgOn(f) ? (f.lineas || []).filter(x => x.t === 'r' ? Number(x.costo) > 0 : x.nom || x.cant || x.costo) : null;
+  if (desg) {
+    if (!desg.length) throw new Error('Agrega el desglose del ticket: qué se compró, cuántos y su costo');
+    desg.forEach(x => {
+      if (x.t === 'r') return;
+      const u = gLinU(x), pres = x.pres || u;
+      if (!x.nom) throw new Error('Escribe el nombre de cada insumo');
+      if (!(Number(x.cant) > 0)) throw new Error(x.nom + ': ¿cuántos se compraron?');
+      if (!(Number(x.costo) > 0)) throw new Error(x.nom + ': escribe el costo por ' + pres);
+      if (pres !== u && !(Number(x.cont) > 0)) throw new Error(x.nom + ': ¿cuántos ' + u + ' trae cada ' + pres + '?');
+    });
+    const suma = pdvR(desg.reduce((s, x) => s + gLinSub(x), 0));
+    if (!(monto > 0)) throw new Error('Escribe el total del ticket');
+    if (Math.abs(suma - monto) > 1) throw new Error('El desglose suma ' + money(suma) + ' y el ticket ' + money(monto) + ': revísalo');
+    if (concepto.length < 2) concepto = desg.map(x => x.t === 'r' ? 'Pago de repartidor' : x.cant + ' ' + (x.pres || gLinU(x)) + ' ' + x.nom).join(', ').slice(0, 80);
+  }
   if (concepto.length < 2) throw new Error('Escribe qué se compró o pagó');
   if (!(monto > 0)) throw new Error('Escribe el monto');
   if (f.pago === 'caja' && !PDV.caja) throw new Error('La caja está cerrada');
@@ -6432,6 +6502,16 @@ async function pdvGuardarGasto() {
   const ts = Date.now(), dia = PDV.caja ? PDV.caja.dia : pdvDiaTrabajo(), ref = pdvCol('gastos').doc();
   const g = { dia, ts, cajaId: PDV.caja ? PDV.caja.id : '', concepto: concepto.slice(0, 80), categoria: f.categoria, monto, pago: f.pago, por: pdvYo(),
     proveedorId: prov ? prov.id : '', proveedor: prov ? prov.nombre : '', saldo: prov ? monto : 0, comprobante: { tipo: f.tipo, fotoId: '', pendiente: f.tipo !== 'sin' } };
+  if (desg) {
+    const ins = desg.filter(x => x.t !== 'r');
+    if (ins.length) {
+      if (!navigator.onLine) throw new Error('Para registrar la compra en el inventario se necesita internet');
+      await api('invCompra', { negocioId: PDV.nid, gastoId: ref.id, concepto, lineas: ins.map(x => ({ a: x.a || '', nuevo: x.a ? null : { nombre: x.nom, u: gLinU(x) }, pres: x.pres || gLinU(x), cant: Number(x.cant), cont: Number(x.cont) || 1, costo: Number(x.costo), v: x.v || '' })) });
+      S._ivIns = null; // por si se dieron de alta insumos nuevos
+    }
+    g.desglose = desg.map(x => x.t === 'r' ? { t: 'r', monto: pdvR(Number(x.costo)) } : { nombre: x.nom, cant: Number(x.cant), pres: x.pres || gLinU(x), cont: Number(x.cont) || 1, u: gLinU(x), costo: Number(x.costo), v: x.v || '' });
+    g.repartidor = pdvR(desg.filter(x => x.t === 'r').reduce((s, x) => s + Number(x.costo), 0));
+  }
   pdvGuardar(ref.set(g));
   pdvGuardar(pdvCol('dias').doc(dia).set({ gastos: pdvInc(monto), ['gasto_' + f.pago]: pdvInc(monto), ts }, { merge: true }));
   if (prov) pdvGuardar(pdvCol('proveedores').doc(prov.id).update({ saldo: pdvInc(monto), ultima: ts }));
@@ -6464,6 +6544,7 @@ async function pdvVerGasto(id) {
   modal(`<div class="row between"><h2 style="margin:0">${esc(g.concepto)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="muted small">${fechaCorta(g.ts)} · ${esc(g.categoria)} · ${esc(g.por.nombre)}</div><h2 style="margin:8px 0">${money(g.monto)}</h2>
     <div>${g.pago === 'caja' ? '🗄️ Salió de caja' : g.pago === 'credito' ? '📒 A crédito con ' + esc(g.proveedor) + (g.saldo > 0 ? ' · pendiente ' + money(g.saldo) : ' · pagado ✓') : '🏦 Pagado fuera de caja'}</div>
+    ${(g.desglose || []).length ? `<div class="card" style="box-shadow:none;border:1.5px solid var(--ln);padding:8px 10px;margin-top:8px"><b class="small">🧾 Desglose</b>${g.desglose.map(x => `<div class="row between small" style="padding:3px 0;border-top:1px solid var(--ln)"><span>${x.t === 'r' ? '🛵 Pago de repartidor' : esc(x.cant + ' ' + x.pres + ' · ' + x.nombre) + (x.pres !== x.u ? ' <span class="muted">(' + x.cont + ' ' + esc(x.u) + ' c/u)</span>' : '') + (x.v ? ' <span class="muted">· caduca ' + esc(x.v.slice(8) + '/' + x.v.slice(5, 7)) + '</span>' : '')}</span><b>${money(x.t === 'r' ? x.monto : x.cant * x.costo)}</b></div>`).join('')}</div>` : ''}
     <div id="gFoto" style="margin-top:10px">${g.comprobante.tipo === 'sin' ? '⚠️ Sin comprobante' : g.comprobante.fotoId ? '<div class="cargando">Cargando foto…</div>' : '⏳ La foto se sube cuando haya internet'}</div>`);
   if (g.comprobante.fotoId) { try { const img = await api('pdvVerComprobante', { fileId: g.comprobante.fotoId }); const e = $('#gFoto'); if (e) e.innerHTML = `<img src="${img}" alt="" style="width:100%;border-radius:12px">`; } catch (e) { const el = $('#gFoto'); if (el) el.textContent = e.message; } }
 }
@@ -8592,7 +8673,12 @@ async function asisMarcarFlujo(nid) {
   asisResultado(r);
   pintarMiAsis();
   // 2.60: el botón de checar cambia a "Checar salida" (o desaparece)
-  api('asisMia').then(l => { ls('asisMia', l); const b = $('.checar'); if (b) b.outerHTML = barraChecar() || ''; }).catch(() => { });
+  api('asisMia').then(l => {
+    ls('asisMia', l); const b = $('.checar'); if (b) b.outerHTML = barraChecar() || '';
+    // 3.5.3: al entrar, se le pide su captura de inventario (puede dejarla para después)
+    const x = r.tipo === 'entrada' ? (l || []).find(y => y.negocioId === r.negocioId) : null, cj = $('#modal .caja');
+    if (x && x.captura && x.captura.estado === 'pendiente' && cj && !r.preguntaDoble) cj.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:10px;border:2px solid var(--pri);text-align:left"><b>🧱 Hoy te tocan ${x.captura.total} insumos del inventario</b><div class="small muted">${x.captura.metaN} nuevos y ${x.captura.metaE} existentes · cuenta en tus actividades del día y en tus bonos.</div><div class="btns"><button class="btn pill" onclick="cerrarModal()">Hacerlo después</button><button class="btn pri pill" style="flex:1" onclick="act(this,()=>invCapModal('${r.negocioId}',true))">Hacerlo ahora</button></div></div>`);
+  }).catch(() => { });
 }
 function asisResultado(r) {
   if (r.preguntaDoble) return asisPreguntaDoble(r.negocioId, r.fecha, r.preguntaDoble, r.horario, null, r);
@@ -9580,6 +9666,7 @@ function invVista() {
     const nAg = D.arts.filter(a => a.agot).length;
     const cats = [...new Set(l.map(a => a.categoria || 'Sin categoría'))];
     body = `${D.semanal ? `<div class="card invSemCard" style="border:2px solid var(--pri)"><b>🔢 Hoy toca el inventario completo</b><div class="small muted">${D.semanal.arts.length} insumos. Cuenta lo que hay realmente; lo que no cuentes queda como está.</div><button class="btn pri pill full" style="margin-top:8px" onclick="invConteoCompleto('${D.semanal.id}')">Empezar a contar</button></div>` : ''}
+      ${D.cap ? invCapCardHTML(D) : ''}
       ${esDueno() || D.bodega ? `<div class="row invXls" style="gap:6px;margin:8px 0 0"><button class="btn sm pill" onclick="act(this,invPlantilla)">⬇ Formato de Excel</button><label class="btn sm pill">⬆ Subir Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="invSubirExcel(this)"></label>${!D.arts.length ? '<span class="small muted" style="align-self:center">Carga tu primer inventario de golpe</span>' : ''}</div>` : ''}
       <div class="row" style="gap:6px;margin:8px 0"><button class="btn pri pill" style="flex:1" onclick="invMovModal('entrada')">➕ Entrada</button><button class="btn pill" style="flex:1" onclick="invMovModal('merma')">🗑️ Merma</button>${D.bodega ? '' : `<button class="btn pill" style="flex:1" onclick="invConteoCompleto('')">🔢 Contar</button>`}</div>
       <input class="i" placeholder="🔍 Buscar insumo, categoría o área" value="${esc(I.q || '')}" oninput="S._iv.q=this.value;clearTimeout(S._iv.t);S._iv.t=setTimeout(invVista,300)">
@@ -9609,7 +9696,7 @@ function invVista() {
     ${I.tab === 'exist' && D.mgr && D.cfg ? `<div class="card" style="margin-top:12px"><b>🔢 Conteos</b>
       <div class="row between" style="gap:8px;margin-top:6px"><span class="small">Inventario completo cada semana el</span><select class="i" style="width:auto" onchange="act(null,async()=>{S._iv.D=await api('invCfgGuardar',{lugar:S._iv.lugar,dia:this.value});toast('Guardado ✓');invVista()})"><option value="">No programado</option>${[1, 2, 3, 4, 5, 6, 0].map(k => `<option value="${k}" ${D.cfg.dia === k ? 'selected' : ''}>${DIAS[k]}</option>`).join('')}</select></div>
       <div class="small muted" style="margin:4px 0 6px">Además, al checar entrada a cada quien le tocan 3 insumos de su área (tiene su turno para contarlos).</div>
-      ${D.conteos.length ? D.conteos.map(c => `<div class="pdvFila g"><span>${c.tipo === 'diario' ? '👤 ' + esc(c.nombre.split(' ')[0]) : '🔢 ' + (c.tipo === 'semanal' ? 'Semanal' : 'Completo')} · ${c.n} insumo${c.n > 1 ? 's' : ''}<small>${esc(c.fecha.slice(8) + '/' + c.fecha.slice(5, 7))}${c.por ? ' · ' + esc(c.por.split(' ')[0]) : ''}</small></span><span></span><b style="${c.estado === 'vencido' ? 'color:var(--warn)' : c.dif < 0 ? 'color:var(--err)' : ''}">${c.estado === 'vencido' ? 'No se hizo' : (c.dif > 0 ? '+' : c.dif < 0 ? '−' : '') + money(Math.abs(c.dif))}</b></div>`).join('') : '<div class="small muted">Aún no hay conteos.</div>'}</div>` : ''}<div style="height:20px"></div>`);
+      ${D.conteos.length ? D.conteos.map(c => `<div class="pdvFila g" ${c.det && c.det.length ? `style="cursor:pointer" onclick="invConteoDet('${c.id}')"` : ''}><span>${c.tipo === 'diario' ? '👤 ' + esc(c.nombre.split(' ')[0]) : '🔢 ' + (c.tipo === 'semanal' ? 'Semanal' : 'Completo')} · ${c.n} insumo${c.n > 1 ? 's' : ''}<small>${esc(c.fecha.slice(8) + '/' + c.fecha.slice(5, 7))}${c.por ? ' · ' + esc(c.por.split(' ')[0]) : ''}</small></span><span></span><b style="${c.estado === 'vencido' ? 'color:var(--warn)' : c.dif < 0 ? 'color:var(--err)' : ''}">${c.estado === 'vencido' ? 'No se hizo' : (c.dif > 0 ? '+' : c.dif < 0 ? '−' : '') + money(Math.abs(c.dif))}${c.det && c.det.length ? `<br><small class="${c.validados >= c.det.length ? 'ok' : 'muted'}" style="font-weight:600">${c.validados >= c.det.length ? '✓ validado' : '⏳ validar ' + (c.det.length - c.validados)}</small>` : ''}</b></div>`).join('') : '<div class="small muted">Aún no hay conteos.</div>'}</div>` : ''}<div style="height:20px"></div>`);
 }
 function invMovModal(tipo) {
   const D = S._iv.D, arts = D.arts.filter(a => tipo === 'merma' || a.tipo !== 'prep');
@@ -9762,10 +9849,112 @@ async function invProdGuardar() {
 /** En la barra del colaborador: su conteo de hoy y los "¿ya no hay…?" del turno. */
 function invBarraEquipo(x) {
   let h = '';
+  const cp = x.captura; // 3.5.3
+  if (cp && cp.estado === 'pendiente') h += `<div class="checar inv" role="button" onclick="invCapModal('${x.negocioId}')"><span style="font-size:26px">🧱</span><span class="grow"><b>Inventario de hoy: ${cp.hechos} de ${cp.total}</b><small>${cp.metaN} nuevos y ${cp.metaE} existentes · llevas ${cp.pct}% · cuenta en tus actividades del día</small></span><span class="lnk">Registrar ›</span></div>`;
+  else if (cp && cp.estado === 'hecho') h += `<div class="checar inv" style="opacity:.8"><span style="font-size:26px">✅</span><span class="grow"><b>Inventario de hoy: listo</b><small>${cp.hechos} de ${cp.total} · ¡gracias!</small></span></div>`;
   if (x.conteo && x.conteo.arts.length) h += `<div class="checar inv" role="button" onclick="invConteoModal('${x.negocioId}')"><span style="font-size:26px">📦</span><span class="grow"><b>Te toca contar ${x.conteo.arts.length} insumo${x.conteo.arts.length > 1 ? 's' : ''}</b><small>${x.conteo.arts.map(a => esc(a.nombre)).join(', ')} · antes de salir</small></span><span class="lnk">Contar ›</span></div>`;
   (x.alertas || []).forEach(a => { h += `<div class="checar alerta"><span style="font-size:24px">⚠️</span><span class="grow"><b>¿Ya no hay ${esc(a.nombre)}?</b><small>El sistema calcula que se acabó</small></span>
     <button class="btn sm err" onclick="act(this,()=>invSeAcabo('${a.art}','confirmar','${x.negocioId}'))">🚫 Ya no hay</button><button class="btn sm" onclick="invSiHayModal('${a.art}','${x.negocioId}',${esc(JSON.stringify(a.nombre + ' (' + a.u + ')'))})">✅ Sí hay</button></div>`; });
   return h;
+}
+/* ---------- 3.5.3 · ARMAR EL INVENTARIO POCO A POCO ---------- */
+const CAP_U = ['pza', 'kg', 'g', 'l', 'ml', 'oz', 'oz fl', 'caja', 'paquete', 'bolsa', 'galón'];
+function invCapCardHTML(D) {
+  const C = D.cap;
+  if (!C.on) return esDueno() ? `<div class="card" style="border:2px dashed var(--ln)"><b>🧱 Armar el inventario poco a poco</b><div class="small muted" style="margin:4px 0 8px">Al checar entrada, a cada colaborador se le piden <b>3 insumos nuevos y 3 existentes</b> (con cantidad, caducidad y en qué se usan). Cuenta en sus actividades del día y en los bonos por cumplimiento. Sigue hasta que marques el inventario como completo.</div><button class="btn pri pill full" onclick="act(this,()=>invCapCambiar(true))">Empezar a armarlo</button></div>` : '';
+  return `<div class="card" style="border:2px solid var(--pri)"><div class="row between"><b>🧱 Armando el inventario</b><span class="tag t-pri">en curso</span></div>
+    <div class="row" style="gap:6px;margin:8px 0">${[['Insumos', C.insumos], ['Con receta', C.conReceta + '/' + C.productos], ['Altas en 7 días', C.altasSemana]].map(([t, v]) => `<div class="grow" style="text-align:center;background:var(--bg2,#f4efe6);border-radius:12px;padding:6px"><b style="font-size:18px">${v}</b><div class="small muted">${t}</div></div>`).join('')}</div>
+    ${C.gente.length ? `<div class="small muted">Cumplimiento de la captura (7 días)</div>${C.gente.map(g => `<div class="row between small" style="padding:3px 0;border-top:1px solid var(--ln)"><span>${esc(g.nombre)}</span><b style="${g.pct < 80 ? 'color:var(--err)' : ''}">${g.pct}%${g.hoy != null ? ' <span class="muted" style="font-weight:400">· hoy ' + g.hoy + '%</span>' : ''}</b></div>`).join('')}` : '<div class="small muted">Aún nadie ha checado entrada desde que empezó.</div>'}
+    ${esDueno() ? `<button class="btn pill full" style="margin-top:8px" onclick="act(this,()=>invCapCambiar(false))">✅ El inventario ya está completo</button>` : ''}</div>`;
+}
+async function invCapCambiar(on) {
+  if (!on && !confirm('¿Ya está todo en el inventario? Se deja de pedir la captura diaria y empiezan los conteos (3 al entrar y el semanal), que el encargado valida con palomita.')) return;
+  S._iv.D = await api('invCapCfg', { lugar: S._iv.lugar, on }); toast(on ? '🧱 Listo: desde la próxima entrada se pide la captura' : '✅ Inventario completo: empiezan los conteos'); invVista();
+}
+async function invCapModal(nid, desdeEntrada) {
+  const x = (ls('asisMia') || []).find(y => y.negocioId === nid); if (!x || !x.captura) return;
+  const D = S._cap = Object.assign(await api('invCapDatos', { id: x.captura.id }), { nid, f: null, entrada: !!desdeEntrada });
+  invCapPintar();
+}
+function invCapPintar() {
+  const D = S._cap, c = D.captura, f = D.f;
+  const nN = c.nuevos.length, nE = c.existentes.length;
+  let form = '';
+  if (f && f.a) {
+    const a = D.arts.find(z => z.id === f.a), hecho = D.hechos.includes(a.id);
+    form = hecho ? `<div class="aviso info">Ya registraste <b>${esc(a.nombre)}</b> hoy. Busca otro.</div>` : `<div class="gLin"><b>✔️ ${esc(a.nombre)}</b> <span class="small muted">· el sistema dice ${invTxt(a, a.e)}</span>
+      ${invCapCantHTML(a.base, a.u, a.tara)}
+      <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" id="cpV" style="flex:1;padding:5px 8px"><span>opcional</span></div>
+      <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,()=>invCapGuardar('existe'))">✅ Confirmar cuánto hay</button></div>`;
+  } else if (f && f.nombre) {
+    const u = f.u || 'pza', base = ['kg', 'g', 'oz'].includes(u) ? 'g' : ['l', 'ml', 'oz fl'].includes(u) ? 'ml' : 'pza';
+    form = `<div class="gLin"><b>🆕 ${esc(f.nombre)}</b> <span class="small muted">· no está en el inventario, agrégalo</span>
+      <div class="row" style="gap:6px;margin-top:6px"><div class="grow"><label class="f">Se mide en</label><select class="i" id="cpU" onchange="S._cap.f.u=this.value;invCapPintar()">${CAP_U.map(k => `<option ${k === u ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+        ${['caja', 'paquete', 'bolsa', 'galón'].includes(u) ? `<div class="grow"><label class="f">Piezas por ${esc(u)}</label><input class="i pdvNum" id="cpPz" inputmode="decimal"></div>` : ''}
+        <div class="grow"><label class="f">Dónde se guarda</label><input class="i" id="cpA" maxlength="30" placeholder="Ej. Barra"></div></div>
+      ${invCapCantHTML(base, u, 50)}
+      <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" id="cpV" style="flex:1;padding:5px 8px"><span>opcional</span></div>
+      <label class="f">¿Se usa en alguna preparación?</label><div class="row" style="gap:6px"><select class="i" id="cpP" style="flex:2"><option value="">No / no sé</option>${D.prods.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><input class="i pdvNum" id="cpPc" style="flex:1" inputmode="decimal" placeholder="Cuánto"><span class="small" style="align-self:center">${esc(u)}</span></div>
+      <div class="small muted">Ej. el jarabe: 1 oz por cada frappé. Así se descuenta solo al vender.</div>
+      <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,()=>invCapGuardar('nuevo'))">➕ Agregar al inventario</button></div>`;
+  }
+  modal(`<div class="row between"><h2 style="margin:0">🧱 Armemos el inventario</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted">Hoy te tocan <b>${c.metaN} nuevos</b> y <b>${c.metaE} existentes</b>. Cuenta en tus actividades del día.</div>
+    <div class="row" style="gap:6px;margin:8px 0">${[['🆕 Nuevos', nN, c.metaN], ['✔️ Existentes', nE, c.metaE]].map(([t, h, m]) => `<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px;${h >= m ? 'color:var(--ok)' : ''}">${Math.min(h, m)}/${m}</b><div class="small muted">${t}</div></div>`).join('')}<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px">${c.pct}%</b><div class="small muted">Hoy</div></div></div>
+    ${c.nuevos.concat(c.existentes).length ? `<div class="small muted" style="margin-bottom:6px">Hoy: ${esc(c.nuevos.concat(c.existentes).join(', '))}</div>` : ''}
+    <datalist id="cpArts">${D.arts.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>
+    <input class="i" id="cpQ" list="cpArts" placeholder="🔍 Escribe el nombre del insumo" value="${esc(f ? (f.a ? (D.arts.find(z => z.id === f.a) || {}).nombre : f.nombre) || '' : '')}" onchange="invCapBuscar(this.value)">
+    <div class="small muted" style="margin:4px 0 8px">Si ya existe, confirmas cuánto hay; si no, lo agregas.</div>
+    ${form}
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal()">${c.hechos >= c.total ? 'Listo' : 'Hacerlo después'}</button></div>`);
+}
+/** Cantidad directa o, en lo que se mide en peso, pesando con envase (se restan 50 g o lo que pese su envase). */
+function invCapCantHTML(base, u, tara) {
+  const pesar = S._cap.pesar && base === 'g';
+  return `${base === 'g' ? `<div class="pdvTipo" style="margin-top:6px"><button class="${pesar ? '' : 'on'}" onclick="S._cap.pesar=false;invCapPintar()">Contar</button><button class="${pesar ? 'on' : ''}" onclick="S._cap.pesar=true;invCapPintar()">⚖️ Pesar</button></div>` : ''}
+    ${pesar ? `<div class="row" style="gap:6px;margin-top:6px"><div class="grow"><label class="f">Peso con envase (g)</label><input class="i pdvNum" id="cpPeso" inputmode="decimal" oninput="invCapNeto()"></div><div class="grow"><label class="f">Envase (g)</label><input class="i pdvNum" id="cpTara" inputmode="decimal" value="${tara == null ? 50 : tara}" oninput="invCapNeto()"></div></div><div class="small" id="cpNeto" style="margin-top:4px"></div>`
+      : `<label class="f">¿Cuánto hay? (${esc(u)})</label><input class="i pdvNum" id="cpC" inputmode="decimal">`}`;
+}
+function invCapNeto() {
+  const p = Number(($('#cpPeso') || {}).value), t = Number(($('#cpTara') || {}).value) || 0, e = $('#cpNeto'); if (!e) return;
+  const n = p - t; e.textContent = p ? (n >= 0 ? 'Neto: ' + pedCant(n) + ' g · ' + pedCant(n / 28.3495) + ' oz' : 'El peso debe ser mayor que el envase') : '';
+}
+function invCapBuscar(v) {
+  const D = S._cap, q = String(v || '').trim(); if (!q) { D.f = null; invCapPintar(); return; }
+  const a = D.arts.find(z => gNorm(z.nombre) === gNorm(q));
+  D.f = a ? { a: a.id } : { nombre: q, u: 'pza' }; D.pesar = false; invCapPintar();
+  setTimeout(() => { const el = $('#cpC') || $('#cpPeso'); if (el) el.focus(); }, 50);
+}
+async function invCapGuardar(tipo) {
+  const D = S._cap, f = D.f, v = id => ($('#' + id) || {}).value;
+  const d = { id: D.captura.id, tipo, caducidad: v('cpV') || '' };
+  if (D.pesar && $('#cpPeso')) { if (!v('cpPeso')) throw new Error('Escribe el peso'); d.peso = Number(v('cpPeso')); d.tara = v('cpTara') === '' ? 50 : Number(v('cpTara')); }
+  else { if (v('cpC') === '' || v('cpC') == null) throw new Error('¿Cuánto hay?'); d.cantidad = Number(v('cpC')); }
+  if (tipo === 'existe') d.a = f.a;
+  else Object.assign(d, { nombre: f.nombre, u: v('cpU') || 'pza', piezas: v('cpPz') || '', area: v('cpA') || '', usa: v('cpP') ? { prod: v('cpP'), c: Number(v('cpPc')) || 0 } : null });
+  if (tipo === 'nuevo' && d.usa && !(d.usa.c > 0)) throw new Error('¿Cuánto lleva cada ' + D.prods.find(p => p.id === d.usa.prod).nombre + '?');
+  const r = await api('invCapturar', d);
+  if (r.mia) ls('asisMia', r.mia);
+  D.captura = r.captura; D.f = null; D.pesar = false;
+  const nd = await api('invCapDatos', { id: D.captura.id }); Object.assign(D, { arts: nd.arts, hechos: nd.hechos });
+  toast(tipo === 'nuevo' ? '🆕 Agregado al inventario ✓' : '✔️ Confirmado ✓');
+  if (r.captura.hechos >= r.captura.total && r.captura.estado === 'hecho') toast('🎉 ¡Listo tu inventario de hoy!');
+  invCapPintar(); asisRepintar && asisRepintar();
+}
+/** 3.5.3 · Validar con palomita lo que contó el equipo. */
+function invConteoDet(id) {
+  const c = S._iv.D.conteos.find(x => x.id === id); if (!c) return;
+  const fx = (x, v) => pedCant(v / (x.factor || 1)) + ' ' + esc(x.u);
+  modal(`<div class="row between"><h2 style="margin:0">🔢 Conteo de ${esc((c.por || c.nombre).split(' ')[0])}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted">${esc(c.fecha.slice(8) + '/' + c.fecha.slice(5, 7))} · palomea lo que revisaste y está bien contado</div>
+    <div class="card" style="margin-top:8px">${c.det.map(x => { const dif = x.real - x.sis; return `<label class="row between" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--ln);cursor:pointer"><span class="row" style="gap:8px;align-items:center"><input type="checkbox" class="cvOk" value="${x.a}" ${x.ok ? 'checked' : ''}><span><b>${esc(x.nombre)}</b><br><span class="small muted">sistema ${fx(x, x.sis)} → contó ${fx(x, x.real)}</span></span></span><b class="small" style="${dif < 0 ? 'color:var(--err)' : ''}">${dif ? (dif > 0 ? '+' : '−') + fx(x, Math.abs(dif)) : '='}</b></label>`; }).join('')}</div>
+    <div class="btns"><button class="btn pill" onclick="document.querySelectorAll('.cvOk').forEach(x=>x.checked=true)">Marcar todos</button><button class="btn pri pill" style="flex:1" onclick="act(this,()=>invConteoValidarG('${id}'))">✓ Guardar validación</button></div>`);
+}
+async function invConteoValidarG(id) {
+  const all = [...document.querySelectorAll('.cvOk')], si = all.filter(x => x.checked).map(x => x.value), no = all.filter(x => !x.checked).map(x => x.value);
+  if (no.length) await api('invConteoValidar', { id, arts: no, ok: false });
+  S._iv.D = await api('invConteoValidar', { id, arts: si, ok: true });
+  cerrarModal(); toast('Validación guardada ✓'); invVista();
 }
 function invConteoModal(nid) {
   const x = (ls('asisMia') || []).find(y => y.negocioId === nid); if (!x || !x.conteo) return;
@@ -11413,9 +11602,15 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
     .reduce((s, k) => { const [dia, tt] = k.split('|'); return s + MAN[k] - nomVentaCaja(V, dia, Number(tt)); }, 0);
   // 2.59.1: bono proporcional al cumplimiento de tareas del turno (Operación)
   let cump = null;
-  if (metas.some(m => m.base === 'turno' && m.pago === 'cumplimiento') && S.negocio && S.negocio.operacion) {
-    try { const r = await api('opCumplimiento', { negocioId: S.negocio.id, desde, hasta }); cump = r.activo ? r.datos : null; } catch (e) { console.warn(e); }
+  // 3.5.3: tareas de Operación + las de inventario (captura y conteo al entrar), proporcional a cuántas hizo
+  if (metas.some(m => m.base === 'turno' && m.pago === 'cumplimiento') && S.negocio && (S.negocio.operacion || S.negocio.inventario)) {
+    try { const r = await api('opCumplimiento', { negocioId: S.negocio.id, desde, hasta }); cump = { raw: r.raw || {}, inv: r.inv || {} }; } catch (e) { console.warn(e); }
   }
+  const cumpPct = (u, dia, turno) => {
+    if (!cump) return null;
+    const o = (cump.raw[u] || {})[dia + '|' + turno] || [0, 0], iv = (cump.inv[u] || {})[dia] || [0, 0], tot = o[0] + iv[1];
+    return tot ? Math.round((o[1] + iv[0]) / tot * 100) : null;
+  };
   const sumar = (uid, meta, ventana, ventas, bono, pct, checo) => { if (!bono) return; if (pct != null && pct < 100) bono = pdvR(bono * pct / 100); if (!bono) return; const o = out[uid] = out[uid] || { monto: 0, detalle: [] }; o.monto = pdvR(o.monto + bono); o.detalle.push({ meta: meta.nombre, ventana: ventana + (pct != null && pct < 100 ? ' · ' + pct + '% de tareas' : '') + (checo ? ' · ' + checo : ''), ventas: pdvR(ventas), piezas: metaPzs(meta), bono }); };
   const detDe = (uid, f) => { const p = personas.find(x => x.usuarioId === uid); return p && (p.detalle || []).find(y => y.fecha === f); };
   const ids = personas.map(p => p.usuarioId);
@@ -11433,7 +11628,8 @@ async function metaIncentivos(desde, hasta, personas, trabajo) {
         const v = pdvR(metaValor(m, V, enW) + (m.producto ? 0 : ajusteMan(w))), b = metaBono(m, v).bono;
         if (b && m.base === 'turno' && (m.porTurno || m.turnoAplica > 0) && w.cajas) part.forEach(u => { // 3.4.5: un bono de un turno solo es de quienes checaron en ese turno
           if (!metaEnTurno(detDe(u, w.dia), w.dia, w.turno)) return;
-          const pct = m.pago === 'cumplimiento' && cump ? (cump[u] || {})[w.dia + '|' + w.turno] : null;
+          const pct = m.pago === 'cumplimiento' ? cumpPct(u, w.dia, w.turno) : null;
+          if (pct != null && m.minCump > 0 && pct < m.minCump) { const o = out[u] = out[u] || { monto: 0, detalle: [] }; o.detalle.push({ meta: m.nombre, ventana: w.txt + ' · ' + pct + '% de actividades (mínimo ' + m.minCump + '%) → sin bono', ventas: v, bono: 0 }); return; }
           sumar(u, m, w.txt, v, b, pct == null ? null : pct, ntChecoTxt(detDe(u, w.dia)));
         });
         else if (b) part.forEach(u => { const trabajo1 = w.cajas ? trabajo(u, w.dia) && !(detDe(u, w.dia) || {}).sinBono : (() => { for (let f = w.desde; f <= w.hasta; f = pdvHoy(new Date(f + 'T12:00').getTime() + 864e5)) if (trabajo(u, f)) return true; return false; })(); if (trabajo1) sumar(u, m, w.txt, v, b); });
@@ -11480,7 +11676,9 @@ async function metaForm(id) {
         ${x.turnoAplica > 0 ? '<div class="small muted" style="margin-top:6px">👥 Lo reciben quienes checaron en ese turno (también quien dobló o cubrió).</div>' : `<label class="f">¿Quiénes lo reciben?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.porTurno ? 'on' : ''}" onclick="metaCampo();S._meta.porTurno=true;metaFormPintar()">Quienes checaron en ese turno</button><button class="${x.porTurno ? '' : 'on'}" onclick="metaCampo();S._meta.porTurno=false;metaFormPintar()">Todos los que trabajaron ese día</button></div>
         ${x.porTurno ? '' : '<div class="aviso warn small" style="margin-top:6px">⚠️ Así, el bono de cada turno también lo reciben los del otro turno.</div>'}`}
         ${x.porTurno || x.turnoAplica > 0 ? `<label class="f">¿Cuánto se paga?</label><div class="pdvTipo" style="margin-top:0"><button class="${x.pago !== 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='total';metaFormPintar()">100% del bono</button><button class="${x.pago === 'cumplimiento' ? 'on' : ''}" onclick="metaCampo();S._meta.pago='cumplimiento';metaFormPintar()">Según % de tareas cumplidas</button></div>
-          ${x.pago === 'cumplimiento' ? `<div class="small muted">Ej. bono de $150 con 85% de sus tareas del turno → $127.50. Quien no tuvo tareas ese turno recibe el 100%.${S.negocio && S.negocio.operacion ? '' : ' <b>La operación (tareas) no está activa en este negocio: por ahora se paga el 100%.</b>'}</div>` : ''}` : ''}` : ''}
+          ${x.pago === 'cumplimiento' ? `<div class="small muted">Ej. bono de $150 con 85% de sus actividades del día → $127.50. Cuentan las tareas del turno (Operación) y las de inventario (captura y conteo al entrar). Quien no tuvo actividades ese turno recibe el 100%.${S.negocio && (S.negocio.operacion || S.negocio.inventario) ? '' : ' <b>Ni la operación ni el inventario están activos en este negocio: por ahora se paga el 100%.</b>'}</div>
+            <div class="row" style="gap:6px;align-items:center;margin-top:6px"><span class="small">Mínimo para recibirlo</span><input class="i pdvNum" id="mtMin" style="width:80px" inputmode="numeric" value="${x.minCump || ''}" placeholder="0"><span class="small">% de actividades</span></div>
+            <div class="small muted">Debajo del mínimo no hay bono ese turno; arriba, se paga según su %. Vacío = sin mínimo.</div>` : ''}` : ''}` : ''}
       ${x.base !== 'turno' ? `${paso(4, '¿Cada cuánto se mide?')}<div class="pdvTipo" style="margin-top:0">${Object.entries(META_PER).filter(([k]) => x.base === 'personal' || k !== 'turno').map(([k, t]) => `<button class="${x.periodo === k ? 'on' : ''}" onclick="metaCampo();S._meta.periodo='${k}';metaFormPintar()">${t}</button>`).join('')}</div>` : ''}
       ${paso(x.base !== 'turno' ? 5 : 4, 'Meta y bono al superarla')}
       <div class="small muted" style="margin-bottom:6px">Desde ${pz ? 'cuántas piezas' : 'cuánto vendido'} → bono. Puedes poner varios niveles (el más alto que alcance es el que gana).</div>
@@ -11501,6 +11699,7 @@ function metaCampo() {
   if (document.querySelector('.mtPar')) x.participantes = [...document.querySelectorAll('.mtPar')].filter(c => c.checked).map(c => c.value);
   if ($('#mtProd')) { const p = ((S._menu && S._menu.productos) || []).find(y => y.id === $('#mtProd').value); x.producto = p ? { id: p.id, nombre: p.nombre } : { id: '', nombre: '' }; }
   x.activa = $('#mtAct') ? $('#mtAct').checked : true;
+  if ($('#mtMin')) x.minCump = Math.max(0, Math.min(100, Math.round(Number($('#mtMin').value) || 0)));
 }
 async function metaGuardar() {
   metaCampo();
@@ -11515,6 +11714,7 @@ async function metaGuardar() {
   const doc = { nombre: x.nombre.trim().slice(0, 40), base: x.base, periodo: x.base === 'turno' ? 'turno' : x.periodo, niveles: x.niveles, participantes: x.participantes, activa: x.activa, actualizado: Date.now(), por: pdvYo(),
     producto: x.producto && x.producto.id ? x.producto : null, medida: x.producto && x.producto.id ? x.medida || 'piezas' : null,
     turnoAplica: x.base === 'turno' ? Number(x.turnoAplica) || 0 : 0, porTurno: x.base === 'turno' ? !!x.porTurno || Number(x.turnoAplica) > 0 : false, pago: x.base === 'turno' && (x.porTurno || Number(x.turnoAplica) > 0) && x.pago === 'cumplimiento' ? 'cumplimiento' : 'total' };
+  doc.minCump = doc.pago === 'cumplimiento' ? Number(x.minCump) || 0 : 0; // 3.5.3
   pdvGuardar(ref.set(doc));
   PDV.metas = (PDV.metas || []).filter(m => m.id !== ref.id).concat([Object.assign({ id: ref.id }, doc)]);
   cerrarModal(); toast('Bono guardado 🎯'); pintarCaja();
