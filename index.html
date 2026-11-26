@@ -346,6 +346,12 @@ html[data-letra="g"] nav button{font-size:14px}html[data-letra="j"] nav button{f
 .hRow select{padding:9px 4px;border:1.5px solid var(--ln);border-radius:10px;width:100%;min-width:0;max-width:100%;background:var(--card);text-align:center;text-align-last:center;text-overflow:ellipsis;color:inherit}
 .hRow.off .hHoras{opacity:.35}
 .exRow{display:grid;grid-template-columns:1fr 90px 40px;gap:6px;margin-bottom:6px}
+.exRow.varRow{grid-template-columns:44px 1fr 80px auto 40px;align-items:center}
+.varFoto{width:44px;height:44px;border-radius:10px;border:1.5px dashed var(--ln);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:18px}
+.varFoto img{width:100%;height:100%;object-fit:cover}
+.varOff{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.varImg{width:42px;height:42px;border-radius:10px;object-fit:cover;flex:none}
+.opc.opcOff{opacity:.5;cursor:not-allowed}.opc.opcOff span{text-decoration:line-through}
 .entregaBox{background:var(--pri-xs);border-radius:16px;padding:12px;margin-top:10px}
 .qrCaja{background:#fff;border-radius:18px;padding:14px;display:inline-block;margin:6px auto 10px;box-shadow:var(--sh)}
 .qrCaja img,.qrCaja canvas{display:block;width:210px!important;height:210px!important}
@@ -1233,7 +1239,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.0';
+const APP_VER = '3.5.1';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2702,6 +2708,8 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.1', para: P => P.dueno, t: '📦 <b>Inventario desde Excel:</b> descarga el formato en Inventario → Existencias, llénalo y súbelo. Cada caducidad distinta queda como su propio lote y te avisamos 3 días antes de que caduque.', f: null },
+  { ver: '3.5.1', para: P => P.gerente || P.dueno, t: '🥖 <b>Variantes con foto y agotado:</b> cada variante puede llevar su foto y marcarse agotada; si se acaba su insumo se agota sola y el cliente solo ve las que hay.', f: null },
   { ver: '3.4.0', para: P => P.equipo, t: '📚 <b>Nuevo: Aprende a usar Pídele.</b> Guías cortas de tu puesto y práctica sin afectar la caja.', f: null },
   { ver: '3.4.9', para: P => P.equipo && !P.dueno, t: '📝 <b>Nuevo: pide permiso desde tu Perfil</b> (sin goce, con 24 horas de anticipación).', f: 'permiso' },
   { ver: '3.4.9', para: P => P.gerente || P.dueno, t: '🧩 <b>Permisos y ausencias:</b> al aprobar un permiso o vacaciones, la app te pregunta quién cubre el turno.', f: 'ausencias' },
@@ -9253,7 +9261,8 @@ async function opCfgGuardar() {
 
 /* ---------- 2.59 · pedidos al almacén y a proveedores ---------- */
 const PED_EST = { preparacion: ['t-warn', '📝 En preparación'], enviado: ['t-info', '📤 Enviado'], surtido: ['t-info', '🚚 En camino'], recibido: ['t-ok', '✅ Recibido'], cancelado: ['t-gray', 'Cancelado'] };
-const PED_U = ['pza', 'kg', 'g', 'l', 'ml', 'caja', 'paquete', 'bolsa', 'manojo', 'rollo', 'galón', 'porción'];
+const PED_U = ['pza', 'kg', 'g', 'l', 'ml', 'oz', 'oz fl', 'caja', 'paquete', 'bolsa', 'manojo', 'rollo', 'galón', 'porción'];
+const PED_U_FIJA = ['pza', 'kg', 'g', 'l', 'ml', 'oz', 'oz fl', 'porción']; // 3.5.1: unidades que no piden "cuántas piezas trae"
 const pedEstTxt = e => `<span class="tag ${(PED_EST[e] || PED_EST.cancelado)[0]}">${(PED_EST[e] || ['', e])[1]}</span>`;
 const pedCant = n => (Math.round(n * 100) / 100).toString();
 async function opVistaPed(sinCargar) {
@@ -9389,7 +9398,7 @@ async function vInventarioCfg() {
 }
 function invPintar() {
   const I = S._inv, C = I.C, tabs = [['art', '📋 Artículos'], ['prov', '🚚 Proveedores'], ['bod', '🏬 Almacenes']];
-  const surteN = s => { const b = C.bodegas.find(x => 'b:' + x.id === s), p = C.proveedores.find(x => 'p:' + x.id === s); return b ? '🏬 ' + b.nombre : p ? '🚚 ' + p.nombre : '—'; };
+  const surteN = s => { const b = C.bodegas.find(x => 'b:' + x.id === s), p = C.proveedores.find(x => 'p:' + x.id === s); return b ? '🏬 ' + b.nombre : p ? '🚚 ' + p.nombre : 'sin proveedor'; };
   const hor = x => x.desde ? `${x.desde}–${x.hasta}${x.hastaDom ? ' (dom ' + x.hastaDom + ')' : ''}${x.cerrado ? ' · no atiende ' + x.cerrado : ''}` : 'sin horario';
   const negN = l => !l.length ? 'todos' : l.map(id => (C.negocios.find(n => n.id === id) || {}).nombre || '').join(', ');
   let body = '';
@@ -9419,16 +9428,16 @@ function invNegsHTML(sel) {
 function invModal(tipo, id) {
   const C = S._inv.C;
   if (!C.dueno) return;
-  const lista = tipo === 'art' ? C.articulos : tipo === 'prov' ? C.proveedores : C.bodegas, x = Object.assign({ tipo }, lista.find(y => y.id === id) || { nombre: '', negs: [], encargados: [], u: 'pza', surte: C.bodegas[0] ? 'b:' + C.bodegas[0].id : '', inv: false });
+  const lista = tipo === 'art' ? C.articulos : tipo === 'prov' ? C.proveedores : C.bodegas, x = Object.assign({ tipo }, lista.find(y => y.id === id) || { nombre: '', negs: [], encargados: [], u: 'pza', surte: C.bodegas[0] ? 'b:' + C.bodegas[0].id : '', inv: tipo === 'art' });
   const tit = { art: 'Artículo', prov: 'Proveedor', bod: 'Almacén' }[tipo];
   let campos = '';
   if (tipo === 'art') {
     const otraU = !PED_U.includes(x.u);
     campos = `<div class="row" style="gap:6px"><div style="flex:2"><label class="f">Categoría</label><input class="i" id="ivCat" list="ivCats" value="${esc(x.categoria || '')}"><datalist id="ivCats">${[...new Set(C.articulos.map(a => a.categoria).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
-        <div class="grow"><label class="f">Se pide en</label><select class="i" id="ivU" onchange="$('#ivFx').style.display=['pza','kg','g','l','ml','porción'].includes(this.value)?'none':''">${PED_U.map(u => `<option ${u === x.u ? 'selected' : ''}>${u}</option>`).join('')}${otraU ? `<option selected>${esc(x.u)}</option>` : ''}</select></div></div>
-      <div id="ivFx" ${['pza', 'kg', 'g', 'l', 'ml', 'porción'].includes(x.u) ? 'style="display:none"' : ''}><label class="f">¿Cuántas piezas trae cada ${esc(x.u || 'unidad')}?</label><input class="i" id="ivF" inputmode="decimal" value="${x.factor || 1}"></div>
+        <div class="grow"><label class="f">Se pide en</label><select class="i" id="ivU" onchange="$('#ivFx').style.display=PED_U_FIJA.includes(this.value)?'none':''">${PED_U.map(u => `<option ${u === x.u ? 'selected' : ''}>${u}</option>`).join('')}${otraU ? `<option selected>${esc(x.u)}</option>` : ''}</select></div></div>
+      <div id="ivFx" ${PED_U_FIJA.includes(x.u) ? 'style="display:none"' : ''}><label class="f">¿Cuántas piezas trae cada ${esc(x.u || 'unidad')}?</label><input class="i" id="ivF" inputmode="decimal" value="${x.factor || 1}"></div>
       ${invArtExtraHTML(x)}
-      <div id="ivSBox" ${x.tipo === 'prep' ? 'style="display:none"' : ''}><label class="f">Se le pide a</label><select class="i" id="ivS">${C.bodegas.map(b => `<option value="b:${b.id}" ${x.surte === 'b:' + b.id ? 'selected' : ''}>🏬 ${esc(b.nombre)} (pedido interno)</option>`).join('')}${C.proveedores.map(p => `<option value="p:${p.id}" ${x.surte === 'p:' + p.id ? 'selected' : ''}>🚚 ${esc(p.nombre)}</option>`).join('')}</select>
+      <div id="ivSBox" ${x.tipo === 'prep' ? 'style="display:none"' : ''}><label class="f">Se le pide a</label><select class="i" id="ivS"><option value="" ${!x.surte ? 'selected' : ''}>— Aún no definido —</option>${C.bodegas.map(b => `<option value="b:${b.id}" ${x.surte === 'b:' + b.id ? 'selected' : ''}>🏬 ${esc(b.nombre)} (pedido interno)</option>`).join('')}${C.proveedores.map(p => `<option value="p:${p.id}" ${x.surte === 'p:' + p.id ? 'selected' : ''}>🚚 ${esc(p.nombre)}</option>`).join('')}</select>
       <label class="pdvChk"><input type="checkbox" id="ivI" ${x.inv ? 'checked' : ''}> Se lleva en inventario (existencias, conteos y recetas)</label></div>${invNegsHTML(x.negs || [])}`;
   } else if (tipo === 'prov') campos = invHorHTML(x) + invNegsHTML(x.negs || []);
   else campos = invHorHTML(x) + `<label class="f">Encargados del almacén</label><div class="small muted">Reciben los pedidos y los surten (tú también los recibes).</div>${C.gente.filter(p => p.id !== C.gente[0].id).map(p => `<label class="pdvChk"><input type="checkbox" class="ivEn" value="${p.id}" ${(x.encargados || []).includes(p.id) ? 'checked' : ''}> ${esc(p.nombre)}</label>`).join('') || '<div class="small muted">Aún no tienes equipo.</div>'}`;
@@ -9472,7 +9481,7 @@ function invArtExtraHTML(x) {
 function invTipoArt(t, b) {
   S._ivTipo = t; [...b.parentNode.children].forEach(x => x.classList.toggle('on', x === b));
   $('#ivProdBox').style.display = t === 'prep' ? '' : 'none'; $('#ivSBox').style.display = t === 'prep' ? 'none' : ''; $('#ivCoBox').style.display = t === 'prep' ? 'none' : '';
-  if (t === 'prep' && ['kg', 'g', 'l', 'ml', 'porción'].indexOf($('#ivU').value) < 0) { const o = [...$('#ivU').options].find(x => x.value === 'porción'); if (o) $('#ivU').value = 'porción'; $('#ivFx').style.display = 'none'; }
+  if (t === 'prep' && ['kg', 'g', 'l', 'ml', 'oz', 'oz fl', 'porción'].indexOf($('#ivU').value) < 0) { const o = [...$('#ivU').options].find(x => x.value === 'porción'); if (o) $('#ivU').value = 'porción'; $('#ivFx').style.display = 'none'; }
 }
 function invProdHTML() {
   const P = S._ivProd, arts = S._inv.C.articulos.filter(a => a.tipo !== 'prep' || true);
@@ -9571,11 +9580,12 @@ function invVista() {
     const nAg = D.arts.filter(a => a.agot).length;
     const cats = [...new Set(l.map(a => a.categoria || 'Sin categoría'))];
     body = `${D.semanal ? `<div class="card invSemCard" style="border:2px solid var(--pri)"><b>🔢 Hoy toca el inventario completo</b><div class="small muted">${D.semanal.arts.length} insumos. Cuenta lo que hay realmente; lo que no cuentes queda como está.</div><button class="btn pri pill full" style="margin-top:8px" onclick="invConteoCompleto('${D.semanal.id}')">Empezar a contar</button></div>` : ''}
+      ${esDueno() || D.bodega ? `<div class="row invXls" style="gap:6px;margin:8px 0 0"><button class="btn sm pill" onclick="act(this,invPlantilla)">⬇ Formato de Excel</button><label class="btn sm pill">⬆ Subir Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="invSubirExcel(this)"></label>${!D.arts.length ? '<span class="small muted" style="align-self:center">Carga tu primer inventario de golpe</span>' : ''}</div>` : ''}
       <div class="row" style="gap:6px;margin:8px 0"><button class="btn pri pill" style="flex:1" onclick="invMovModal('entrada')">➕ Entrada</button><button class="btn pill" style="flex:1" onclick="invMovModal('merma')">🗑️ Merma</button>${D.bodega ? '' : `<button class="btn pill" style="flex:1" onclick="invConteoCompleto('')">🔢 Contar</button>`}</div>
       <input class="i" placeholder="🔍 Buscar insumo, categoría o área" value="${esc(I.q || '')}" oninput="S._iv.q=this.value;clearTimeout(S._iv.t);S._iv.t=setTimeout(invVista,300)">
       <div class="tabChips" style="margin-top:6px">${[['', 'Todos'], ['bajo', '⚠️ Bajo mínimo (' + D.bajos + ')']].concat(nAg ? [['agot', '🚫 Agotados / por confirmar (' + nAg + ')']] : []).concat([['prep', '🏭 Preparados']]).map(([k, t]) => `<button class="${I.f === k ? 'on' : ''}" onclick="S._iv.f='${k}';invVista()">${t}</button>`).join('')}</div>
       ${cats.map(c => `<h3 style="margin:12px 0 4px">${esc(c)}</h3><div class="card">${l.filter(a => (a.categoria || 'Sin categoría') === c).map(a => `<div class="row between invFila" style="gap:8px;padding:7px 0;border-bottom:1px solid var(--ln);cursor:pointer" onclick="invAjusteModal('${a.id}')">
-        <span>${a.tipo === 'prep' ? '🏭 ' : ''}${esc(a.nombre)}${a.area ? ` <span class="tag" style="font-size:10px">${esc(a.area)}</span>` : ''}${a.minimo ? `<br><span class="small muted">mínimo ${pedCant(a.minimo)} ${esc(a.u)}</span>` : ''}</span>
+        <span>${a.tipo === 'prep' ? '🏭 ' : ''}${esc(a.nombre)}${a.area ? ` <span class="tag" style="font-size:10px">${esc(a.area)}</span>` : ''}${a.minimo ? `<br><span class="small muted">mínimo ${pedCant(a.minimo)} ${esc(a.u)}</span>` : ''}${invCadTag(a)}</span>
         <span style="text-align:right">${a.agot ? `<span class="tag ${a.agot === 'agotado' ? 't-err' : 't-warn'}" style="font-size:10px">${a.agot === 'agotado' ? '🚫 Agotado' : '⚠️ ¿Se acabó?'}</span><br>` : ''}<b style="${a.bajo || a.e < 0 ? 'color:var(--err)' : ''}">${a.bajo ? '⚠️ ' : ''}${invTxt(a, a.e)}</b><br><span class="small muted">${money(a.valor)}${a.contado ? ' · contado ' + fechaCorta(a.contado).split(' ').slice(0, 2).join(' ') : ''}</span></span></div>`).join('')}</div>`).join('') || '<div class="vacio"><span class="big">📦</span>Sin insumos. Da de alta tus insumos en ⚙️ Almacén, proveedores e insumos y marca "Se lleva en inventario".</div>'}`;
   } else if (I.tab === 'prod') {
     const l = D.arts.filter(a => a.tipo === 'prep' && a.prod);
@@ -9603,32 +9613,121 @@ function invVista() {
 }
 function invMovModal(tipo) {
   const D = S._iv.D, arts = D.arts.filter(a => tipo === 'merma' || a.tipo !== 'prep');
-  S._ivM = { tipo, filas: [{ a: '', c: '', cu: '' }] };
+  S._ivM = { tipo, filas: [{ a: '', c: '', cu: '', v: '' }] };
   const pinta = () => {
     const M = S._ivM;
     $('#ivmF').innerHTML = M.filas.map((f, i) => { const a = arts.find(z => z.id === f.a); return `<div class="row" style="gap:6px;margin-top:6px"><select class="i" style="flex:2" onchange="S._ivM.filas[${i}].a=this.value;S._ivM.pinta()"><option value="">Insumo…</option>${arts.map(z => `<option value="${z.id}" ${z.id === f.a ? 'selected' : ''}>${esc(z.nombre)}</option>`).join('')}</select>
       <input class="i pdvNum" style="flex:1" inputmode="decimal" placeholder="Cant." value="${esc(f.c)}" oninput="S._ivM.filas[${i}].c=this.value"><span class="small" style="align-self:center;min-width:34px">${a ? esc(a.u) : ''}</span>
       ${tipo === 'entrada' ? `<input class="i pdvNum" style="flex:1" inputmode="decimal" placeholder="$ c/u" value="${esc(f.cu)}" oninput="S._ivM.filas[${i}].cu=this.value">` : ''}
-      <button class="btn sm err" onclick="S._ivM.filas.splice(${i},1);S._ivM.pinta()">✕</button></div>`; }).join('');
+      <button class="btn sm err" onclick="S._ivM.filas.splice(${i},1);S._ivM.pinta()">✕</button></div>
+      ${tipo === 'entrada' ? `<div class="row small muted" style="gap:6px;align-items:center;margin:2px 0 4px"><span>⏳ Caduca</span><input class="i" type="date" style="flex:1;padding:6px 8px" value="${esc(f.v || '')}" onchange="S._ivM.filas[${i}].v=this.value"><span>(opcional)</span></div>` : ''}`; }).join('');
   };
   S._ivM.pinta = pinta;
   modal(`<div class="row between"><h2 style="margin:0">${tipo === 'entrada' ? '➕ Entrada' : '🗑️ Merma'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="small muted">${tipo === 'entrada' ? 'Compras sueltas que llegan sin pedido (lo de los pedidos de Operación entra solo al recibirlos). Si pones el costo, se actualiza.' : 'Lo que se echó a perder, se cayó o se regaló.'} · ${esc(D.nombre)}</div>
-    <div id="ivmF"></div><button class="btn sm" style="margin-top:6px" onclick="S._ivM.filas.push({a:'',c:'',cu:''});S._ivM.pinta()">➕ Otro insumo</button>
+    <div id="ivmF"></div><button class="btn sm" style="margin-top:6px" onclick="S._ivM.filas.push({a:'',c:'',cu:'',v:''});S._ivM.pinta()">➕ Otro insumo</button>
     <label class="f">${tipo === 'entrada' ? 'Nota (opcional)' : 'Motivo'}</label><input class="i" id="ivmN" maxlength="200" placeholder="${tipo === 'entrada' ? 'Ej. Compra en Soriana' : 'Ej. Se echó a perder'}">
     <div class="btns"><button class="btn pri pill full" onclick="act(this,invMovGuardar)">Guardar</button></div>`);
   pinta();
 }
 async function invMovGuardar() {
-  const M = S._ivM, items = M.filas.filter(f => f.a && Number(f.c) > 0).map(f => ({ a: f.a, c: Number(f.c), cu: Number(f.cu) || 0 }));
+  const M = S._ivM, items = M.filas.filter(f => f.a && Number(f.c) > 0).map(f => ({ a: f.a, c: Number(f.c), cu: Number(f.cu) || 0, v: f.v || '' }));
   if (!items.length) throw new Error('Agrega al menos un insumo con su cantidad');
   S._iv.D = await api('invMover', { lugar: S._iv.lugar, tipo: M.tipo, items, nota: $('#ivmN').value });
   cerrarModal(); toast(M.tipo === 'entrada' ? 'Entrada guardada ✓' : 'Merma registrada'); invVista();
+}
+/* ---------- 3.5.1 · LOTES, CADUCIDAD Y CARGA DESDE EXCEL ---------- */
+const invHoyISO = () => { const d = new Date(Date.now() - 7 * 3600e3); return d.toISOString().slice(0, 10); };
+const invDiasA = v => Math.round((Date.parse(v + 'T12:00:00Z') - Date.parse(invHoyISO() + 'T12:00:00Z')) / 864e5);
+const invFechaTxt = v => v ? v.slice(8) + '/' + v.slice(5, 7) + '/' + v.slice(2, 4) : '';
+/** Etiqueta del lote que caduca primero: rojo si ya caducó, naranja si faltan 3 días o menos. */
+function invCadTag(a) {
+  const l = (a.lotes || [])[0]; if (!l) return '';
+  const d = invDiasA(l.v), txt = d < 0 ? 'caducó ' + invFechaTxt(l.v) : d === 0 ? 'caduca hoy' : 'caduca ' + invFechaTxt(l.v);
+  return `<br><span class="tag ${d < 0 ? 't-err' : d <= 3 ? 't-warn' : ''}" style="font-size:10px">⏳ ${txt} · ${invTxt(a, l.c)}${a.lotes.length > 1 ? ' · ' + a.lotes.length + ' lotes' : ''}</span>`;
+}
+function invLotesHTML(a) {
+  const l = a.lotes || []; if (!l.length) return '';
+  const sin = Math.max(0, (a.e || 0) - l.reduce((s, x) => s + x.c, 0));
+  return `<div class="card" style="box-shadow:none;border:1.5px solid var(--ln);padding:8px 10px;margin:8px 0"><b class="small">⏳ Lotes (se usa primero lo que caduca antes)</b>
+    ${l.map(x => { const d = invDiasA(x.v); return `<div class="row between small" style="padding:3px 0;border-top:1px solid var(--ln)"><span>Caduca ${invFechaTxt(x.v)}${d < 0 ? ' <span class="tag t-err" style="font-size:10px">caducado</span>' : d <= 3 ? ' <span class="tag t-warn" style="font-size:10px">' + (d === 0 ? 'hoy' : 'en ' + d + ' día' + (d > 1 ? 's' : '')) + '</span>' : ''}</span><b>${invTxt(a, x.c)}</b></div>`; }).join('')}
+    ${sin > 0.0005 ? `<div class="row between small muted" style="padding:3px 0;border-top:1px solid var(--ln)"><span>Sin fecha de caducidad</span><b>${invTxt(a, sin)}</b></div>` : ''}</div>`;
+}
+const INV_XLS = [['insumo', 'Insumo', 30], ['categoria', 'Categoría', 16], ['unidad', 'Unidad', 10], ['piezas', 'Piezas por unidad', 12], ['cantidad', 'Cantidad', 10], ['caducidad', 'Caducidad (dd/mm/aaaa)', 14], ['costo', 'Costo por unidad', 12], ['minimo', 'Mínimo', 9], ['area', 'Dónde se guarda', 16]];
+function campoInv(h) {
+  const t = String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+  if (!t) return '';
+  if (/^(insumo|articulo|producto|nombre)/.test(t)) return 'insumo';
+  if (/^categ/.test(t)) return 'categoria';
+  if (/^(unidad|medida)/.test(t)) return 'unidad';
+  if (/^(piezas|pzas|contenido)/.test(t)) return 'piezas';
+  if (/^(cantidad|existencia|hay)/.test(t)) return 'cantidad';
+  if (/^(caduc|vence|vencimiento)/.test(t)) return 'caducidad';
+  if (/^(costo|precio)/.test(t)) return 'costo';
+  if (/^(minimo|min)/.test(t)) return 'minimo';
+  if (/^(donde|area|ubicacion|almacen)/.test(t)) return 'area';
+  return '';
+}
+/** Descarga el formato; si ya hay insumos, sale con lo que hay hoy para corregirlo o completarlo. */
+async function invPlantilla() {
+  const XLSX = await cargarXLSX(), D = S._iv.D;
+  const filas = D.arts.filter(a => a.tipo !== 'prep').flatMap(a => {
+    const base = [a.nombre, a.categoria || '', a.u, PED_U_FIJA.includes(a.u) ? '' : a.factor];
+    const fin = [a.costo || '', a.minimo || '', a.area || ''];
+    const l = a.lotes || [], sin = Math.max(0, (a.e || 0) - l.reduce((s, x) => s + x.c, 0)), r = [];
+    l.forEach(x => r.push(base.concat([pedCant(x.c / (a.factor || 1)), invFechaTxt(x.v).replace(/\/(\d\d)$/, '/20$1')], fin)));
+    if (sin > 0.0005 || !l.length) r.push(base.concat([pedCant(Math.max(0, sin) / (a.factor || 1)), ''], fin));
+    return r;
+  });
+  const ej = filas.length ? [] : [['Leche deslactosada 1 l', 'Lácteos', 'pza', '', 12, '15/12/2026', 28, 6, 'Refrigerador'], ['Coca-Cola 355 ml', 'Bebidas', 'caja', 24, 2, '', 310, 1, 'Bodega'], ['Jarabe de vainilla', 'Jarabes', 'oz', '', 25, '', 4.5, 8, 'Barra'], ['Pan brioche', 'Panadería', 'pza', '', 40, '29/11/2026', 6, 20, 'Cocina']];
+  const ws = XLSX.utils.aoa_to_sheet([INV_XLS.map(c => c[1])].concat(filas.length ? filas : ej));
+  ws['!cols'] = INV_XLS.map(c => ({ wch: c[2] }));
+  const ins = XLSX.utils.aoa_to_sheet([['Cómo llenar tu inventario'], ['Una fila por insumo. Solo Insumo y Unidad son obligatorios (si el insumo ya existe, basta el nombre).'],
+    ['Unidad: pza, kg, g, l, ml, oz (onza de peso), oz fl (onza líquida), o caja, paquete, bolsa… Si es caja o paquete, escribe en "Piezas por unidad" cuántas trae.'],
+    ['Cantidad: lo que hay hoy, en esa unidad. Vacía = solo se da de alta el insumo.'],
+    ['Caducidad: si tienes el mismo insumo con fechas distintas, pon una fila por cada fecha (cada una es un lote). Se usa primero lo que caduca antes.'],
+    ['Costo por unidad: lo que te cuesta cada unidad (cada caja, cada kg…). Mínimo: cuando baje de ahí te avisamos.'],
+    [filas.length ? 'Este archivo trae lo que hay hoy: corrígelo o agrega renglones y súbelo.' : 'Los renglones de la hoja Inventario son ejemplos: bórralos y escribe los tuyos.']]);
+  ins['!cols'] = [{ wch: 120 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventario'); XLSX.utils.book_append_sheet(wb, ins, 'Instrucciones');
+  XLSX.writeFile(wb, nombreArchivo(filas.length ? 'Inventario' : 'Formato-inventario'));
+  toast('Formato descargado ✓');
+}
+async function invSubirExcel(inp) {
+  const f = inp.files[0]; inp.value = '';
+  if (!f) return;
+  toast('Leyendo archivo…');
+  try {
+    const XLSX = await cargarXLSX(), wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+    let filas = null;
+    for (const n of wb.SheetNames) { if (/^instruc/i.test(n)) continue; filas = leerHoja(XLSX, wb.Sheets[n], campoInv, 'insumo'); if (filas) break; }
+    if (!filas) throw new Error('No encontré la columna "Insumo". Usa el formato de Pídele.');
+    filas = filas.map(x => Object.assign({}, x, { fila: x._fila })).filter(x => String(x.insumo || '').trim());
+    if (!filas.length) throw new Error('El archivo no tiene insumos');
+    S._ivX = { filas, archivo: f.name, modo: 'reemplazar' };
+    await invXlsRevisar();
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function invXlsRevisar() {
+  const X = S._ivX, r = await api('invImportar', { lugar: S._iv.lugar, filas: X.filas, modo: X.modo, probar: true }), ok = r.nuevos + r.existentes;
+  modal(`<div class="row between"><h2 style="margin:0">📥 Revisa antes de guardar</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted">${esc(X.archivo)} · ${esc(S._iv.D.nombre)}</div>
+    <div class="row" style="gap:8px;margin:10px 0">${[['Nuevos', r.nuevos, ''], ['Ya existían', r.existentes, ''], ['Lotes con caducidad', r.lotes, ''], ['Con error', r.nErrores, r.nErrores ? 'color:var(--err)' : '']].map(([t, n, st]) => `<div class="card grow" style="margin:0;padding:8px 10px;text-align:center"><b style="font-size:20px;${st}">${n}</b><div class="small muted">${t}</div></div>`).join('')}</div>
+    ${r.existentes ? `<label class="f">Los que ya existían</label><select class="i" onchange="S._ivX.modo=this.value;act(null,invXlsRevisar)"><option value="reemplazar" ${X.modo === 'reemplazar' ? 'selected' : ''}>Reemplazar: lo del archivo es lo que hay</option><option value="sumar" ${X.modo === 'sumar' ? 'selected' : ''}>Sumar a lo que ya hay</option></select>` : ''}
+    ${r.nErrores ? `<div class="aviso warn" style="margin:10px 0"><b>Estos renglones no se van a guardar:</b>${r.errores.map(e => `<div class="small">Fila ${e.fila}${e.insumo ? ' · ' + esc(e.insumo) : ''}: ${esc(e.msg)}</div>`).join('')}${r.nErrores > r.errores.length ? `<div class="small">…y ${r.nErrores - r.errores.length} más</div>` : ''}<div class="small muted" style="margin-top:4px">Corrígelos en el Excel y vuelve a subirlo, o guarda los demás.</div></div>` : ''}
+    <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" style="flex:1" ${ok ? '' : 'disabled'} onclick="act(this,invXlsGuardar)">Guardar ${ok} insumo${ok === 1 ? '' : 's'}</button></div>`);
+}
+async function invXlsGuardar() {
+  const X = S._ivX, D = await api('invImportar', { lugar: S._iv.lugar, filas: X.filas, modo: X.modo });
+  S._iv.D = D; S._ivX = null; if (S._inv) S._inv.C = null;
+  cerrarModal(); toast('Inventario cargado ✓ ' + (D.importado.nuevos + D.importado.existentes) + ' insumos'); invVista();
 }
 function invAjusteModal(id) {
   const D = S._iv.D, a = D.arts.find(x => x.id === id); if (!a || !D.mgr) return;
   modal(`<div class="row between"><h2 style="margin:0">${esc(a.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="small muted">El sistema dice que hay <b>${invTxt(a, a.e)}</b>${a.minimo ? ' · mínimo ' + pedCant(a.minimo) + ' ' + esc(a.u) : ''} · costo ${money(a.cb * (a.factor || 1))} por ${esc(a.u)}</div>
+    ${invLotesHTML(a)}
     <label class="f">¿Cuánto hay realmente? (${esc(a.u)})</label><input class="i pdvNum" id="ivaC" inputmode="decimal" value="${pedCant(a.e / (a.factor || 1))}">
     <label class="f">Nota</label><input class="i" id="ivaN" maxlength="200" placeholder="Ej. Conteo del lunes">
     <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{S._iv.D=await api('invMover',{lugar:S._iv.lugar,tipo:'ajuste',items:[{a:'${a.id}',c:Number($('#ivaC').value)}],nota:$('#ivaN').value||'Ajuste'});cerrarModal();toast('Ajustado ✓');invVista()})">✏️ Ajustar existencia</button>
@@ -15994,23 +16093,27 @@ function abrirProducto(pid, sec) {
   const vars = p.variantes || [];
   // si viene de una promo de una variante, esa opción queda elegida
   let vi = vars.length ? Math.max(0, vars.findIndex(v => v.nombre === S._abrirVar)) : -1;
+  if (vi >= 0 && vars[vi].agotado) vi = vars.findIndex(v => !v.agotado); // 3.5.1: arranca en una que sí hay
   S._abrirVar = '';
   // 2.51: dentro de "Arma tu combo": solo el tamaño incluido o uno más grande (se cobra la diferencia)
   const cs = S._comboSel; S._comboSel = null;
   if (cs && vars.length) vi = Math.max(0, vars.findIndex(v => v.nombre === cs.incl));
+  const varOcu = v => v.agotado && S.vista !== 'caja', fV = v => v.foto ? `<img class="varImg" src="${esc(v.foto)}" alt="" loading="lazy">` : '';
+  const agV = v => v.agotado ? '<em class="tag t-err" style="font-size:10px;font-style:normal;flex:none">Agotado</em>' : '';
   S._hoja = { p, cant: 1, v: vi, grupos: gruposDe(enSeccion(p, cs ? '' : sec), d.grupos), combo: cs, sec: cs ? p.categoria : sec };
   S._hoja.q = S._hoja.grupos.map(g => g.opciones.map(() => 0));
   const prV = v => { const b = precioBase(n.id, p, v.nombre); return b.antes ? `<span class="tachado">${money(b.antes)}</span><span class="precioPromo">${money(b.precio)}</span>` : money(b.precio); };
   const promoTxt = promosDe(n.id).filter(x => mecDe(x) && mecDe(x) !== 'primera' && (enPromo(x, p.id, mecDe(x) === 'precio' ? x.productos : null) || (x.regalos || []).some(y => y.productoId === p.id)))
     .map(x => `<div class="aviso err" style="margin:8px 0 0;background:var(--err-s)">🏷️ ${mecDe(x) !== 'precio' ? '<b>' + esc(x.etiqueta || etiquetaPromo(x)) + '</b> · ' : ''}${esc(x.titulo)}${mecDe(x) === 'regalo' && (x.regalos || []).some(y => y.productoId === p.id) && !enPromo(x, p.id) ? ' (este producto es el regalo)' : ''} · ${esc(x.vigencia)}</div>`).join('');
-  modal(`${p.foto ? `<img class="hojaImg" src="${esc(p.foto)}" alt="">` : ''}
+  const foto0 = (vi >= 0 && vars[vi].foto) || p.foto;
+  modal(`${foto0 ? `<img class="hojaImg" id="hImg" src="${esc(foto0)}" alt="">` : ''}
     <div class="row between" style="align-items:flex-start"><h2 style="margin:0">${esc(p.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     ${p.descripcion ? `<p class="muted" style="margin:6px 0">${esc(p.descripcion)}</p>` : ''}
     ${p.preventa && !cs && S.vista !== 'caja' ? pvAvisoHoja(p.preventa) : ''}
     <div class="row wrap" style="gap:14px;margin-top:4px"><b style="font-size:20px">${cs ? '🍱 Incluido en el combo' : precioTxt(p, n.id)}</b><span class="muted">${ico('reloj', 's')} ${p.tiempoPrep || n.tiempoPrep} min de preparación</span></div>
     ${cs ? '' : promoTxt}
     ${vars.length ? `<div class="grupoT"><b>${cs ? 'Tamaño' : S._hoja.grupos.some(g => g.porVariante) ? '¿Cuántas quieres?' : 'Elige una opción'}</b><span class="tag t-pri">${cs ? 'Puedes subir de tamaño' : 'Obligatorio'}</span></div>
-      ${vars.map((v, i) => cs && !comboVarOk(vars, cs.incl, v) ? '' : cs ? `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${v.nombre === cs.incl ? 'Incluido' : '+' + money(comboDif(vars, cs.incl, v))}</b></label>` : `<label class="opc"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} onchange="S._hoja.v=${i};cuantasHoja();totalHoja()"><span>${esc(v.nombre)}</span><b>${prV(v)}</b></label>`).join('')}` : ''}
+      ${vars.map((v, i) => (cs && !comboVarOk(vars, cs.incl, v)) || varOcu(v) ? '' : cs ? `<label class="opc${v.agotado ? ' opcOff' : ''}"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} ${v.agotado ? 'disabled' : ''} onchange="S._hoja.v=${i};hojaVarFoto();cuantasHoja();totalHoja()">${fV(v)}<span>${esc(v.nombre)}</span>${agV(v)}<b>${v.nombre === cs.incl ? 'Incluido' : '+' + money(comboDif(vars, cs.incl, v))}</b></label>` : `<label class="opc${v.agotado ? ' opcOff' : ''}"><input type="radio" name="hVar" ${i === vi ? 'checked' : ''} ${v.agotado ? 'disabled' : ''} onchange="S._hoja.v=${i};hojaVarFoto();cuantasHoja();totalHoja()">${fV(v)}<span>${esc(v.nombre)}</span>${agV(v)}<b>${prV(v)}</b></label>`).join('')}` : ''}
     ${S._hoja.grupos.map((g, gi) => `<div class="grupoT"><b>${esc(g.nombre)}</b><span id="hGc${gi}" class="${g.obligatorio ? 'tag t-pri' : 'muted small'}"></span></div>
       ${g.repetir ? g.opciones.map((o, oi) => `<div class="opc opcCant"><span>${esc(o.nombre)}${o.precio ? ' <b class="muted small">+' + money(o.precio) + '</b>' : ''}</span>
           <div class="cant chica"><button aria-label="Quitar uno" type="button" aria-label="Quitar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},-1)">${ico('menos', 's')}</button><b id="hQ${gi}_${oi}">0</b><button aria-label="Agregar uno" type="button" aria-label="Agregar ${esc(o.nombre)}" onclick="cantOpc(${gi},${oi},1)">${ico('mas', 's')}</button></div></div>`).join('')
@@ -16026,6 +16129,11 @@ function abrirProducto(pid, sec) {
       ${p.preventa && S.vista !== 'caja' ? (pvAbierta(p.preventa) && n.recibiendo !== false ? `<button class="btn pri pill" style="flex:1;margin-left:12px" onclick="agregarHoja()">🎟️ Apartar · <span id="hTot">${money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio)}</span></button>` : `<button class="btn pri pill" style="flex:1;margin-left:12px" disabled>${Date.now() < p.preventa.ini ? 'Abre el ' + esc(pvFecha(p.preventa.ini)) : 'Preventa cerrada'}</button>`)
       : `<button class="btn pri pill" style="flex:1;margin-left:12px;white-space:nowrap" ${pedible(n) || esAdminU() || S.vista === 'caja' ? '' : 'disabled'} onclick="agregarHoja()">${pedible(n) || esAdminU() || S.vista === 'caja' ? 'Agregar · <span id="hTot">' + money(precioBase(n.id, p, vi >= 0 ? vars[vi].nombre : '').precio) + '</span>' : 'No recibe pedidos ahora'}</button>`}`}</div>`);
   cuantasHoja();
+}
+/** 3.5.1: al elegir una variante con foto, la foto grande cambia a la suya. */
+function hojaVarFoto() {
+  const p = S._hoja.p, v = S._hoja.v >= 0 ? p.variantes[S._hoja.v] : null, img = $('#hImg'), src = (v && v.foto) || p.foto;
+  if (img && src) img.src = src;
 }
 /** Cuántas opciones lleva marcadas cada grupo de la hoja (las repetibles cuentan cada vez). */
 function contadasHoja(gi) { const g = S._hoja.grupos[gi]; return g.repetir ? S._hoja.q[gi].reduce((a, b) => a + b, 0) : [...document.querySelectorAll('.hGr[data-g="' + gi + '"]')].filter(x => x.checked).length; }
@@ -16192,6 +16300,7 @@ function itemPedido(x) {
 function agregarHoja() {
   const n = S._menu.negocio, p = S._hoja.p, s = selHoja();
   if (p.variantes.length && S._hoja.v < 0) { toast('Elige una opción de ' + p.nombre, 'err'); return; }
+  if (p.variantes.length && p.variantes[S._hoja.v].agotado) { toast(p.variantes[S._hoja.v].nombre + ' está agotado; elige otra opción', 'err'); return; }
   const falta = S._hoja.grupos.find((g, gi) => { const c = cuantasPide(g, s.variante), n = contadasHoja(gi); return c.exacto ? n !== c.exacto : g.obligatorio && !n; });
   if (falta) {
     const gi = S._hoja.grupos.indexOf(falta), c = cuantasPide(falta, s.variante), n = contadasHoja(gi);
@@ -17836,7 +17945,7 @@ async function vMenu() {
     ${Object.keys(grupos).map(g => `<h3>${esc(g)}</h3><div class="card">${grupos[g].slice().sort((a, b) => (a.subcategoria || '').localeCompare(b.subcategoria || '')).map(p => `<div class="prod">
       ${p.foto ? (!ed && fot ? `<label style="cursor:pointer;flex:none"><img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy"><input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>` : `<img class="fotoP" src="${esc(p.foto)}" alt="" loading="lazy">`) : !fot ? '<span class="fotoP"></span>' : `<label class="fotoP fotoFalta" style="background:${colCat(p.categoria)}" title="Tomar o subir la foto"><span>${emoProd(p)}</span><i>📷</i><input type="file" accept="image/*" hidden onchange="fotoRapida('${p.id}',this)"></label>`}
       <div class="grow" ${ed ? `onclick="lsG('menuTip','1');formProducto('${p.id}')" style="cursor:pointer"` : ''}><b>${esc(p.nombre)}</b><div class="b">${precioTxt(p)}</div>
-        <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', (p.tambien || []).length ? '➕ También en ' + esc(p.tambien.join(', ')) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? '🧩 ' + gruposDe(p, S._grupos).map(g => esc(g.nombre)).join(', ') : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-err">Hoy no aparece</span>'}</div>
+        <div class="muted small">${[p.subcategoria ? '🗂️ ' + esc(p.subcategoria) : '', (p.tambien || []).length ? '➕ También en ' + esc(p.tambien.join(', ')) : '', p.variantes.length ? p.variantes.length + ' variantes' : '', gruposDe(p, S._grupos).length ? '🧩 ' + gruposDe(p, S._grupos).map(g => esc(g.nombre)).join(', ') : '', p.extras.length ? p.extras.length + ' extras' : '', p.quitar.length ? p.quitar.length + ' “sin”' : ''].filter(Boolean).join(' · ')}</div>${p.disponible === 'si' ? '' : '<span class="tag t-err">Hoy no aparece</span>'}${disp && p.variantes.length ? varChipsHTML(p) : ''}</div>
       ${disp ? `<div class="swWrap"><label class="sw" title="Disponible"><input type="checkbox" ${p.disponible === 'si' ? 'checked' : ''} onchange="(s=>{s.textContent=this.checked?'Disponible':'Agotado';s.className=this.checked?'ok':'err'})(this.closest('.swWrap').querySelector('small'));act(null,()=>dispProducto('${p.id}',this))"><i></i></label><small class="${p.disponible === 'si' ? 'ok' : 'err'}">${p.disponible === 'si' ? 'Disponible' : 'Agotado'}</small></div>` : ''}</div>`).join('')}</div>`).join('')}
     ${!l.length ? `<div class="vacio"><span class="big">🍽️</span>Agrega tus productos uno por uno o sube tu menú completo con la plantilla de Excel.${ed ? '<div class="btns" style="justify-content:center"><button class="btn sm" onclick="descargarPlantilla()">⬇ Plantilla de Excel</button><label class="btn sm pri">⬆ Subir Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="importarExcel(this)"></label></div>' : ''}</div>` : ''}`);
 }
@@ -18155,6 +18264,17 @@ async function aplicarImport() {
   pintar(true);
 }
 
+/** 3.5.1 · Disponibilidad por variante: un chip por variante (las que se acabaron por inventario vuelven solas). */
+function varChipsHTML(p) {
+  return `<div class="chips varChips" id="vch_${p.id}" style="margin-top:6px" onclick="event.stopPropagation()">${p.variantes.map(v => { const inv = v.sinInsumo && !v.agotadoMano;
+    return `<label title="${inv ? 'Se acabó su insumo: vuelve sola al registrar entrada' : 'Toca para marcar si hay o no'}" style="${v.agotado ? 'opacity:.6;text-decoration:line-through' : ''}"><input type="checkbox" data-v="${esc(v.nombre)}" ${v.agotado ? '' : 'checked'} ${inv ? 'disabled' : ''} onchange="act(null,()=>dispVariante('${p.id}'))">${esc(v.nombre)}${inv ? ' 📦' : ''}</label>`; }).join('')}</div>`;
+}
+async function dispVariante(pid) {
+  const off = [...document.querySelectorAll('#vch_' + pid + ' input:not([disabled])')].filter(x => !x.checked).map(x => x.dataset.v);
+  const r = await api('guardarProducto', { id: pid, varOff: off });
+  const i = (S._prods || []).findIndex(x => x.id === pid); if (i >= 0) S._prods[i] = Object.assign({}, S._prods[i], r);
+  toast(off.length ? 'Agotadas: ' + off.join(', ') : 'Todas las variantes disponibles'); pintar(true);
+}
 async function dispProducto(id, chk) {
   try { await api('guardarProducto', { id, disponible: chk.checked ? 'si' : 'no' }); toast(chk.checked ? 'Disponible' : 'Marcado como agotado'); }
   catch (e) { chk.checked = !chk.checked; throw e; }
@@ -18179,7 +18299,8 @@ function formProducto(id) {
     <details class="masOps" id="pMas" ${(p.variantes || []).length || (p.extras || []).length || (p.quitar || []).length || p.subcategoria || (p.tambien || []).length || p.tiempoPrep || (p.preventa && p.preventa.activo) ? 'open' : ''}><summary><b>Más opciones ▾</b> <span class="muted small">tamaños, extras, ingredientes que se quitan, tiempo, receta…</span></summary>
     <label class="f">Variantes · el cliente elige una (tamaño, presentación…)</label>
     <div class="muted small" style="margin:-2px 0 6px">Cada variante tiene su propio precio y reemplaza el precio normal.</div>
-    <div id="varRows"></div><button class="btn sm" onclick="filaExtra('','','#varRows','Ej. Grande')">${ico('mas', 's')} Agregar variante</button>
+    <div class="muted small" style="margin:-2px 0 6px">📷 Ponle foto a cada variante (ej. cada tipo de pan) y márcala <b>Agotada</b> cuando se acabe: el cliente solo ve las que hay.</div>
+    <div id="varRows"></div><button class="btn sm" onclick="filaVar()">${ico('mas', 's')} Agregar variante</button>
     <label class="f">Extras (el cliente puede agregarlos · sin precio = gratis)</label>
     <div id="exRows"></div><button class="btn sm" onclick="filaExtra('','')">${ico('mas', 's')} Agregar extra</button>
     <label class="f">Ingredientes que se pueden quitar (separados por coma)</label>
@@ -18195,7 +18316,7 @@ function formProducto(id) {
     <div class="btns"><button class="btn pri" onclick="act(this,()=>guardarProducto('${id || ''}'))">Guardar</button>
     ${id ? `<button class="btn err" onclick="act(this,()=>eliminarProducto('${id}'))">Eliminar</button>` : ''}<button class="btn" onclick="cerrarModal()">Cancelar</button></div>`);
   (p.extras || []).forEach(e => filaExtra(e.nombre, e.precio));
-  (p.variantes || []).forEach(v => filaExtra(v.nombre, v.precio, '#varRows', 'Ej. Grande'));
+  (p.variantes || []).forEach(v => filaVar(v));
   (p.opciones || []).forEach(g => filaOpcion(g));
   recetaCargar(p);
   setTimeout(() => { const c = $('#modal .caja'); if (c) c.scrollTop = 0; }, 30); // 3.3.2: siempre abre arriba
@@ -18225,6 +18346,30 @@ function filaExtra(nombre, precio, donde, ejemplo) {
   d.querySelector('.exN').value = nombre || ''; d.querySelector('.exP').value = precio === '' || precio == null ? '' : precio;
   $(donde || '#exRows').appendChild(d);
 }
+/** 3.5.1 · Renglón de variante: foto, nombre, precio y agotada. */
+function filaVar(v) {
+  v = v || { nombre: '', precio: '' };
+  const d = document.createElement('div');
+  d.className = 'exRow varRow'; d.dataset.orig = v.nombre || ''; d.dataset.tiene = v.foto ? '1' : '';
+  d.innerHTML = `<label class="varFoto" title="Foto de esta variante"><img alt="" style="display:none"><span>📷</span><input type="file" accept="image/*" hidden onchange="fotoVariante(this)"></label>
+    <input class="i exN" placeholder="Ej. Grande" maxlength="40"><input class="i exP" type="number" inputmode="decimal" placeholder="$">
+    <label class="small varOff" title="${v.sinInsumo ? 'Se acabó su insumo en el inventario' : 'Márcala si hoy no hay'}"><input type="checkbox" class="vOff"> Agotada${v.sinInsumo ? ' <span class="tag t-err" style="font-size:9px">sin insumo</span>' : ''}</label><button class="btn sm err" onclick="this.parentNode.remove()">✕</button>`;
+  d.querySelector('.exN').value = v.nombre || ''; d.querySelector('.exP').value = v.precio === '' || v.precio == null ? '' : v.precio;
+  d.querySelector('.vOff').checked = !!v.agotadoMano;
+  if (v.foto) { const im = d.querySelector('.varFoto img'); im.src = v.foto; im.style.display = ''; d.querySelector('.varFoto span').style.display = 'none'; }
+  $('#varRows').appendChild(d);
+}
+async function fotoVariante(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = inp.closest('.varRow'), url = await comprimir(f, 700);
+  r.dataset.foto = url; const im = r.querySelector('.varFoto img'); im.src = url; im.style.display = ''; r.querySelector('.varFoto span').style.display = 'none';
+}
+/** Fotos y agotadas de las variantes para guardar: foto nueva, "=nombre anterior" para conservar la que tenía, o vacío. */
+function varExtrasForm() {
+  const rs = [...document.querySelectorAll('#varRows .varRow')].filter(r => r.querySelector('.exN').value.trim()), fotos = {};
+  rs.forEach(r => { const n = r.querySelector('.exN').value.trim(); fotos[n] = r.dataset.foto || (r.dataset.tiene && r.dataset.orig ? '=' + r.dataset.orig : ''); });
+  return { varFotos: fotos, varOff: rs.filter(r => r.querySelector('.vOff').checked).map(r => r.querySelector('.exN').value.trim()) };
+}
 function extrasForm(donde) {
   return [...document.querySelectorAll((donde || '#exRows') + ' .exRow')].map(r => ({ nombre: r.querySelector('.exN').value.trim(), precio: r.querySelector('.exP').value })).filter(e => e.nombre);
 }
@@ -18253,7 +18398,7 @@ async function guardarProducto(id) {
   }).filter(Boolean);
   await api('guardarProducto', {
     id: id || undefined, nombre: $('#pNom').value, descripcion: $('#pDes').value, precio: $('#pPre').value, categoria: $('#pCat').value,
-    fotoImagen: S._foto || undefined, tiempoPrep: $('#pTie').value, extras: extrasForm(), quitar: $('#pQui').value, variantes: extrasForm('#varRows'),
+    fotoImagen: S._foto || undefined, tiempoPrep: $('#pTie').value, extras: extrasForm(), quitar: $('#pQui').value, variantes: extrasForm('#varRows'), ...varExtrasForm(),
     subcategoria: $('#pSub').value, opciones: opcionesForm(), preventa: pvLeer(), receta: S._rec && S._rec.activo ? S._rec.r : undefined,
     tambien: [...document.querySelectorAll('.pTamC')].filter(x => x.checked && x.value !== $('#pCat').value.trim()).map(x => x.value)
   });
