@@ -1240,7 +1240,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.4';
+const APP_VER = '3.5.5';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2709,6 +2709,7 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.5', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Todo pedido sale pagado:</b> en efectivo, el repartidor te paga la comida al recogerlo (toca "Entregar a… · cóbrale"); con transferencia, confírmala antes de entregarlo. La lista de la caja pone arriba lo que necesita atención.', f: null },
   { ver: '3.5.3', para: P => P.equipo && !P.dueno, t: '🧱 <b>Armemos el inventario:</b> al checar entrada te tocan 3 insumos nuevos y 3 existentes (cuántos hay, caducidad y en qué se usan). Cuenta en tus actividades del día.', f: null },
   { ver: '3.5.3', para: P => P.dueno, t: '🧱 <b>Arma tu inventario poco a poco:</b> en Inventario → Existencias toca "Empezar a armarlo". Cada quien captura 6 insumos al día; ves su avance y en los bonos por cumplimiento pones el % mínimo.', f: null },
   { ver: '3.5.2', para: P => P.caja || P.gerente || P.dueno, t: '🧾 <b>Compras con desglose:</b> al registrar una compra de insumos, hielo, gas, limpieza o desechables se anota tal cual el ticket (cuántos, caja o pieza y su costo). Entra solo al inventario; el pago al repartidor va en su propio renglón.', f: null },
@@ -5721,7 +5722,7 @@ function facFormConfig() {
     <div class="muted small">${c.csd ? '✅ Sellos cargados' + (c.csdFecha ? ' el ' + fechaCorta(c.csdFecha) : '') + '. Súbelos de nuevo solo si los renovaste.' : 'Los descargas del portal del SAT (no es tu e.firma). Se envían directo a Facturama y no se guardan en ' + APP + '.'}</div>
     <label class="f">Archivo .cer</label><input class="i" id="fnCer" type="file" accept=".cer">
     <label class="f">Archivo .key</label><input class="i" id="fnKey" type="file" accept=".key">
-    <label class="f">Contraseña de los sellos</label><input class="i" id="fnPas" type="password" autocomplete="off">
+    <label class="f">Contraseña de los sellos</label><input class="i" id="fnPas" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore>
     <div class="btns"><button class="btn pill" onclick="cerrarModal()">Cancelar</button><button class="btn pri pill" onclick="act(this,facGuardarConfig)">Guardar</button></div>`);
 }
 function facLogoCambio() {
@@ -7216,12 +7217,26 @@ async function pdvAbrirCerrar(chk) {
   catch (e) { chk.checked = !chk.checked; throw e; }
 }
 function pdvVistaApp() {
-  const l = pdvAppCuentas().sort((a, b) => (a.estado === 'NUEVO' ? 0 : 1) - (b.estado === 'NUEVO' ? 0 : 1) || a.creado - b.creado);
+  const l = pdvAppCuentas().sort((a, b) => pdvAppUrg(a) - pdvAppUrg(b) || a.creado - b.creado); // 3.5.5: lo que pide acción arriba, lo entregado al final
   if (!l.length) return '';
   return `<h3 style="margin:0 0 6px">📱 Pedidos de la app y teléfono (${l.length})</h3>${l.map(p => { const e = APP_EST[p.estado] || [p.estado, ''];
     return `<div class="card pdvAppC ${p.estado === 'NUEVO' ? 'nuevo' : ''}" role="button" onclick="pdvAppAbrir('${p.id}')"><div class="row between" style="gap:8px"><b><span class="tag pdvCanal">${appCanal(p)}</span> ${esc(appNombre(p))}</b><b>${money(p.subtotal)}</b></div>
       <div class="row between" style="gap:8px;margin-top:4px"><span class="small muted">${esc(p.folio)} · ${p.tipoEntrega === 'recoger' ? '🏪 Recoge' : '🛵 Domicilio'} · ${p.programado ? '<b>🗓️ ' + esc(progTxtC(p.programado)) + '</b>' : hora(p.creado)}</span>
-      <span>${p.ubicPend ? '<span class="tag t-warn">📍 Ubicación por confirmar</span> ' : ''}${p.cobroCaja ? '<span class="tag t-ok">💵 Cobrado</span> ' : pdvAppPagoTag(p)}<span class="tag ${e[1]}">${e[0]}</span></span></div></div>`; }).join('')}`;
+      <span>${p.ubicPend ? '<span class="tag t-warn">📍 Ubicación por confirmar</span> ' : ''}${p.cobroCaja ? '<span class="tag t-ok">💵 Cobrado</span> ' : pdvAppFaltaTag(p) || pdvAppPagoTag(p)}<span class="tag ${e[1]}">${e[0]}</span></span></div></div>`; }).join('')}`;
+}
+/** 3.5.5 · Urgencia en la lista de la caja: 0 pide acción (nuevo, pago por revisar) · 1 en cocina o listo · 2 en camino · 3 entregado sin registrar. */
+function pdvAppUrg(p) {
+  if (['NUEVO', 'PAGO_ENVIADO', 'POR_PAGAR'].includes(p.estado) || (p.pagoPend && !['EN_CAMINO', 'ENTREGADO'].includes(p.estado))) return 0;
+  if (['PROGRAMADO', 'PREPARANDO', 'LISTO'].includes(p.estado)) return 1;
+  if (p.estado === 'EN_CAMINO') return 2;
+  return 3;
+}
+/** Etiqueta de lo que falta en un pedido que ya salió y no se ha registrado en la caja. */
+function pdvAppFaltaTag(p) {
+  if (p.cobroCaja || !['EN_CAMINO', 'ENTREGADO'].includes(p.estado) || p.servicio) return '';
+  if (pdvAppPagado(p)) return '';
+  if (p.propio && (p.metodoPago || 'efectivo') === 'efectivo') return `<span class="tag t-warn">🛵 Trae ${money(p.subtotal)}</span> `;
+  return '<span class="tag t-warn">💵 Falta registrar el cobro</span> ';
 }
 /** Abre el pedido dentro de caja: productos, pago y los mismos botones de Pedidos. */
 function pdvAppAbrir(id) {
@@ -7239,7 +7254,7 @@ function pdvAppAbrir(id) {
       <div class="tot g"><span>Total del cliente</span><b>${money(p.total)}</b></div>
       <div class="small muted">${PAGO_TXT[p.metodoPago] || p.metodoPago}${p.metodoPago !== 'efectivo' ? (p.pagoConfirmado ? ' · ✓ confirmada' : ' · sin confirmar') : ''}${p.notas ? ' · 📝 ' + esc(p.notas) : ''}</div></div>
     ${pedInfoExtra(p)}${!cc ? pdvAppPagoAviso(p) : ''}${!cc && pdvEnvRep(p) ? `<div class="aviso info small">🛵 <b>Paga al repartidor su envío: ${money(pdvEnvRep(p))}</b> en efectivo de la caja. Al registrar el cobro queda como salida de caja.</div>` : ''}${pvLinea(p)}${cc ? `<div class="aviso ok small">💵 Cobrado en caja: ${money(cc.monto)} · ${esc(PDV_MET[cc.metodo] || cc.metodo)} · ${esc(cc.folio)}</div>` : ''}
-    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">💵 Cobrar</button>`}${botonesPedido(p, false, true)}</div>`);
+    <div class="btns" style="flex-wrap:wrap">${cc || !['PREPARANDO', 'LISTO', 'EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '' : pdvAppPagado(p) ? `<button class="btn" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar en caja</button>` : p.metodoPago === 'monedero' ? `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">👛 Cobrar con monedero</button>` : pdvAppTransf(p) && ['EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? `<div class="aviso warn" style="width:100%;margin:0">🏦 <b>Esta transferencia no se confirmó.</b> Revisa en tu banco: si llegó, regístrala; si no, cóbrala de otra forma.</div><button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">🧾 Registrar el cobro</button>` : `<button class="btn pri" onclick="act(this,()=>pdvCobrarApp('${p.id}'))">${p.propio && ['EN_CAMINO', 'ENTREGADO'].includes(p.estado) ? '🛵 Recibí ' + money(p.subtotal) + ' del repartidor' : '💵 Cobrar'}</button>`}${botonesPedido(p, false, true)}</div>`);
 }
 /* 2.66.1 · Pedidos ya pagados en la app (transferencia o CoDi confirmada) y pagos con monedero */
 const pdvAppTransf = p => (p.metodoPago === 'transferencia' || p.metodoPago === 'codi' || p.metodoPago === 'mp');
@@ -13554,7 +13569,9 @@ function botonesPedido(p, enTarjeta, sinCambio) {
     if (p.estado === 'POR_PAGAR') b.push(`<button class="btn ok" onclick="act(this,()=>confirmarPago('${id}'))">Ya me pagó ✓</button>`);
     if (p.estado === 'PROGRAMADO') { b.push(`<button class="btn" onclick="act(this,()=>accion('progEmpezar',{id:'${id}'},'A preparar 👩‍🍳'))">▶️ Empezar a preparar ya</button>`); b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}','Cancelar'))">Cancelar</button>`); }
     if (p.estado === 'PREPARANDO') b.push(`<button class="btn" onclick="act(this,()=>accion('marcarListo',{id:'${id}'},'Marcado como listo'))">📦 Ya está listo</button>`);
-    if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && p.repartidor) {
+    if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && p.repartidor && !p.servicio && ['transferencia', 'codi', 'mp'].includes(p.metodoPago) && !p.pagoConfirmado && !p.garantia && !p.preventa)
+      b.push(`<div class="aviso warn" style="width:100%;margin:0">⏳ <b>Confirma el pago antes de entregarlo al repartidor.</b> Sin pago confirmado el pedido no sale.</div>`); // 3.5.5
+    else if (['PREPARANDO', 'LISTO'].includes(p.estado) && !recoger && p.repartidor) {
       const pagaEnv = p.envioEn === 'negocio' ? p.envio : 0;
       b.push(`<button class="btn pri" onclick="act(this,()=>entregarRep('${id}',${efe ? p.subtotal : 0},'${esc(p.repartidor.nombre.replace(/['"\\]/g, ''))}',${pagaEnv}))">${ico('moto', 's')} Entregar a ${esc(p.repartidor.nombre.split(' ')[0])}${efe ? ' · cóbrale ' + money(p.subtotal) : pagaEnv ? ' · págale ' + money(pagaEnv) + ' de envío' : ''}</button>`);
     }
@@ -13587,7 +13604,11 @@ function botonesPedido(p, enTarjeta, sinCambio) {
     }
     if (['PREPARANDO', 'LISTO'].includes(p.estado)) {
       b.push(`<a class="btn" href="${gmaps(p.negocio.lat, p.negocio.lng)}" target="_blank">${ico('mapa', 's')} Al negocio</a>`);
-      b.push(`<button class="btn" onclick="act(this,()=>recogido('${id}'))">🛍️ Ya lo recogí</button>`);
+      // 3.5.5: todo pedido sale pagado: en efectivo le pagas la comida al negocio y él confirma; sin pago confirmado no sale
+      const ajeno = !p.servicio && !p.propio, sinPago = ajeno && ['transferencia', 'codi', 'mp'].includes(p.metodoPago) && !p.pagoConfirmado && !p.garantia && !p.preventa;
+      if (sinPago) b.push(`<div class="aviso warn" style="width:100%;margin:0">⏳ <b>El negocio aún no confirma el pago del cliente.</b> No lo recojas hasta que lo confirme.</div>`);
+      else if (ajeno && (p.metodoPago || 'efectivo') === 'efectivo') b.push(`<div class="aviso info" style="width:100%;margin:0">💵 <b>Págale ${money(p.subtotal)} de la comida al negocio.</b> Ellos confirman en su app que lo recogiste y te aparece en camino.</div>`);
+      else b.push(`<button class="btn" onclick="act(this,()=>recogido('${id}'))">🛍️ Ya lo recogí</button>`);
       if (!enTarjeta) b.push(p.servicio ? `<button class="btn err" onclick="act(this,()=>cancelar('${id}'))">Cancelar servicio</button>` : `<button class="btn err" onclick="act(this,()=>liberar('${id}'))">Liberar pedido</button>`);
     }
     if (p.estado === 'EN_CAMINO' && p.servicio) b.push(`<button class="btn ok" onclick="act(this,()=>entregado('${id}',0))">${ico('check', 's')} Ya lo entregué</button>`);
@@ -20359,7 +20380,7 @@ async function vAdminUsuarios(p, silencioso) {
   const f = S._fu || { q: '', rol: '', estado: '' };
   if (!silencioso || !$('#listaU')) {
     html(`<h2>Usuarios</h2>
-      <div class="buscar">${ico('search', 's')}<input id="uq" placeholder="Nombre, teléfono o negocio" value="${esc(f.q)}" onchange="filtrarU()"></div>
+      <div class="buscar">${ico('search', 's')}<input id="uq" type="search" name="usr-buscar" autocomplete="off" data-lpignore="true" data-1p-ignore placeholder="Nombre, teléfono o negocio" value="${esc(f.q)}" onchange="filtrarU()"></div>
       <div class="row"><select class="i" id="ur" onchange="filtrarU()"><option value="">Todos los roles</option>${['comprador', 'negocio', 'repartidor'].concat(esLocal() ? [] : ['admin']).map(r => `<option value="${r}" ${f.rol === r ? 'selected' : ''}>${rolNombre(r)}</option>`).join('')}</select>
       <select class="i" id="ue" onchange="filtrarU()"><option value="">Todos</option>${['activo', 'pendiente', 'bloqueado'].map(e => `<option ${f.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
       <div id="listaU" style="margin-top:12px"><div class="cargando">Cargando…</div></div>`);
@@ -20395,6 +20416,7 @@ const GRUPOS_CFG = [
   ['✅ Funciones de operación', ['operacionModo', 'operacionNegocios']]
 ];
 async function vAdminConfig() {
+  [400, 1200, 2500].forEach(ms => setTimeout(() => { const q = $('#cfgQ'); if (q && /^\+?\d[\d\s-]{8,}$/.test(q.value.trim())) filtrarCfg(); }, ms)); // 3.5.5: autollenado del navegador
   const [l, mpa, pfa] = await Promise.all([api('adminConfig'), api('mpAdminVer').catch(() => null), api('pideleFiscalVer').catch(() => null)]);
   S._cfgOrig = Object.fromEntries(l.map(c => [c.clave, String(c.valor)]));
   // los ajustes de la espera por nivel (antes de 2.22) ya no se usan: no se muestran
@@ -20405,9 +20427,9 @@ async function vAdminConfig() {
     .concat([['⚙️ Otros', l.filter(c => !usados.has(c.clave))]]).filter(g => g[1].length);
   const campo = c => campoEspecial(c) || `<div class="cfgF" data-txt="${esc((c.clave + ' ' + (c.descripcion || '')).toLowerCase())}">
       <label class="f">${esc(c.descripcion || c.clave)}</label>
-      <input class="i cfg" data-k="${esc(c.clave)}" value="${esc(c.valor)}" oninput="cfgCambio()"><div class="muted" style="font-size:11px;margin-top:2px">${esc(c.clave)}</div></div>`;
+      <input class="i cfg" data-k="${esc(c.clave)}" value="${esc(c.valor)}" autocomplete="off" data-lpignore="true" oninput="cfgCambio()"><div class="muted" style="font-size:11px;margin-top:2px">${esc(c.clave)}</div></div>`;
   html(`<h2>Ajustes de la app</h2>
-    <div class="buscar">${ico('search', 's')}<input id="cfgQ" placeholder="Buscar un ajuste (ej. envío, efectivo, cuota)" oninput="filtrarCfg()"></div>
+    <div class="buscar">${ico('search', 's')}<input id="cfgQ" type="search" name="cfg-buscar" autocomplete="off" data-lpignore="true" data-1p-ignore placeholder="Buscar un ajuste (ej. envío, efectivo, cuota)" oninput="filtrarCfg()"></div>
     <div class="muted small" style="margin:6px 2px 10px">Toca una categoría para abrirla. Lo que cambies se marca y se guarda con el botón de abajo.</div>
     ${cPlanes ? editorPlanes() : ''}
     ${mpa ? mpAdminCard(mpa) : ''}
@@ -20423,7 +20445,7 @@ function mpAdminCard(m) {
   return `<details class="card cfgG"><summary class="row between" style="cursor:pointer;list-style:none"><b>💳 Pagos con tarjeta (Mercado Pago)</b><span class="muted small">${m.clientId && m.conSecreto ? '✅ Activo' : 'Sin configurar'} ›</span></summary>
     <div class="muted small" style="margin:6px 0">Datos de <b>tu aplicación Pídele</b> en Mercado Pago Developers. Cada negocio conecta su propia cuenta y cobra directo; Pídele solo recibe su comisión (ajuste <b>mpComision</b>, hoy ${m.comision}%).</div>
     <label class="f">Client ID</label><input class="i" id="mpCid" value="${esc(m.clientId || '')}" inputmode="numeric">
-    <label class="f">Client Secret ${m.conSecreto ? '<span class="muted small">(guardado · escribe uno nuevo solo para cambiarlo)</span>' : ''}</label><input class="i" id="mpSec" type="password" autocomplete="off" placeholder="${m.conSecreto ? '••••••••' : ''}">
+    <label class="f">Client Secret ${m.conSecreto ? '<span class="muted small">(guardado · escribe uno nuevo solo para cambiarlo)</span>' : ''}</label><input class="i" id="mpSec" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore placeholder="${m.conSecreto ? '••••••••' : ''}">
     <label class="f">URL de redirección (la misma que registras en Mercado Pago)</label><input class="i" id="mpVol" value="${esc(volver)}">
     <label class="opc" style="margin-top:8px"><input type="checkbox" id="mpPkce" ${m.pkce !== false ? 'checked' : ''}> <span>Usar PKCE al conectar <small class="muted">· debe coincidir con "¿Usas el flujo… con PKCE?" de tu aplicación en Mercado Pago</small></span></label>
     <div class="btns"><button class="btn pri" onclick="act(this,async()=>{const r=await api('mpAdminGuardar',{clientId:$('#mpCid').value.trim(),clientSecret:$('#mpSec').value.trim(),volver:$('#mpVol').value.trim(),pkce:$('#mpPkce').checked});toast(r.clientId&&r.conSecreto?'Mercado Pago listo ✓':'Guardado');$('#mpSec').value=''})">Guardar Mercado Pago</button></div></details>`;
@@ -20442,7 +20464,7 @@ function pideleFiscalCard(f) {
     <label class="f">Clave SAT del servicio</label><input class="i" id="pfClave" value="${esc(f.clave)}" maxlength="8" inputmode="numeric"><div class="muted" style="font-size:11px">81112106 · Proveedores de servicios de aplicación (cámbiala si tu contador indica otra)</div>
     <label class="f">Sellos (CSD) ${f.csd ? '<span class="tag t-ok">✓ cargados</span>' : ''}</label>
     <div class="row" style="gap:8px"><input class="i" type="file" id="pfCer" accept=".cer"><input class="i" type="file" id="pfKey" accept=".key"></div>
-    <input class="i" type="password" id="pfPass" placeholder="Contraseña de los sellos" autocomplete="off" style="margin-top:6px">
+    <input class="i" type="password" id="pfPass" placeholder="Contraseña de los sellos" autocomplete="new-password" data-lpignore="true" data-1p-ignore style="margin-top:6px">
     <div class="btns"><button class="btn pri" onclick="act(this,pideleFiscalGuardar)">Guardar facturación de Pídele</button></div></details>`;
 }
 async function pideleFiscalGuardar() {
@@ -20480,7 +20502,9 @@ function planFunCambio(i) {
   cfgCambio();
 }
 function filtrarCfg() {
-  const q = $('#cfgQ').value.trim().toLowerCase();
+  const el = $('#cfgQ'); let q = el.value.trim().toLowerCase();
+  // 3.5.5: si el navegador lo llenó solo con un teléfono, se borra (ningún ajuste se busca por teléfono)
+  if (/^\+?\d[\d\s-]{8,}$/.test(q)) { el.value = ''; q = ''; }
   document.querySelectorAll('.cfgG').forEach(g => {
     let n = 0;
     g.querySelectorAll('.cfgF').forEach(f => { const si = !q || f.dataset.txt.includes(q); f.style.display = si ? '' : 'none'; if (si) n++; });
@@ -20493,7 +20517,7 @@ function cfgCambio() {
   document.querySelectorAll('.cfgG').forEach(g => {
     const n = [...g.querySelectorAll('.cfg')].filter(i => { const c = i.value !== S._cfgOrig[i.dataset.k]; i.style.borderColor = c ? 'var(--pri)' : ''; return c; }).length
       + [...g.querySelectorAll('.plCfg')].filter(i => { const v = (S._planesCfg[i.dataset.p] || {})[i.dataset.f], c = i.type === 'checkbox' ? !!i.checked !== (v === undefined ? planTiene(i.dataset.f, i.dataset.p) : !!v) : Number(i.value) !== Number(v ?? (i.dataset.f === 'facturasMes' ? (planTiene('factura', i.dataset.p) ? 50 : 0) : v)); if (i.type !== 'checkbox') i.style.borderColor = c ? 'var(--pri)' : ''; return c; }).length;
-    total += n; g.querySelector('.cfgN').textContent = n ? '● ' + n + ' cambio' + (n > 1 ? 's' : '') + ' · ' : '';
+    total += n; const cn = g.querySelector('.cfgN'); if (cn) cn.textContent = n ? '● ' + n + ' cambio' + (n > 1 ? 's' : '') + ' · ' : ''; // 3.5.5: Mercado Pago y Facturación no tienen contador
   });
   const b = $('#cfgGuardar'); if (b) b.textContent = total ? 'Guardar ' + total + ' cambio' + (total > 1 ? 's' : '') : 'Guardar ajustes';
 }
