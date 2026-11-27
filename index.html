@@ -516,6 +516,10 @@ body.fabFuera .aprFab{transform:translateX(-90px);opacity:.15;pointer-events:non
 .aprFab{position:fixed;left:12px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:61;display:flex;align-items:center;gap:6px;border:0;border-radius:999px;background:#2E5E8C;color:#fff;padding:8px 14px 8px 10px;font:inherit;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
 @media (min-width:900px){.aprFab{left:auto;right:12px;bottom:calc(220px + env(safe-area-inset-bottom))}body.fabFuera .aprFab{transform:translateX(90px)}} /* 3.4.5: en computadora, del lado derecho */
 .permDias,.ausDias{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;max-height:38vh;overflow:auto}.permDias button,.ausDias button{border:1.5px solid var(--ln);background:var(--card);border-radius:12px;padding:6px 10px;min-width:58px;display:flex;flex-direction:column;align-items:center;font:inherit;cursor:pointer;color:inherit}.permDias button.on,.ausDias button.on{border-color:var(--pri);background:var(--pri);color:#fff}.ausDias button.ok:not(.on){border-color:var(--ok)}.permDias small,.ausDias small{font-size:11px;opacity:.8}
+.invCapFab{position:fixed;left:12px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:60;width:46px;height:46px;border-radius:50%;border:3px solid var(--card,#fff);background:#8a5a2b;color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;padding:0;font:inherit;transition:transform .25s ease,opacity .25s ease}
+.invCapFab span{font-size:22px;line-height:1}.invCapFab i{position:absolute;right:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:var(--ok,#2e7d4f);color:#fff;font-style:normal;font-weight:900;font-size:15px;line-height:19px;text-align:center;border:2px solid var(--card,#fff)}
+body.fabFuera .invCapFab{transform:translateX(-80px);opacity:.15;pointer-events:none}
+@media (min-width:900px){.invCapFab{left:auto;right:12px;bottom:calc(280px + env(safe-area-inset-bottom))}body.fabFuera .invCapFab{transform:translateX(80px)}}
 .aprFab span{font-size:22px}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
 .aprItem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
 .aprItem .e{font-size:26px;width:34px;text-align:center}
@@ -1240,7 +1244,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.6';
+const APP_VER = '3.5.7';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2226,6 +2230,7 @@ function pintarNav() {
     const badge = (v === 'negPedidos' || v === 'pedidosD' || v === 'disponibles' || v === 'cocina') && S.nuevos ? `<i class="badge">${S.nuevos}</i>` : '';
     return `<button class="${raiz === v ? 'on' : ''}" onclick="${v === '_panel' ? 'modoCliente(false)' : v === 'pedidosD' ? 'act(null,irPedidosD)' : v === 'monedero' ? 'irMonedero()' : `ir('${v}')`}">${ico(i)}${t}${badge}</button>`;
   }).join('');
+  try { invCapFab(); } catch (e) { console.warn(e); } // 3.5.7
   try { aprFab(); if (!S._aprIni && (u.rol !== 'negocio' || S.negocio)) { S._aprIni = 1; if (!aprRegreso()) setTimeout(aprNovedades, 1800); } } catch (e) { console.warn(e); } // 3.4.0
 }
 
@@ -2509,6 +2514,20 @@ function aprFab() {
   b.innerHTML = `<span>📚</span><small>Aprende<b>${n}</b></small>`; b.setAttribute('aria-label', 'Aprende a usar Pídele');
   b.onclick = () => ir('aprende'); document.body.appendChild(b);
 }
+/** 3.5.7 · Burbuja 📦+: mientras se arma el inventario, cualquiera del equipo agrega insumos (el conteo inicial es opcional). */
+function invCapNeg() {
+  if (!S.user || S.user.rol !== 'negocio' || S.modoCliente) return null;
+  if (S.negocio && S.negocio.invCap) return S.negocio;
+  return (S.negocios || []).find(n => n && n.invCap) || null;
+}
+function invCapFab() {
+  let b = document.getElementById('invCapFab'); if (b) b.remove();
+  if (['entrar', 'aprende'].includes(S.vista)) return;
+  const n = invCapNeg(); if (!n) return;
+  b = document.createElement('button'); b.id = 'invCapFab'; b.className = 'invCapFab';
+  b.innerHTML = `<span>📦</span><i>+</i>`; b.setAttribute('aria-label', 'Agregar insumo al inventario'); b.title = 'Agregar insumo al inventario';
+  b.onclick = () => act(null, () => invCapModal(n.id, false, true)); document.body.appendChild(b);
+}
 /** Menú de funciones de su puesto. */
 function vAprende() {
   const l = aprMias();
@@ -2709,6 +2728,7 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.7', para: P => P.equipo || P.dueno, t: '📦 <b>Burbuja para agregar insumos:</b> mientras se arma el inventario verás un botón 📦+ abajo a la izquierda. Escribe el insumo que falta y agrégalo; cuánto hay es opcional. Si tienes tu tarea del día, también cuenta.', f: null },
   { ver: '3.5.6', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Si el cliente transfirió también el envío,</b> al confirmar su pago elige "comida y envío": la caja le paga al repartidor (sale como gasto) y el repartidor ya no se lo cobra.', f: null },
   { ver: '3.5.5', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Todo pedido sale pagado:</b> en efectivo, el repartidor te paga la comida al recogerlo (toca "Entregar a… · cóbrale"); con transferencia, confírmala antes de entregarlo. La lista de la caja pone arriba lo que necesita atención.', f: null },
   { ver: '3.5.3', para: P => P.equipo && !P.dueno, t: '🧱 <b>Armemos el inventario:</b> al checar entrada te tocan 3 insumos nuevos y 3 existentes (cuántos hay, caducidad y en qué se usan). Cuenta en tus actividades del día.', f: null },
@@ -9889,14 +9909,17 @@ async function invCapCambiar(on) {
   if (!on && !confirm('¿Ya está todo en el inventario? Se deja de pedir la captura diaria y empiezan los conteos (3 al entrar y el semanal), que el encargado valida con palomita.')) return;
   S._iv.D = await api('invCapCfg', { lugar: S._iv.lugar, on }); toast(on ? '🧱 Listo: desde la próxima entrada se pide la captura' : '✅ Inventario completo: empiezan los conteos'); invVista();
 }
-async function invCapModal(nid, desdeEntrada) {
-  const x = (ls('asisMia') || []).find(y => y.negocioId === nid); if (!x || !x.captura) return;
-  const D = S._cap = Object.assign(await api('invCapDatos', { id: x.captura.id }), { nid, f: null, entrada: !!desdeEntrada });
+async function invCapModal(nid, desdeEntrada, libre) {
+  const x = (ls('asisMia') || []).find(y => y.negocioId === nid);
+  if (!libre && (!x || !x.captura)) return;
+  // 3.5.7 · desde la burbuja (libre): si tiene tarea hoy, lo que agregue también cuenta
+  const q = !libre ? { id: x.captura.id } : x && x.captura && ['pendiente', 'hecho'].includes(x.captura.estado) ? { id: x.captura.id } : { negocioId: nid };
+  const D = S._cap = Object.assign(await api('invCapDatos', q), { nid, q, f: null, entrada: !!desdeEntrada, libre: !!libre });
   invCapPintar();
 }
 function invCapPintar() {
-  const D = S._cap, c = D.captura, f = D.f;
-  const nN = c.nuevos.length, nE = c.existentes.length;
+  const D = S._cap, c = D.captura, f = D.f, lib = D.libre;
+  const nN = c ? c.nuevos.length : 0, nE = c ? c.existentes.length : 0;
   let form = '';
   if (f && f.a) {
     const a = D.arts.find(z => z.id === f.a), hecho = D.hechos.includes(a.id);
@@ -9910,28 +9933,29 @@ function invCapPintar() {
       <div class="row" style="gap:6px;margin-top:6px"><div class="grow"><label class="f">Se mide en</label><select class="i" id="cpU" onchange="S._cap.f.u=this.value;invCapPintar()">${CAP_U.map(k => `<option ${k === u ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
         ${['caja', 'paquete', 'bolsa', 'galón'].includes(u) ? `<div class="grow"><label class="f">Piezas por ${esc(u)}</label><input class="i pdvNum" id="cpPz" inputmode="decimal"></div>` : ''}
         <div class="grow"><label class="f">Dónde se guarda</label><input class="i" id="cpA" maxlength="30" placeholder="Ej. Barra"></div></div>
-      ${invCapCantHTML(base, u, 50)}
+      ${invCapCantHTML(base, u, 50, lib && !c)}
       <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" id="cpV" style="flex:1;padding:5px 8px"><span>opcional</span></div>
       <label class="f">¿Se usa en alguna preparación?</label><div class="row" style="gap:6px"><select class="i" id="cpP" style="flex:2"><option value="">No / no sé</option>${D.prods.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><input class="i pdvNum" id="cpPc" style="flex:1" inputmode="decimal" placeholder="Cuánto"><span class="small" style="align-self:center">${esc(u)}</span></div>
       <div class="small muted">Ej. el jarabe: 1 oz por cada frappé. Así se descuenta solo al vender.</div>
       <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,()=>invCapGuardar('nuevo'))">➕ Agregar al inventario</button></div>`;
   }
-  modal(`<div class="row between"><h2 style="margin:0">🧱 Armemos el inventario</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <div class="small muted">Hoy te tocan <b>${c.metaN} nuevos</b> y <b>${c.metaE} existentes</b>. Cuenta en tus actividades del día.</div>
-    <div class="row" style="gap:6px;margin:8px 0">${[['🆕 Nuevos', nN, c.metaN], ['✔️ Existentes', nE, c.metaE]].map(([t, h, m]) => `<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px;${h >= m ? 'color:var(--ok)' : ''}">${Math.min(h, m)}/${m}</b><div class="small muted">${t}</div></div>`).join('')}<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px">${c.pct}%</b><div class="small muted">Hoy</div></div></div>
-    ${c.nuevos.concat(c.existentes).length ? `<div class="small muted" style="margin-bottom:6px">Hoy: ${esc(c.nuevos.concat(c.existentes).join(', '))}</div>` : ''}
+  const avance = c ? `<div class="row" style="gap:6px;margin:8px 0">${[['🆕 Nuevos', nN, c.metaN], ['✔️ Existentes', nE, c.metaE]].map(([t, h, m]) => `<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px;${h >= m ? 'color:var(--ok)' : ''}">${Math.min(h, m)}/${m}</b><div class="small muted">${t}</div></div>`).join('')}<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px">${c.pct}%</b><div class="small muted">Hoy</div></div></div>
+    ${c.nuevos.concat(c.existentes).length ? `<div class="small muted" style="margin-bottom:6px">Hoy: ${esc(c.nuevos.concat(c.existentes).join(', '))}</div>` : ''}` : '';
+  modal(`<div class="row between"><h2 style="margin:0">${lib ? '📦 Agregar insumo' : '🧱 Armemos el inventario'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted">${lib ? `Mientras armamos el inventario, agrega lo que veas que falta. ${c ? 'También cuenta para tu tarea de hoy.' : 'Cuánto hay es opcional.'}` : `Hoy te tocan <b>${c.metaN} nuevos</b> y <b>${c.metaE} existentes</b>. Cuenta en tus actividades del día.`}</div>
+    ${avance}
     <datalist id="cpArts">${D.arts.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>
     <input class="i" id="cpQ" list="cpArts" placeholder="🔍 Escribe el nombre del insumo" value="${esc(f ? (f.a ? (D.arts.find(z => z.id === f.a) || {}).nombre : f.nombre) || '' : '')}" onchange="invCapBuscar(this.value)">
     <div class="small muted" style="margin:4px 0 8px">Si ya existe, confirmas cuánto hay; si no, lo agregas.</div>
     ${form}
-    <div class="btns"><button class="btn pill full" onclick="cerrarModal()">${c.hechos >= c.total ? 'Listo' : 'Hacerlo después'}</button></div>`);
+    <div class="btns"><button class="btn pill full" onclick="cerrarModal()">${lib || c.hechos >= c.total ? 'Listo' : 'Hacerlo después'}</button></div>`);
 }
 /** Cantidad directa o, en lo que se mide en peso, pesando con envase (se restan 50 g o lo que pese su envase). */
-function invCapCantHTML(base, u, tara) {
+function invCapCantHTML(base, u, tara, opc) {
   const pesar = S._cap.pesar && base === 'g';
   return `${base === 'g' ? `<div class="pdvTipo" style="margin-top:6px"><button class="${pesar ? '' : 'on'}" onclick="S._cap.pesar=false;invCapPintar()">Contar</button><button class="${pesar ? 'on' : ''}" onclick="S._cap.pesar=true;invCapPintar()">⚖️ Pesar</button></div>` : ''}
     ${pesar ? `<div class="row" style="gap:6px;margin-top:6px"><div class="grow"><label class="f">Peso con envase (g)</label><input class="i pdvNum" id="cpPeso" inputmode="decimal" oninput="invCapNeto()"></div><div class="grow"><label class="f">Envase (g)</label><input class="i pdvNum" id="cpTara" inputmode="decimal" value="${tara == null ? 50 : tara}" oninput="invCapNeto()"></div></div><div class="small" id="cpNeto" style="margin-top:4px"></div>`
-      : `<label class="f">¿Cuánto hay? (${esc(u)})</label><input class="i pdvNum" id="cpC" inputmode="decimal">`}`;
+      : `<label class="f">¿Cuánto hay? (${esc(u)})${opc ? ' <span class="small muted">· opcional</span>' : ''}</label><input class="i pdvNum" id="cpC" inputmode="decimal"${opc ? ' placeholder="Déjalo vacío si no lo contaste"' : ''}>`}`;
 }
 function invCapNeto() {
   const p = Number(($('#cpPeso') || {}).value), t = Number(($('#cpTara') || {}).value) || 0, e = $('#cpNeto'); if (!e) return;
@@ -9945,19 +9969,21 @@ function invCapBuscar(v) {
 }
 async function invCapGuardar(tipo) {
   const D = S._cap, f = D.f, v = id => ($('#' + id) || {}).value;
-  const d = { id: D.captura.id, tipo, caducidad: v('cpV') || '' };
-  if (D.pesar && $('#cpPeso')) { if (!v('cpPeso')) throw new Error('Escribe el peso'); d.peso = Number(v('cpPeso')); d.tara = v('cpTara') === '' ? 50 : Number(v('cpTara')); }
-  else { if (v('cpC') === '' || v('cpC') == null) throw new Error('¿Cuánto hay?'); d.cantidad = Number(v('cpC')); }
+  const d = Object.assign({ tipo, caducidad: v('cpV') || '' }, D.captura ? { id: D.captura.id } : { negocioId: D.nid });
+  const opc = tipo === 'nuevo' && D.libre && !D.captura; // 3.5.7: desde la burbuja, el conteo inicial es opcional
+  if (D.pesar && $('#cpPeso')) { if (!v('cpPeso')) { if (!opc) throw new Error('Escribe el peso'); } else { d.peso = Number(v('cpPeso')); d.tara = v('cpTara') === '' ? 50 : Number(v('cpTara')); } }
+  else { if (v('cpC') === '' || v('cpC') == null) { if (!opc) throw new Error('¿Cuánto hay?'); } else d.cantidad = Number(v('cpC')); }
   if (tipo === 'existe') d.a = f.a;
   else Object.assign(d, { nombre: f.nombre, u: v('cpU') || 'pza', piezas: v('cpPz') || '', area: v('cpA') || '', usa: v('cpP') ? { prod: v('cpP'), c: Number(v('cpPc')) || 0 } : null });
   if (tipo === 'nuevo' && d.usa && !(d.usa.c > 0)) throw new Error('¿Cuánto lleva cada ' + D.prods.find(p => p.id === d.usa.prod).nombre + '?');
   const r = await api('invCapturar', d);
   if (r.mia) ls('asisMia', r.mia);
+  const antes = D.captura;
   D.captura = r.captura; D.f = null; D.pesar = false;
-  const nd = await api('invCapDatos', { id: D.captura.id }); Object.assign(D, { arts: nd.arts, hechos: nd.hechos });
-  toast(tipo === 'nuevo' ? '🆕 Agregado al inventario ✓' : '✔️ Confirmado ✓');
-  if (r.captura.hechos >= r.captura.total && r.captura.estado === 'hecho') toast('🎉 ¡Listo tu inventario de hoy!');
-  invCapPintar(); asisRepintar && asisRepintar();
+  const nd = await api('invCapDatos', D.captura ? { id: D.captura.id } : { negocioId: D.nid }); Object.assign(D, { arts: nd.arts, hechos: nd.hechos });
+  toast(tipo === 'nuevo' ? '🆕 ' + (r.nombre || '') + ' agregado al inventario ✓' : '✔️ Confirmado ✓');
+  if (r.captura && r.captura.hechos >= r.captura.total && r.captura.estado === 'hecho' && antes && antes.estado !== 'hecho') toast('🎉 ¡Listo tu inventario de hoy!');
+  invCapPintar(); typeof asisRepintar === 'function' && asisRepintar();
 }
 /** 3.5.3 · Validar con palomita lo que contó el equipo. */
 function invConteoDet(id) {
