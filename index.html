@@ -520,7 +520,13 @@ body.fabFuera .aprFab{transform:translateX(-90px);opacity:.15;pointer-events:non
 .invCapFab span{font-size:22px;line-height:1}.invCapFab i{position:absolute;right:-4px;top:-4px;width:20px;height:20px;border-radius:50%;background:var(--ok,#2e7d4f);color:#fff;font-style:normal;font-weight:900;font-size:15px;line-height:19px;text-align:center;border:2px solid var(--card,#fff)}
 body.fabFuera .invCapFab{transform:translateX(-80px);opacity:.15;pointer-events:none}
 @media (min-width:900px){.invCapFab{left:auto;right:12px;bottom:calc(280px + env(safe-area-inset-bottom))}body.fabFuera .invCapFab{transform:translateX(80px)}}
-.aprFab span{font-size:22px}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
+.aprFab span{font-size:22px}
+.gTop{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}.gTop .chip{font:inherit;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:999px;border:1.5px solid var(--ln);background:var(--card);color:var(--tx);cursor:pointer}.gTop .chip.on{opacity:.55}
+.pzFila{padding:7px 0;border-bottom:1px solid var(--ln)}.pzFila:last-child{border:0}.pzFila input[type=checkbox]{width:20px;height:20px}
+.usTab{box-shadow:none;border:1.5px solid var(--ln);padding:10px;margin:8px 0}.usFila{gap:8px;align-items:center;margin-top:6px}.usLista{max-height:42vh;overflow:auto;border:1.5px solid var(--ln);border-radius:12px;padding:4px 10px;margin:6px 0}.usCat{display:flex;align-items:center;gap:6px;padding:8px 0 2px;border-bottom:1px solid var(--ln)}.usItem{display:flex;padding:6px 0}
+.empBox{border:1.5px solid var(--ln);border-radius:14px;padding:10px;margin:8px 0}.empBox.falta{border-color:var(--warn);background:rgba(240,160,40,.08)}.empF{display:flex;align-items:center;gap:8px;margin-top:6px}
+.empBurbuja{display:block;margin:8px auto 0;border:1.5px dashed var(--ln);background:var(--card);color:var(--tx);border-radius:999px;padding:6px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}.empBurbuja.falta{border:2px solid var(--warn);background:rgba(240,160,40,.1)}
+.olvPaso{display:flex;gap:10px;align-items:flex-start;padding:8px 0;opacity:.75}.olvPaso.act{opacity:1}.olvPaso>span{flex:0 0 28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:800}.aprFab small{font-size:13px;display:flex;align-items:center;gap:6px}.aprFab b{background:#fff;color:#2E5E8C;border-radius:99px;padding:0 7px;font-size:12px}
 .aprItem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
 .aprItem .e{font-size:26px;width:34px;text-align:center}
 .aprBarra{height:8px;background:var(--ln);border-radius:99px;margin-top:8px;overflow:hidden}.aprBarra i{display:block;height:100%;background:var(--ok);border-radius:99px}
@@ -882,6 +888,8 @@ input.i,select.i,textarea.i{min-width:0;max-width:100%}
 .fotoFalta{display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;font-size:28px}
 .fotoFalta i{position:absolute;right:-5px;bottom:-5px;font-style:normal;font-size:13px;background:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .swWrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;min-width:64px}.swWrap small{font-size:11.5px;font-weight:900}.swWrap small.ok{color:var(--ok)}.swWrap small.err{color:var(--err)}
+.pdvAcc{display:contents} /* 3.5.7: en celular los íconos bajan a su propio renglón */
+@media(max-width:599px){.pdvBar{flex-wrap:wrap;row-gap:8px}.pdvBar h1{order:0}.pdvBar .pdvSalir{order:1;flex:0 0 auto}.pdvAcc{order:2;display:flex;flex:1 1 100%;gap:3px;min-width:0}.pdvAcc:empty{display:none}.pdvAcc>button{flex:1 1 0;min-width:0;padding:6px 1px !important;overflow:hidden;border-radius:10px !important}.pdvAcc .pdvIco small{font-size:9px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%}}
 .pdvBar .pdvIco{display:inline-flex;flex-direction:column;align-items:center;line-height:1.05;gap:1px}.pdvBar .pdvIco small{font-size:9.5px;font-weight:800;opacity:.92}
 .entrarDiv{display:flex;align-items:center;gap:10px;color:var(--tx2);font-weight:800;margin:18px 0 10px}.entrarDiv::before,.entrarDiv::after{content:'';flex:1;height:2px;background:var(--ln)}
 .entrarCrear{min-height:54px;font-size:17px;border:2.5px solid var(--pri);color:var(--pri);background:var(--card)}
@@ -1244,7 +1252,7 @@ function avisoEnlaceOtroPueblo() {
     <div class="muted" style="margin:6px 0 12px">Tu app te muestra los negocios de ${esc(PUEBLO.nombre)}, donde estás. Si viajas a ${esc(pb.nombre)}, la app cambia sola al abrirla allá.</div>
     <button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`);
 }
-const APP_VER = '3.5.7';
+const APP_VER = '3.5.9';
 try { const l = localStorage.getItem('pe_letra'); if (l === 'g' || l === 'j') document.documentElement.dataset.letra = l; } catch (e) { }
 function ponLetra(l) { lsG('letra', l || null); if (l) document.documentElement.dataset.letra = l; else delete document.documentElement.dataset.letra; document.querySelectorAll('.letraOps button').forEach(b => b.classList.toggle('on', (b.dataset.l || '') === (l || '')));
   setTimeout(() => { const c = document.querySelector('.letraOps'); if (c) c.scrollIntoView({ block: 'center' }); }, 60);
@@ -2098,6 +2106,7 @@ function fijarSesionNeg(d) {
   if ('negocios' in d) { S.negocios = d.negocios || []; ls('negocios', S.negocios); }
   if ('invitaciones' in d) { S.invEquipo = d.invitaciones || []; ls('invEquipo', S.invEquipo); }
   if ('negocio' in d) { S.negocio = d.negocio; ls('negocio', S.negocio); S.negActivo = d.negocio ? d.negocio.id : ''; ls('negActivo', S.negActivo || null); }
+  try { invCapFab(); } catch (e) { } // 3.5.7: la burbuja 📦+ sigue a lo que diga el servidor
 }
 /** Respuestas que traen el negocio (guardar datos, abrir/cerrar): conserva dueño y permisos. */
 function fijarNeg(n) {
@@ -2505,10 +2514,18 @@ function aprMias() {
     .map(f => Object.assign({}, f, { est: !h[f.id] ? 'nueva' : verMayor(f.ver, h[f.id]) ? 'cambio' : 'ok' }));
 }
 const aprPendientes = () => aprMias().filter(f => f.est !== 'ok').length;
+/** 3.5.7 · Las burbujas (Aprende y 📦+) solo se ven en Inicio: el tablero del dueño, el perfil del equipo o el inicio de los demás. */
+function enInicio() {
+  try {
+    const l = navRol().map(x => x[0]);
+    const h = l.includes('tablero') ? 'tablero' : S.user && S.user.rol === 'negocio' ? 'perfil' : l.includes('inicio') ? 'inicio' : l[0];
+    return S.vista === h;
+  } catch (e) { return false; }
+}
 /** Botón flotante "📚 Aprende": se ve mientras haya funciones por aprender (o que cambiaron). */
 function aprFab() {
   let b = document.getElementById('aprFab'); if (b) b.remove();
-  if (!S.user || window.PIDELE_DEMO || ['caja', 'cocina', 'aprende', 'entrar'].includes(S.vista)) return;
+  if (!S.user || window.PIDELE_DEMO || !enInicio()) return;
   const n = aprPendientes(); if (!n) return;
   b = document.createElement('button'); b.id = 'aprFab'; b.className = 'aprFab';
   b.innerHTML = `<span>📚</span><small>Aprende<b>${n}</b></small>`; b.setAttribute('aria-label', 'Aprende a usar Pídele');
@@ -2522,7 +2539,7 @@ function invCapNeg() {
 }
 function invCapFab() {
   let b = document.getElementById('invCapFab'); if (b) b.remove();
-  if (['entrar', 'aprende'].includes(S.vista)) return;
+  if (!enInicio()) return;
   const n = invCapNeg(); if (!n) return;
   b = document.createElement('button'); b.id = 'invCapFab'; b.className = 'invCapFab';
   b.innerHTML = `<span>📦</span><i>+</i>`; b.setAttribute('aria-label', 'Agregar insumo al inventario'); b.title = 'Agregar insumo al inventario';
@@ -2728,6 +2745,10 @@ function aprPracticaSalir(id) {
 window.addEventListener('pidelePractica', () => { aprPracticaCorrer(); });
 /* ---- novedades: al abrir una versión nueva, lo que cambió en su puesto ---- */
 const NOVEDADES = [
+  { ver: '3.5.9', para: P => P.dueno || P.gerente || P.equipo, t: '🧾 <b>Un insumo en muchas recetas:</b> al agregar un insumo dices si es ingrediente o desechable y en qué productos va (1 o varios, con su cantidad por variante, extra u opción). En Inventario, toca un insumo → ¿Dónde se usa?', f: null },
+  { ver: '3.5.9', para: P => P.caja || P.gerente || P.dueno, t: '📦 <b>¿En qué va?</b> Para llevar y a domicilio eliges charola chica, grande o bolsa (sin costo) y se resta del inventario. En la mesa, la burbuja 📦 agrega lo que se llevan del sobrante.', f: null },
+  { ver: '3.5.8', para: P => P.caja || P.gerente || P.dueno, t: '🧾 <b>Compras más rápidas:</b> arriba del desglose salen los insumos que más compras; al tocarlos se llenan con la presentación y el precio de la última vez. Si es caja o paquete, te dice cuánto sale cada pieza.', f: null },
+  { ver: '3.5.8', para: P => P.dueno || P.gerente, t: '🧃 <b>Productos por pieza:</b> si un producto no tiene receta, cada venta descuenta 1 del insumo que se llama igual (refrescos, aguas, panes, postres). En Inventario → Existencias confirma los parecidos con palomita.', f: null },
   { ver: '3.5.7', para: P => P.equipo || P.dueno, t: '📦 <b>Burbuja para agregar insumos:</b> mientras se arma el inventario verás un botón 📦+ abajo a la izquierda. Escribe el insumo que falta y agrégalo; cuánto hay es opcional. Si tienes tu tarea del día, también cuenta.', f: null },
   { ver: '3.5.6', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Si el cliente transfirió también el envío,</b> al confirmar su pago elige "comida y envío": la caja le paga al repartidor (sale como gasto) y el repartidor ya no se lo cobra.', f: null },
   { ver: '3.5.5', para: P => P.caja || P.gerente || P.dueno, t: '🛵 <b>Todo pedido sale pagado:</b> en efectivo, el repartidor te paga la comida al recogerlo (toca "Entregar a… · cóbrale"); con transferencia, confírmala antes de entregarlo. La lista de la caja pone arriba lo que necesita atención.', f: null },
@@ -4591,7 +4612,7 @@ function pintarCaja() {
   html(`<div class="pdv">
     <div class="pdvBar"><h1>${nomina ? '👥 Personal · ' : ventasM ? '📊 Ventas · ' : simple ? '🛒 ' : '🧾 '}${esc(S.negocio.nombre)}</h1>
       <span class="pdvTurno" ${pdvMulti() && (PDV.cajasAbiertas || []).length ? 'style="cursor:pointer" onclick="pdvVerOtraCaja()" title="Cambiar de caja"' : ''}>${c ? esc(pdvCajaNom(c)) + ' · ' + esc(c.abre.nombre.split(' ')[0]) + (pdvMulti() && (PDV.cajasAbiertas || []).length > 1 ? ' ⇄' : '') : (PDV.cajasAbiertas || []).length ? 'Cajas abiertas: ' + PDV.cajasAbiertas.length : 'Caja cerrada'}</span>
-      ${nomina || ventasM ? '' : `${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button class="pdvIco" onclick="act(this,asisMenu)" aria-label="Asistencia">🕒<small>Checar</small></button>' : ''}${esDisp() ? '' : `<button class="pdvIco" onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️<small>Pedir</small></button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button class="pdvIco" onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯<small>Metas</small></button>' : ''}<button class="pdvIco" onclick="pdvFormPin()" aria-label="Mi código">🔑<small>Código</small></button><button class="pdvIco" onclick="pdvAjustes()" aria-label="Ajustes">⚙️<small>Ajustes</small></button>`}${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa">🧾 Caja</button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button onclick="ir('cocina')" aria-label="Cocina">🍳<span class="pdvTxt"> Cocina</span></button>` : ''}<button onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
+      <div class="pdvAcc">${nomina || ventasM ? '' : `${funOn('personal', 'asistencia') && (esDisp() || relojAut(S.negocio.id) || (ls('asisMia') || []).some(x => x.negocioId === S.negocio.id)) ? '<button class="pdvIco" onclick="act(this,asisMenu)" aria-label="Asistencia">🕒<small>Checar</small></button>' : ''}${esDisp() ? '' : `<button class="pdvIco" onclick="modoCliente(true);ir('inicio')" aria-label="Pedir" title="Pedir a cualquier negocio">🛍️<small>Pedir</small></button>`}${(PDV.metas || []).some(m => m.activa !== false) && (metasVisibles() || pdvPuede('dg')) ? '<button class="pdvIco" onclick="act(this,metaMiAvance)" aria-label="Mis metas">🎯<small>Metas</small></button>' : ''}<button class="pdvIco" onclick="pdvFormPin()" aria-label="Mi código">🔑<small>Código</small></button><button class="pdvIco" onclick="pdvAjustes()" aria-label="Ajustes">⚙️<small>Ajustes</small></button>`}${simple && pdvPuede('dcg') ? `<button onclick="PDV.tab='';ir('caja')" aria-label="Caja completa" class="pdvIco">🧾<small>Caja</small></button>` : ''}${!nomina && !ventasM && cocDisponible() ? `<button class="pdvIco" onclick="ir('cocina')" aria-label="Cocina">🍳<small>Cocina</small></button>` : ''}</div><button class="pdvSalir" onclick="${nomina || ventasM ? "ir(esDuenoVarios() ? 'tablero' : 'perfil')" : 'pdvSalirDeCaja()'}">${nomina || ventasM ? '← Inicio' : 'Salir'}</button></div>
     ${sinRed ? '<div class="aviso warn" style="margin:0 0 10px">📴 Sin internet: todo se guarda en este equipo y se sube solo al volver la señal.</div>' : ''}
     ${esDisp() ? `<div class="aviso info row between" style="margin:0 0 10px;gap:8px"><span>🖥️ <b>${esc(S.user.nombre)}</b> · atiende: <b>${S._oper && Date.now() - S._oper.ts < 4 * 3600e3 ? esc(S._oper.nombre.split(' ')[0]) : 'nadie'}</b></span><button class="btn sm" onclick="act(this,pdvOperElegir)">👤 ${S._oper ? 'Cambiar' : '¿Quién atiende?'}</button></div>`
       : !nomina && !ventasM && !(PDV.personal[S.user.id] && PDV.personal[S.user.id].pin) && pdvPuede('dcg') ? '<div class="aviso info" style="margin:0 0 10px">🔑 Crea tu código de caja (para abrir, cerrar y autorizar). <button class="lnk" onclick="pdvFormPin()">Crear mi código</button></div>' : ''}
@@ -5155,6 +5176,7 @@ function pdvPintarCobro() {
     ${k.app && k.app.anticipo ? `<div class="aviso info small pvCobro" style="margin:0 0 6px">🎟️ Preventa · anticipo pagado <b>${money(k.app.anticipo)}</b> · resta <b>${money(Math.max(0, k.total - k.app.anticipo))}</b></div>` : ''}
     ${k.app && k.app.envio > 0 && (k.app.cobraNeg || k.app.incl) && !k.pagos.filter(x => !x.anticipo).length ? `<label class="pdvChk pdvEnvChk"><input type="checkbox" ${k.app.incl ? 'checked' : ''} onchange="pdvAppEnvio(this.checked)"> 🛵 Incluir envío en el cobro (${money(k.app.envio)})</label>` : ''}
     ${k.pagos.length || k.app ? '' : pdvEntregaHTML(k.ent, false)}
+    ${empReqCobro() ? (S._empVolver = pdvPintarCobro, empHTML(k.emp, 'pdvEmpCobro', true)) : ''}
     ${k.app ? '' : cliCobroHTML({ tel: PDV.venta.tel, nombre: PDV.venta.nombre }, 'cliCobroVenta')}
     ${k.app ? '' : monCampoCobro(PDV.venta.tel)}
     ${k.pagos.map((p, i) => p.anticipo ? `<div class="pdvLinea"><div class="grow">${p.etq ? esc(p.etq) : '🎟️ Anticipo (' + PDV_MET[p.metodo] + ')'}</div><b>${money(p.monto)}</b></div>` : `<div class="pdvLinea"><div class="grow">${PDV_MET[p.metodo]}${p.propina ? ' · propina ' + money(p.propina) : ''}${p.cambio ? ' · cambio ' + money(p.cambio) : ''}</div><b>${money(p.monto)}</b><button class="redondo" style="width:32px;height:32px" onclick="PDV.cobro.pagos.splice(${i},1);pdvPintarCobro()" aria-label="Quitar">✕</button></div>`).join('')}
@@ -5266,6 +5288,7 @@ async function pdvTerminarVenta() {
   const k = PDV.cobro, c = pdvCarrito(), v0 = PDV.venta, caja = pdvCajaCobro();
   if (!caja) throw new Error('La caja está cerrada');
   if (pdvR(k.total - pdvPagado()) > 0) throw new Error('Falta cobrar ' + money(k.total - pdvPagado()));
+  if (empReqCobro() && !empElegido(k.emp)) throw new Error('📦 Elige en qué va (charola o bolsa)'); // 3.5.9
   const app = k.app || null;
   const ts = Date.now(), tel = v0.tel.replace(/\D/g, ''), n = S.negocio;
   if (tel && tel.length !== 10) throw new Error('El teléfono del cliente debe tener 10 dígitos');
@@ -5281,7 +5304,7 @@ async function pdvTerminarVenta() {
   const monInfo = await monAcumular({ tel: telM, nombre: v0.nombre, base: baseCb, tarjeta: k.pagos.filter(x => x.metodo === 'tarjeta').reduce((s, x) => s + x.monto, 0), folio, ventaId: ref.id });
   const items = Object.values(c.items).map(x => ({ id: x.id, nombre: x.nombre, cant: x.cant, precio: pdvR(x.precio), importe: pdvR(x.cant * x.precio), variante: x.variante || '', extras: x.extras || [], sin: x.sin || [], nota: x.nota || '', mods: x.mods || [], partes: x.partes || null }));
   const v = {
-    folio, dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, por: pdvYo(), tipo: v0.tipo, origen: 'caja',
+    folio, dia: caja.dia, ts, cajaId: caja.id, turno: caja.turno, por: pdvYo(), tipo: v0.tipo, origen: 'caja', emp: empElegido(k.emp) ? k.emp : null,
     cliente: telM ? { tel: telM, nombre: (v0.nombre || (k.pagos.find(x => x.monTel === telM) || {}).monNombre || '').trim().slice(0, 60) } : null, monedero: monInfo,
     items, total: k.total, pagos: k.pagos, propina: pdvR(k.pagos.reduce((s, p) => s + (p.propina || 0), 0)), estado: 'pagada',
     cocina: null
@@ -5310,7 +5333,7 @@ async function pdvTerminarVenta() {
   pdvGuardar(pdvCol('dias').doc(v.dia).set(inc, { merge: true }));
   if (telM) pdvGuardar(pdvCol('clientes').doc(telM).set({ tel: telM, nombre: v.cliente.nombre, visitas: pdvInc(1), total: pdvInc(v.total), ultima: ts }, { merge: true }));
   if (telM) facTicketCliente(Object.assign({ id: ref.id }, limpio), telM);
-  invVentaEnviar({ ventaId: ref.id, folio: v.folio, items: v.items, total: v.total });
+  invVentaEnviar({ ventaId: ref.id, folio: v.folio, items: v.items, total: v.total, llevar: v0.tipo === 'llevar' || !!app, emp: k.emp || null });
   PDV._ultimaVenta = Object.assign({ id: ref.id }, limpio);
   if (PDV.caja && caja.id === PDV.caja.id && !PDV.ventas.some(x => x.id === ref.id)) PDV.ventas.unshift(PDV._ultimaVenta); // 2.48: solo si entró a la caja que se está viendo
   if (ent && !(PDV.porEntregar || []).some(x => x.id === ref.id)) PDV.porEntregar = (PDV.porEntregar || []).concat([PDV._ultimaVenta]);
@@ -6463,14 +6486,18 @@ function gLinHTML() {
     return `<div class="gLin">
       <div class="row" style="gap:6px"><input class="i" list="gArts" placeholder="Insumo (ej. Leche deslactosada 1 l)" value="${esc(x.nom || '')}" onchange="gLinNombre(${i},this.value)" style="flex:1"><button class="btn sm err" onclick="gLinQuitar(${i})">✕</button></div>
       ${nuevo ? `<div class="small" style="margin:6px 0 0">🆕 <b>Insumo nuevo</b> · se lleva en <select class="i" style="width:auto;padding:4px 6px;display:inline-block" onchange="gLinSet(${i},'u',this.value,1)">${['pza', 'kg', 'g', 'l', 'ml', 'oz', 'oz fl'].map(k => `<option ${k === u ? 'selected' : ''}>${k}</option>`).join('')}</select></div>` : ''}
-      <div class="row" style="gap:6px;margin-top:6px"><input class="i pdvNum" style="flex:1" inputmode="decimal" placeholder="Cuántos" value="${esc(x.cant || '')}" oninput="gLinSet(${i},'cant',this.value)">
+      <div class="row" style="gap:6px;margin-top:6px"><input class="i pdvNum" id="gCant${i}" style="flex:1" inputmode="decimal" placeholder="${pres === u ? '¿Cuántas ' + esc(u) + '?' : '¿Cuántas ' + esc(pres) + 's?'}" value="${esc(x.cant || '')}" oninput="gLinSet(${i},'cant',this.value)">
         <select class="i" style="flex:1.2" onchange="gLinSet(${i},'pres',this.value,1)">${[...new Set([u, 'caja', 'paquete', 'bolsa', 'pza', 'kg', 'l', 'galón', 'rollo', 'costal'])].map(k => `<option ${k === pres ? 'selected' : ''}>${k}</option>`).join('')}</select>
         <input class="i pdvNum" style="flex:1.2" inputmode="decimal" placeholder="$ c/${esc(pres)}" value="${esc(x.costo || '')}" oninput="gLinSet(${i},'costo',this.value)"></div>
       ${pres !== u ? `<div class="row small" style="gap:6px;align-items:center;margin-top:6px"><span>Cada ${esc(pres)} trae</span><input class="i pdvNum" style="width:80px" inputmode="decimal" value="${esc(x.cont || '')}" oninput="gLinSet(${i},'cont',this.value)"><span>${esc(u)}</span></div>` : ''}
       <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" style="flex:1;padding:5px 8px" value="${esc(x.v || '')}" onchange="gLinSet(${i},'v',this.value)"><span>opcional</span></div>
-      <div class="small" style="text-align:right;margin-top:4px" id="gSub${i}">${gLinSub(x) ? money(gLinSub(x)) : ''}</div></div>`;
+      ${gUlt(x)}
+      <div class="small" style="text-align:right;margin-top:4px" id="gSub${i}">${gLinSubTxt(x)}</div></div>`;
   };
-  return `<datalist id="gArts">${A.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>${f.lineas.map(fila).join('')}
+  const top = gTop20(), usados = new Set(f.lineas.map(x => x.a).filter(Boolean));
+  return `<datalist id="gArts">${A.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>
+    ${top.length ? `<div class="small muted" style="margin:2px 0 4px">Lo que más compras · toca para agregar</div><div class="gTop">${top.map(a => `<button class="chip ${usados.has(a.id) ? 'on' : ''}" onclick="gLinRapido('${a.id}')">${esc(a.nombre)}</button>`).join('')}</div>` : ''}
+    ${f.lineas.map(fila).join('')}
     <div class="row" style="gap:6px"><button class="btn sm pill" onclick="gLinAgregar('i')">➕ Otro insumo</button><button class="btn sm pill" onclick="gLinAgregar('r')">🛵 Pago de repartidor</button></div>
     <div id="gLinTot" style="margin-top:8px">${gLinTotTxt()}</div>`;
 }
@@ -6478,17 +6505,46 @@ function gLinTotTxt() {
   const f = S._gasto, suma = pdvR((f.lineas || []).reduce((s, x) => s + gLinSub(x), 0)), m = pdvR(Number(($('#gMonto') || {}).value != null ? $('#gMonto').value : f.monto) || 0), dif = pdvR(m - suma);
   return `<div class="tot ${m && Math.abs(dif) <= 1 ? 'g' : ''}"><span>Desglose ${money(suma)} de ${money(m)}</span><b style="${m && Math.abs(dif) > 1 ? 'color:var(--err)' : ''}">${!m ? 'Escribe el total' : Math.abs(dif) <= 1 ? '✓ Cuadra' : dif > 0 ? 'Faltan ' + money(dif) : 'Sobran ' + money(-dif)}</b></div>`;
 }
+/** 3.5.8 · Subtotal del renglón; si es caja o paquete, también cuánto sale cada pieza. */
+function gLinSubTxt(x) {
+  const sub = gLinSub(x); if (!sub) return '';
+  const u = gLinU(x), pres = x.pres || u, cont = Number(x.cont) || 0;
+  return '= <b>' + money(sub) + '</b>' + (pres !== u && cont > 0 && Number(x.costo) > 0 ? ' · ' + money(pdvR(Number(x.costo) / cont)) + ' por ' + esc(u) : '');
+}
+/** 3.5.8 · Nota de la última compra (para saber de dónde salió el precio). */
+function gUlt(x) {
+  const a = (S._ivIns || []).find(z => z.id === x.a); if (!a || !a.ult || !a.ult.ts) return '';
+  const o = a.ult, igual = String(Number(x.costo)) === String(o.$) && (x.pres || a.u) === o.p;
+  return `<div class="small muted" style="margin-top:4px">${igual ? '↩️ Precio de la última vez' : '↩️ Última vez'}: ${money(o.$)} por ${esc(o.p)}${o.p !== a.u && o.c ? ' (' + o.c + ' ' + esc(a.u) + ')' : ''} · ${new Date(o.ts).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</div>`;
+}
 function gLinTot() { const e = $('#gLinTot'); if (e) e.innerHTML = gLinTotTxt(); }
 function gLinPintar() { pdvGastoCampo(); const e = $('#gLin'); if (e) e.innerHTML = gLinHTML(); }
 function gLinSet(i, k, v, repinta) {
   const x = S._gasto.lineas[i]; if (!x) return; x[k] = v;
   if (repinta) { gLinPintar(); return; }
-  const e = $('#gSub' + i); if (e) e.textContent = gLinSub(x) ? money(gLinSub(x)) : ''; gLinTot();
+  const e = $('#gSub' + i); if (e) e.innerHTML = gLinSubTxt(x); gLinTot();
 }
 function gLinNombre(i, v) {
   const x = S._gasto.lineas[i], a = (S._ivIns || []).find(z => gNorm(z.nombre) === gNorm(v));
   x.nom = a ? a.nombre : v.trim(); x.a = a ? a.id : ''; if (a) { x.u = a.u; if (!x.pres) x.pres = a.u; }
+  // 3.5.8: se llena con la última compra (presentación, cuánto trae y precio); si cambió, solo se corrige
+  if (a && a.ult && !x.costo) { x.pres = a.ult.p || a.u; if (a.ult.c && x.pres !== a.u) x.cont = String(a.ult.c); x.costo = String(a.ult.$ || ''); }
   gLinPintar();
+}
+/** 3.5.8 · Toca uno de los más comprados: se agrega su renglón ya llenado. */
+function gLinRapido(id) {
+  pdvGastoCampo();
+  const a = (S._ivIns || []).find(z => z.id === id); if (!a) return;
+  const L = S._gasto.lineas, ya = L.findIndex(x => x.t !== 'r' && x.a === id);
+  if (ya >= 0) { gLinPintar(); setTimeout(() => { const e = $('#gCant' + ya); if (e) e.focus(); }, 50); return; }
+  let i = L.findIndex(x => x.t !== 'r' && !x.nom && !x.cant && !x.costo);
+  if (i < 0) { L.push({ t: 'i' }); i = L.length - 1; }
+  gLinNombre(i, a.nombre);
+  setTimeout(() => { const e = $('#gCant' + i); if (e) e.focus(); }, 50);
+}
+/** Los 20 insumos que más se compran (por cuántas compras los traen). */
+function gTop20() {
+  return (S._ivIns || []).filter(a => a.ult && a.ult.n).sort((a, b) => b.ult.n - a.ult.n || b.ult.ts - a.ult.ts).slice(0, 20);
 }
 function gLinAgregar(t) { pdvGastoCampo(); S._gasto.lineas.push({ t }); gLinPintar(); }
 function gLinQuitar(i) { S._gasto.lineas.splice(i, 1); gLinPintar(); }
@@ -7323,8 +7379,9 @@ function pdvCobrarApp(id, despues) {
     : p.metodoPago === 'monedero' && p.monTel ? { metodo: 'monedero', monto: Math.min(pdvAppMontoPagado(p), pdvTotal()), ts: Date.now(), por: pdvYo(), anticipo: true, etq: '👛 Su monedero', monTel: p.monTel, monNombre: appNombre(p), monPedido: p.id } : null;
   PDV.cobro = { total: pdvTotal(), pagos: ant ? [{ metodo: 'transferencia', monto: ant, ts: Date.now(), por: pdvYo(), anticipo: true }] : ya ? [ya] : [], met: ant ? 'efectivo' : p.metodoPago === 'transferencia' || p.metodoPago === 'codi' ? 'transferencia' : 'efectivo', ent: null,
     app: { id: p.id, folio: p.folio, canal: p.porTelefono ? 'tel' : 'app', envio: pdvR((p.envio || 0) + (p.envioExtra || 0)), envRep: pdvEnvRep(p), incl, cobraNeg: p.envioEn === 'negocio' || !!p.propio, despues: despues || null, anticipo: ant, ya: !!ya } };
+  PDV.cobro.emp = Object.assign({}, p.empaques || {}); // 3.5.9: lo que eligió la caja al aceptarlo
   // si ya quedó cubierto, se registra solo (sin pantalla de cobro) y sigue la entrega
-  if (ya && pdvR(PDV.cobro.total - pdvPagado()) <= 0) return pdvAppAuto(ya);
+  if (ya && pdvR(PDV.cobro.total - pdvPagado()) <= 0 && (!empReqCobro() || empElegido(PDV.cobro.emp))) return pdvAppAuto(ya);
   pdvPintarCobro();
 }
 async function pdvAppAuto(ya) {
@@ -7428,6 +7485,7 @@ function pdvPanelCuenta(c) {
     <div class="tot" style="margin-top:8px"><span>Total</span><span>${money(total)}</span></div>
     ${c.pagado ? `<div class="tot"><span>Pagado</span><span>${money(c.pagado)}</span></div>` : ''}
     <div class="tot g" style="font-size:22px"><span>${c.pagado ? 'Falta' : 'Total'}</span><span>${money(saldo)}</span></div>
+    ${empBurbuja(c)}
     ${pdvPuedeDividir(c) && !c.dom ? `<button class="btn pill full" style="margin-top:8px;font-size:16px" ${nuevos.length ? 'disabled' : ''} onclick="pdvDividir('${c.id}')">👥 Dividir cuenta · ${money(total)}</button>` : ''}
     <div class="row" style="gap:8px;margin-top:8px"><button class="btn pill" style="flex:1" onclick="pdvPreventa('${c.id}')">🧾 Pre-cuenta</button>
       <button class="btn pri pill" style="flex:2;font-size:17px" ${saldo > 0 && !nuevos.length ? '' : 'disabled'} onclick="pdvCobrarCuenta('${c.id}')">Cobrar</button></div>
@@ -7876,6 +7934,7 @@ async function pdvUnirCuentas(id) {
 
 /* ---------- cobrar una cuenta: por monto o por productos, en partes ---------- */
 function pdvCobrarCuenta(id) {
+  { const c0 = pdvCuenta(id); if (empCuentaReq(c0) && !empElegido(c0.emp)) { empCuentaModal(id, () => pdvCobrarCuenta(id)); return; } } // 3.5.9: para llevar: ¿en qué va?
   if (pdvPideCaja(() => pdvCobrarCuenta(id))) return;
   const c = pdvCuenta(id); if (!c) return;
   if (!PDV.caja) { toast('La caja está cerrada', 'err'); return; }
@@ -7970,7 +8029,7 @@ async function pdvPagarCuenta() {
   pdvGuardar(pdvCol('dias').doc(c.dia).set({ ventas: pdvInc(m), ['met_' + p.metodo]: pdvInc(m), propinas: pdvInc(p.propina || 0), n: pdvInc(fin ? 1 : 0), ts }, { merge: true }));
   PDV._ultimoPago = Object.assign({ id: ref.id }, p, telM.length === 10 ? { tel: telM } : {});
   pdvActualizarCuenta(c, ex);
-  if (fin) { PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id); PDV.cajaCobroId = ''; invVentaEnviar({ ventaId: c.id, folio: c.folio, items: (c.items || []).filter(i => !i.cancelado), total: pdvTotalCuenta(c) }); }
+  if (fin) { PDV.cuentas = PDV.cuentas.filter(x => x.id !== c.id); PDV.cajaCobroId = ''; invVentaEnviar({ ventaId: c.id, folio: c.folio, items: (c.items || []).filter(i => !i.cancelado), total: pdvTotalCuenta(c), llevar: c.tipo === 'llevar' || !!c.dom, emp: c.emp || null }); }
   if (ent && !(PDV.porEntregar || []).some(x => x.id === c.id)) PDV.porEntregar = (PDV.porEntregar || []).concat([Object.assign({}, c)]);
   if (fin && ((c.cliente && c.cliente.tel) || telM.length === 10)) facTicketCliente(Object.assign({}, c, ex), (c.cliente && c.cliente.tel) || telM);
   // 2.46.1: el siguiente pago puede ser de otra persona: empieza sin teléfono (con botón para repetir el anterior)
@@ -9663,6 +9722,98 @@ function recetaPintar() {
       ${nm.exs.map(n => sub('x', n, 'Extra <b>' + esc(n) + '</b> lleva')).join('')}
       ${nm.ops.map(n => sub('o', n, 'Opción <b>' + esc(n) + '</b> lleva')).join('')}</details>` : ''}</div>`;
 }
+/*
+ * 3.5.9 · Empaques: charola chica, charola grande y bolsa de papel (sin costo para el cliente).
+ * Para llevar y a domicilio es obligatorio elegir en qué va; en la mesa, una burbuja para llevar el sobrante.
+ */
+const EMP_T = [['chica', '🍱 Charola chica'], ['grande', '🍱 Charola grande'], ['bolsa', '🛍️ Bolsa de papel']];
+const empActivo = () => invOpOn();
+function empLista() { const c = (S.negocio && S.negocio.invEmp) || {}; return EMP_T.filter(([k]) => c[k]).map(([k, t]) => ({ k, t, a: c[k].a, nombre: c[k].nombre })); }
+const empElegido = e => !!e && (!!e._ninguno || Object.keys(e).some(a => a !== '_ninguno' && e[a] > 0));
+function empTxt(e) { const L = empLista(); if (e && e._ninguno) return 'Sin empaque extra'; return Object.keys(e || {}).filter(a => a !== '_ninguno' && e[a] > 0).map(a => { const x = L.find(y => y.a === a); return e[a] + ' ' + (x ? x.nombre : 'empaque'); }).join(' · '); }
+function empHTML(e, fn, req) {
+  const L = empLista();
+  if (!L.length) return `<div class="empBox"><b>📦 ${req ? '¿En qué va?' : 'Para llevar'}</b><div class="small muted">Aún no hay charolas ni bolsas en el inventario.</div><button class="btn sm pri pill" style="margin-top:6px" onclick="act(this,empAlta)">➕ Agregar charolas y bolsas</button></div>`;
+  e = e || {};
+  return `<div class="empBox ${req && !empElegido(e) ? 'falta' : ''}"><b>📦 ${req ? '¿En qué va?' : 'Para llevar el sobrante'}</b>${req ? ' <span class="small muted">· obligatorio, sin costo</span>' : ' <span class="small muted">· sin costo</span>'}
+    ${L.map(x => `<div class="empF"><span class="grow">${x.t}</span><div class="pdvCant"><button onclick="${fn}('${x.a}',-1)">−</button><b>${e[x.a] || 0}</b><button onclick="${fn}('${x.a}',1)">+</button></div></div>`).join('')}
+    ${req ? `<label class="pdvChk small" style="margin-top:4px"><input type="checkbox" ${e._ninguno ? 'checked' : ''} onchange="${fn}('_ninguno',this.checked?1:-1)"> No necesita (ya va en sus propios desechables)</label>` : ''}
+    ${L.length < EMP_T.length ? `<button class="lnk small" onclick="act(this,empAlta)">➕ Agregar ${EMP_T.filter(([k]) => !L.some(x => x.k === k)).map(([, t]) => t.replace(/^\S+ /, '').toLowerCase()).join(', ')}</button>` : ''}</div>`;
+}
+function empMover(e, a, d) {
+  if (a === '_ninguno') { if (d > 0) { Object.keys(e).forEach(k => delete e[k]); e._ninguno = 1; } else delete e._ninguno; return e; }
+  e[a] = Math.max(0, Math.min(50, (e[a] || 0) + d)); if (!e[a]) delete e[a]; if (e[a]) delete e._ninguno; return e;
+}
+/** Dar de alta los empaques que falten (se crean como insumos desechables). */
+function empAlta() {
+  const L = empLista(), falta = EMP_T.filter(([k]) => !L.some(x => x.k === k));
+  S._empVolver = S._empVolver || null;
+  const prev = $('#modal') ? null : null;
+  modal(`<div class="row between"><h2 style="margin:0">📦 Charolas y bolsas</h2><button class="redondo" onclick="empAltaFin()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted" style="margin-bottom:6px">Se agregan a tu inventario como desechables. Escribe el nombre como los compras (deja vacío el que no uses).</div>
+    ${falta.map(([k, t]) => `<label class="f">${t}</label><input class="i" id="emp_${k}" maxlength="60" value="${esc(t.replace(/^\S+ /, ''))}">`).join('')}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,empAltaGuardar)">Agregar al inventario</button></div>`);
+}
+async function empAltaGuardar() {
+  const d = { negocioId: S.negocio.id };
+  EMP_T.forEach(([k]) => { const e = $('#emp_' + k); if (e && e.value.trim()) d[k] = { nombre: e.value.trim() }; });
+  const r = await api('invEmpCfg', d);
+  S.negocio.invEmp = r.emp; ls('negocio', S.negocio);
+  toast('📦 Listo' + (r.creados ? ' · ' + r.creados + ' insumo' + (r.creados > 1 ? 's' : '') + ' nuevo' + (r.creados > 1 ? 's' : '') : ''));
+  empAltaFin();
+}
+function empAltaFin() { const f = S._empVolver; cerrarModal(); if (f) f(); }
+/* --- venta directa y pedidos de la app (pantalla de cobro) --- */
+const empReqCobro = () => empActivo() && PDV.venta && (PDV.venta.tipo === 'llevar' || (PDV.cobro && PDV.cobro.app));
+function pdvEmpCobro(a, d) { const k = PDV.cobro; k.emp = empMover(k.emp || {}, a, d); pdvPintarCobro(); }
+/* --- cuentas: burbuja en la mesa y "¿en qué va?" en las de llevar --- */
+function empCuentaReq(c) { return empActivo() && !!c && (c.tipo === 'llevar' || !!c.dom); }
+function empBurbuja(c) {
+  if (!empActivo() || !(c.items || []).length) return '';
+  const req = empCuentaReq(c), t = empTxt(c.emp);
+  return `<button class="empBurbuja ${req && !empElegido(c.emp) ? 'falta' : ''}" onclick="empCuentaModal('${c.id}')">📦 ${t ? esc(t) : req ? '¿En qué va? (obligatorio)' : 'Para llevar el sobrante'}</button>`;
+}
+function empCuentaModal(id, despues) {
+  const c = pdvCuenta(id); if (!c) return;
+  S._ec = { id, e: Object.assign({}, c.emp || {}), despues: despues || null };
+  S._empVolver = () => empCuentaPintar();
+  empCuentaPintar();
+}
+function empCuentaPintar() {
+  const E = S._ec, c = E && pdvCuenta(E.id); if (!c) { cerrarModal(); return; }
+  modal(`<div class="row between"><h2 style="margin:0">📦 ${esc(pdvEtiqueta(c))}</h2><button class="redondo" onclick="S._empVolver=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${empHTML(E.e, 'empCuentaSet', empCuentaReq(c))}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,empCuentaGuardar)">${E.despues ? 'Guardar y cobrar' : 'Guardar'}</button></div>`);
+}
+function empCuentaSet(a, d) { S._ec.e = empMover(S._ec.e, a, d); empCuentaPintar(); }
+async function empCuentaGuardar() {
+  const E = S._ec, c = pdvCuenta(E.id); if (!c) return;
+  if (empCuentaReq(c) && !empElegido(E.e)) throw new Error('Elige en qué va');
+  const emp = empElegido(E.e) ? E.e : null;
+  c.emp = emp; await pdvGuardar(pdvCol('ventas').doc(c.id).update({ emp }));
+  S._empVolver = null; cerrarModal(); toast('📦 Guardado');
+  if (E.despues) E.despues(); else pdvPintarCuenta();
+}
+/* --- aceptar un pedido de la app: la caja elige en qué va --- */
+function empAceptar(id, fin) {
+  if (!empActivo()) return fin(null);
+  const p = ((S._coc && S._coc.pedidos) || []).concat((PDV.app && PDV.app.pedidos) || [], S._pedNeg || []).find(x => x && x.id === id);
+  S._ea = { id, e: {}, fin, p };
+  S._empVolver = () => empAceptarPintar();
+  empAceptarPintar();
+}
+function empAceptarPintar() {
+  const E = S._ea; if (!E) return;
+  modal(`<div class="row between"><h2 style="margin:0">📦 ¿En qué va?</h2><button class="redondo" onclick="S._ea=null;S._empVolver=null;cerrarModal()" aria-label="Cerrar">✕</button></div>
+    ${E.p ? `<div class="small muted" style="margin-bottom:6px">${esc(E.p.folio || '')} · ${(E.p.items || []).map(i => (i.cant || 1) + ' ' + esc(i.nombre)).join(', ')}</div>` : ''}
+    ${empHTML(E.e, 'empAceptarSet', true)}
+    <div class="btns"><button class="btn pri pill full" onclick="act(this,empAceptarOk)">✅ Aceptar pedido</button></div>`);
+}
+function empAceptarSet(a, d) { S._ea.e = empMover(S._ea.e, a, d); empAceptarPintar(); }
+async function empAceptarOk() {
+  const E = S._ea; if (!empElegido(E.e)) throw new Error('Elige en qué va');
+  S._ea = null; S._empVolver = null; cerrarModal(); await E.fin(E.e);
+}
 /* --- las ventas descuentan (cola por si no hay internet) --- */
 function invVentaEnviar(o) {
   if (!invOpOn()) return;
@@ -9705,6 +9856,7 @@ function invVista() {
     const cats = [...new Set(l.map(a => a.categoria || 'Sin categoría'))];
     body = `${D.semanal ? `<div class="card invSemCard" style="border:2px solid var(--pri)"><b>🔢 Hoy toca el inventario completo</b><div class="small muted">${D.semanal.arts.length} insumos. Cuenta lo que hay realmente; lo que no cuentes queda como está.</div><button class="btn pri pill full" style="margin-top:8px" onclick="invConteoCompleto('${D.semanal.id}')">Empezar a contar</button></div>` : ''}
       ${D.cap ? invCapCardHTML(D) : ''}
+      ${D.pz && (D.pz.dudas || D.pz.sin || D.pz.auto) ? `<div class="card row" style="gap:10px;cursor:pointer;${D.pz.dudas || D.pz.sin ? 'border:2px solid var(--warn)' : ''}" onclick="act(null,invPiezasModal)"><span style="font-size:26px">🧃</span><div class="grow"><b>Productos que se venden por pieza</b><div class="small muted">${D.pz.auto} descuentan solos${D.pz.dudas ? ' · <b>' + D.pz.dudas + ' por confirmar</b>' : ''}${D.pz.sin ? ' · ' + D.pz.sin + ' sin insumo' : ''}</div></div><span class="lnk small">Revisar ›</span></div>` : ''}
       ${esDueno() || D.bodega ? `<div class="row invXls" style="gap:6px;margin:8px 0 0"><button class="btn sm pill" onclick="act(this,invPlantilla)">⬇ Formato de Excel</button><label class="btn sm pill">⬆ Subir Excel<input type="file" accept=".xlsx,.xls,.csv" hidden onchange="invSubirExcel(this)"></label>${!D.arts.length ? '<span class="small muted" style="align-self:center">Carga tu primer inventario de golpe</span>' : ''}</div>` : ''}
       <div class="row" style="gap:6px;margin:8px 0"><button class="btn pri pill" style="flex:1" onclick="invMovModal('entrada')">➕ Entrada</button><button class="btn pill" style="flex:1" onclick="invMovModal('merma')">🗑️ Merma</button>${D.bodega ? '' : `<button class="btn pill" style="flex:1" onclick="invConteoCompleto('')">🔢 Contar</button>`}</div>
       <input class="i" placeholder="🔍 Buscar insumo, categoría o área" value="${esc(I.q || '')}" oninput="S._iv.q=this.value;clearTimeout(S._iv.t);S._iv.t=setTimeout(invVista,300)">
@@ -9735,6 +9887,38 @@ function invVista() {
       <div class="row between" style="gap:8px;margin-top:6px"><span class="small">Inventario completo cada semana el</span><select class="i" style="width:auto" onchange="act(null,async()=>{S._iv.D=await api('invCfgGuardar',{lugar:S._iv.lugar,dia:this.value});toast('Guardado ✓');invVista()})"><option value="">No programado</option>${[1, 2, 3, 4, 5, 6, 0].map(k => `<option value="${k}" ${D.cfg.dia === k ? 'selected' : ''}>${DIAS[k]}</option>`).join('')}</select></div>
       <div class="small muted" style="margin:4px 0 6px">Además, al checar entrada a cada quien le tocan 3 insumos de su área (tiene su turno para contarlos).</div>
       ${D.conteos.length ? D.conteos.map(c => `<div class="pdvFila g" ${c.det && c.det.length ? `style="cursor:pointer" onclick="invConteoDet('${c.id}')"` : ''}><span>${c.tipo === 'diario' ? '👤 ' + esc(c.nombre.split(' ')[0]) : '🔢 ' + (c.tipo === 'semanal' ? 'Semanal' : 'Completo')} · ${c.n} insumo${c.n > 1 ? 's' : ''}<small>${esc(c.fecha.slice(8) + '/' + c.fecha.slice(5, 7))}${c.por ? ' · ' + esc(c.por.split(' ')[0]) : ''}</small></span><span></span><b style="${c.estado === 'vencido' ? 'color:var(--warn)' : c.dif < 0 ? 'color:var(--err)' : ''}">${c.estado === 'vencido' ? 'No se hizo' : (c.dif > 0 ? '+' : c.dif < 0 ? '−' : '') + money(Math.abs(c.dif))}${c.det && c.det.length ? `<br><small class="${c.validados >= c.det.length ? 'ok' : 'muted'}" style="font-weight:600">${c.validados >= c.det.length ? '✓ validado' : '⏳ validar ' + (c.det.length - c.validados)}</small>` : ''}</b></div>`).join('') : '<div class="small muted">Aún no hay conteos.</div>'}</div>` : ''}<div style="height:20px"></div>`);
+}
+/**
+ * 3.5.8 · Productos sin receta = se venden por pieza: descuentan 1 del insumo que se llama igual.
+ * Aquí se confirman los parecidos (con palomita) y se crean los insumos que faltan con el nombre exacto.
+ */
+async function invPiezasModal() {
+  const Z = S._pz = await api('invPiezas', { lugar: S._iv.lugar });
+  Z.sel = {}; // 3.5.8: nada viene palomeado; el dueño decide uno por uno
+  invPiezasPintar();
+}
+function invPiezasPintar() {
+  const Z = S._pz, n = x => esc(x.nombre);
+  modal(`<div class="row between"><h2 style="margin:0">🧃 Productos por pieza</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted" style="margin:4px 0 8px">Un producto sin receta se vende por pieza: cada venta descuenta 1 del insumo que se llama igual. Los que tienen receta descuentan lo de su receta.</div>
+    ${Z.dudas.length ? `<h3 style="margin:10px 0 4px">🤔 Parecidos por confirmar (${Z.dudas.length})</h3><div class="small muted">Palomea los que sí son el mismo. Si hay varias opciones, elige la correcta.</div>
+      <div class="card" style="padding:6px 10px">${Z.dudas.map((x, i) => `<label class="row pzFila" style="gap:8px;align-items:center"><input type="checkbox" ${Z.sel['d' + i] ? 'checked' : ''} onchange="S._pz.sel['d${i}']=this.checked?(document.getElementById('pzS${i}')||{}).value||'${x.cands[0].a}':false">
+        <span class="grow"><b>${n(x)}</b><br><span class="small muted">es el insumo</span> ${x.cands.length > 1 ? `<select class="i" id="pzS${i}" style="width:auto;padding:3px 6px;display:inline-block" onchange="if(S._pz.sel['d${i}'])S._pz.sel['d${i}']=this.value">${x.cands.map(c => `<option value="${c.a}">${esc(c.nombre)}</option>`).join('')}</select>` : `<b class="small">${esc(x.cands[0].nombre)}</b>`}</span></label>`).join('')}</div>` : ''}
+    ${Z.sin.length ? `<h3 style="margin:12px 0 4px">➕ Sin insumo (${Z.sin.length})</h3><div class="small muted">No encontramos un insumo con su nombre. Palomea los que se venden tal cual para crearlo con ese nombre exacto (en piezas). Los que llevan receta, déjalos sin palomita.</div>
+      <div class="card" style="padding:6px 10px">${Z.sin.map((x, i) => `<label class="row pzFila" style="gap:8px;align-items:center"><input type="checkbox" ${Z.sel['s' + i] ? 'checked' : ''} onchange="S._pz.sel['s${i}']=this.checked"><span class="grow">${n(x)}</span></label>`).join('')}</div>` : ''}
+    ${Z.auto.length ? `<details style="margin-top:10px"><summary class="small"><b>✅ Ya descuentan solos (${Z.auto.length})</b></summary><div class="small" style="margin-top:6px">${Z.auto.map(x => `${n(x)} → ${esc(x.insumo)}`).join('<br>')}</div></details>` : ''}
+    ${!Z.dudas.length && !Z.sin.length ? '<div class="aviso ok" style="margin-top:8px">Todo ligado ✓</div>' : ''}
+    <div class="btns">${Z.dudas.length || Z.sin.length ? `<button class="btn pri pill full" onclick="act(this,invPiezasGuardar)">Aplicar lo palomeado</button>` : '<button class="btn pill full" onclick="cerrarModal()">Listo</button>'}</div>`);
+}
+async function invPiezasGuardar() {
+  const Z = S._pz, ligar = [], crear = [];
+  Z.dudas.forEach((x, i) => { if (Z.sel['d' + i]) ligar.push({ pid: x.pid, v: x.v, a: Z.sel['d' + i] }); });
+  Z.sin.forEach((x, i) => { if (Z.sel['s' + i]) crear.push({ pid: x.pid, v: x.v, nombre: x.nombre }); });
+  if (!ligar.length && !crear.length) throw new Error('Palomea al menos uno');
+  const r = await api('invPiezasAplicar', { lugar: S._iv.lugar, ligar, crear });
+  toast(`✓ ${ligar.length ? ligar.length + ' ligado' + (ligar.length > 1 ? 's' : '') : ''}${ligar.length && r.creados ? ' · ' : ''}${r.creados ? r.creados + ' insumo' + (r.creados > 1 ? 's' : '') + ' creado' + (r.creados > 1 ? 's' : '') : ''}`);
+  Object.assign(Z, r); Z.sel = {}; invPiezasPintar();
+  S._iv.D = null; vInventario();
 }
 function invMovModal(tipo) {
   const D = S._iv.D, arts = D.arts.filter(a => tipo === 'merma' || a.tipo !== 'prep');
@@ -9853,6 +10037,7 @@ function invAjusteModal(id) {
   modal(`<div class="row between"><h2 style="margin:0">${esc(a.nombre)}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="small muted">El sistema dice que hay <b>${invTxt(a, a.e)}</b>${a.minimo ? ' · mínimo ' + pedCant(a.minimo) + ' ' + esc(a.u) : ''} · costo ${money(a.cb * (a.factor || 1))} por ${esc(a.u)}</div>
     ${invLotesHTML(a)}
+    ${a.tipo === 'prep' ? '' : `<button class="btn pill full" style="margin-top:8px" onclick="act(this,()=>invUsosModal('${a.id}',S._iv.lugar,{volver:()=>{S._iv.D=null;vInventario()}}))">🧾 ¿Dónde se usa? (recetas o desechable)</button>`}
     <label class="f">¿Cuánto hay realmente? (${esc(a.u)})</label><input class="i pdvNum" id="ivaC" inputmode="decimal" value="${pedCant(a.e / (a.factor || 1))}">
     <label class="f">Nota</label><input class="i" id="ivaN" maxlength="200" placeholder="Ej. Conteo del lunes">
     <div class="btns"><button class="btn pri pill full" onclick="act(this,async()=>{S._iv.D=await api('invMover',{lugar:S._iv.lugar,tipo:'ajuste',items:[{a:'${a.id}',c:Number($('#ivaC').value)}],nota:$('#ivaN').value||'Ajuste'});cerrarModal();toast('Ajustado ✓');invVista()})">✏️ Ajustar existencia</button>
@@ -9935,8 +10120,8 @@ function invCapPintar() {
         <div class="grow"><label class="f">Dónde se guarda</label><input class="i" id="cpA" maxlength="30" placeholder="Ej. Barra"></div></div>
       ${invCapCantHTML(base, u, 50, lib && !c)}
       <div class="row small muted" style="gap:6px;align-items:center;margin-top:6px"><span>⏳ Caduca</span><input class="i" type="date" id="cpV" style="flex:1;padding:5px 8px"><span>opcional</span></div>
-      <label class="f">¿Se usa en alguna preparación?</label><div class="row" style="gap:6px"><select class="i" id="cpP" style="flex:2"><option value="">No / no sé</option>${D.prods.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><input class="i pdvNum" id="cpPc" style="flex:1" inputmode="decimal" placeholder="Cuánto"><span class="small" style="align-self:center">${esc(u)}</span></div>
-      <div class="small muted">Ej. el jarabe: 1 oz por cada frappé. Así se descuenta solo al vender.</div>
+      <label class="f">¿Qué es?</label><div class="pdvTipo" style="margin-top:0">${[['ingrediente', '🥕 Ingrediente'], ['desechable', '🥤 Desechable'], ['', 'Ninguno']].map(([k, t]) => `<button class="${(S._cap.clase || '') === k ? 'on' : ''}" onclick="S._cap.clase='${k}';$('#cpClTxt').textContent=${esc(JSON.stringify({ ingrediente: 'Después te preguntamos en qué recetas va y cuánto lleva.', desechable: 'Después te preguntamos en qué productos se usa (vasos, charolas, cajas…).', '': 'Se vende tal cual o no se usa en el menú.' }))}['${k}'];this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${t}</button>`).join('')}</div>
+      <div class="small muted" id="cpClTxt">${{ ingrediente: 'Después te preguntamos en qué recetas va y cuánto lleva.', desechable: 'Después te preguntamos en qué productos se usa (vasos, charolas, cajas…).', '': 'Se vende tal cual o no se usa en el menú.' }[S._cap.clase || '']}</div>
       <button class="btn pri pill full" style="margin-top:8px" onclick="act(this,()=>invCapGuardar('nuevo'))">➕ Agregar al inventario</button></div>`;
   }
   const avance = c ? `<div class="row" style="gap:6px;margin:8px 0">${[['🆕 Nuevos', nN, c.metaN], ['✔️ Existentes', nE, c.metaE]].map(([t, h, m]) => `<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px;${h >= m ? 'color:var(--ok)' : ''}">${Math.min(h, m)}/${m}</b><div class="small muted">${t}</div></div>`).join('')}<div class="grow card" style="margin:0;padding:8px;text-align:center"><b style="font-size:18px">${c.pct}%</b><div class="small muted">Hoy</div></div></div>
@@ -9944,7 +10129,7 @@ function invCapPintar() {
   modal(`<div class="row between"><h2 style="margin:0">${lib ? '📦 Agregar insumo' : '🧱 Armemos el inventario'}</h2><button class="redondo" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
     <div class="small muted">${lib ? `Mientras armamos el inventario, agrega lo que veas que falta. ${c ? 'También cuenta para tu tarea de hoy.' : 'Cuánto hay es opcional.'}` : `Hoy te tocan <b>${c.metaN} nuevos</b> y <b>${c.metaE} existentes</b>. Cuenta en tus actividades del día.`}</div>
     ${avance}
-    <datalist id="cpArts">${D.arts.map(a => `<option value="${esc(a.nombre)}">`).join('')}</datalist>
+    <datalist id="cpArts">${D.arts.map(a => `<option value="${esc(a.nombre)}">`).join('')}${(D.prods || []).filter(p => !D.arts.some(a => gNorm(a.nombre) === gNorm(p.nombre))).map(p => `<option value="${esc(p.nombre)}" label="del menú">`).join('')}</datalist>
     <input class="i" id="cpQ" list="cpArts" placeholder="🔍 Escribe el nombre del insumo" value="${esc(f ? (f.a ? (D.arts.find(z => z.id === f.a) || {}).nombre : f.nombre) || '' : '')}" onchange="invCapBuscar(this.value)">
     <div class="small muted" style="margin:4px 0 8px">Si ya existe, confirmas cuánto hay; si no, lo agregas.</div>
     ${form}
@@ -9974,8 +10159,8 @@ async function invCapGuardar(tipo) {
   if (D.pesar && $('#cpPeso')) { if (!v('cpPeso')) { if (!opc) throw new Error('Escribe el peso'); } else { d.peso = Number(v('cpPeso')); d.tara = v('cpTara') === '' ? 50 : Number(v('cpTara')); } }
   else { if (v('cpC') === '' || v('cpC') == null) { if (!opc) throw new Error('¿Cuánto hay?'); } else d.cantidad = Number(v('cpC')); }
   if (tipo === 'existe') d.a = f.a;
-  else Object.assign(d, { nombre: f.nombre, u: v('cpU') || 'pza', piezas: v('cpPz') || '', area: v('cpA') || '', usa: v('cpP') ? { prod: v('cpP'), c: Number(v('cpPc')) || 0 } : null });
-  if (tipo === 'nuevo' && d.usa && !(d.usa.c > 0)) throw new Error('¿Cuánto lleva cada ' + D.prods.find(p => p.id === d.usa.prod).nombre + '?');
+  else Object.assign(d, { nombre: f.nombre, u: v('cpU') || 'pza', piezas: v('cpPz') || '', area: v('cpA') || '' });
+  const clase = tipo === 'nuevo' ? D.clase || '' : ''; D.clase = '';
   const r = await api('invCapturar', d);
   if (r.mia) ls('asisMia', r.mia);
   const antes = D.captura;
@@ -9984,6 +10169,104 @@ async function invCapGuardar(tipo) {
   toast(tipo === 'nuevo' ? '🆕 ' + (r.nombre || '') + ' agregado al inventario ✓' : '✔️ Confirmado ✓');
   if (r.captura && r.captura.hechos >= r.captura.total && r.captura.estado === 'hecho' && antes && antes.estado !== 'hecho') toast('🎉 ¡Listo tu inventario de hoy!');
   invCapPintar(); typeof asisRepintar === 'function' && asisRepintar();
+  if (clase && r.a) setTimeout(() => act(null, () => invUsosModal(r.a, D.nid, { clase, volver: () => S._cap && invCapPintar() })), 300); // 3.5.9: ¿en qué recetas o productos?
+}
+/*
+ * 3.5.9 · ¿Dónde se usa este insumo?
+ * Ingrediente: va en 1 o varias recetas (cantidad por producto, por variante, extra u opción).
+ * Desechable: vaso, charola, caja de pizza… se resta solo con cada venta (siempre, o solo para llevar / a domicilio).
+ */
+async function invUsosModal(aid, lugar, op) {
+  op = op || {};
+  const D = await api('invUsos', { lugar, a: aid });
+  const f = D.art.factor || 1, conUso = D.prods.filter(p => p.uso || p.des);
+  const tabs = conUso.map(p => {
+    const u = p.uso || {}, de = p.des;
+    const t = { pid: p.id, ll: de ? de.ll : false, b: '', v: {}, x: {}, o: {}, mismo: true };
+    if (de) { t.b = de.b != null ? de.b : ''; Object.keys(de.v || {}).forEach(k => { t.v[k] = de.v[k]; }); }
+    else { t.b = u.b != null ? +(u.b / f).toFixed(3) : ''; Object.keys(u.v || {}).forEach(k => { t.v[k] = +(u.v[k] / f).toFixed(3); }); ['x', 'o'].forEach(k => Object.keys(u[k] || {}).forEach(n => { t[k][n] = +(u[k][n] / f).toFixed(3); })); }
+    t.mismo = !Object.keys(t.v).length;
+    return t;
+  });
+  S._us = { D, aid, lugar, clase: op.clase || D.art.clase, modo: tabs.length > 1 || Object.keys(D.cats).length ? 'varias' : tabs.length ? 'una' : '', via: tabs.length > 1 ? 'lista' : '', n: '', tabs,
+    cats: JSON.parse(JSON.stringify(D.cats || {})), q: '', volver: op.volver || null };
+  if (S._us.clase === 'desechable' && Object.keys(S._us.cats).length) S._us.via = 'lista';
+  usPintar();
+}
+const usProd = id => (S._us.D.prods.find(p => p.id === id) || null);
+function usLeer() { // guarda lo escrito antes de repintar
+  const U = S._us; document.querySelectorAll('[data-us]').forEach(e => {
+    const [i, k, n] = e.dataset.us.split('|'), t = U.tabs[+i]; if (!t) return;
+    const v = e.value;
+    if (k === 'b') t.b = v; else if (k === 'v' || k === 'x' || k === 'o') { if (v === '') delete t[k][n]; else t[k][n] = v; }
+  });
+  document.querySelectorAll('[data-usc]').forEach(e => { const c = U.cats[e.dataset.usc]; if (c) c.c = e.value; });
+}
+function usSet(k, v) { usLeer(); const U = S._us; U[k] = v;
+  if (k === 'modo') { if (v === 'una') { U.tabs = U.tabs.slice(0, 1); if (!U.tabs.length) U.tabs.push(usTab('')); U.via = ''; } }
+  if (k === 'via' && v === 'n') U.n = U.n || String(Math.max(2, U.tabs.length));
+  usPintar(); }
+function usTab(pid) { return { pid, b: '', v: {}, x: {}, o: {}, mismo: true, ll: S._us && S._us.clase === 'desechable' && S._us.tabs[0] ? S._us.tabs[0].ll : false }; }
+function usAbrirN() { usLeer(); const U = S._us, n = Math.max(1, Math.min(40, Math.floor(Number(($('#usN') || {}).value) || 0)));
+  if (!n) throw new Error('¿En cuántos productos?'); U.n = String(n);
+  while (U.tabs.length < n) U.tabs.push(usTab('')); U.tabs = U.tabs.slice(0, n); usPintar(); }
+function usToggle(pid, on) { usLeer(); const U = S._us, i = U.tabs.findIndex(t => t.pid === pid);
+  if (on && i < 0) U.tabs.push(usTab(pid)); if (!on && i >= 0) U.tabs.splice(i, 1); usPintar(); }
+function usCat(cat, on) { usLeer(); const U = S._us; if (on) U.cats[cat] = U.cats[cat] || { c: 1, ll: false }; else delete U.cats[cat]; usPintar(); }
+function usTabSet(i, k, v) { usLeer(); const t = S._us.tabs[i]; if (!t) return; t[k] = v; if (k === 'pid') { t.v = {}; t.x = {}; t.o = {}; t.mismo = true; } usPintar(); }
+function usPintar() {
+  const U = S._us, D = U.D, a = D.art, des = U.clase === 'desechable', u = des ? 'pza' : a.u;
+  const cats = [...new Set(D.prods.map(p => p.cat))];
+  const usados = new Set(U.tabs.map(t => t.pid).filter(Boolean));
+  const selProd = (i, t) => `<select class="i" onchange="usTabSet(${i},'pid',this.value)"><option value="">Elige el producto…</option>${cats.map(c => `<optgroup label="${esc(c)}">${D.prods.filter(p => p.cat === c).map(p => `<option value="${p.id}" ${p.id === t.pid ? 'selected' : ''} ${p.id !== t.pid && usados.has(p.id) ? 'disabled' : ''}>${esc(p.nombre)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+  const num = (i, k, n, v, ph) => `<input class="i pdvNum" style="width:78px" inputmode="decimal" data-us="${i}|${k}|${esc(n || '')}" value="${esc(v == null ? '' : String(v))}" placeholder="${ph || '0'}">`;
+  const pest = (t, i) => {
+    const p = usProd(t.pid);
+    return `<div class="card usTab"><div class="row between" style="gap:6px"><b>${U.modo === 'varias' ? 'Pestaña ' + (i + 1) + ' · ' : ''}${p ? esc(p.nombre) : ''}</b>${U.modo === 'varias' ? `<button class="btn sm err" onclick="usLeer();S._us.tabs.splice(${i},1);usPintar()">✕</button>` : ''}</div>
+      ${U.via === 'lista' && p ? '' : selProd(i, t)}
+      ${p ? `${p.vars.length ? `<div class="pdvTipo" style="margin:8px 0 4px">${[[true, 'Lo mismo en todas las variantes'], [false, 'Distinto por variante']].map(([k, tx]) => `<button class="${t.mismo === k ? 'on' : ''}" onclick="usTabSet(${i},'mismo',${k})">${tx}</button>`).join('')}</div>` : ''}
+        ${!p.vars.length || t.mismo ? `<div class="row usFila"><span class="grow">Cada ${esc(p.nombre)} lleva</span>${num(i, 'b', '', t.b)}<span class="small">${esc(u)}</span></div>`
+          : p.vars.map(v => `<div class="row usFila"><span class="grow">${esc(v)}</span>${num(i, 'v', v, t.v[v], '—')}<span class="small">${esc(u)}</span></div>`).join('') + '<div class="small muted">Deja vacía la variante que no lo lleva.</div>'}
+        ${des ? `<div class="pdvTipo" style="margin:8px 0 0">${[[false, 'Siempre'], [true, 'Solo para llevar y a domicilio']].map(([k, tx]) => `<button class="${!!t.ll === k ? 'on' : ''}" onclick="usTabSet(${i},'ll',${k})">${tx}</button>`).join('')}</div>`
+          : (p.exs.length || p.ops.length ? `<details ${Object.keys(t.x).length + Object.keys(t.o).length ? 'open' : ''} style="margin-top:6px"><summary class="small"><b>Extras y opciones</b> (opcional)</summary>
+            ${p.exs.map(n => `<div class="row usFila"><span class="grow small">Extra <b>${esc(n)}</b></span>${num(i, 'x', n, t.x[n], '—')}<span class="small">${esc(u)}</span></div>`).join('')}
+            ${p.ops.map(n => `<div class="row usFila"><span class="grow small">Opción <b>${esc(n)}</b></span>${num(i, 'o', n, t.o[n], '—')}<span class="small">${esc(u)}</span></div>`).join('')}</details>` : '')}` : ''}</div>`;
+  };
+  const lista = () => `<input class="i" placeholder="🔍 Buscar en el menú" value="${esc(U.q)}" oninput="S._us.q=this.value;clearTimeout(S._us.t);S._us.t=setTimeout(()=>{usLeer();usPintar();const e=$('#usQ');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}},350)" id="usQ">
+    <div class="usLista">${cats.map(c => { const ps = D.prods.filter(p => p.cat === c && (!U.q || gNorm(p.nombre + ' ' + c).includes(gNorm(U.q)))); if (!ps.length) return '';
+      return `<div class="usCat"><b>${esc(c)}</b>${des ? `<label class="pdvChk small" style="margin-left:auto"><input type="checkbox" ${U.cats[c] ? 'checked' : ''} onchange="usCat(${esc(JSON.stringify(c))},this.checked)"> Toda la categoría</label>` : ''}</div>
+        ${U.cats[c] ? `<div class="small muted" style="padding:2px 0 6px">Todos los de ${esc(c)} (también los que agregues después).</div>` : ps.map(p => `<label class="pdvChk usItem"><input type="checkbox" ${usados.has(p.id) ? 'checked' : ''} onchange="usToggle('${p.id}',this.checked)"> ${esc(p.nombre)}${p.vars.length ? ` <span class="small muted">· ${p.vars.length} variantes</span>` : ''}</label>`).join('')}`; }).join('')}</div>`;
+  const catTabs = Object.keys(U.cats).map(c => `<div class="card usTab"><b>Toda la categoría · ${esc(c)}</b>
+    <div class="row usFila"><span class="grow">Cada producto lleva</span><input class="i pdvNum" style="width:90px" inputmode="decimal" data-usc="${esc(c)}" value="${esc(String(U.cats[c].c))}"><span class="small">pza</span></div>
+    <div class="pdvTipo" style="margin:8px 0 0">${[[false, 'Siempre'], [true, 'Solo para llevar y a domicilio']].map(([k, tx]) => `<button class="${!!U.cats[c].ll === k ? 'on' : ''}" onclick="usLeer();S._us.cats[${esc(JSON.stringify(c))}].ll=${k};usPintar()">${tx}</button>`).join('')}</div></div>`).join('');
+  modal(`<div class="row between"><h2 style="margin:0">🧾 ¿Dónde se usa?</h2><button class="redondo" onclick="usCerrar()" aria-label="Cerrar">✕</button></div>
+    <div class="small muted" style="margin-bottom:6px"><b>${esc(a.nombre)}</b> · se mide en ${esc(a.u)}</div>
+    <div class="pdvTipo">${[['ingrediente', '🥕 Ingrediente'], ['desechable', '🥤 Desechable']].map(([k, t]) => `<button class="${U.clase === k ? 'on' : ''}" onclick="usSet('clase','${k}')">${t}</button>`).join('')}</div>
+    <div class="small muted" style="margin:4px 0 8px">${des ? 'Vaso, charola, caja de pizza, popote… Se resta solo con cada venta de los productos que elijas.' : 'Va dentro de la receta: se resta con cada venta según la cantidad que lleva.'}</div>
+    <b>¿En cuántos productos se usa?</b>
+    <div class="pdvTipo" style="margin:6px 0">${[['una', '1 producto'], ['varias', 'Varios productos']].map(([k, t]) => `<button class="${U.modo === k ? 'on' : ''}" onclick="usSet('modo','${k}')">${t}</button>`).join('')}</div>
+    ${U.modo === 'varias' ? `<div class="pdvTipo" style="margin:0 0 8px">${[['n', '🔢 Decir cuántos'], ['lista', '☑️ Elegir de la lista']].map(([k, t]) => `<button class="${U.via === k ? 'on' : ''}" onclick="usSet('via','${k}')">${t}</button>`).join('')}</div>` : ''}
+    ${U.modo === 'varias' && U.via === 'n' ? `<div class="row" style="gap:6px;align-items:center;margin-bottom:8px"><span>¿En cuántos?</span><input class="i pdvNum" id="usN" style="width:80px" inputmode="numeric" value="${esc(U.n)}"><button class="btn sm pri pill" onclick="act(this,usAbrirN)">Abrir pestañas</button></div>` : ''}
+    ${U.modo === 'varias' && U.via === 'lista' ? lista() : ''}
+    ${U.modo ? catTabs + U.tabs.map(pest).join('') : ''}
+    <div class="btns">${U.modo ? `<button class="btn pri pill full" onclick="act(this,usGuardar)">Guardar</button>` : ''}<button class="btn pill full" onclick="usCerrar()">${U.modo ? 'Cancelar' : 'No se usa en recetas'}</button></div>`);
+}
+function usCerrar() { const f = S._us && S._us.volver; S._us = null; cerrarModal(); if (f) f(); }
+async function usGuardar() {
+  usLeer();
+  const U = S._us, des = U.clase === 'desechable', usos = [];
+  for (const t of U.tabs) {
+    const p = usProd(t.pid); if (!p) { if (U.tabs.length === 1 && !Object.keys(U.cats).length) throw new Error('Elige el producto'); continue; }
+    const o = { pid: t.pid, ll: !!t.ll, b: '', v: {}, x: {}, o: {} };
+    if (!p.vars.length || t.mismo) o.b = Number(t.b) || 0; else p.vars.forEach(v => { if (Number(t.v[v]) > 0) o.v[v] = Number(t.v[v]); });
+    if (!des) ['x', 'o'].forEach(k => Object.keys(t[k]).forEach(n => { if (Number(t[k][n]) > 0) o[k][n] = Number(t[k][n]); }));
+    if (!(o.b > 0) && !Object.keys(o.v).length && !Object.keys(o.x).length && !Object.keys(o.o).length) throw new Error('¿Cuánto lleva ' + p.nombre + '?');
+    usos.push(o);
+  }
+  const cats = {}; Object.keys(U.cats).forEach(c => { const n = Number(U.cats[c].c) || 0; if (!(n > 0)) throw new Error('¿Cuánto lleva cada producto de ' + c + '?'); cats[c] = { c: n, ll: !!U.cats[c].ll }; });
+  const r = await api('invUsosGuardar', { lugar: U.lugar, a: U.aid, clase: U.clase, usos: des ? usos : usos, cats: des ? cats : {} });
+  toast(`🧾 ${esc(r.art.nombre)}: ${r.cambiados} producto${r.cambiados === 1 ? '' : 's'} actualizado${r.cambiados === 1 ? '' : 's'} ✓`);
+  usCerrar();
 }
 /** 3.5.3 · Validar con palomita lo que contó el equipo. */
 function invConteoDet(id) {
@@ -13136,9 +13419,10 @@ function pintarCocina() {
     </div></div>`);
   window.scrollTo(0, y);
 }
-async function cocAceptar(id, min) {
+function cocAceptar(id, min) { return empAceptar(id, e => cocAceptarYa(id, min, e)); } // 3.5.9: primero ¿en qué va?
+async function cocAceptarYa(id, min, emp) {
   const x = S._coc.pedidos.find(p => p.id === id);
-  await api('aceptarPedido', { id, minutos: min });
+  await api('aceptarPedido', Object.assign({ id, minutos: min }, emp ? { empaques: emp } : {}));
   toast('Pedido ' + (x ? x.folio : '') + ' aceptado · ' + min + ' min');
   if (x && cocCfg().auto) imprimirComanda(id, min);
   await pintar(true);
@@ -13580,14 +13864,14 @@ function botonesPedido(p, enTarjeta, sinCambio) {
     if (p.cambioSol && p.puedeCambiarNeg && !sinCambio) b.push(cambioSolNegHTML(p)); // 2.92 (en la caja va arriba de la ficha)
     if (p.difPago && !sinCambio) b.push(`<div style="width:100%">${difPagoHTML(p, 'neg')}</div>`);
     if (p.estado === 'NUEVO' && p.programado) {
-      b.push(`<button class="btn ok" onclick="act(this,()=>accion('aceptarPedido',{id:'${id}',minutos:30},'Pedido programado confirmado'))">✅ Confirmar para ${esc(progTxtC(p.programado))}</button>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>empAceptar('${id}',e=>accion('aceptarPedido',Object.assign({id:'${id}',minutos:30},e?{empaques:e}:{}),'Pedido programado confirmado')))">✅ Confirmar para ${esc(progTxtC(p.programado))}</button>`);
       b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}','Rechazar'))">Rechazar</button>`);
     } else if (p.estado === 'NUEVO') {
       const ops = [10, 15, 20, 25, 30, 40, 50, 60, 90];
       const sug = p.minutosSugeridos || (S.negocio && S.negocio.tiempoPrep) || 20;
       const t = ops.find(m => m >= sug) || 90;
       b.push(`<select class="i" id="min_${id}" style="flex:1;min-width:110px">${ops.map(m => `<option value="${m}" ${m === t ? 'selected' : ''}>${m} min</option>`).join('')}</select>`);
-      b.push(`<button class="btn ok" onclick="act(this,()=>accion('aceptarPedido',{id:'${id}',minutos:$('#min_${id}').value},'Pedido aceptado'))">Aceptar</button>`);
+      b.push(`<button class="btn ok" onclick="act(this,()=>{const m=$('#min_${id}').value;return empAceptar('${id}',e=>accion('aceptarPedido',Object.assign({id:'${id}',minutos:m},e?{empaques:e}:{}),'Pedido aceptado'))})">Aceptar</button>`);
       b.push(`<button class="btn err" onclick="act(this,()=>cancelar('${id}','Rechazar'))">Rechazar</button>`);
     }
     if (p.estado === 'PAGO_ENVIADO') {
@@ -14023,6 +14307,13 @@ function inicioAhora(vis, varios) {
   if (nD) { S._heroK = 'dob'; const k = sumP(n => (n.pend && n.pend.dobles) || 0); return card('warn', `🔁 ${k} turno${k > 1 ? 's' : ''} de más por decidir`, 'Alguien llegó fuera de su turno o cubrió a un compañero: decide cómo se cuenta.' + de(nD), 'Decidir', `()=>inicioPersonal('${nD.id}','hoy')`); }
   const nV = vis.find(n => n.pend && n.pend.vacaciones);
   if (nV) { S._heroK = 'vac'; const k = sumP(n => (n.pend && n.pend.vacaciones) || 0); return card('info', `🏖️ ${k} solicitud${k > 1 ? 'es' : ''} de vacaciones`, 'Apruébalas o recházalas; a la persona le llega el aviso.' + de(nV), 'Revisar', `()=>inicioPersonal('${nV.id}','vac')`); }
+  // 3.5.8: un negocio que aún no puede vender no está "en orden": se muestra lo esencial que le falta
+  const nP = vis.find(n => n.dueno && n.pasos && pasosLista(n).some(x => PASOS_ESENC.includes(x[0]) && !x[4]));
+  if (nP) {
+    const ps = pasosLista(nP).filter(x => PASOS_ESENC.includes(x[0]) && !x[4]), sig = ps[0];
+    S._heroK = 'pasos';
+    return card('warn', `🚀 ${esc(nP.nombre)} aún no ${nP.abierto ? 'está listo' : 'aparece en la app'}`, 'Te falta: ' + ps.map(x => ({ datos: 'datos, ubicación y horario', abrir: 'abrir tu negocio', menu: 'tu menú (al menos 5 productos)' }[x[0]])).join(', ') + '.', sig[2], sig[5]);
+  }
   return `<div class="card iniAhora ok row" style="gap:10px"><span style="font-size:26px">✅</span><div class="grow"><b>Todo en orden</b><div class="sub" style="margin:0">No hay nada urgente por atender.</div></div></div>`;
 }
 /* ============ 3.0.4 · Inicio: cuadro del día y uno por negocio, con 4 cuadritos que ya traen el dato ============ */
@@ -14359,6 +14650,7 @@ function inicioCortes(vis) {
       <div class="iCorteMet g"><span>Retiro <b>${v(f.retiro)}</b></span><span>Diferencia <b style="color:${Math.abs(f.dif) < 0.5 ? 'var(--ok)' : f.dif < 0 ? 'var(--err)' : 'var(--ok)'}">${Math.abs(f.dif) < 0.5 ? '✓ cuadró' : money(f.dif)}</b></span></div></div>`).join('')}</div>`;
 }
 /* ---------- 2.68.1 · PRIMEROS PASOS (dueño) ---------- */
+const PASOS_ESENC = ['datos', 'abrir', 'menu']; // 3.5.8: sin esto no se puede vender
 function pasosLista(n) {
   const p = n.pasos || {}, c = n.cajaD || {}, caja = n.caja;
   const ir = (v, extra) => `tabEntrar('${n.id}','${v}')${extra ? '.then(()=>{' + extra + '})' : ''}`;
@@ -17839,8 +18131,9 @@ function numPidele() { return (S.conf && (S.conf.whatsappPidele || S.conf.soport
 function vNuevaClave() {
   html(`<div class="entrar"><div class="marca"><div class="marcaTxt" style="font-size:40px">Pídele</div>${marcaPueblo()}</div>
     <div class="card"><h2 style="margin-top:0">Crea tu nueva contraseña</h2>
-      <div class="muted small">Entraste con una contraseña temporal. Escribe una nueva para proteger tu cuenta.</div>
-      <label class="f">Contraseña temporal</label><input class="i" id="ncAct" type="password" inputmode="numeric" value="${esc(S._claveTemp || '')}">
+      ${S._claveTemp ? `<div class="muted small">✅ Confirmamos tu número. Paso 3: escribe tu nueva contraseña.</div><input type="hidden" id="ncAct" value="${esc(S._claveTemp)}">` // 3.5.8
+      : `<div class="muted small">Entraste con una contraseña temporal. Escribe una nueva para proteger tu cuenta.</div>
+      <label class="f">Contraseña temporal</label><input class="i" id="ncAct" type="password" inputmode="numeric" value="">`}
       <label class="f">Nueva contraseña (mínimo 6)</label><input class="i" id="ncNue" type="password" autocomplete="new-password">
       <div class="btns"><button class="btn pri pill full" onclick="act(this,guardarNuevaClave)">Guardar y entrar</button></div></div></div>`);
 }
@@ -17873,36 +18166,44 @@ async function olvideRevisar() {
   olvideCodigo(tel, c);
 }
 function olvideCodigo(tel, c) {
-  const msj = 'PIDELE CLAVE ' + c.codigo + '\nAl enviar este mensaje, ' + c.codigo + ' queda como tu contraseña temporal. Regresa a Pídele y entra con ella.';
+  // 3.5.8: 3 pasos sin mostrar el código (se activa solo al llegar el mensaje)
+  const msj = 'PIDELE CLAVE ' + c.codigo + '\nAl enviar este mensaje confirmo que este es mi número y quiero cambiar mi contraseña de Pídele.';
+  S._olv = { tel, codigo: c.codigo, ini: 0 };
   modal(`<div class="row between"><h2 style="margin:0">🔑 Recupera tu contraseña</h2><button class="redondo" onclick="olvideParar();cerrarModal()" aria-label="Cerrar">✕</button></div>
-    <ol class="muted" style="padding-left:20px;margin:10px 0">
-      <li>Envía el mensaje por WhatsApp <b>desde tu número ${esc(c.mascara || '')}</b>, sin cambiarlo.</li>
-      <li>Regresa aquí: tu contraseña temporal será <b style="font-size:20px;letter-spacing:2px;color:var(--tx)">${esc(c.codigo)}</b></li>
-    </ol>
-    <a class="btn pri pill full" href="${waLink(c.whatsapp, msj)}" target="_blank" onclick="olvideEsperar('${tel}','${c.codigo}')">${ico('chat', 's')} Enviar por WhatsApp</a>
-    <div id="olvEstado" class="small muted" style="text-align:center;margin-top:10px"></div>
-    <div class="btns" style="flex-direction:column;gap:6px;margin-top:6px">
-      <button class="btn full" onclick="olvideParar();cerrarModal();const t=$('#lTel');if(t)t.value='${tel}';const p=$('#lPass');if(p){p.value='${c.codigo}';p.focus()}">Ya lo envié, entrar con ${esc(c.codigo)}</button>
-      <button class="lnk small" onclick="olvideParar();olvideClaveAyuda('${tel}')">¿No puedes? Pedir ayuda</button></div>`);
+    <p class="muted" style="margin:6px 0 10px">Son 3 pasos, sin códigos que copiar:</p>
+    <div class="olvPaso" id="olvP1"><span>1</span><div><b>Manda este mensaje por WhatsApp</b><div class="small muted">Desde tu número ${esc(c.mascara || '')}, tal como aparece. Así confirmamos que es tuyo.</div></div></div>
+    <a class="btn pri pill full" style="margin:4px 0 10px" href="${waLink(c.whatsapp, msj)}" target="_blank" onclick="olvideEsperar()">${ico('chat', 's')} Enviar por WhatsApp</a>
+    <div class="olvPaso" id="olvP2"><span>2</span><div><b>Regresa aquí y espera unos 10 segundos</b><div class="small muted" id="olvEstado">Lo revisamos solos.</div></div></div>
+    <div class="olvPaso" id="olvP3"><span>3</span><div><b>Escribe tu nueva contraseña</b><div class="small muted">Te la pedimos en cuanto confirmemos tu número.</div></div></div>
+    <div id="olvAyuda" style="display:none;margin-top:8px;text-align:center"><button class="lnk small" onclick="olvideParar();olvideClaveAyuda('${tel}')">¿No avanza? Pedir ayuda</button></div>`);
 }
-function olvideParar() { clearInterval(S._olvT); S._olvT = null; }
-function olvideEsperar(tel, codigo) {
+function olvideParar() { clearInterval(S._olvT); S._olvT = null; document.removeEventListener('visibilitychange', olvideRevisarYa); }
+function olvideEsperar() {
   olvideParar();
-  const e = $('#olvEstado'); if (e) e.innerHTML = '⏳ Esperando tu mensaje… regresa a Pídele después de enviarlo.';
-  let n = 0;
-  S._olvT = setInterval(async () => {
-    if (++n > 120 || !$('#olvEstado')) { olvideParar(); return; } // ~8 min
-    let r; try { r = await api('claveRecuperarEstado', { telefono: tel, codigo }); } catch (x) { return; }
-    if (r.vencido) { olvideParar(); const e2 = $('#olvEstado'); if (e2) e2.innerHTML = 'El código venció. Ciérralo y pide uno nuevo.'; return; }
+  const O = S._olv; if (!O) return; O.ini = Date.now(); O.n = 0;
+  const p2 = $('#olvP2'); if (p2) p2.classList.add('act');
+  const e = $('#olvEstado'); if (e) e.innerHTML = '⏳ Esperando tu mensaje…';
+  S._olvT = setInterval(olvideRevisarYa, 4000);
+  document.addEventListener('visibilitychange', olvideRevisarYa); // al regresar de WhatsApp se revisa de inmediato
+}
+async function olvideRevisarYa() {
+  const O = S._olv; if (!O || !O.ini || O.ocupado || document.hidden) return;
+  if (!$('#olvEstado')) { olvideParar(); return; }
+  if (Date.now() - O.ini > 8 * 60e3) { olvideParar(); const e = $('#olvEstado'); if (e) e.innerHTML = 'Se acabó el tiempo. Cierra y vuelve a intentarlo.'; return; }
+  if (Date.now() - O.ini > 60e3) { const a = $('#olvAyuda'); if (a) a.style.display = ''; }
+  O.ocupado = true;
+  try {
+    const r = await api('claveRecuperarEstado', { telefono: O.tel, codigo: O.codigo });
+    if (r.vencido) { olvideParar(); const e2 = $('#olvEstado'); if (e2) e2.innerHTML = 'El tiempo venció. Cierra y vuelve a intentarlo.'; return; }
     if (!r.listo) return;
     olvideParar();
-    try {
-      const d = await api('login', { telefono: tel, pass: codigo, aparato: aparatoId() });
-      cerrarModal(); toast('✅ Listo, crea tu nueva contraseña');
-      if (d.usuario.cambiarPass) S._claveTemp = codigo;
-      guardarSesion(d);
-    } catch (x) { const e3 = $('#olvEstado'); if (e3) e3.innerHTML = '✅ Activada. Entra con tu teléfono y la contraseña <b>' + esc(codigo) + '</b>.'; }
-  }, 4000);
+    const e = $('#olvEstado'); if (e) e.innerHTML = '✅ Listo, es tu número';
+    const p3 = $('#olvP3'); if (p3) p3.classList.add('act');
+    const d = await api('login', { telefono: O.tel, pass: O.codigo, aparato: aparatoId() });
+    cerrarModal(); toast('✅ Confirmado. Escribe tu nueva contraseña');
+    if (d.usuario.cambiarPass) S._claveTemp = O.codigo;
+    S._olv = null; guardarSesion(d);
+  } catch (x) { } finally { if (S._olv) S._olv.ocupado = false; }
 }
 function olvideClaveAyuda(tel) {
   const n = numPidele(), sop = (S.conf && S.conf.soporteWhatsApp) || '';
@@ -19665,7 +19966,17 @@ async function guardarNegocio() {
     efectivo: $('#nEfe').checked, envioEnTransfer: $('#nEnvTr').checked, logoImagen: S._logo || undefined, qrImagen: S._qr || undefined, portadaImagen: S._portada || undefined,
     ...datosEnvios()
   });
-  fijarNeg(n); toast('Datos guardados ✓'); pintar(true);
+  fijarNeg(n);
+  if (n.altaAuto) { // 3.5.8: se activó solo al marcar su ubicación
+    S._refNeg = false; await refrescarSesionNeg(true);
+    modal(`<div style="text-align:center"><div style="font-size:48px">🎉</div><h2 style="margin:6px 0">¡${esc(n.nombre)} ya está activo!</h2>
+      <p class="muted">Desde hoy corren tus <b>${(S.conf && S.conf.diasPrueba) || 15} días de prueba</b>. Completa tu menú y tu horario, y ábrelo cuando estés listo.</p>
+      <p class="small muted">Puedes registrar tu tarjeta en Mi mensualidad: no se cobra nada hasta que termine tu prueba.</p>
+      <button class="btn pri pill full" onclick="cerrarModal();ir('tablero')">Ver lo que me falta</button></div>`);
+    return;
+  }
+  if (n.fueraZona) { modal(`<h2 style="margin:0 0 6px">📍 Ubicación fuera de la zona</h2><p class="muted">Guardamos tus datos, pero la ubicación de tu negocio queda fuera de ${esc((S.conf && S.conf.pueblo) || 'esta ciudad')}. Revisa que el punto esté bien marcado; si es correcto, escríbenos y lo revisamos.</p><button class="btn pri pill full" onclick="cerrarModal()">Entendido</button>`); pintar(true); return; }
+  toast('Datos guardados ✓'); pintar(true);
 }
 function datosEnvios() {
   leerEnvios();
@@ -20085,10 +20396,11 @@ async function vAdmin() {
       <div class="kpi" style="cursor:pointer" onclick="${d.local ? '' : 'act(null,verPromosAdmin)'}"><b>${d.promosActivas || 0}</b><span>🏷️ Promociones activas${d.local ? '' : ' · revisar'}</span></div>
       <div class="kpi" style="cursor:pointer${d.verificaciones ? ';border:2px solid var(--warn)' : ''}" onclick="act(null,verVerificaciones)"><b>${d.verificaciones || 0}</b><span>📱 Verificaciones pendientes</span></div>
       <div class="kpi" style="cursor:pointer${d.alertas ? ';border:2px solid var(--err)' : ''}" onclick="act(null,verAlertas)"><b>${d.alertas || 0}</b><span>⚠️ Alertas de cuentas</span></div></div>
-    ${(d.sucursales || []).length ? `<div class="card" style="border:2px solid var(--warn)"><b>🏪 Negocios nuevos por aprobar (${d.sucursales.length})</b>
+    ${(d.sucursales || []).length ? `<div class="card" style="border:2px solid var(--warn)"><b>🏪 Negocios sin activar (${d.sucursales.length})</b><div class="muted small">Se activan solos al marcar su ubicación dentro del municipio. Puedes activarlos tú si hace falta.</div>
       ${d.sucursales.map(n => `<div style="padding:8px 0;border-top:1px solid var(--ln);margin-top:8px"><b>${esc(n.nombre)}</b> <span class="muted small">${esc(n.categoria)} · ${PLAN_ICO[n.plan] || ''} ${esc(nombrePlan(n.plan))}</span>
         <div class="muted small">De ${esc(n.dueno)} · ${esc(n.telefono)}${n.otros.length ? ' · ya tiene: ' + n.otros.map(esc).join(', ') : ''}</div>
-        <div class="btns" style="margin-top:6px"><button class="btn sm pri" onclick="act(this,()=>estadoSucursal('${n.id}','activo'))">Aprobar</button><button class="btn sm err" onclick="act(this,()=>estadoSucursal('${n.id}','rechazado'))">Rechazar</button></div></div>`).join('')}</div>` : ''}
+        <div class="small" style="margin-top:2px">${n.ubic === 'fuera' ? '⚠️ Su ubicación está fuera del municipio' : n.ubic === 'sin' ? '📍 Aún no marca su ubicación' : '📍 Ubicación dentro del municipio'}</div>
+        <div class="btns" style="margin-top:6px"><button class="btn sm pri" onclick="act(this,()=>estadoSucursal('${n.id}','activo'))">Activar</button><button class="btn sm err" onclick="act(this,()=>estadoSucursal('${n.id}','rechazado'))">Rechazar</button></div></div>`).join('')}</div>` : ''}
     ${nt.configuradas ? `<div class="card muted">🔔 ${nt.dispositivos} teléfono(s) con notificaciones activas</div>` : ''}
     <div class="card muted">👥 ${d.usuarios.compradores} clientes · ${d.usuarios.negocios} negocios · ${d.usuarios.repartidores} repartidores · ${d.usuarios.bloqueados} bloqueados</div>
     ${d.local ? '' : `<div class="card row between" style="cursor:pointer" onclick="ir('adminComisiones')"><div><b>🏙️ Administrador de ciudad y soporte</b><div class="muted small">Administrador de ${esc(d.pueblo || PUEBLO.nombre)} con comisión, amonestaciones y pagos; y tu cuenta de soporte general</div></div><span class="lnk small">Abrir ›</span></div>`}
